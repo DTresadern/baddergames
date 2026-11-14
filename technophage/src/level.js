@@ -499,6 +499,13 @@ export class Level {
     return true;
   }
 
+  // Visible damage stage of a breakable block: 0 (intact) to 3 (nearly destroyed)
+  breakStage(tx, ty) {
+    if (this.get(tx, ty) !== T.BREAK) return -1;
+    const f = this.hp[ty * this.w + tx] / 60;
+    return f > 0.75 ? 0 : f > 0.5 ? 1 : f > 0.25 ? 2 : 3;
+  }
+
   // Damage a breakable block. Returns true when it is destroyed.
   damageTile(tx, ty, dmg) {
     if (this.get(tx, ty) !== T.BREAK) return false;

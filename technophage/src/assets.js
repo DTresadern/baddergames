@@ -1,6 +1,6 @@
 // Loads assets/manifest.json and its images. Builds white silhouettes for hit flashes.
 
-export const assets = { sprites: {}, white: {}, bg: {}, manifest: null };
+export const assets = { sprites: {}, white: {}, bg: {}, manifest: null, anims: {}, points: {} };
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -30,6 +30,16 @@ export async function loadAssets(onProgress) {
   const jobs = [];
   for (const [k, v] of Object.entries(m.sprites)) jobs.push(['s', k, v.src]);
   for (const [k, v] of Object.entries(m.bg)) jobs.push(['b', k, v.src]);
+  // Art production pass (tools/build-production-art.py); optional
+  try {
+    const pp = await (await fetch('assets/pp/production.json')).json();
+    for (const [k, v] of Object.entries(pp.sprites)) jobs.push(['s', k, v.src]);
+    for (const [k, v] of Object.entries(pp.bg)) jobs.push(['b', k, v.src]);
+    assets.anims = pp.anims || {};
+    assets.points = pp.points || {};
+  } catch {
+    /* not built: placeholder art only */
+  }
   let done = 0;
   await Promise.all(
     jobs.map(async ([kind, key, src]) => {

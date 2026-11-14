@@ -46,7 +46,7 @@ export class Renderer {
     this.art = new LevelArt(world.level, world.zone);
     this.mid = makeMidStrip(world.zone, world.seed);
     const bgKeys = world.zone.bg;
-    this.bg = assets.bg[bgKeys[world.seed % bgKeys.length]];
+    this.bg = assets.bg['pp_' + world.zone.key] || assets.bg[bgKeys[world.seed % bgKeys.length]];
     this.particles = [];
     this.beams = [];
     this.flashes = [];
@@ -186,6 +186,10 @@ export class Renderer {
           this.audio.play('debris', ev[1], ev[2]);
           break;
         case 'tile': this.art.refresh(ev[1], ev[2]); break;
+        case 'tdmg':
+          this.art.refresh(ev[1], ev[2]);
+          this.burst(ev[1] * TILE + TILE / 2, ev[2] * TILE + TILE / 2, 6, this.world.zone.tiles.light, 160, { life: 0.6, grav: 1000, size: 2 });
+          break;
         case 'crate': {
           const c = world.crates[ev[1]];
           if (c) {
@@ -437,8 +441,22 @@ export class Renderer {
       ctx.fillStyle = '#222';
       ctx.fillRect(l.x - 1, l.y - 40, 2, 34);
     }
+    const cpImg = assets.sprites.checkpoint;
     for (const c of L.checkpoints) {
       const active = w.checkpoint.x === c.x && w.checkpoint.y === c.y;
+      if (cpImg) {
+        const x = Math.round(c.x - cpImg.width / 2), y = Math.round(c.y - cpImg.height);
+        ctx.drawImage(cpImg, x, y);
+        const sc = assets.points.checkpoint_screen;
+        if (sc && active) {
+          // active: screen turns green
+          ctx.fillStyle = '#39ff8a';
+          ctx.globalAlpha = 0.65 + Math.sin(t * 4) * 0.2;
+          ctx.fillRect(x + sc[0], y + sc[1], sc[2], sc[3]);
+          ctx.globalAlpha = 1;
+        }
+        continue;
+      }
       ctx.fillStyle = '#1b1d20';
       ctx.fillRect(c.x - 12, c.y - 40, 24, 40);
       ctx.fillStyle = '#2c3036';
@@ -452,6 +470,18 @@ export class Renderer {
     }
     if (L.exit) {
       const e = L.exit;
+      const lift = assets.sprites.exit_lift;
+      if (lift) {
+        // deck overlaps the floor so hunters stand on it
+        const x = Math.round(e.x + e.w / 2 - lift.width / 2), y = Math.round(e.y + e.h - lift.height + 10);
+        ctx.drawImage(lift, x, y);
+        const ll = assets.points.lift_light;
+        if (ll && w.arena === 'done') {
+          ctx.fillStyle = '#39ff8a';
+          ctx.fillRect(x + ll[0], y + ll[1] - 1, ll[2], ll[3] + 2);
+        }
+        return;
+      }
       const door = assets.sprites.door;
       if (door) ctx.drawImage(door, Math.round(e.x + e.w / 2 - door.width / 2), Math.round(e.y + e.h - door.height));
       const ready = w.arena === 'done';
@@ -526,6 +556,12 @@ export class Renderer {
     for (const k of w.pickups) {
       const bob = Math.sin(t * 3 + k.id) * 2;
       const x = Math.round(k.x + k.w / 2), y = Math.round(k.y + k.h / 2 + bob);
+      const ppKey = k.kind === 'ammo' ? 'pickup_ammo_' + k.item : k.kind === 'cloak' ? 'pickup_camo' : 'pickup_' + k.kind;
+      const pimg = assets.sprites[ppKey];
+      if (pimg) {
+        ctx.drawImage(pimg, x - Math.round(pimg.width / 2), y - Math.round(pimg.height / 2));
+        continue;
+      }
       if (k.kind === 'weapon') {
         const img = assets.sprites[WEAPONS[k.item]?.sprite];
         if (img) ctx.drawImage(img, x - img.width / 2, y - img.height / 2);
@@ -569,12 +605,15 @@ export class Renderer {
     let ox = 0, oy = 0, rot = 0, sxs = 1, sys = 1, shear = 0;
     const moving = Math.abs(e.vx || 0) > 15 || (this.world.role === 'guest' && Math.abs((e.rx ?? 0) - (e.px ?? 0)) > 0.5);
     const tt = this.time + e.id;
+    const walk = assets.anims[d.sprite + '_walk']; // authored walk cycle, when available
     switch (d.ai) {
       case 'walker':
       case 'stalker':
       case 'charger':
       case 'gunner':
-        if (moving) {
+        if (walk) {
+          /* frames carry the motion */
+        } else if (moving) {
           shear = Math.sin(tt * (d.speed > 150 ? 18 : 9)) * 0.1;
           oy = -Math.abs(Math.sin(tt * (d.speed > 150 ? 18 : 9))) * 2;
         } else sys = 1 + Math.sin(tt * 2.5) * 0.015;
@@ -611,14 +650,27 @@ export class Renderer {
     if (rot) ctx.rotate(rot);
     if (shear) ctx.transform(1, 0, shear, 1, 0, 0);
     ctx.scale(flip * sxs, sys);
-    const dx = -img.width / 2, dy = centred ? -img.height / 2 : e.state === 'cocoon' ? -img.height + 6 : -img.height + 4;
-    if (e.state === 'cocoon') ctx.filter = 'brightness(0.5) sepia(0.6)';
-    ctx.drawImage(img, dx, dy);
-    ctx.filter = 'none';
-    if (e.flash > 0) {
-      ctx.globalAlpha = 0.8;
-      ctx.drawImage(assets.white[d.sprite], dx, dy);
-      ctx.globalAlpha = 1;
+    if (walk) {
+      // frame strip: frame 0 standing, cycling while moving
+      const strip = assets.sprites[walk.sprite];
+      const f = moving ? Math.floor(tt * walk.fps) % walk.frames : 0;
+      const fx = f * walk.w, dx = -walk.w / 2, dy = -walk.h + 4;
+      ctx.drawImage(strip, fx, 0, walk.w, walk.h, dx, dy, walk.w, walk.h);
+      if (e.flash > 0) {
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(assets.white[walk.sprite], fx, 0, walk.w, walk.h, dx, dy, walk.w, walk.h);
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      const dx = -img.width / 2, dy = centred ? -img.height / 2 : e.state === 'cocoon' ? -img.height + 6 : -img.height + 4;
+      if (e.state === 'cocoon') ctx.filter = 'brightness(0.5) sepia(0.6)';
+      ctx.drawImage(img, dx, dy);
+      ctx.filter = 'none';
+      if (e.flash > 0) {
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(assets.white[d.sprite], dx, dy);
+        ctx.globalAlpha = 1;
+      }
     }
     ctx.restore();
     if (e.state === 'cocoon') {
@@ -676,12 +728,20 @@ export class Renderer {
     const bob = moving ? -Math.abs(Math.sin(ph)) * 2 : 0;
     const lower = assets.sprites[`hunter_${tag}_lower`];
     const upper = assets.sprites[`hunter_${tag}_upper`];
-    // legs
+    // legs: authored run cycle when available, otherwise the skewed placeholder
+    const run = assets.anims.hunter_run;
+    const runStrip = assets.sprites[`anim_hunter_${tag}_run`];
     ctx.save();
-    if (moving) ctx.transform(1, 0, Math.sin(ph) * 0.14, 1, 0, 0);
-    if (!p.onGround && !p.climbing) ctx.scale(1, 0.95);
-    if (p.climbing) ctx.transform(1, 0, Math.sin(p.y * 0.1) * 0.08, 1, 0, 0);
-    ctx.drawImage(lower, -m.bodyCenterX, -m.frameH + bob);
+    if (run && runStrip && moving && !p.climbing) {
+      let f = Math.floor(p.walk * 1.5) % run.frames;
+      if (p.vx * p.facing < 0) f = run.frames - 1 - f; // backpedalling: play in reverse
+      ctx.drawImage(runStrip, f * run.w, 0, run.w, run.h, -run.w / 2, -run.h, run.w, run.h);
+    } else {
+      if (moving) ctx.transform(1, 0, Math.sin(ph) * 0.14, 1, 0, 0);
+      if (!p.onGround && !p.climbing) ctx.scale(1, 0.95);
+      if (p.climbing) ctx.transform(1, 0, Math.sin(p.y * 0.1) * 0.08, 1, 0, 0);
+      ctx.drawImage(lower, -m.bodyCenterX, -m.frameH + bob);
+    }
     ctx.restore();
     // torso aims independently
     let a = p.facing > 0 ? p.aim : Math.PI - p.aim;
@@ -725,8 +785,37 @@ export class Renderer {
   }
 
   drawProjectiles(ctx, w, emissive) {
+    const SPRITE = { bolt: 'proj_pulse', rail: 'proj_coil', ebolt: 'proj_ebolt', acid: 'proj_acid', mortar: 'proj_mortar', disc: 'proj_disc' };
+    const GLOWS = { bolt: 1, rail: 1, ebolt: 1, acid: 1 };
     for (const pr of w.projectiles) {
       const x = pr.x, y = pr.y;
+      const img = assets.sprites[SPRITE[pr.kind]];
+      if (img) {
+        // Production-pass sprite, nose at the projectile position, pointing along its path.
+        // Drawn normally, then again additively in the emissive pass for glowing shots.
+        if (emissive && !GLOWS[pr.kind]) continue;
+        if (pr.kind === 'rail' && emissive) {
+          // keep the long coil trail
+          const sp = Math.hypot(pr.vx, pr.vy) || 1;
+          const len = Math.min(260, Math.hypot(x - pr.ox, y - pr.oy));
+          ctx.strokeStyle = pr.color;
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.35;
+          ctx.beginPath();
+          ctx.moveTo(x - (pr.vx / sp) * len, y - (pr.vy / sp) * len);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        ctx.save();
+        ctx.translate(Math.round(x), Math.round(y));
+        if (pr.kind === 'disc') ctx.scale(pr.vx < 0 ? -1 : 1, 1);
+        else ctx.rotate(Math.atan2(pr.vy, pr.vx));
+        if (emissive) ctx.globalAlpha = 0.55;
+        ctx.drawImage(img, -img.width + 3, -Math.round(img.height / 2));
+        ctx.restore();
+        continue;
+      }
       switch (pr.kind) {
         case 'bolt':
         case 'ebolt': {

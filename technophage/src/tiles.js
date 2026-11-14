@@ -3,6 +3,7 @@
 
 import { TILE, T, VIEW_H } from './config.js';
 import { makeRng } from './util.js';
+import { assets } from './assets.js';
 
 const SEG = 512; // static level canvas segment width in pixels
 
@@ -109,7 +110,11 @@ export class LevelArt {
       return v === T.SOLID || v === T.BREAK;
     };
     if (t === T.SOLID) this.solid(g, rng, tx, ty, solid);
-    else if (t === T.BREAK) this.breakable(g, rng);
+    else if (t === T.BREAK) {
+      const img = assets.sprites['breakable_' + L.breakStage(tx, ty)];
+      if (img) g.drawImage(img, 0, 0, TILE, TILE);
+      else this.breakable(g, rng);
+    }
     else if (t === T.PLATFORM) this.platform(g, rng, L.get(tx - 1, ty) === T.PLATFORM, L.get(tx + 1, ty) === T.PLATFORM);
     else if (t === T.LADDER) this.ladder(g);
     else if (t === T.HAZARD) this.hazard(g, rng);

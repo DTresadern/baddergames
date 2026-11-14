@@ -196,6 +196,7 @@ The game is static files: no build step and no game server. It lives in the `tec
 | Task | Command or URL |
 | --- | --- |
 | Rebuild assets after changing art | `python3 tools/build-assets.py # run in technophage/` |
+| Rebuild assets from the art production pass | `python3 tools/build-production-art.py # in technophage/; reads generated-art/production-pass/, writes assets/pp/` |
 | Bot plays all five zones, solo | `node tools/simtest.mjs 1 3 # in technophage/: 1 player, 3 seeds per zone` |
 | Bot plays all five zones, two players | `node tools/simtest.mjs 2 1` |
 | Bot test for one zone, with boss-fight trace | `node tools/simtest.mjs 2 1 --zone 2 --trace` |
@@ -217,7 +218,7 @@ The game is static files: no build step and no game server. It lives in the `tec
 - Room codes are 6 characters from 32 symbols (about 1 billion combinations). A stranger who guesses a live code could join.
 - Enemy shots are checked against where the host last saw the guest, so on a slow connection the guest can be hit by a shot that appeared to miss.
 - No touch controls. No save between browser sessions.
-- Hunter animation is procedural on a single static pose; enemies too. Animated sprite sheets are the main art task for production. The requests for the art session are in [`docs/animation-handover.md`](docs/animation-handover.md) and [`docs/programmer-art-handover.md`](docs/programmer-art-handover.md).
+- The hunter's run cycle and the mech walk cycles are authored frames (art production pass); every other movement is still procedural on a single static pose. Animated sprite sheets are the main art task for production. The requests for the art session are in [`docs/animation-handover.md`](docs/animation-handover.md) and [`docs/programmer-art-handover.md`](docs/programmer-art-handover.md).
 
 ## Project materials
 

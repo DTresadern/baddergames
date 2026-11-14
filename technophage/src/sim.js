@@ -366,9 +366,14 @@ export class World {
   // ---- host-side combat ---------------------------------------------------
 
   damageTile(tx, ty, dmg) {
-    if (this.level.damageTile(tx, ty, dmg)) {
+    const L = this.level;
+    const before = L.breakStage(tx, ty);
+    if (L.damageTile(tx, ty, dmg)) {
       this.emit(['tile', tx, ty]);
       this.emit(['debris', tx * TILE + TILE / 2, ty * TILE + TILE / 2]);
+    } else if (L.breakStage(tx, ty) !== before) {
+      // visible damage stage changed: redraw it here and on the guest
+      this.emit(['tdmg', tx, ty, Math.round(L.hp[ty * L.w + tx])]);
     }
   }
 
@@ -972,6 +977,12 @@ export class World {
         this.level.set(num(ev[1], 0, 9999), num(ev[2], 0, 99), T.EMPTY);
         this.events.push(ev);
         return;
+      case 'tdmg': {
+        const tx = num(ev[1], 0, 9999), ty = num(ev[2], 0, 99);
+        if (this.level.get(tx, ty) === T.BREAK) this.level.hp[ty * this.level.w + tx] = num(ev[3], 1, 60);
+        this.events.push(ev);
+        return;
+      }
       case 'crate': {
         const c = this.crates[num(ev[1], 0, 9999)];
         if (c) c.alive = false;
