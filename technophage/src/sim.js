@@ -8,7 +8,7 @@
 // is acceptable). The host owns health, life state, power-up timers, enemies,
 // pickups and level state.
 
-import { TILE, T, PLAYER, WEAPONS, AMMO, DISC, POWERUP_TIME, ZONES, DT } from './config.js';
+import { TILE, T, PLAYER, WEAPONS, AMMO, DISC, POWERUP_TIME, ZONES, DT, TUNING } from './config.js';
 import { Level } from './level.js';
 import { ENEMIES, makeEnemy, updateEnemy } from './enemies.js';
 import { makeRng, clamp, aabb, num } from './util.js';
@@ -133,8 +133,9 @@ export class World {
   spawnEnemy(type, x, y, opts = {}) {
     // Burrowing worms need solid ground under them (not a catwalk, not mid-air)
     if (ENEMIES[type].ai === 'worm') while (y < this.level.pxH && !this.level.solidAt(x, y + 1)) y += TILE;
-    const coop = 1 + 0.6 * (this.playerCount - 1);
-    const scale = (1 + 0.15 * this.zoneIndex + 0.5 * this.loop) * coop;
+    const boss = ENEMIES[type].boss;
+    const coop = 1 + (boss ? TUNING.bossCoopScale : 0.6) * (this.playerCount - 1);
+    const scale = (1 + 0.15 * this.zoneIndex + 0.5 * this.loop) * coop * (boss ? TUNING.bossHp : TUNING.enemyHp);
     const e = makeEnemy(this.nextId++, type, x, y, scale, this.rng);
     if (opts.parent) e.parent = opts.parent;
     if (opts.child) e.parent = opts.child;
@@ -598,12 +599,11 @@ export class World {
       this.wipeT += dt;
       if (this.wipeT > 2.5) {
         this.wipeT = 0;
-        this.msg('SIGNAL LOST — RECONSTITUTING AT CHECKPOINT', 3);
-        if (this.arena === 'fight') this.resetArena();
+        // In a boss fight the boss keeps its damage and the hunters regroup at the arena entrance
+        this.msg(this.arena === 'fight' ? 'SIGNAL LOST — REGROUPING AT ARENA ENTRANCE' : 'SIGNAL LOST — RECONSTITUTING AT CHECKPOINT', 3);
         for (const p of this.players) if (p) this.respawnPlayer(p, false);
       }
     } else this.wipeT = 0;
-    if (this.playerCount === 1 && this.arena === 'fight' && this.players.find(Boolean).state === 'dead') this.resetArena();
 
     this.updatePickups(dt);
     this.updateArena();
@@ -612,7 +612,8 @@ export class World {
   respawnPlayer(p, keepState) {
     // Respawn next to a living partner when possible, otherwise at the checkpoint
     const partner = this.players.find((q) => q && q !== p && q.state === 'alive' && q.onGround);
-    const at = partner && this.arena !== 'fight' ? { x: partner.x + partner.w / 2, y: partner.y + partner.h } : this.checkpoint;
+    const arenaEntry = { x: this.level.arenaStartX + TILE * 3.5, y: (this.level.h - 3) * TILE };
+    const at = this.arena === 'fight' ? arenaEntry : partner ? { x: partner.x + partner.w / 2, y: partner.y + partner.h } : this.checkpoint;
     p.x = at.x - p.w / 2;
     p.y = at.y - p.h - 2;
     p.tx = p.x;
@@ -680,7 +681,7 @@ export class World {
   updateArena() {
     const L = this.level;
     if (this.arena === 'idle' && L.arenaX) {
-      const inside = this.players.filter((p) => p && p.state === 'alive' && p.x > L.arenaX);
+      const inside = this.players.filter((p) => p && p.state === 'alive' && p.x > L.arenaX && p.x < L.arenaEndX);
       if (inside.length) {
         this.arena = 'fight';
         L.gateClosed = true;
@@ -715,16 +716,6 @@ export class World {
         this.emit(['zoneclear']);
       }
     }
-  }
-
-  resetArena() {
-    this.arena = 'idle';
-    this.level.gateClosed = false;
-    this.emit(['gate', 0]);
-    for (const e of this.enemies) if (e.id === this.bossId || e.parent === this.bossId) e.dead = true;
-    this.enemies = this.enemies.filter((e) => !e.dead);
-    this.bossId = 0;
-    this.emit(['boss', '', '']);
   }
 
   // ---- projectiles (both roles) ------------------------------------------

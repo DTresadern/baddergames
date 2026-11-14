@@ -55,6 +55,11 @@ const S = {
   transition: null,
   carry: null,
   padAim: [0, 0],
+  // Online: every level the host builds gets a new id. Guest reports carry the id of the
+  // level they were made in, and the host ignores reports from a level it has left (stale
+  // positions from the previous level used to trigger the next level's boss arena).
+  levelId: 0,
+  lobby: null, // host or guest lobby state before the game starts
 };
 
 function seed() {
@@ -93,13 +98,26 @@ async function startHost() {
     S.mode = 'host';
     S.room = await hostRoom(onGuestLink, (s) => renderer.message('NET: ' + s, 3));
     S.code = S.room.code;
-    startWorld({ role: 'host', zoneIndex: 0, seed: seed(), playerData: [newPlayerData(0, myName())], localIdx: [0] });
-    enterGame();
-    renderer.message(`ROOM ${S.code} — WAITING FOR PARTNER`, 8);
+    S.lobby = { role: 'host', guest: null, ready: false };
+    showLobby();
+    setStatus('');
   } catch (e) {
     S.mode = null;
     setStatus('Could not open a room: ' + e.message, true);
   }
+}
+
+// Host presses START in the lobby
+function hostStartGame() {
+  const data = [newPlayerData(0, myName())];
+  if (S.link && S.lobby && S.lobby.guest) data.push(newPlayerData(1, S.lobby.guest));
+  S.lobby = null;
+  S.levelId++;
+  const w = startWorld({ role: 'host', zoneIndex: 0, seed: seed(), playerData: data, localIdx: [0] });
+  if (S.link && w.players[1]) S.link.send(welcomeMsg(w));
+  hideLobby();
+  enterGame();
+  if (!w.players[1]) renderer.message(`ROOM ${S.code} — YOUR PARTNER CAN STILL JOIN`, 6);
 }
 
 async function startJoin() {
@@ -118,13 +136,23 @@ async function startJoin() {
       if (!welcomed) endSession('Host did not respond.');
     }, 8000);
     link.onmessage = (m) => {
-      if (m.t === 'welcome') {
+      if (m.t === 'lobby') {
         welcomed = true;
         clearTimeout(timer);
+        S.lobby = { role: 'guest', host: cleanName(m.host), guest: cleanName(m.guest), ready: !!(S.lobby && S.lobby.ready) };
+        showLobby();
+        setStatus('');
+      } else if (m.t === 'welcome') {
+        welcomed = true;
+        clearTimeout(timer);
+        S.lobby = null;
+        hideLobby();
         guestBuild(m);
         enterGame();
       } else if (m.t === 'full') endSession('Room is full.');
       else if (m.t === 'err') endSession(String(m.m || 'Rejected by host').slice(0, 80));
+      else if (m.t === 'bye') endSession('Host left the game.');
+      else if (m.t === 'ping') link.send({ t: 'pong', c: m.c });
       else if (S.world) guestMessage(m);
     };
     link.send({ t: 'hello', v: PROTOCOL, name: myName(), carry: S.carry });
@@ -161,7 +189,10 @@ function endSession(reason) {
   S.room = null;
   S.world = null;
   S.mode = null;
+  S.lobby = null;
   S.pending = [];
+  S.transition = null;
+  hideLobby();
   audio.stopAmbient();
   $('pause').classList.add('hidden');
   $('interlude').classList.add('hidden');
@@ -173,7 +204,7 @@ function endSession(reason) {
 // Host side networking
 
 function onGuestLink(link) {
-  if (S.link || !S.world) {
+  if (S.link || (!S.world && !S.lobby)) {
     link.send({ t: 'full' });
     setTimeout(() => link.close(), 200);
     return;
@@ -181,25 +212,39 @@ function onGuestLink(link) {
   link.onmessage = (m) => {
     if (m.t === 'hello') {
       if (m.v !== PROTOCOL) {
-        link.send({ t: 'err', m: 'Game version mismatch. Both players should reload.' });
+        link.send({ t: 'err', m: 'Game version mismatch. Both players should reload the page.' });
         return;
       }
       if (S.link) return;
       S.link = link;
-      const w = S.world;
-      const name = cleanName(m.name);
-      const p0 = w.players[0];
-      const data = newPlayerData(1, name === p0.name ? name.slice(0, 10) + '-2' : name);
-      w.players[1] = makePlayer(data, p0.x + p0.w / 2 - 30, p0.y + p0.h, false);
-      link.send(welcomeMsg(w));
-      renderer.message(`${data.name} JOINED`, 3);
+      const hostName = myName();
+      let name = cleanName(m.name);
+      if (name === hostName) name = name.slice(0, 10) + '-2';
       audio.play('revive');
+      if (S.lobby) {
+        // Waiting in the lobby: the host starts when ready
+        S.lobby.guest = name;
+        S.lobby.ready = false;
+        link.send({ t: 'lobby', host: hostName, guest: name });
+        showLobby();
+      } else {
+        // Game already running: drop in next to the host
+        const w = S.world;
+        const p0 = w.players[0];
+        w.players[1] = makePlayer(newPlayerData(1, name), p0.x + p0.w / 2 - 30, p0.y + p0.h, false);
+        link.send(welcomeMsg(w));
+        renderer.message(`${name} JOINED`, 3);
+      }
     } else if (S.link === link) hostMessage(m);
   };
   link.onclose = () => {
     if (S.link !== link) return;
     S.link = null;
-    if (S.world && S.world.players[1]) {
+    if (S.lobby) {
+      S.lobby.guest = null;
+      S.lobby.ready = false;
+      showLobby();
+    } else if (S.world && S.world.players[1]) {
       renderer.message(`${S.world.players[1].name} DISCONNECTED`, 4);
       S.world.players[1] = undefined;
       S.world.players.length = 1;
@@ -210,6 +255,7 @@ function onGuestLink(link) {
 function welcomeMsg(w) {
   return {
     t: 'welcome',
+    lv: S.levelId,
     zone: w.zoneIndex,
     seed: w.seed,
     loop: w.loop,
@@ -224,13 +270,19 @@ function welcomeMsg(w) {
 
 function hostMessage(m) {
   const w = S.world;
-  if (!w) return;
+  if (!w && m.t !== 'ready' && m.t !== 'ping' && m.t !== 'pong' && m.t !== 'bye') return;
   switch (m.t) {
     case 'st':
-      w.applyGuestState(1, m);
+      if (m.lv === S.levelId) w.applyGuestState(1, m);
       break;
     case 'fire':
-      if (Array.isArray(m.f)) for (const f of m.f.slice(0, 20)) w.applyGuestFire(1, ['fire', ...f]);
+      if (m.lv === S.levelId && Array.isArray(m.f)) for (const f of m.f.slice(0, 20)) w.applyGuestFire(1, ['fire', ...f]);
+      break;
+    case 'ready':
+      if (S.lobby) {
+        S.lobby.ready = !!m.r;
+        showLobby();
+      }
       break;
     case 'ping':
       S.link.send({ t: 'pong', c: m.c });
@@ -248,6 +300,7 @@ function hostMessage(m) {
 // Guest side networking
 
 function guestBuild(m) {
+  S.levelId = num(m.lv, 0, 1e9);
   const zone = num(m.zone, 0, ZONES.length - 1);
   const players = Array.isArray(m.players) ? m.players : [];
   const mine = S.carry || players[1];
@@ -327,6 +380,7 @@ function hostZoneClear() {
 function hostNextZone(tr) {
   const local = S.mode === 'local' ? [0, 1] : [0];
   // Restore each hunter to full health between zones; inventory carries over
+  S.levelId++;
   const w = startWorld({ role: 'host', zoneIndex: tr.zone, seed: seed(), loop: tr.loop, playerData: tr.carry.map((c) => c || undefined), localIdx: local });
   if (S.link) {
     const msg = welcomeMsg(w);
@@ -412,13 +466,13 @@ function tick() {
     w.guestInterpolate(DT);
     if (S.link) {
       if (w.outbox.length) {
-        S.link.send({ t: 'fire', f: w.outbox.map((f) => f.slice(1)) });
+        S.link.send({ t: 'fire', lv: S.levelId, f: w.outbox.map((f) => f.slice(1)) });
         w.outbox.length = 0;
       }
       if (w.tick % SNAPSHOT_EVERY === 0) {
         const p = w.players[1];
         S.link.send({
-          t: 'st', x: Math.round(p.x), y: Math.round(p.y), vx: Math.round(p.vx), vy: Math.round(p.vy), a: Math.round(p.aim * 1000), f: p.facing,
+          t: 'st', lv: S.levelId, x: Math.round(p.x), y: Math.round(p.y), vx: Math.round(p.vx), vy: Math.round(p.vy), a: Math.round(p.aim * 1000), f: p.facing,
           fl: (p.onGround ? 1 : 0) | (p.climbing ? 2 : 0) | (p.firing > 0 ? 4 : 0) | (p.dashT > 0 ? 8 : 0), w: p.weapon,
           am: [p.ammo.coil, p.ammo.fuel, p.ammo.cell, p.ammo.disc], ow: (p.owned[1] ? 2 : 0) | (p.owned[2] ? 4 : 0) | (p.owned[3] ? 8 : 0),
         });
@@ -531,6 +585,77 @@ function netText() {
 // ---------------------------------------------------------------------------
 // UI wiring
 
+// ---------------------------------------------------------------------------
+// Lobby (online games wait here until the host presses START)
+
+function inviteLink() {
+  const u = new URL(location.href);
+  u.search = '';
+  u.searchParams.set('room', S.code);
+  return u.toString();
+}
+
+function showLobby() {
+  const L = S.lobby;
+  if (!L) return;
+  $('menu').classList.add('hidden');
+  $('lobby').classList.remove('hidden');
+  $('lobby-code').textContent = S.code;
+  const list = $('lobby-players');
+  list.textContent = '';
+  const row = (name, tag, cls) => {
+    const li = document.createElement('li');
+    const n = document.createElement('span');
+    n.textContent = name;
+    const t = document.createElement('span');
+    t.textContent = tag;
+    t.className = cls || '';
+    li.append(n, t);
+    list.appendChild(li);
+  };
+  if (L.role === 'host') {
+    row(myName(), 'HOST', 'tag-host');
+    if (L.guest) row(L.guest, L.ready ? 'READY' : 'NOT READY', L.ready ? 'tag-ready' : 'tag-wait');
+    else row('Waiting for partner…', '', 'tag-wait');
+    $('lobby-note').textContent = L.guest
+      ? 'Press START when you are both ready.'
+      : 'Share the code or link. You can also start now; your partner can join a running game.';
+    $('btn-start').classList.remove('hidden');
+    $('btn-ready').classList.add('hidden');
+    $('btn-start').textContent = L.guest ? 'START' : 'START WITHOUT PARTNER';
+  } else {
+    row(L.host, 'HOST', 'tag-host');
+    row(L.guest, L.ready ? 'READY' : 'NOT READY', L.ready ? 'tag-ready' : 'tag-wait');
+    $('lobby-note').textContent = `Waiting for ${L.host} to start the game.`;
+    $('btn-start').classList.add('hidden');
+    $('btn-ready').classList.remove('hidden');
+    $('btn-ready').textContent = L.ready ? 'NOT READY' : 'READY';
+  }
+}
+
+function hideLobby() {
+  $('lobby').classList.add('hidden');
+}
+
+function guestToggleReady() {
+  if (!S.lobby || S.lobby.role !== 'guest' || !S.link) return;
+  S.lobby.ready = !S.lobby.ready;
+  S.link.send({ t: 'ready', r: S.lobby.ready });
+  showLobby();
+}
+
+async function copyInvite() {
+  const text = inviteLink();
+  try {
+    await navigator.clipboard.writeText(text);
+    $('btn-copy').textContent = 'COPIED';
+  } catch {
+    $('btn-copy').textContent = 'COPY FAILED';
+    window.prompt('Copy this link', text);
+  }
+  setTimeout(() => ($('btn-copy').textContent = 'COPY INVITE LINK'), 2000);
+}
+
 // Control settings, mirrored between the main menu and the pause menu
 function applyControls(scheme, toggle, save = true) {
   input.mouseOnly = scheme === 'mouse';
@@ -601,6 +726,13 @@ async function boot() {
   wire('btn-join', startJoin);
   wire('btn-controls', () => $('controls').classList.toggle('hidden'));
   wire('btn-resume', togglePause);
+  wire('btn-start', hostStartGame);
+  wire('btn-ready', guestToggleReady);
+  wire('btn-copy', copyInvite);
+  wire('btn-leave', () => {
+    if (S.link) S.link.send({ t: 'bye' });
+    endSession('');
+  });
   wire('btn-quit', () => {
     if (S.link) S.link.send({ t: 'bye' });
     endSession('');

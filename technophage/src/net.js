@@ -17,6 +17,7 @@ const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
 const PREFIX = 'technophage-v1-';
 const MAX_IN = { host: 16 * 1024, guest: 256 * 1024 }; // bytes per message accepted
 const MAX_RATE = 200; // messages per second accepted from a peer
+const SEND_LAG = Math.min(2000, Number(new URLSearchParams(location.search).get('lag')) || 0);
 
 export function makeCode() {
   const a = new Uint32Array(6);
@@ -48,11 +49,17 @@ class Link {
     if (this.closed) return;
     const s = JSON.stringify(obj);
     this.bytesOut += s.length;
-    try {
-      this.sendRaw(s);
-    } catch (e) {
-      console.warn('send failed', e);
-    }
+    const go = () => {
+      if (this.closed) return;
+      try {
+        this.sendRaw(s);
+      } catch (e) {
+        console.warn('send failed', e);
+      }
+    };
+    // ?lag=ms delays everything this client sends (for testing on one machine)
+    if (SEND_LAG > 0) setTimeout(go, SEND_LAG);
+    else go();
   }
 
   receive(data) {

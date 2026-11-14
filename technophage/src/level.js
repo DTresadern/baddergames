@@ -403,7 +403,10 @@ export class Level {
     pieces.forEach((rows, pi) => {
       this.pieces.push({ k: order[pi], x0: ox, w: rows[0].length });
       const isArena = order[pi] === 'arena';
-      if (isArena) this.arenaStartX = ox * TILE;
+      if (isArena) {
+        this.arenaStartX = ox * TILE;
+        this.arenaEndX = (ox + rows[0].length) * TILE;
+      }
       for (let y = 0; y < ROWS; y++) {
         const row = rows[y];
         for (let x = 0; x < row.length; x++) {

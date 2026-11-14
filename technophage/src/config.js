@@ -6,7 +6,13 @@ export const TILE = 32;
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
 export const SNAPSHOT_EVERY = 2; // host sends a snapshot every N ticks (30 per second)
-export const PROTOCOL = 1;
+export const PROTOCOL = 2; // bump when the network messages change; mismatched clients are refused
+// Playtest tuning: multiply health without editing every enemy definition
+export const TUNING = {
+  bossHp: 1,
+  enemyHp: 1,
+  bossCoopScale: 0.35, // extra boss health per additional player (enemies use 0.6)
+};
 export const INTERP_DELAY = 0.1; // guests draw remote things this far in the past
 
 // Tile ids

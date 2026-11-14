@@ -7,6 +7,33 @@ export class Audio {
     this.listener = { x: 0, y: 0 };
     this.last = {};
     this.ambient = null;
+    this.samples = {}; // slot name -> { buffer: [AudioBuffer...], gain, pitch }
+    this.sampleDefs = null;
+  }
+
+  // Load assets/sfx/sfx.json and decode its files. Called once the AudioContext exists.
+  async loadSamples() {
+    if (!this.ctx || this.sampleDefs) return;
+    this.sampleDefs = {};
+    let defs;
+    try {
+      defs = await (await fetch('assets/sfx/sfx.json')).json();
+    } catch {
+      return; // no samples: synthesised sounds only
+    }
+    this.sampleDefs = defs;
+    await Promise.all(
+      Object.entries(defs.slots || {}).map(async ([slot, d]) => {
+        try {
+          const buffers = await Promise.all(
+            d.files.map(async (f) => this.ctx.decodeAudioData(await (await fetch('assets/sfx/' + f)).arrayBuffer())),
+          );
+          this.samples[slot] = { buffer: buffers, gain: d.gain, pitch: d.pitch };
+        } catch (e) {
+          console.warn('sound sample failed to load:', slot, e);
+        }
+      }),
+    );
   }
 
   // Must be called from a user gesture
@@ -40,6 +67,7 @@ export class Audio {
     const vg = this.ctx.createGain();
     vg.gain.value = 0.22;
     this.verb.connect(vg).connect(this.master);
+    this.loadSamples();
   }
 
   setVolume(v) {
@@ -110,6 +138,19 @@ export class Audio {
     this.last[name] = now;
     const { node: o, vol } = this.out(x, y);
     if (vol <= 0.01) return;
+    // A recorded sample for this slot (assets/sfx/) replaces the synthesised sound
+    const smp = this.samples[name];
+    if (smp && smp.buffer) {
+      const variants = smp.buffer;
+      const src = this.ctx.createBufferSource();
+      src.buffer = variants[Math.floor(Math.random() * variants.length)];
+      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * (smp.pitch || 0);
+      const g = this.ctx.createGain();
+      g.gain.value = smp.gain ?? 1;
+      src.connect(g).connect(o);
+      src.start();
+      return;
+    }
     const r = () => 0.9 + Math.random() * 0.2;
     switch (name) {
       case 'pulse':

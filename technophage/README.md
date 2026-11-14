@@ -87,7 +87,7 @@ These were chosen for the first playable version. Each one is a starting point, 
 | Weapons | Pulse carbine (unlimited), coil rifle (piercing rail), incinerator (flame stream), plasma cutter (short beam that also cuts breakable walls), disc charges (bouncing grenade). Ammo pickups per type |
 | Power-ups | Optic camo (enemies ignore you for 10 s), overdrive (speed and fire rate for 10 s), medkits |
 | Structure | Five zones in descent order: upper megacity, lower megacity, underbelly, caverns, infested depths. Each zone is built from hand-made level chunks in a seeded order, ends in a locked boss arena and an exit lift that every living hunter must board. Clearing all five starts a harder cycle |
-| Co-op rules | A downed hunter bleeds out over 18 s; standing next to them revives. A hunter who bleeds out respawns 4 s later beside their partner (or at the checkpoint during a boss fight). If both are down, both return to the last checkpoint. Enemy health scales ×1.6 with two players. Enemies target the nearest visible hunter |
+| Co-op rules | A downed hunter bleeds out over 18 s; standing next to them revives. In a boss fight, if every hunter is down, all respawn at the arena entrance and the boss keeps the damage already done. A hunter who bleeds out respawns 4 s later beside their partner (or at the checkpoint during a boss fight). If both are down, both return to the last checkpoint. Enemy health scales ×1.6 with two players. Enemies target the nearest visible hunter |
 | Progression | Weapons, ammo, kills and score carry between zones. Health resets each zone |
 | Lighting | Ambient darkness per zone with additive lights: lamps, shoulder lamps that follow the aim, muzzle flashes, projectiles, explosions, drone searchlights, glowing liquids |
 
@@ -134,7 +134,7 @@ Choose the control scheme in the main menu or the pause menu. *Mouse / touchpad 
 
 The keyboard keeps working in mouse-only mode. *Click toggles firing* works in either scheme.
 
-**Online co-op:** one player presses *Host online co-op* and reads out the 6-character room code shown at the bottom of the screen. The other enters it and presses *Join*. A partner can join at any point in a run. A link with `?room=CODE` fills the code in.
+**Online co-op:** one player presses *Host online co-op*. A lobby opens with a 6-character room code and a *Copy invite link* button. The partner enters the code (or opens the link) and presses *Join*; they appear in the lobby and can mark themselves *Ready*. The host presses *Start* when both are ready. The host can also start alone; a partner can still join a running game.
 
 ## Running and deploying
 
@@ -202,7 +202,10 @@ The game is static files: no build step and no game server. It lives in the `tec
 | Check every level chunk can be crossed and has no dead ends (real movement physics, no teleporting) | `node tools/reachability.mjs strict # walking, full jumps and ladders only` |
 | Same check on full generated levels | `node tools/reachability.mjs full 6 strict # 6 seeds per zone` |
 | Start solo in a given zone | `http://localhost:8000/technophage/?autostart=solo&zone=3` |
-| Online co-op in two tabs without a network | open `?net=local&autostart=host`, then `?net=local&room=CODE&autostart=join` in a second tab |
+| Online co-op in two tabs without a network | open `?net=local&autostart=host`, then `?net=local&room=CODE&autostart=join` in a second tab, then press *Start* in the first |
+| Simulate network delay | add `&lag=150` to a tab's URL: everything that tab sends is delayed by 150 ms |
+| Rebuild sound effects from the sound packs | `python3 tools/build-sounds.py # in technophage/; picks are listed in the script` |
+| Playtest balance | `TUNING` in `src/config.js`: boss and enemy health multipliers |
 
 `simtest.mjs` keeps the bot alive and nudges it past obstacles, so it checks that the simulation raises no errors and that bosses can be beaten, not that levels can be traversed. `reachability.mjs` checks traversal: run it after editing level chunks in `src/level.js`; both modes must print `ALL PASSABLE, NO TRAPS`.
 

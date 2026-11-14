@@ -36,26 +36,26 @@ export const ENEMIES = {
 
   // Bosses: larger sprites, extra attack patterns (see boss flags in AI below)
   drone_boss: {
-    sprite: 'drone_boss', w: 150, h: 80, hp: 1100, speed: 120, ai: 'flyer', melee: 16, sense: 2000, mechanical: true, score: 1000, boss: true, name: 'SPIRE GUNSHIP',
+    sprite: 'drone_boss', w: 150, h: 80, hp: 550, speed: 120, ai: 'flyer', melee: 16, sense: 2000, mechanical: true, score: 1000, boss: true, name: 'SPIRE GUNSHIP',
     shot: { kind: 'ebolt', dmg: 10, speed: 520, burst: 5, gap: 0.08, cool: 1.3, spread: 0.3, color: '#ff3355', muzzle: [60, 20] },
     searchlight: true, summon: 'swarm', summonEvery: 7,
   },
   mech_boss: {
-    sprite: 'mech_boss', w: 200, h: 250, hp: 1700, speed: 45, ai: 'gunner', melee: 30, sense: 2000, mechanical: true, score: 1500, boss: true, armor: 0.3, name: 'ENFORCEMENT CHASSIS',
+    sprite: 'mech_boss', w: 200, h: 250, hp: 800, speed: 45, ai: 'gunner', melee: 30, sense: 2000, mechanical: true, score: 1500, boss: true, armor: 0.15, name: 'ENFORCEMENT CHASSIS',
     shot: { kind: 'ebolt', dmg: 7, speed: 680, burst: 16, gap: 0.05, cool: 1.8, spread: 0.18, color: '#ffb030', muzzle: [128, 118] },
     mortar: { every: 4.5, count: 3 }, keep: 380,
   },
   worm_boss: {
-    sprite: 'worm_boss', w: 200, h: 112, hp: 1500, speed: 200, ai: 'worm', melee: 26, sense: 2000, blood: '#8a1c1c', score: 1500, boss: true, name: 'SUMP LEVIATHAN',
+    sprite: 'worm_boss', w: 200, h: 112, hp: 700, speed: 200, ai: 'worm', melee: 26, sense: 2000, blood: '#8a1c1c', score: 1500, boss: true, name: 'SUMP LEVIATHAN',
     shot: { kind: 'acid', dmg: 13, speed: 470, cool: 0.22, color: '#d6ff6a' },
   },
   insectoid_boss: {
-    sprite: 'insectoid_boss', w: 170, h: 130, hp: 1700, speed: 130, ai: 'charger', melee: 32, sense: 2000, blood: '#9a3a0c', score: 1800, boss: true, armor: 0.25, name: 'BROOD MATRIARCH',
+    sprite: 'insectoid_boss', w: 170, h: 130, hp: 800, speed: 130, ai: 'charger', melee: 32, sense: 2000, blood: '#9a3a0c', score: 1800, boss: true, armor: 0.25, name: 'BROOD MATRIARCH',
     summon: 'rat', summonEvery: 5,
     shot: { kind: 'acid', dmg: 12, speed: 460, cool: 2.4, color: '#c7ff3a' },
   },
   burster_boss: {
-    sprite: 'burster_boss', w: 250, h: 210, hp: 2400, speed: 0, ai: 'spawner', melee: 30, sense: 2000, blood: '#a8121a', score: 2500, boss: true, name: 'HIVE HEART',
+    sprite: 'burster_boss', w: 250, h: 210, hp: 1100, speed: 0, ai: 'spawner', melee: 30, sense: 2000, blood: '#a8121a', score: 2500, boss: true, name: 'HIVE HEART',
     children: ['stalker', 'swarm', 'rat'], spawnEvery: 2.6, maxChildren: 6,
     shot: { kind: 'acid', dmg: 12, speed: 440, cool: 2.2, color: '#5ff3ff', fan: 7 },
   },
