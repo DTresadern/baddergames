@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/enemies/12-sewer-worm.png",
+  "image_sha256": "c91b290412d34ae6f9f4bb95931e2a8bd11b76fbea8ee0fe7cbbb1b47d14e83e",
+  "dimensions": [
+    1774,
+    887
+  ],
+  "format": "PNG",
+  "created_at": null,
+  "generator": "image_gen.imagegen (built-in)",
+  "prompt": "Use case: stylized-concept. Game art for Technophage, an original co-op side-scrolling action shooter. Study the user-supplied references for side-on readability, industrial architecture and grim science-fiction creature mood. Upgrade vintage 1990s PC and 32-bit pixel-art sensibility into richly detailed, atmospheric, coherent high-fidelity pixel-styled game art: deliberate visible pixel clusters, restrained colour ramps, gritty material texture, strong silhouettes and practical level readability. Original designs, no recognizable licensed characters. Subject: One sewer worm enemy emerging in a curled full-body side silhouette, ringed wet skin, teeth-lined circular maw, scar tissue and gritty industrial debris embedded in its body. One standalone isolated full object or character with generous margins and transparent background. No labels, words, UI, frame or extra characters.",
+  "prompt_status": "exact",
+  "references": [
+    {
+      "path": "art-references/abuse_2.webp",
+      "role": "User-provided visual reference"
+    }
+  ],
+  "subject": "12-sewer-worm",
+  "visual_approach": "Gritty science-fiction retro shooter pixel-style concept art",
+  "generation_settings": {
+    "transparent_background": true,
+    "other_settings": null
+  },
+  "creative_seed": {
+    "value": "f1f93ec808eba84d",
+    "source": "creative_seed.py visual/world science-fiction; concept provocation",
+    "used_for_generation": false,
+    "note": "The generator does not expose a seed parameter."
+  },
+  "revision_of": null,
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Pink segmented worm with ringed teeth, rusty hardware and slime.",
+    "composition": "Single isolated side-view concept.",
+    "environment": "Transparent image with potential residual halo.",
+    "colors": "Muted industrial and organic tones with localized colored highlights.",
+    "materials": "Stone, metal, cloth and organic forms as visually depicted.",
+    "lighting": "Atmospheric light with localized bright accents.",
+    "standout_features": "Pink segmented worm with ringed teeth, rusty hardware and slime.",
+    "important_details": "Some red fringe around the form.",
+    "synopsis": "Pink segmented worm with ringed teeth, rusty hardware and slime.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Some red fringe around the form.",
+          "location": "See description",
+          "confidence": "high",
+          "impact": "May require cleanup or reconstruction for game integration."
+        }
+      ],
+      "overall": "Concept art; images need production cleanup, consistent scale and animation where applicable."
+    },
+    "mismatches_or_uncertainties": "Some assets retain broad colored or dark haze in alpha; inspect against the intended background."
+  }
+}

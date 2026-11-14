@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/scenes/01-surface-megacity.png",
+  "image_sha256": "f16d9a5b4c7309458830683d22da5ec6116f5799a87da6a95bc898bc1c6a740c",
+  "dimensions": [
+    2172,
+    724
+  ],
+  "format": "PNG",
+  "created_at": null,
+  "generator": "image_gen.imagegen (built-in)",
+  "prompt": "Use case: stylized-concept. Game art for Technophage, an original co-op side-scrolling action shooter. Study the user-supplied references for side-on readability, industrial architecture and grim science-fiction creature mood. Upgrade vintage 1990s PC and 32-bit pixel-art sensibility into richly detailed, atmospheric, coherent high-fidelity pixel-styled game art: deliberate visible pixel clusters, restrained colour ramps, gritty material texture, strong silhouettes and practical level readability. Original designs, no recognizable licensed characters. Subject: The megacity surface: rain-slick elevated industrial transit bridge, massive tiered buildings and machinery, distant billboards without legible writing, ventilation stacks, cables and an armored human patrol drone. Distinct palette: dirty gunmetal, bruised navy and sodium amber with sparse hazard red. Two small original armored alien hunters cooperate on the platform. Wide horizontal 2D side-view level mockup with multiple readable traversable platforms and spatial depth; clear gameplay sightlines, no UI, no text, no logos, no framing.",
+  "prompt_status": "exact",
+  "references": [
+    {
+      "path": "art-references/abuse_10.webp",
+      "role": "User-provided visual reference"
+    },
+    {
+      "path": "art-references/abuse_11.webp",
+      "role": "User-provided visual reference"
+    }
+  ],
+  "subject": "01-surface-megacity",
+  "visual_approach": "Gritty science-fiction retro shooter pixel-style concept art",
+  "generation_settings": {
+    "transparent_background": false,
+    "other_settings": null
+  },
+  "creative_seed": {
+    "value": "f1f93ec808eba84d",
+    "source": "creative_seed.py visual/world science-fiction; concept provocation",
+    "used_for_generation": false,
+    "note": "The generator does not expose a seed parameter."
+  },
+  "revision_of": null,
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Rainy blue-grey elevated bridge, two armed hunters, city, train and drone; amber and blue lighting.",
+    "composition": "Wide side-view location mockup.",
+    "environment": "Opaque flattened environment.",
+    "colors": "Muted industrial and organic tones with localized colored highlights.",
+    "materials": "Stone, metal, cloth and organic forms as visually depicted.",
+    "lighting": "Atmospheric light with localized bright accents.",
+    "standout_features": "Rainy blue-grey elevated bridge, two armed hunters, city, train and drone; amber and blue lighting.",
+    "important_details": "Action and props are flattened into the scene.",
+    "synopsis": "Rainy blue-grey elevated bridge, two armed hunters, city, train and drone; amber and blue lighting.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Action and props are flattened into the scene.",
+          "location": "See description",
+          "confidence": "high",
+          "impact": "May require cleanup or reconstruction for game integration."
+        }
+      ],
+      "overall": "Concept art; images need production cleanup, consistent scale and animation where applicable."
+    },
+    "mismatches_or_uncertainties": "Some assets retain broad colored or dark haze in alpha; inspect against the intended background."
+  }
+}

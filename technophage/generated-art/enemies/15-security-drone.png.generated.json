@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/enemies/15-security-drone.png",
+  "image_sha256": "4121e7be3d6d5ca39fb7082b7fc65855f6453ef7fdba5c6dd49aac48e924b4f6",
+  "dimensions": [
+    1536,
+    1024
+  ],
+  "format": "PNG",
+  "created_at": null,
+  "generator": "image_gen.imagegen (built-in)",
+  "prompt": "Use case: stylized-concept. Game art for Technophage, an original co-op side-scrolling action shooter. Study the user-supplied references for side-on readability, industrial architecture and grim science-fiction creature mood. Upgrade vintage 1990s PC and 32-bit pixel-art sensibility into richly detailed, atmospheric, coherent high-fidelity pixel-styled game art: deliberate visible pixel clusters, restrained colour ramps, gritty material texture, strong silhouettes and practical level readability. Original designs, no recognizable licensed characters. Subject: One flying megacity security drone enemy, angular armored shell, single amber optic, ducted fans and a small underslung tool turret, three-quarter side view. One standalone isolated full object or character with generous margins and transparent background. No labels, words, UI, frame or extra characters.",
+  "prompt_status": "exact",
+  "references": [
+    {
+      "path": "art-references/abuse_10.webp",
+      "role": "User-provided visual reference"
+    }
+  ],
+  "subject": "15-security-drone",
+  "visual_approach": "Gritty science-fiction retro shooter pixel-style concept art",
+  "generation_settings": {
+    "transparent_background": true,
+    "other_settings": null
+  },
+  "creative_seed": {
+    "value": "f1f93ec808eba84d",
+    "source": "creative_seed.py visual/world science-fiction; concept provocation",
+    "used_for_generation": false,
+    "note": "The generator does not expose a seed parameter."
+  },
+  "revision_of": null,
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Grey flying drone with paired ducted fans, amber optic and claw.",
+    "composition": "Single isolated side-view concept.",
+    "environment": "Transparent image with potential residual halo.",
+    "colors": "Muted industrial and organic tones with localized colored highlights.",
+    "materials": "Stone, metal, cloth and organic forms as visually depicted.",
+    "lighting": "Atmospheric light with localized bright accents.",
+    "standout_features": "Grey flying drone with paired ducted fans, amber optic and claw.",
+    "important_details": "Dark glow remains around the drone.",
+    "synopsis": "Grey flying drone with paired ducted fans, amber optic and claw.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Dark glow remains around the drone.",
+          "location": "See description",
+          "confidence": "high",
+          "impact": "May require cleanup or reconstruction for game integration."
+        }
+      ],
+      "overall": "Concept art; images need production cleanup, consistent scale and animation where applicable."
+    },
+    "mismatches_or_uncertainties": "Some assets retain broad colored or dark haze in alpha; inspect against the intended background."
+  }
+}

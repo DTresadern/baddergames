@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/scenes/02-city-underbelly.png",
+  "image_sha256": "4c959fb27576e25e9cd7c58694bb8e02c9092d2862c73e96e7ebc88f9f484c8f",
+  "dimensions": [
+    1774,
+    887
+  ],
+  "format": "PNG",
+  "created_at": null,
+  "generator": "image_gen.imagegen (built-in)",
+  "prompt": "Use case: stylized-concept. Game art for Technophage, an original co-op side-scrolling action shooter. Study the user-supplied references for side-on readability, industrial architecture and grim science-fiction creature mood. Upgrade vintage 1990s PC and 32-bit pixel-art sensibility into richly detailed, atmospheric, coherent high-fidelity pixel-styled game art: deliberate visible pixel clusters, restrained colour ramps, gritty material texture, strong silhouettes and practical level readability. Original designs, no recognizable licensed characters. Subject: The megacity underbelly: claustrophobic sewer-pumping station with layered pipes, grated walkways, corroded machinery, hazard-stripe accents, filthy water and a ruptured biohazard containment panel. Distinct palette: oxidised teal, black iron, nicotine yellow and warning red. Two small alien hunters confront a creeping fleshy wall-burster. Wide horizontal 2D side-view level mockup with multiple readable traversable platforms and spatial depth; clear gameplay sightlines, no UI, no text, no logos, no framing.",
+  "prompt_status": "exact",
+  "references": [
+    {
+      "path": "art-references/abuse_10.webp",
+      "role": "User-provided visual reference"
+    },
+    {
+      "path": "art-references/abuse_11.webp",
+      "role": "User-provided visual reference"
+    }
+  ],
+  "subject": "02-city-underbelly",
+  "visual_approach": "Gritty science-fiction retro shooter pixel-style concept art",
+  "generation_settings": {
+    "transparent_background": false,
+    "other_settings": null
+  },
+  "creative_seed": {
+    "value": "f1f93ec808eba84d",
+    "source": "creative_seed.py visual/world science-fiction; concept provocation",
+    "used_for_generation": false,
+    "note": "The generator does not expose a seed parameter."
+  },
+  "revision_of": null,
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Teal and rust sewage plant with pipes, two shooters, toothy wall growth, yellow rails and red lamps.",
+    "composition": "Wide side-view location mockup.",
+    "environment": "Opaque flattened environment.",
+    "colors": "Muted industrial and organic tones with localized colored highlights.",
+    "materials": "Stone, metal, cloth and organic forms as visually depicted.",
+    "lighting": "Atmospheric light with localized bright accents.",
+    "standout_features": "Teal and rust sewage plant with pipes, two shooters, toothy wall growth, yellow rails and red lamps.",
+    "important_details": "Foreground growth overlaps some traversable features; scene is flattened.",
+    "synopsis": "Teal and rust sewage plant with pipes, two shooters, toothy wall growth, yellow rails and red lamps.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Foreground growth overlaps some traversable features; scene is flattened.",
+          "location": "See description",
+          "confidence": "medium",
+          "impact": "May require cleanup or reconstruction for game integration."
+        }
+      ],
+      "overall": "Concept art; images need production cleanup, consistent scale and animation where applicable."
+    },
+    "mismatches_or_uncertainties": "Some assets retain broad colored or dark haze in alpha; inspect against the intended background."
+  }
+}

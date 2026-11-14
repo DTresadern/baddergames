@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/enemies/10-insectoid-mutant.png",
+  "image_sha256": "9b78a71f8a0d1848db5e0b7fe7ce581104e994aa6fb6bfe62bf165f6cc3260cc",
+  "dimensions": [
+    1536,
+    1024
+  ],
+  "format": "PNG",
+  "created_at": null,
+  "generator": "image_gen.imagegen (built-in)",
+  "prompt": "Use case: stylized-concept. Game art for Technophage, an original co-op side-scrolling action shooter. Study the user-supplied references for side-on readability, industrial architecture and grim science-fiction creature mood. Upgrade vintage 1990s PC and 32-bit pixel-art sensibility into richly detailed, atmospheric, coherent high-fidelity pixel-styled game art: deliberate visible pixel clusters, restrained colour ramps, gritty material texture, strong silhouettes and practical level readability. Original designs, no recognizable licensed characters. Subject: One cavern insectoid mutant enemy, broad beetle-like armored back, elongated jointed legs and bioluminescent fungal growth, side-facing in a stalking pose, original creature design. One standalone isolated full object or character with generous margins and transparent background. No labels, words, UI, frame or extra characters.",
+  "prompt_status": "exact",
+  "references": [
+    {
+      "path": "art-references/abuse_2.webp",
+      "role": "User-provided visual reference"
+    }
+  ],
+  "subject": "10-insectoid-mutant",
+  "visual_approach": "Gritty science-fiction retro shooter pixel-style concept art",
+  "generation_settings": {
+    "transparent_background": true,
+    "other_settings": null
+  },
+  "creative_seed": {
+    "value": "f1f93ec808eba84d",
+    "source": "creative_seed.py visual/world science-fiction; concept provocation",
+    "used_for_generation": false,
+    "note": "The generator does not expose a seed parameter."
+  },
+  "revision_of": null,
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Red chitin quadruped with claws, curled tail and orange fungi.",
+    "composition": "Single isolated side-view concept.",
+    "environment": "Transparent image with potential residual halo.",
+    "colors": "Muted industrial and organic tones with localized colored highlights.",
+    "materials": "Stone, metal, cloth and organic forms as visually depicted.",
+    "lighting": "Atmospheric light with localized bright accents.",
+    "standout_features": "Red chitin quadruped with claws, curled tail and orange fungi.",
+    "important_details": "Colored halo remains around the creature.",
+    "synopsis": "Red chitin quadruped with claws, curled tail and orange fungi.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Colored halo remains around the creature.",
+          "location": "See description",
+          "confidence": "high",
+          "impact": "May require cleanup or reconstruction for game integration."
+        }
+      ],
+      "overall": "Concept art; images need production cleanup, consistent scale and animation where applicable."
+    },
+    "mismatches_or_uncertainties": "Some assets retain broad colored or dark haze in alpha; inspect against the intended background."
+  }
+}

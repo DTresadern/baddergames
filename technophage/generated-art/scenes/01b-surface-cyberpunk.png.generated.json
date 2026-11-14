@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/scenes/01b-surface-cyberpunk.png",
+  "image_sha256": "8d6787b7ba00217c11e5832b9f92d538a07a0115c42d329e39fffcb4722a0df9",
+  "dimensions": [
+    1920,
+    819
+  ],
+  "format": "PNG",
+  "created_at": null,
+  "generator": "image_gen.imagegen (built-in)",
+  "prompt": "Use case: stylized-concept. Game art for Technophage, an original online co-op side-scrolling shooter. Use supplied Abuse screenshot only for vintage side-view gameplay composition and industrial texture, not UI. The high megacity surface: intensely layered cyberpunk megastructure skyline, stacked transit lanes, rain-slick rooftop gantries, luminous cyan and magenta signage without legible writing, polluted haze and amber industrial lighting. Two small original armored alien hunters move through a side-scrolling shooter platform, patrol drones nearby. Palette black steel, petrol blue, dirty cyan and neon magenta with sodium amber. Wide horizontal 2D side-view game level mockup, layered spatial depth with clear traversable platforms, nostalgic high-fidelity 32-bit pixel-style art, deliberate crisp pixel clusters, gritty retro-futurist materials and cinematic atmospheric light, no user interface, no text, no logos, no recognizable licensed characters.",
+  "prompt_status": "exact",
+  "references": [
+    {
+      "path": "art-references/abuse_10.webp",
+      "role": "User-provided visual reference"
+    }
+  ],
+  "subject": "01b-surface-cyberpunk",
+  "visual_approach": "Gritty science-fiction retro shooter pixel-style concept art",
+  "generation_settings": {
+    "transparent_background": false,
+    "other_settings": null
+  },
+  "creative_seed": {
+    "value": "f1f93ec808eba84d",
+    "source": "creative_seed.py visual/world science-fiction; concept provocation",
+    "used_for_generation": false,
+    "note": "The generator does not expose a seed parameter."
+  },
+  "revision_of": null,
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Rainy elevated neon city with two armed alien hunters, drones, carcasses, cyan and magenta signs and amber windows.",
+    "composition": "Wide side-view location mockup.",
+    "environment": "Opaque flattened environment.",
+    "colors": "Muted industrial and organic tones with localized colored highlights.",
+    "materials": "Stone, metal, cloth and organic forms as visually depicted.",
+    "lighting": "Atmospheric light with localized bright accents.",
+    "standout_features": "Rainy elevated neon city with two armed alien hunters, drones, carcasses, cyan and magenta signs and amber windows.",
+    "important_details": "Some signs have unreadable pseudo-text; characters and scenery are flattened.",
+    "synopsis": "Rainy elevated neon city with two armed alien hunters, drones, carcasses, cyan and magenta signs and amber windows.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Some signs have unreadable pseudo-text; characters and scenery are flattened.",
+          "location": "See description",
+          "confidence": "high",
+          "impact": "May require cleanup or reconstruction for game integration."
+        }
+      ],
+      "overall": "Concept art; images need production cleanup, consistent scale and animation where applicable."
+    },
+    "mismatches_or_uncertainties": "Some assets retain broad colored or dark haze in alpha; inspect against the intended background."
+  }
+}

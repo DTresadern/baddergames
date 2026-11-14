@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/scenes/03b-bio-terror-caverns.png",
+  "image_sha256": "79bd569b6d94a3ba32c794d22c91d649ec2fbc5895e7556a03716bf15f5fe8cf",
+  "dimensions": [
+    2172,
+    724
+  ],
+  "format": "PNG",
+  "created_at": null,
+  "generator": "image_gen.imagegen (built-in)",
+  "prompt": "Use case: stylized-concept. Game art for Technophage, an original online co-op side-scrolling shooter. Use supplied Abuse screenshot only for vintage side-view gameplay composition and industrial texture, not UI. A dark natural cavern transformed by bio-terror: wet stone, twisted alien root networks, translucent fungal sacs, bone-like growth, decaying industrial excavator remains and an insectoid horror lurking behind a traversable ledge. Two small original armored alien hunters cautiously descend. Palette near-black slate, bruised violet, dead flesh, toxic fungal green and sparse cold cyan. Wide horizontal 2D side-view game level mockup, layered spatial depth with clear traversable platforms, nostalgic high-fidelity 32-bit pixel-style art, deliberate crisp pixel clusters, gritty retro-futurist materials and cinematic atmospheric light, no user interface, no text, no logos, no recognizable licensed characters.",
+  "prompt_status": "exact",
+  "references": [
+    {
+      "path": "art-references/abuse_10.webp",
+      "role": "User-provided visual reference"
+    }
+  ],
+  "subject": "03b-bio-terror-caverns",
+  "visual_approach": "Gritty science-fiction retro shooter pixel-style concept art",
+  "generation_settings": {
+    "transparent_background": false,
+    "other_settings": null
+  },
+  "creative_seed": {
+    "value": "f1f93ec808eba84d",
+    "source": "creative_seed.py visual/world science-fiction; concept provocation",
+    "used_for_generation": false,
+    "note": "The generator does not expose a seed parameter."
+  },
+  "revision_of": null,
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Dark cavern with two armored figures, purple webbing, green sacs, bones, excavator and insectoid.",
+    "composition": "Wide side-view location mockup.",
+    "environment": "Opaque flattened environment.",
+    "colors": "Muted industrial and organic tones with localized colored highlights.",
+    "materials": "Stone, metal, cloth and organic forms as visually depicted.",
+    "lighting": "Atmospheric light with localized bright accents.",
+    "standout_features": "Dark cavern with two armored figures, purple webbing, green sacs, bones, excavator and insectoid.",
+    "important_details": "Organic foreground overlaps some traversal surfaces; scene is flattened.",
+    "synopsis": "Dark cavern with two armored figures, purple webbing, green sacs, bones, excavator and insectoid.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Organic foreground overlaps some traversal surfaces; scene is flattened.",
+          "location": "See description",
+          "confidence": "medium",
+          "impact": "May require cleanup or reconstruction for game integration."
+        }
+      ],
+      "overall": "Concept art; images need production cleanup, consistent scale and animation where applicable."
+    },
+    "mismatches_or_uncertainties": "Some assets retain broad colored or dark haze in alpha; inspect against the intended background."
+  }
+}

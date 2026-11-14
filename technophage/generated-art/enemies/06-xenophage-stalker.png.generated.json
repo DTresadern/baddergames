@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/enemies/06-xenophage-stalker.png",
+  "image_sha256": "6e2ca1cdc940e776599cf3b95df27838019768e4b5d3256b7d99a851c0545d9a",
+  "dimensions": [
+    1536,
+    1024
+  ],
+  "format": "PNG",
+  "created_at": null,
+  "generator": "image_gen.imagegen (built-in)",
+  "prompt": "Use case: stylized-concept. Game art for Technophage, an original co-op side-scrolling action shooter. Study the user-supplied references for side-on readability, industrial architecture and grim science-fiction creature mood. Upgrade vintage 1990s PC and 32-bit pixel-art sensibility into richly detailed, atmospheric, coherent high-fidelity pixel-styled game art: deliberate visible pixel clusters, restrained colour ramps, gritty material texture, strong silhouettes and practical level readability. Original designs, no recognizable licensed characters. Subject: One original xenophage stalker enemy: long-limbed chitinous alien with a narrow ridged head, hooked forelimbs and muscular tail, crouched left-facing predatory pose. Distinct original form, not a copy of any existing film creature. One standalone isolated full object or character with generous margins and transparent background. No labels, words, UI, frame or extra characters.",
+  "prompt_status": "exact",
+  "references": [
+    {
+      "path": "art-references/abuse_2.webp",
+      "role": "User-provided visual reference"
+    }
+  ],
+  "subject": "06-xenophage-stalker",
+  "visual_approach": "Gritty science-fiction retro shooter pixel-style concept art",
+  "generation_settings": {
+    "transparent_background": true,
+    "other_settings": null
+  },
+  "creative_seed": {
+    "value": "f1f93ec808eba84d",
+    "source": "creative_seed.py visual/world science-fiction; concept provocation",
+    "used_for_generation": false,
+    "note": "The generator does not expose a seed parameter."
+  },
+  "revision_of": null,
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Crimson chitinous predator with teeth, ribbed torso and curled tail.",
+    "composition": "Single isolated side-view concept.",
+    "environment": "Transparent image with potential residual halo.",
+    "colors": "Muted industrial and organic tones with localized colored highlights.",
+    "materials": "Stone, metal, cloth and organic forms as visually depicted.",
+    "lighting": "Atmospheric light with localized bright accents.",
+    "standout_features": "Crimson chitinous predator with teeth, ribbed torso and curled tail.",
+    "important_details": "Red glow remains around the creature.",
+    "synopsis": "Crimson chitinous predator with teeth, ribbed torso and curled tail.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Red glow remains around the creature.",
+          "location": "See description",
+          "confidence": "high",
+          "impact": "May require cleanup or reconstruction for game integration."
+        }
+      ],
+      "overall": "Concept art; images need production cleanup, consistent scale and animation where applicable."
+    },
+    "mismatches_or_uncertainties": "Some assets retain broad colored or dark haze in alpha; inspect against the intended background."
+  }
+}
