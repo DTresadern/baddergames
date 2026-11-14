@@ -36,6 +36,8 @@ jobs:
           cd technophage
           cp -r index.html style.css peer-config.js src assets vendor ../_site/technophage/
           cd ..
+          # build stamp shown on the game's main menu
+          echo "{\"commit\":\"${GITHUB_SHA::7}\",\"built\":\"$(date -u +%Y-%m-%dT%H:%MZ)\"}" > _site/technophage/version.json
           find _site -type f | sort
 
       - uses: actions/configure-pages@v6

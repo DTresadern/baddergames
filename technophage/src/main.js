@@ -1,6 +1,6 @@
 // Boot, menus, fixed-timestep loop and online co-op glue.
 
-import { VIEW_W, VIEW_H, DT, SNAPSHOT_EVERY, PROTOCOL, ZONES, WEAPONS } from './config.js';
+import { VIEW_W, VIEW_H, DT, SNAPSHOT_EVERY, PROTOCOL, ZONES, WEAPONS, VERSION } from './config.js';
 import { loadAssets } from './assets.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
@@ -690,8 +690,26 @@ function togglePause() {
   $('pause-code').textContent = S.code ? `Room code: ${S.code}` : '';
 }
 
+// Version label: VERSION from config.js, plus commit and build date when the deploy
+// workflow has written version.json (a local server has none).
+async function showVersion() {
+  const el = $('version');
+  el.textContent = `v${VERSION} · local build`;
+  try {
+    const r = await fetch('version.json', { cache: 'no-store' });
+    if (!r.ok) return;
+    const v = await r.json();
+    const commit = String(v.commit || '').replace(/[^0-9a-f]/gi, '').slice(0, 7);
+    const built = String(v.built || '').replace(/[^0-9TZ:-]/g, '').slice(0, 10);
+    el.textContent = `v${VERSION} · ${commit}${built ? ' · ' + built : ''}`;
+  } catch {
+    /* keep the local label */
+  }
+}
+
 async function boot() {
   fit();
+  showVersion();
   addEventListener('resize', fit);
   $('name').value = store.get('name', 'HUNTER');
   $('code').value = store.get('lastCode', '');
@@ -762,5 +780,5 @@ async function boot() {
 }
 
 // Exposed for debugging in the browser console
-window.TECHNOPHAGE = { S, renderer, input, WEAPONS };
+window.TECHNOPHAGE = { S, renderer, input, audio, WEAPONS };
 boot();

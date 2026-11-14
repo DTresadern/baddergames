@@ -57,3 +57,4 @@ select:focus { outline: 1px solid var(--amber); }
 .tag-host { color: var(--amber); }
 .tag-ready { color: #39ff8a; }
 .tag-wait { color: var(--dim); }
+.version { position: absolute; right: 12px; bottom: 8px; margin: 0; font-size: 11px; color: var(--dim); }

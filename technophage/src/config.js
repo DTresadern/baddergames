@@ -6,6 +6,8 @@ export const TILE = 32;
 export const TICK_RATE = 60;
 export const DT = 1 / TICK_RATE;
 export const SNAPSHOT_EVERY = 2; // host sends a snapshot every N ticks (30 per second)
+// Game version shown on the main menu. Bump on each release: major.minor.patch
+export const VERSION = '0.4.0';
 export const PROTOCOL = 2; // bump when the network messages change; mismatched clients are refused
 // Playtest tuning: multiply health without editing every enemy definition
 export const TUNING = {

@@ -171,7 +171,7 @@ The game is static files: no build step and no game server. It lives in the `tec
 | Simulation | Fixed 60 ticks per second (`src/sim.js`, `src/enemies.js`, `src/level.js`). No DOM access, so it also runs in Node for tests |
 | Networking | PeerJS 1.5.5 (WebRTC data channel, reliable, raw strings), self-hosted in `vendor/`. The host's browser runs enemies, damage, pickups and level state and sends a snapshot 30 times a second. Each player's own browser simulates their own movement, aim and weapons, so local controls respond instantly. Shots are sent as "weapon, origin, angle, seed" and simulated identically on both sides; only damage is decided by the host |
 | Network safety | Messages over 16 KB (guest to host) are dropped, more than 200 messages a second are dropped, every received number is clamped, names are filtered to `A–Z 0–9 _ . ' -` (max 12) and shown with `textContent`. Guest shots are rate-limited per weapon and must start near the guest's reported position |
-| Audio | Synthesised with Web Audio, positional panning, a shared reverb, per-zone ambient drones and rain. Low-health heartbeat as in *Abuse* |
+| Audio | Recorded effects in `assets/sfx/` (weapons, impacts, creatures, interface), cut and normalised from the sound packs by `tools/build-sounds.py`; the picks and trims are listed in that script. Slots without a recording (flame, beam, jump, gate, clink, heartbeat, ambience) are synthesised with Web Audio. Positional panning, a shared reverb, per-zone ambient drones and rain. Low-health heartbeat as in *Abuse* |
 | Hidden tab | A worker timer keeps the host simulating when its tab is in the background, because browsers pause `requestAnimationFrame` in hidden tabs |
 
 ### Source layout
@@ -204,7 +204,8 @@ The game is static files: no build step and no game server. It lives in the `tec
 | Start solo in a given zone | `http://localhost:8000/technophage/?autostart=solo&zone=3` |
 | Online co-op in two tabs without a network | open `?net=local&autostart=host`, then `?net=local&room=CODE&autostart=join` in a second tab, then press *Start* in the first |
 | Simulate network delay | add `&lag=150` to a tab's URL: everything that tab sends is delayed by 150 ms |
-| Rebuild sound effects from the sound packs | `python3 tools/build-sounds.py # in technophage/; picks are listed in the script` |
+| Rebuild sound effects from the sound packs | `python3 tools/build-sounds.py # in technophage/; reads ../../soundpacks by default, catalogue in soundpacks/INDEX.md` |
+| Version shown on the main menu | `VERSION` in `src/config.js`; the deploy adds the commit and build date |
 | Playtest balance | `TUNING` in `src/config.js`: boss and enemy health multipliers |
 
 `simtest.mjs` keeps the bot alive and nudges it past obstacles, so it checks that the simulation raises no errors and that bosses can be beaten, not that levels can be traversed. `reachability.mjs` checks traversal: run it after editing level chunks in `src/level.js`; both modes must print `ALL PASSABLE, NO TRAPS`.
