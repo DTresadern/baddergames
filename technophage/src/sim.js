@@ -131,6 +131,8 @@ export class World {
   }
 
   spawnEnemy(type, x, y, opts = {}) {
+    // Burrowing worms need solid ground under them (not a catwalk, not mid-air)
+    if (ENEMIES[type].ai === 'worm') while (y < this.level.pxH && !this.level.solidAt(x, y + 1)) y += TILE;
     const coop = 1 + 0.6 * (this.playerCount - 1);
     const scale = (1 + 0.15 * this.zoneIndex + 0.5 * this.loop) * coop;
     const e = makeEnemy(this.nextId++, type, x, y, scale, this.rng);
@@ -156,7 +158,6 @@ export class World {
 
   controlPlayer(p, inp, dt) {
     const L = this.level;
-    p.invuln = Math.max(0, p.invuln - dt);
     p.recoil = Math.max(0, p.recoil - dt * 6);
     p.firing = Math.max(0, p.firing - dt);
     if (p.state !== 'alive') {
@@ -229,8 +230,9 @@ export class World {
       p.dropT = 0.25;
       p.jumpBuf = 0;
       p.onGround = false;
-    } else if (p.jumpBuf > 0 && p.coyote > 0) {
-      p.vy = -PLAYER.jumpVel * (p.overdrive > 0 ? 1.1 : 1) * (inLiquid ? 0.7 : 1);
+    } else if (p.jumpBuf > 0 && (p.coyote > 0 || inLiquid)) {
+      // In liquid every jump press is a swim kick, so a hunter can always get out
+      p.vy = -PLAYER.jumpVel * (p.overdrive > 0 ? 1.1 : 1) * (inLiquid ? 0.85 : 1);
       p.jumpBuf = 0;
       p.coyote = 0;
       p.jumpHeld = true;
@@ -471,6 +473,10 @@ export class World {
     this.time += dt;
     for (const p of this.players) {
       if (!p) continue;
+      // Timers tick for every player, including remote ones. (Previously only the owning
+      // client counted invulnerability down, so the host saw a guest as invulnerable forever.)
+      p.invuln = Math.max(0, p.invuln - dt);
+      if (!p.local) p.dashT = Math.max(0, p.dashT - dt);
       p.cloak = Math.max(0, p.cloak - dt);
       p.overdrive = Math.max(0, p.overdrive - dt);
       if (p.local) this.controlPlayer(p, inputs[p.idx] || NO_INPUT, dt);
@@ -502,7 +508,12 @@ export class World {
             while (cy > TILE && !L.solidAt(s.x, cy - TILE)) cy -= TILE;
             this.spawnEnemy('stalker', s.x, cy + 48 , { cocoon: true });
           } else this.spawnEnemy(this.rng.pick(z.air), s.x, s.y);
-        } else this.spawnEnemy(this.rng.pick(z.static), s.x, s.y);
+        } else {
+          // Stationary enemies have no gravity: settle them onto the surface below
+          let y = s.y;
+          while (y < L.pxH && !L.solidAt(s.x, y + 1) && L.tileAt(s.x, y + 1) !== T.PLATFORM) y += TILE;
+          this.spawnEnemy(this.rng.pick(z.static), s.x, y);
+        }
       }
     }
 

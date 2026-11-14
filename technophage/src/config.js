@@ -23,13 +23,13 @@ export const T = {
 
 export const PLAYER = {
   w: 26,
-  h: 66,
+  h: 60, // 2 tiles minus a little, so 2-tile-high passages fit
   runSpeed: 235,
   groundAccel: 2600,
   airAccel: 1500,
   friction: 2200,
   gravity: 1750,
-  jumpVel: 640,
+  jumpVel: 700, // ~140 px (4.4 tiles) at full hold
   jumpCut: 0.45, // vertical speed multiplier when jump is released early
   maxFall: 950,
   coyote: 0.1,

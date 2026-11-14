@@ -1,12 +1,20 @@
 // Headless smoke test: a bot plays every zone in the simulation (no browser).
-// Usage: node tools/simtest.mjs [players=1|2] [seeds=3]
+// Usage: node tools/simtest.mjs [players=1|2] [seeds=3] [--zone N] [--seed N] [--trace]
 // Reports per zone whether the arena was reached, the boss killed and the exit used.
 
 import { World, newPlayerData } from '../src/sim.js';
 import { ZONES, DT } from '../src/config.js';
 
-const players = Number(process.argv[2] || 1);
-const seeds = Number(process.argv[3] || 3);
+const argv = process.argv.slice(2);
+const flag = (name) => {
+  const i = argv.indexOf(name);
+  return i < 0 ? null : argv.splice(i, 2)[1] ?? '';
+};
+const onlyZone = flag('--zone'); // e.g. --zone 2
+const onlySeed = flag('--seed'); // e.g. --seed 1
+const trace = argv.includes('--trace') && argv.splice(argv.indexOf('--trace'), 1); // print boss fights every 15 s
+const players = Number(argv[0] || 1);
+const seeds = Number(argv[1] || 3);
 const MAX_TICKS = 60 * 60 * 6; // 6 minutes of game time per zone
 
 function botInput(w, p, t) {
@@ -26,8 +34,11 @@ function botInput(w, p, t) {
   let mx = 1;
   if (w.arena === 'done' && exit) mx = Math.sign(exit.x + exit.w / 2 - (p.x + p.w / 2)) || 0;
   else if (w.arena === 'fight') mx = Math.sin(t / 50) > 0 ? 1 : -1;
+  // Once the boss is down, walk to the lift and stand still on it (jumping resets boarding)
+  const boarding = w.arena === 'done' && exit && Math.abs(exit.x + exit.w / 2 - (p.x + p.w / 2)) < exit.w / 2 - 10;
+  if (boarding) mx = 0;
   return {
-    mx, up: stuck, down: false, jump: true, jumpPressed: stuck || t % 97 === 0 || (best && t % 40 === 0),
+    mx, up: stuck, down: false, jump: true, jumpPressed: !boarding && (stuck || t % 97 === 0 || (best && t % 40 === 0)),
     dashPressed: t % 300 === 0, fire: !!best || t % 30 === 0, discPressed: !!best && t % 240 === 0,
     aim, slot: -1, cycle: t % 600 === 0 ? 1 : 0,
   };
@@ -35,7 +46,9 @@ function botInput(w, p, t) {
 
 let failures = 0;
 for (let zi = 0; zi < ZONES.length; zi++) {
+  if (onlyZone !== null && zi !== Number(onlyZone)) continue;
   for (let s = 1; s <= seeds; s++) {
+    if (onlySeed !== null && s !== Number(onlySeed)) continue;
     const data = [newPlayerData(0, 'BOT1')];
     if (players > 1) data.push(newPlayerData(1, 'BOT2'));
     const w = new World({ role: 'host', zoneIndex: zi, seed: s * 7919 + zi, playerData: data, localIdx: data.map((_, i) => i) });
@@ -57,6 +70,11 @@ for (let zi = 0; zi < ZONES.length; zi++) {
         w.fx.length = 0;
         if (w.arena === 'fight' && arenaAt < 0) arenaAt = t;
         if (w.arena === 'done' && bossAt < 0) bossAt = t;
+        if (trace && arenaAt >= 0 && bossAt < 0 && (t - arenaAt) % 900 === 0) {
+          const b = w.enemies.find((e) => e.id === w.bossId);
+          console.log(`  ${(t - arenaAt) / 60}s`, b ? `${b.type} hp ${b.hp | 0}/${b.maxHp | 0} at ${b.x | 0},${b.y | 0} ${b.state}${b.hidden ? ' hidden' : ''}` : 'no boss',
+            `| enemies ${w.enemies.length} | ` + w.players.map((p) => p && `${p.name} ${p.x | 0},${p.y | 0} ${p.state}`).join(' '));
+        }
         for (const p of w.players) if (p && p.state !== 'alive') deaths++;
         if (t % 600 === 0 && w.arena === 'idle') {
           // progress guard: teleport the bot over obstacles it cannot path (bot is dumb, level may be fine)

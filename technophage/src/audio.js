@@ -268,12 +268,14 @@ export class Audio {
     const n = c.createBufferSource();
     n.buffer = this.noise;
     n.loop = true;
+    // Rain (megacity zones) or a low hum (underground). Rain is band-limited so it reads as
+    // distant rainfall rather than hiss, and kept quiet under the effects.
     const nf = c.createBiquadFilter();
-    nf.type = zone.rain ? 'highpass' : 'bandpass';
-    nf.frequency.value = zone.rain ? 1800 : 400;
-    nf.Q.value = zone.rain ? 0.5 : 0.8;
+    nf.type = 'bandpass';
+    nf.frequency.value = zone.rain ? 1400 : 400;
+    nf.Q.value = zone.rain ? 0.6 : 0.8;
     const ng = c.createGain();
-    ng.gain.value = zone.rain ? 0.12 : 0.05;
+    ng.gain.value = zone.rain ? 0.05 : 0.025;
     n.connect(nf).connect(ng).connect(g);
     n.start();
     nodes.push(n);

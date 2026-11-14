@@ -83,7 +83,7 @@ These were chosen for the first playable version. Each one is a starting point, 
 | --- | --- |
 | Player count | 1 or 2. Online: two browsers. Local: keyboard + mouse and one gamepad on one screen |
 | Controls | Keyboard moves, mouse aims independently of movement (torso rotates, legs walk), as in *Abuse*. A mouse/touchpad-only scheme for laptops. Full gamepad support with twin-stick aim |
-| Movement | Run, variable-height jump with coyote time and input buffering, short dash with brief invulnerability, ladders, one-way catwalks (drop through with S + Space) |
+| Movement | Run, variable-height jump (about 4 tiles at full height) with coyote time and input buffering, short dash with brief invulnerability, ladders, one-way catwalks (drop through with S + Space). In toxic liquid each jump press is a swim kick, so pits can always be escaped |
 | Weapons | Pulse carbine (unlimited), coil rifle (piercing rail), incinerator (flame stream), plasma cutter (short beam that also cuts breakable walls), disc charges (bouncing grenade). Ammo pickups per type |
 | Power-ups | Optic camo (enemies ignore you for 10 s), overdrive (speed and fire rate for 10 s), medkits |
 | Structure | Five zones in descent order: upper megacity, lower megacity, underbelly, caverns, infested depths. Each zone is built from hand-made level chunks in a seeded order, ends in a locked boss arena and an exit lift that every living hunter must board. Clearing all five starts a harder cycle |
@@ -198,10 +198,13 @@ The game is static files: no build step and no game server. It lives in the `tec
 | Rebuild assets after changing art | `python3 tools/build-assets.py # run in technophage/` |
 | Bot plays all five zones, solo | `node tools/simtest.mjs 1 3 # in technophage/: 1 player, 3 seeds per zone` |
 | Bot plays all five zones, two players | `node tools/simtest.mjs 2 1` |
+| Bot test for one zone, with boss-fight trace | `node tools/simtest.mjs 2 1 --zone 2 --trace` |
+| Check every level chunk can be crossed and has no dead ends (real movement physics, no teleporting) | `node tools/reachability.mjs strict # walking, full jumps and ladders only` |
+| Same check on full generated levels | `node tools/reachability.mjs full 6 strict # 6 seeds per zone` |
 | Start solo in a given zone | `http://localhost:8000/technophage/?autostart=solo&zone=3` |
 | Online co-op in two tabs without a network | open `?net=local&autostart=host`, then `?net=local&room=CODE&autostart=join` in a second tab |
 
-`simtest.mjs` keeps the bot alive and nudges it past obstacles; it checks that every zone can be completed and that the simulation raises no errors, not that the game is fair.
+`simtest.mjs` keeps the bot alive and nudges it past obstacles, so it checks that the simulation raises no errors and that bosses can be beaten, not that levels can be traversed. `reachability.mjs` checks traversal: run it after editing level chunks in `src/level.js`; both modes must print `ALL PASSABLE, NO TRAPS`.
 
 ### Known limitations
 
@@ -214,7 +217,7 @@ The game is static files: no build step and no game server. It lives in the `tec
 
 ## Project materials
 
-- [`art-references/`](art-references/) — supplied screenshots and artwork used for visual research.
+- `art-references/`: supplied screenshots from other games, used for visual research. Kept locally only; not tracked in git (listed in the repository's `.gitignore`).
 - [`generated-art/`](generated-art/) — original location, character, enemy, weapon and prop concepts, with prompt and review records.
 - [Scene overview](generated-art/scene-overview.jpg) · [Asset overview](generated-art/asset-overview.jpg) · [Visual development notes](generated-art/README.md)
 

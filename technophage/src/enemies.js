@@ -128,7 +128,8 @@ export function updateEnemy(sim, e, dt) {
   // Summoning bosses
   if (d.summon && target) {
     e.summonT = (e.summonT ?? d.summonEvery) - dt;
-    if (e.summonT <= 0) {
+    // Cap living minions so a long fight cannot fill the arena
+    if (e.summonT <= 0 && sim.enemies.filter((c) => c.parent === e.id && !c.dead).length < 6) {
       e.summonT = d.summonEvery;
       for (let i = 0; i < 2; i++) sim.spawnEnemy(d.summon, e.x + e.w / 2 + sim.rng.range(-60, 60), e.y + e.h * 0.5, { child: e.id });
       sim.emit(['sfx', 'screech', e.x, e.y]);

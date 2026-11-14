@@ -13,7 +13,7 @@ const ROWS = 22;
 //  C  crate           A  ammo              +  medkit               R  rare (weapon or power-up)
 //  X  checkpoint      P  player start      >  exit lift            b  boss spawn
 //  T  arena trigger column (any row)
-const CHUNKS = {
+export const CHUNKS = {
   start: [
     '....................',
     '....................',
@@ -64,7 +64,7 @@ const CHUNKS = {
       '######~~~~~~~~######',
       '####################',
     ],
-    // 1: stepped blocks, high route with medkit
+    // 1: stepped block (symmetric, 2-tile steps), high route with medkit
     [
       '....................',
       '....................',
@@ -72,44 +72,44 @@ const CHUNKS = {
       '....................',
       '....................',
       '....................',
-      '.............+......',
-      '...........=====....',
       '....................',
-      '.......L............',
-      '.......====.........',
-      '...............E....',
-      '...F...........##...',
-      '..............###...',
-      '...........E.####...',
-      '..........######....',
-      '.....E....######....',
-      '....###...######..C.',
-      '...####...######....',
+      '....................',
+      '.........+..........',
+      '.......======.......',
+      '..L..............L..',
+      '..====........====..',
+      '...F......E.........',
+      '........####........',
+      '.....E..####...E....',
+      '......########......',
+      '......########......',
+      '...##############...',
+      '.C.##############...',
       '####################',
       '####################',
       '####################',
     ],
-    // 2: ladder tower
+    // 2: ladder tower: open ground route, ladder to three upper floors
     [
       '....................',
       '....................',
       '....................',
       '....................',
       '.......R............',
-      '....########H.......',
-      '....#.......H.......',
-      '....#..E....H...L...',
-      '....##B######====...',
-      '....#.......H.......',
-      '....#..A....H.......',
-      '....#####.###H......',
-      '........#...H.......',
-      '..L.....#...H...F...',
-      '........#...H.......',
-      '..E.....#=====......',
-      '........#...........',
-      '.C......#.....E.....',
-      '....................',
+      '....=======H........',
+      '...........H........',
+      '.......E...H....L...',
+      '....####B##H==......',
+      '...........H........',
+      '.......A...H........',
+      '....=======H........',
+      '...........H........',
+      '..L........H....F...',
+      '...........H........',
+      '..E.....===H........',
+      '...........H........',
+      '.C.........H..E.....',
+      '...........H........',
       '#########B######~~##',
       '################~~##',
       '####################',
@@ -228,8 +228,8 @@ const CHUNKS = {
       '........F...........',
       '...L.........L......',
       '....................',
-      '..............A.....',
-      '............=====...',
+      '.............A......',
+      '..........======....',
       '....................',
       '......E.............',
       '.....====....E......',
@@ -252,12 +252,12 @@ const CHUNKS = {
       '.......L......L.....',
       '....................',
       '........F...........',
-      '....................',
+      '..........A.........',
       '.....=============..',
       '.....H..........H...',
       '.....H...E......H...',
       '.....H..........H...',
-      '.....H...A......H...',
+      '.....H..........H...',
       '..E..H..........H...',
       '.....H^^^^^^^^^^H...',
       '######^^^^^^^^^^####',
@@ -279,37 +279,37 @@ const CHUNKS = {
       '....................',
       '.....##.....##......',
       '.....##.....##......',
+      '.....##.....##......',
       '.....##..R..##......',
       '.....##=====##......',
-      '..M..##.....##..M...',
       '.....##.....##......',
       '.........E..........',
-      '..A.................',
+      '..A.M..........M....',
       '####################',
       '####################',
       '####################',
     ],
   ],
   arena: [
-    '..............................',
-    '..............................',
-    '..............................',
-    '..............................',
-    '..............................',
-    '..............................',
-    '..............................',
-    '..............................',
-    '..............................',
-    '....L.........L.........L.....',
-    '..............................',
-    '..............................',
-    '.........=====....=====.......',
-    '..............................',
+    'G............................G',
+    'G............................G',
+    'G............................G',
+    'G............................G',
+    'G............................G',
+    'G............................G',
+    'G............................G',
+    'G............................G',
+    'G............................G',
+    'G...L.........L.........L....G',
+    'G............................G',
+    'G............................G',
+    'G........=====....=====......G',
+    'G............................G',
     'G.....+....................A.G',
     'G............................G',
     'G..T....====........====.....G',
-    'G............b...............G',
-    'G.....A..................+...G',
+    'G............................G',
+    'G.....A......b...........+...G',
     '##############################',
     '##############################',
     '##############################',
@@ -332,8 +332,8 @@ const CHUNKS = {
     '....................',
     '....................',
     '....................',
-    '....X...............',
-    '...........>........',
+    '....................',
+    '....X......>........',
     '####################',
     '####################',
     '####################',
@@ -341,10 +341,12 @@ const CHUNKS = {
 };
 
 export class Level {
-  constructor(zoneIndex, seed, zone) {
+  // layout (testing only): [{ k: 'start' | 'arena' | 'exit' | <mid chunk index>, mirror: bool }]
+  constructor(zoneIndex, seed, zone, layout = null) {
     this.zoneIndex = zoneIndex;
     this.seed = seed;
     this.zone = zone;
+    this.layout = layout;
     this.build();
   }
 
@@ -366,9 +368,11 @@ export class Level {
     for (const rows of [CHUNKS.start, CHUNKS.arena, CHUNKS.exit, ...CHUNKS.mid]) {
       if (rows.length !== ROWS || rows.some((r) => r.length !== rows[0].length)) throw new Error('Malformed level chunk: ' + rows[0]);
     }
-    const pieces = order.map((k) => {
+    if (this.layout) order.splice(0, order.length, ...this.layout.map((l) => l.k));
+    const pieces = order.map((k, i) => {
       const rows = typeof k === 'number' ? CHUNKS.mid[k] : CHUNKS[k];
-      const mirror = typeof k === 'number' && rng.chance(0.5);
+      const coin = rng.chance(0.5);
+      const mirror = typeof k === 'number' && (this.layout ? !!this.layout[i].mirror : coin);
       return rows.map((r) => (mirror ? [...r].reverse().join('') : r));
     });
     this.w = pieces.reduce((s, p) => s + p[0].length, 0) + 2;
@@ -394,13 +398,17 @@ export class Level {
     }
     let ox = 1;
     let uid = 0;
+    this.pieces = []; // chunk placement, for tools and debugging
+    this.topUsed = new Array(this.w).fill(ROWS); // highest row any chunk content uses, per column
     pieces.forEach((rows, pi) => {
+      this.pieces.push({ k: order[pi], x0: ox, w: rows[0].length });
       const isArena = order[pi] === 'arena';
       if (isArena) this.arenaStartX = ox * TILE;
       for (let y = 0; y < ROWS; y++) {
         const row = rows[y];
         for (let x = 0; x < row.length; x++) {
           const c = row[x];
+          if (c !== '.') this.topUsed[ox + x] = Math.min(this.topUsed[ox + x], y);
           const tx = ox + x;
           const px = tx * TILE + TILE / 2;
           const py = (y + 1) * TILE; // bottom of the cell
@@ -433,12 +441,16 @@ export class Level {
 
     // Cave ceilings and uneven floors make the deeper zones feel natural rather than built.
     if (this.zone.cave) {
+      // Never grow rock within 3 rows of anything a chunk places (in this column or its
+      // neighbours), so the ceiling cannot seal off platforms, ladders or pickups.
+      const clear = (x) => Math.min(this.topUsed[x - 1] ?? ROWS, this.topUsed[x], this.topUsed[x + 1] ?? ROWS) - 3;
       for (let x = 1; x < this.w - 1; x++) {
-        const h = Math.round(2 + Math.sin(x * 0.31 + this.seed) * 1.2 + Math.sin(x * 0.13) * 1.5 + rng() * 1.2);
+        const limit = clear(x);
+        const h = Math.min(limit, Math.round(2 + Math.sin(x * 0.31 + this.seed) * 1.2 + Math.sin(x * 0.13) * 1.5 + rng() * 1.2));
         for (let y = 0; y < h; y++) if (this.get(x, y) === T.EMPTY) this.set(x, y, T.SOLID);
         if (rng.chance(0.18)) {
           const len = rng.int(1, 3);
-          for (let y = h; y < h + len; y++) if (this.get(x, y) === T.EMPTY && this.get(x, y + 1) === T.EMPTY) this.set(x, y, T.SOLID);
+          for (let y = Math.max(0, h); y < Math.min(h + len, limit); y++) if (this.get(x, y) === T.EMPTY && this.get(x, y + 1) === T.EMPTY) this.set(x, y, T.SOLID);
         }
       }
     }

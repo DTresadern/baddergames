@@ -483,9 +483,10 @@ export class Renderer {
         }
         ctx.fillStyle = Math.sin(t * 8) > 0 ? '#ff2020' : '#500';
         ctx.fillRect(x + TILE / 2 - 2, y + 12, 4, 4);
-      } else {
+      } else if (L.get(gx, gy + 1) !== T.GATE) {
+        // open gate: only the floor rail shows
         ctx.fillStyle = '#15171a';
-        ctx.fillRect(x + 4, y, TILE - 8, 3);
+        ctx.fillRect(x + 4, y + TILE - 3, TILE - 8, 3);
       }
     }
     // Liquid: animated surface
