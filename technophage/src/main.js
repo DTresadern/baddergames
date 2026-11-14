@@ -193,6 +193,7 @@ function endSession(reason) {
   S.pending = [];
   S.transition = null;
   hideLobby();
+  audio.releaseAll();
   audio.stopAmbient();
   $('pause').classList.add('hidden');
   $('interlude').classList.add('hidden');
@@ -565,6 +566,13 @@ function step(now, draw) {
   const focus = w.players.filter((p) => p && p.local && p.state !== 'dead').map((p) => ({ x: p.x + p.w / 2 + Math.cos(p.aim) * 70, y: p.y + p.h / 2 + Math.sin(p.aim) * 40 }));
   if (!focus.length) w.players.filter((p) => p && p.state !== 'dead').forEach((p) => focus.push({ x: p.x + p.w / 2, y: p.y + p.h / 2 }));
   renderer.updateCamera(dt, focus);
+  // Held weapon sounds: incinerator and plasma cutter loop while their owner is firing
+  for (let i = 0; i < 2; i++) {
+    const p = w.players[i];
+    const kind = p && p.state === 'alive' && p.firing > 0 ? WEAPONS[p.weapon].kind : null;
+    const name = kind === 'flame' ? 'flame' : kind === 'beam' ? 'beam' : null;
+    audio.hold('weapon' + i, name, !!name, p ? p.x + p.w / 2 : 0, p ? p.y : 0);
+  }
   renderer.consume(w);
   renderer.render(dt, { netText: netText() });
   if (S.fade > 0) {

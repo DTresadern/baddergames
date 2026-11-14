@@ -28,7 +28,7 @@ export class Audio {
           const buffers = await Promise.all(
             d.files.map(async (f) => this.ctx.decodeAudioData(await (await fetch('assets/sfx/' + f)).arrayBuffer())),
           );
-          this.samples[slot] = { buffer: buffers, gain: d.gain, pitch: d.pitch };
+          this.samples[slot] = { buffer: buffers, gain: d.gain, pitch: d.pitch, loop: !!d.loop, repeat: Array.isArray(d.repeat) ? d.repeat.slice(0, 4) : null };
         } catch (e) {
           console.warn('sound sample failed to load:', slot, e);
         }
@@ -141,14 +141,18 @@ export class Audio {
     // A recorded sample for this slot (assets/sfx/) replaces the synthesised sound
     const smp = this.samples[name];
     if (smp && smp.buffer) {
-      const variants = smp.buffer;
-      const src = this.ctx.createBufferSource();
-      src.buffer = variants[Math.floor(Math.random() * variants.length)];
-      src.playbackRate.value = 1 + (Math.random() * 2 - 1) * (smp.pitch || 0);
-      const g = this.ctx.createGain();
-      g.gain.value = smp.gain ?? 1;
-      src.connect(g).connect(o);
-      src.start();
+      if (smp.loop) return; // looped sounds are driven by hold()
+      const buf = smp.buffer[Math.floor(Math.random() * smp.buffer.length)];
+      const rate = 1 + (Math.random() * 2 - 1) * (smp.pitch || 0);
+      for (const offset of smp.repeat || [0]) {
+        const src = this.ctx.createBufferSource();
+        src.buffer = buf;
+        src.playbackRate.value = rate;
+        const g = this.ctx.createGain();
+        g.gain.value = smp.gain ?? 1;
+        src.connect(g).connect(o);
+        src.start(this.ctx.currentTime + offset);
+      }
       return;
     }
     const r = () => 0.9 + Math.random() * 0.2;
@@ -273,6 +277,60 @@ export class Audio {
         this.hiss(o, { dur: 0.4, vol: 0.35, f0: 900, f1: 120 });
         break;
     }
+  }
+
+  // Continuous sounds (incinerator, plasma cutter): call every frame with active true while
+  // the weapon fires; the loop fades out when active goes false. key identifies the source.
+  hold(key, name, active, x, y) {
+    this.holds = this.holds || new Map();
+    const h = this.holds.get(key);
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    const smp = this.samples[name];
+    const t = this.ctx.currentTime;
+    if (active && smp && smp.loop) {
+      const dx = x - this.listener.x, dy = y - this.listener.y;
+      const vol = Math.max(0, 1 - Math.hypot(dx, dy) / 1100) * (smp.gain ?? 1);
+      if (!h || h.name !== name) {
+        if (h) this.release(key);
+        const src = this.ctx.createBufferSource();
+        src.buffer = smp.buffer[0];
+        src.loop = true;
+        // Skip the encoder padding at both ends of the MP3 so the loop has no gap
+        src.loopStart = Math.min(0.06, src.buffer.duration / 4);
+        src.loopEnd = src.buffer.duration - Math.min(0.06, src.buffer.duration / 4);
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.04);
+        const pan = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+        if (pan) {
+          src.connect(g).connect(pan);
+          pan.connect(this.master);
+          pan.connect(this.verb);
+        } else {
+          src.connect(g).connect(this.master);
+        }
+        src.start(t, Math.random() * src.buffer.duration);
+        this.holds.set(key, { name, src, g, pan });
+      } else {
+        h.g.gain.setTargetAtTime(vol, t, 0.03);
+        if (h.pan) h.pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, dx / 600)), t, 0.03);
+      }
+    } else if (h) this.release(key);
+  }
+
+  release(key) {
+    const h = this.holds && this.holds.get(key);
+    if (!h) return;
+    const t = this.ctx.currentTime;
+    h.g.gain.cancelScheduledValues(t);
+    h.g.gain.setValueAtTime(h.g.gain.value, t);
+    h.g.gain.linearRampToValueAtTime(0, t + 0.08);
+    h.src.stop(t + 0.1);
+    this.holds.delete(key);
+  }
+
+  releaseAll() {
+    if (this.holds) for (const key of [...this.holds.keys()]) this.release(key);
   }
 
   // Looping zone ambience: low drone plus filtered noise (rain, wind or dripping hum)

@@ -171,7 +171,7 @@ The game is static files: no build step and no game server. It lives in the `tec
 | Simulation | Fixed 60 ticks per second (`src/sim.js`, `src/enemies.js`, `src/level.js`). No DOM access, so it also runs in Node for tests |
 | Networking | PeerJS 1.5.5 (WebRTC data channel, reliable, raw strings), self-hosted in `vendor/`. The host's browser runs enemies, damage, pickups and level state and sends a snapshot 30 times a second. Each player's own browser simulates their own movement, aim and weapons, so local controls respond instantly. Shots are sent as "weapon, origin, angle, seed" and simulated identically on both sides; only damage is decided by the host |
 | Network safety | Messages over 16 KB (guest to host) are dropped, more than 200 messages a second are dropped, every received number is clamped, names are filtered to `A–Z 0–9 _ . ' -` (max 12) and shown with `textContent`. Guest shots are rate-limited per weapon and must start near the guest's reported position |
-| Audio | Recorded effects in `assets/sfx/` (weapons, impacts, creatures, interface), cut and normalised from the sound packs by `tools/build-sounds.py`; the picks and trims are listed in that script. Slots without a recording (flame, beam, jump, gate, clink, heartbeat, ambience) are synthesised with Web Audio. Positional panning, a shared reverb, per-zone ambient drones and rain. Low-health heartbeat as in *Abuse* |
+| Audio | Recorded effects in `assets/sfx/` (weapons, impacts, creatures, interface), cut and normalised from the sound packs by `tools/build-sounds.py`; the picks and trims are listed in that script. The incinerator and plasma cutter use looped sounds that play while the trigger is held. Slots without a recording (jump, disc bounce, ambience) are synthesised with Web Audio. Positional panning, a shared reverb, per-zone ambient drones and rain. Low-health heartbeat as in *Abuse* |
 | Hidden tab | A worker timer keeps the host simulating when its tab is in the background, because browsers pause `requestAnimationFrame` in hidden tabs |
 
 ### Source layout
@@ -217,7 +217,7 @@ The game is static files: no build step and no game server. It lives in the `tec
 - Room codes are 6 characters from 32 symbols (about 1 billion combinations). A stranger who guesses a live code could join.
 - Enemy shots are checked against where the host last saw the guest, so on a slow connection the guest can be hit by a shot that appeared to miss.
 - No touch controls. No save between browser sessions.
-- Hunter animation is procedural on a single static pose; enemies too. Animated sprite sheets are the main art task for production.
+- Hunter animation is procedural on a single static pose; enemies too. Animated sprite sheets are the main art task for production. The requests for the art session are in [`docs/animation-handover.md`](docs/animation-handover.md) and [`docs/programmer-art-handover.md`](docs/programmer-art-handover.md).
 
 ## Project materials
 

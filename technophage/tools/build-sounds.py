@@ -19,7 +19,8 @@ DEFAULT_SRC = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..
 OUT = 'assets/sfx'
 PEAK_DB = -1.0  # normalise every variant to this peak, then apply the slot gain in-game
 
-# slot: { files: [(path, start_s, duration_s or None), ...], gain: 0..1, pitch: random +/- rate }
+# slot: { files: [(path, start_s, duration_s or None), ...], gain: 0..1, pitch: random +/- rate,
+#         loop: True for sounds held while a weapon fires, repeat: [offsets in s] to play a file several times }
 YT = 'YT Mailing List Bonus Pack (50$ value)/'
 SELECTION = {
     # weapons
@@ -54,8 +55,13 @@ SELECTION = {
     'down': {'files': [(YT + 'UI Menu Sound FX Pack/Access Denied/Low and bassy/Access_Denied_Low_DDM1.wav', 0, None)], 'gain': 0.55},
     'alarm': {'files': [(YT + 'Small Alarms - Loopable/SmlAlarm_7_Single_DDM.wav', 0, None)], 'gain': 0.5},
     'ui': {'files': [(YT + 'SingleClicks/SingleClicks18.wav', 0, None)], 'gain': 0.5},
+    # bfxr picks (see the bfxr section of soundpacks/INDEX.md)
+    'flame': {'files': [('bfxr/Random75.wav', 0.2, 1.6)], 'gain': 0.5, 'pitch': 0, 'loop': True},
+    'beam': {'files': [('bfxr/Random177.wav', 0.3, 1.2)], 'gain': 0.35, 'pitch': 0, 'loop': True},
+    'gate': {'files': [('bfxr/Random273.wav', 0, 1.6)], 'gain': 0.6},
+    'heartbeat': {'files': [('bfxr/Random303.wav', 0, None)], 'gain': 0.6, 'pitch': 0, 'repeat': [0, 0.2]},
 }
-# Kept synthesised (no good match in the packs): flame, beam, jump, gate, clink, heartbeat, ambience.
+# Kept synthesised (no good match in the packs): jump, clink, ambience.
 
 
 def run(cmd):
@@ -68,7 +74,7 @@ def peak_db(path):
     return float(m.group(1)) if m else 0.0
 
 
-def build_variant(src, start, dur, out):
+def build_variant(src, start, dur, out, loop=False):
     with tempfile.TemporaryDirectory() as tmp:
         cut = os.path.join(tmp, 'cut.wav')
         cmd = ['ffmpeg', '-hide_banner', '-y']
@@ -79,6 +85,10 @@ def build_variant(src, start, dur, out):
         # mono, trim leading silence, short fade-out so cuts never click
         fade = 0.03 if not dur else min(0.08, dur / 4)
         filters = 'silenceremove=start_periods=1:start_threshold=-55dB,areverse,silenceremove=start_periods=1:start_threshold=-60dB,afade=t=in:d=%s,areverse' % fade
+        if loop:
+            # Loops are cut from the steady middle of a sound: no silence trimming or fades,
+            # which would leave a dip at the loop point
+            filters = 'anull'
         cmd += ['-i', src, '-ac', '1', '-ar', '44100', '-af', filters, cut]
         run(cmd)
         gain = PEAK_DB - peak_db(cut)
@@ -100,12 +110,16 @@ def main():
         for i, (path, start, dur) in enumerate(d['files']):
             name = f'{slot}_{i + 1}.mp3'
             out = os.path.join(OUT, name)
-            build_variant(os.path.join(args.src, path), start, dur, out)
+            build_variant(os.path.join(args.src, path), start, dur, out, d.get('loop', False))
             size = os.path.getsize(out)
             total += size
             files.append(name)
             print(f'{slot:12s} {name:18s} {size / 1024:6.1f} KB  <- {path}' + (f' @{start}s' if start else ''))
         manifest['slots'][slot] = {'files': files, 'gain': d.get('gain', 1), 'pitch': d.get('pitch', 0.04)}
+        if d.get('loop'):
+            manifest['slots'][slot]['loop'] = True
+        if d.get('repeat'):
+            manifest['slots'][slot]['repeat'] = d['repeat']
     with open(os.path.join(OUT, 'sfx.json'), 'w') as f:
         json.dump(manifest, f, indent=1)
     print(f'total {total / 1024:.0f} KB in {sum(len(d["files"]) for d in SELECTION.values())} files')
