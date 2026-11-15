@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# mm: mastermind bookkeeping. Run `mm help`.
+exec node "$(dirname "$(readlink -f "$0")")/mm.mjs" "$@"
