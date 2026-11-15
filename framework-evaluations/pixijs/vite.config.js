@@ -12,7 +12,9 @@ export default defineConfig({
     target: 'es2022',
     // a manifest lets bench/run.js find exactly which JS chunks each page loads
     manifest: true,
-    rollupOptions: {
+    // three.js alone is ~550 kB minified; the warning adds nothing here
+    chunkSizeWarningLimit: 2000,
+    rolldownOptions: {
       input: {
         '2d': resolve(root, '2d.html'),
         '3d': resolve(root, '3d.html'),

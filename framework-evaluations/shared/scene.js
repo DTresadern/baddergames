@@ -23,6 +23,9 @@
 //   frame as in 2D; a camera that moves sideways by cameraX(t) then produces
 //   exactly the 2D parallax factor 1 / (1 + depth).
 //
+// Foreground elements at the frame edges extend 40 units past 0..1200 so the camera
+// drift (+/- 30 units at depth 0) never reveals an edge.
+//
 // Rough layout (follows the reference image):
 //   bridge deck top y=196 spanning x 0..760; pillars below; left tower x 0..250;
 //   stairs x 720..840 rising to the right; stepped platforms x 810..1200;
@@ -110,8 +113,8 @@ function buildHaze() {
     near: PALETTE.hazeNear,
     far: PALETTE.hazeFar,
     /** opacity(depth) = maxOpacity * (1 - exp(-falloff * depth)) */
-    maxOpacity: 0.86,
-    falloff: 0.3,
+    maxOpacity: 0.95,
+    falloff: 0.15,
     /** extra uniform rain mist drawn over the whole frame */
     mistOpacity: 0.08,
   };
@@ -309,18 +312,18 @@ function buildBridge() {
   return {
     depth: 0,
     // deck: walking surface (wet, reflective) seen as a thin top strip
-    deck: { x: 0, y: DECK_TOP, w: 760, h: 10 },
+    deck: { x: -40, y: DECK_TOP, w: 800, h: 13 },
     // hazard stripe band along the front edge
-    stripeBand: { x: 0, y: DECK_TOP + 10, w: 760, h: 9 },
+    stripeBand: { x: -40, y: DECK_TOP + 13, w: 800, h: 9 },
     stripeSpacing: 22, // one yellow + one black stripe per spacing
     stripeSlant: 7, // stripes lean right by this many units over the band height
     // dark girder below the stripe band (vents, lamp housings)
-    girder: { x: 0, y: DECK_TOP + 19, w: 760, h: 24 },
-    pillars: pillars.map((x) => ({ x: x - pillarW / 2, y: DECK_TOP + 43, w: pillarW, h: 400 - (DECK_TOP + 43) })),
+    girder: { x: -40, y: DECK_TOP + 22, w: 800, h: 24 },
+    pillars: pillars.map((x) => ({ x: x - pillarW / 2, y: DECK_TOP + 46, w: pillarW, h: 400 - (DECK_TOP + 46) })),
     // diagonal braces from pillar sides up to the girder: [x1,y1,x2,y2]
     braces: pillars.flatMap((x) => [
-      [x - pillarW / 2, 300, x - 70, DECK_TOP + 43],
-      [x + pillarW / 2, 300, x + 70, DECK_TOP + 43],
+      [x - pillarW / 2, 300, x - 70, DECK_TOP + 46],
+      [x + pillarW / 2, 300, x + 70, DECK_TOP + 46],
     ]),
     redLights: pillars.flatMap((x) => [
       { x: x - pillarW / 2 - 5, y: 292, radius: 14 },
@@ -328,9 +331,9 @@ function buildBridge() {
     ]),
     // hanging cables below the girder, as point lists (sagging curves)
     cables: [
-      [{ x: 110, y: 243 }, { x: 230, y: 268 }, { x: 350, y: 243 }],
-      [{ x: 400, y: 243 }, { x: 510, y: 262 }, { x: 620, y: 243 }],
-      [{ x: 0, y: 250 }, { x: 40, y: 266 }, { x: 70, y: 245 }],
+      [{ x: 110, y: 246 }, { x: 230, y: 271 }, { x: 350, y: 246 }],
+      [{ x: 400, y: 246 }, { x: 510, y: 265 }, { x: 620, y: 246 }],
+      [{ x: -40, y: 253 }, { x: 20, y: 269 }, { x: 70, y: 248 }],
     ],
   };
 }
@@ -339,7 +342,7 @@ function buildRailings() {
   // Railings along the back edge of the deck and the platforms.
   // Each: from x0 to x1 at walking-surface y, height h, post spacing.
   return [
-    { x0: 0, x1: 70, y: DECK_TOP, h: 20, postSpacing: 22, depth: 0 },
+    { x0: -40, x1: 70, y: DECK_TOP, h: 20, postSpacing: 22, depth: 0 },
     { x0: 172, x1: 310, y: DECK_TOP, h: 20, postSpacing: 23, depth: 0 },
     { x0: 370, x1: 470, y: DECK_TOP, h: 20, postSpacing: 25, depth: 0 },
     { x0: 488, x1: 720, y: DECK_TOP, h: 20, postSpacing: 26, depth: 0 },
@@ -358,7 +361,7 @@ function buildStructures() {
     // stairs rise from the bridge deck (bottom-left) to the upper platform (top-right)
     stairs: { x0: 722, y0: DECK_TOP, x1: 840, y1: 138, steps: 11, thickness: 8 },
     platforms: [
-      { x: 840, y: 138, w: 360, h: 14 }, // upper
+      { x: 840, y: 138, w: 400, h: 14 }, // upper (runs past the right edge for parallax)
       { x: 760, y: 204, w: 284, h: 12 }, // middle, continues the deck
       { x: 810, y: 297, w: 250, h: 12 }, // lower
       { x: 1060, y: 283, w: 70, h: 10 }, // small step
@@ -375,19 +378,19 @@ function buildStructures() {
     ],
     // big machinery block on the left behind the bridge
     leftTower: {
-      x: 0, y: 0, w: 240, h: DECK_TOP,
+      x: -40, y: 0, w: 280, h: DECK_TOP,
       door: { x: 112, y: 122, w: 46, h: 74 },
       lattice: { x: 18, y: 0, w: 70, h: 160, cells: 4 },
       panels: [{ x: 180, y: 20, w: 50, h: 70 }, { x: 0, y: 160, w: 60, h: 36 }],
       pipes: [
         { x0: 238, y0: 30, x1: 238, y1: 196, r: 5 },
         { x0: 200, y0: 30, x1: 260, y1: 30, r: 4 },
-        { x0: 0, y0: 172, x1: 110, y1: 172, r: 4 },
+        { x0: -40, y0: 172, x1: 110, y1: 172, r: 4 },
       ],
     },
     // right machinery tower with two ventilation fans
     rightTower: {
-      x: 1048, y: 30, w: 152, h: 108,
+      x: 1048, y: 30, w: 192, h: 108,
       fans: [{ cx: 1102, cy: 82, r: 19 }, { cx: 1152, cy: 82, r: 19 }],
       pipes: [{ x0: 1048, y0: 52, x1: 1000, y1: 52, r: 4 }],
     },
@@ -395,8 +398,8 @@ function buildStructures() {
     dome: { x: 790, y: 72, w: 140, h: 90, depth: 2.5 },
     // pipes running under the left of the frame (foreground)
     groundPipes: [
-      { x0: 0, y0: 352, x1: 140, y1: 352, r: 8 },
-      { x0: 0, y0: 372, x1: 200, y1: 372, r: 6 },
+      { x0: -40, y0: 352, x1: 140, y1: 352, r: 8 },
+      { x0: -40, y0: 372, x1: 200, y1: 372, r: 6 },
       { x0: 60, y0: 320, x1: 60, y1: 400, r: 7 },
     ],
   };
@@ -464,9 +467,9 @@ function buildLamps(seed, count) {
   /** @type {Lamp[]} */
   const fixed = [
     { x: 700, y: 178, color: PALETTE.amber, radius: 70, intensity: 1.0, depth: 0, kind: 'post' }, // lamp post on deck
-    { x: 144, y: 243, color: PALETTE.amber, radius: 60, intensity: 0.8, depth: 0, kind: 'under' },
-    { x: 380, y: 243, color: PALETTE.amber, radius: 60, intensity: 0.8, depth: 0, kind: 'under' },
-    { x: 700, y: 243, color: PALETTE.amber, radius: 60, intensity: 0.8, depth: 0, kind: 'under' },
+    { x: 144, y: 246, color: PALETTE.amber, radius: 60, intensity: 0.8, depth: 0, kind: 'under' },
+    { x: 380, y: 246, color: PALETTE.amber, radius: 60, intensity: 0.8, depth: 0, kind: 'under' },
+    { x: 700, y: 246, color: PALETTE.amber, radius: 60, intensity: 0.8, depth: 0, kind: 'under' },
     { x: 145, y: 70, color: PALETTE.amber, radius: 80, intensity: 0.9, depth: 0, kind: 'wall' }, // left tower
     { x: 232, y: 118, color: PALETTE.amber, radius: 55, intensity: 0.8, depth: 0, kind: 'wall' },
     { x: 950, y: 158, color: PALETTE.amber, radius: 60, intensity: 0.85, depth: 0, kind: 'under' }, // under upper platform
@@ -477,7 +480,7 @@ function buildLamps(seed, count) {
   for (let i = fixed.length; i < count; i++) {
     lamps.push({
       x: rng.range(10, 1190),
-      y: rng.pick([243, 158, 216, 309, rng.range(40, 380)]),
+      y: rng.pick([246, 158, 216, 309, rng.range(40, 380)]),
       color: rng.chance(0.85) ? PALETTE.amber : PALETTE.amberPale,
       radius: rng.range(30, 60),
       intensity: rng.range(0.5, 0.9),
@@ -540,7 +543,7 @@ function buildGrowth(seed) {
   const rock = [];
   const ridge = [
     [840, 400], [846, 330], [880, 318], [930, 322], [980, 300], [1040, 290],
-    [1080, 262], [1130, 248], [1170, 226], [1200, 214], [1200, 400],
+    [1080, 262], [1130, 248], [1170, 226], [1200, 214], [1240, 206], [1240, 400],
   ];
   for (let i = 0; i < ridge.length; i++) {
     const [x, y] = ridge[i];
@@ -576,15 +579,18 @@ function buildGrowth(seed) {
       y += Math.sin(a) * step;
       pts.push({ x, y: Math.min(400, y) });
     }
-    tendrils.push({ points: pts, width: rng.range(2, 5) });
+    tendrils.push({ points: pts, width: rng.range(3, 7) });
   }
-  // a few tendrils draping across the mound and onto the lower platform
+  // a few tendrils crawling left across the mound
   for (let i = 0; i < 4; i++) {
-    const x0 = rng.range(780, 860);
-    tendrils.push({
-      points: [{ x: x0, y: 400 }, { x: x0 + 12, y: 380 }, { x: x0 - 6, y: 362 }, { x: x0 + 18, y: 350 }],
-      width: rng.range(2, 4),
-    });
+    let x = rng.range(860, 900), y = rng.range(370, 395);
+    const pts = [{ x, y }];
+    for (let k = 0; k < 8; k++) {
+      x -= rng.range(10, 18);
+      y = Math.min(398, Math.max(360, y + rng.range(-7, 7)));
+      pts.push({ x, y });
+    }
+    tendrils.push({ points: pts, width: rng.range(2, 4) });
   }
   // glowing pods (egg sacs) on the growth
   const pods = [];
@@ -602,8 +608,8 @@ function buildHunters() {
   // x, y = feet position on the deck. crouch 0 = standing, 1 = fully crouched.
   // aim = gun angle in radians (0 = pointing right, y down).
   return [
-    { x: 300, y: DECK_TOP, facing: 1, scale: 1.0, crouch: 0.55, aim: -0.04, backpack: true, scarf: false },
-    { x: 420, y: DECK_TOP, facing: 1, scale: 0.92, crouch: 0.75, aim: -0.02, backpack: false, scarf: true },
+    { x: 300, y: DECK_TOP, facing: 1, scale: 1.3, crouch: 0.55, aim: -0.04, backpack: true, scarf: false },
+    { x: 430, y: DECK_TOP, facing: 1, scale: 1.2, crouch: 0.75, aim: -0.02, backpack: false, scarf: true },
   ];
 }
 
@@ -681,10 +687,10 @@ function buildDrips(seed) {
   const rng = makeRng(subSeed(seed, 'drips'));
   // sources: x, y (edge), y1 (where the drop disappears)
   const sources = [
-    { x: 252, y: DECK_TOP + 43, y1: 400 },
-    { x: 560, y: DECK_TOP + 43, y1: 400 },
-    { x: 566, y: DECK_TOP + 43, y1: 400 },
-    { x: 330, y: DECK_TOP + 43, y1: 400 },
+    { x: 252, y: DECK_TOP + 46, y1: 400 },
+    { x: 560, y: DECK_TOP + 46, y1: 400 },
+    { x: 566, y: DECK_TOP + 46, y1: 400 },
+    { x: 330, y: DECK_TOP + 46, y1: 400 },
     { x: 880, y: 309, y1: 360 },
     { x: 1020, y: 309, y1: 330 },
     { x: 980, y: 216, y1: 297 },
