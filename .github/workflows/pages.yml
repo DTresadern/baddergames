@@ -39,7 +39,9 @@ jobs:
           mkdir -p _site/ideas
           cp index.html _site/
           cp -r ideas/. _site/ideas/
-          find _site -type f | sort
+          # list what upload-pages-artifact publishes: it skips hidden files
+          # and follows symlinks
+          find _site \( -name '.*' -prune \) -o \( -type f -o -type l \) -print | sort
 
       - uses: actions/configure-pages@v6
 
