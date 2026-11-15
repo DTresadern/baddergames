@@ -1,18 +1,5 @@
 'use strict';
 
-/*
- * Idea cloud.
- *
- * Part 1 (pure, no DOM): normaliseIdeas, buildGraph, stepSimulation, relatedIdeas, fitView.
- * Part 2 (browser only): canvas drawing, pointer handling, modal, loading.
- * The pure part is exported with module.exports when loaded by Node, so the
- * layout can be tested without a browser.
- */
-
-// ---------------------------------------------------------------------------
-// Part 1: pure logic
-// ---------------------------------------------------------------------------
-
 const SIM = {
   baseRest: 240,        // rest length of an edge with 0 shared tags; actual = baseRest / (1 + weight)
   springBase: 0.02,     // spring stiffness = springBase + springPerShared * weight
@@ -54,7 +41,7 @@ function normaliseIdeas(data) {
       }
     }
     const links = Array.isArray(raw.links)
-      ? raw.links.filter((l) => typeof l === 'string')
+      ? raw.links.filter((l) => typeof l === 'string').map((l) => l.trim()).filter(Boolean)
       : [];
     ideas.push({
       id,
@@ -96,7 +83,6 @@ function buildGraph(ideas) {
   });
 
   const edges = [];
-  const edgeByKey = new Map();
   for (let a = 0; a < n; a++) {
     for (let b = a + 1; b < n; b++) {
       const tagsB = ideas[b].tags;
@@ -110,7 +96,6 @@ function buildGraph(ideas) {
         linked,
         weight: Math.max(shared.length, 1)
       };
-      edgeByKey.set(a + ':' + b, edge);
       edges.push(edge);
     }
   }
@@ -264,10 +249,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = { SIM, normaliseIdeas, buildGraph, stepSimulation, runUntilSettled, relatedIdeas, fitView };
 }
 
-// ---------------------------------------------------------------------------
-// Part 2: browser UI
-// ---------------------------------------------------------------------------
-
 function initApp() {
   const MIN_SCALE = 0.2;
   const MAX_SCALE = 5;
@@ -279,6 +260,9 @@ function initApp() {
   const LABEL_MAX_WIDTH = 110;    // world px
   const LABEL_MAX_LINES = 3;
   const STEPS_PER_FRAME = 3;
+  const FILE_PROTOCOL_MESSAGE =
+    'Browsers block loading ideas.json when this page is opened straight from disk. ' +
+    'Serve the folder with a static web server (see README), or choose the ideas.json file below.';
 
   const canvas = document.getElementById('cloud');
   const stage = document.getElementById('stage');
@@ -310,9 +294,7 @@ function initApp() {
   let drawQueued = false;
   let hoverIndex = -1;
   let selectedIndex = -1;
-  let currentIndex = -1;          // idea shown in the modal
 
-  // --- theme -------------------------------------------------------------
 
   function readTheme() {
     const cs = getComputedStyle(document.documentElement);
@@ -324,12 +306,11 @@ function initApp() {
       nodeHover: get('--node-hover'),
       edge: get('--edge'),
       label: get('--label'),
-      accent: get('--accent')
+      accent: get('--accent'),
+      font: LABEL_FONT_PX + 'px ' + getComputedStyle(document.body).fontFamily
     };
-    ctx.font = LABEL_FONT_PX + 'px ' + getComputedStyle(document.body).fontFamily;
   }
 
-  // --- status / loading --------------------------------------------------
 
   function setStatus(text, isError) {
     statusEl.textContent = text;
@@ -366,10 +347,7 @@ function initApp() {
 
   async function load() {
     if (location.protocol === 'file:') {
-      showFileFallback(
-        'Browsers block loading ideas.json when this page is opened straight from disk. ' +
-        'Serve the folder with a static web server (see README), or choose the ideas.json file below.'
-      );
+      showFileFallback(FILE_PROTOCOL_MESSAGE);
       return;
     }
     let text;
@@ -378,20 +356,15 @@ function initApp() {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       text = await res.text();
     } catch (err) {
-      showFileFallback(
-        'Could not load ideas.json (' + err.message + '). ' +
-        'Browsers block loading ideas.json when this page is opened straight from disk. ' +
-        'Serve the folder with a static web server (see README), or choose the ideas.json file below.'
-      );
+      showFileFallback('Could not load ideas.json (' + err.message + '). You can choose the file below instead.');
       return;
     }
     loadText(text, 'ideas.json');
   }
 
-  // --- labels ------------------------------------------------------------
 
   function wrapLabel(text) {
-    ctx.font = LABEL_FONT_PX + 'px ' + getComputedStyle(document.body).fontFamily;
+    ctx.font = theme.font;
     const words = text.split(/\s+/);
     const lines = [];
     let line = '';
@@ -434,13 +407,11 @@ function initApp() {
     };
   }
 
-  // --- graph / simulation ------------------------------------------------
 
   function setGraph(g) {
     graph = g;
     hoverIndex = -1;
     selectedIndex = -1;
-    currentIndex = -1;
     if (dialog.open) dialog.close();
     prepareLabels();
     userMoved = false;
@@ -464,7 +435,7 @@ function initApp() {
       energy = stepSimulation(graph, SIM);
       simIterations++;
     }
-    const holding = drag && drag.node && drag.moved;   // keep running while a node is held
+    const holding = drag !== null && drag.node !== null && drag.moved;
     const settled = simIterations >= SIM.minIterations && energy < SIM.energyStop;
     if (!holding && (settled || simIterations >= simMax)) {
       simRunning = false;
@@ -490,7 +461,6 @@ function initApp() {
     });
   }
 
-  // --- drawing -----------------------------------------------------------
 
   function draw() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -513,7 +483,6 @@ function initApp() {
       }
     }
 
-    // Edges
     for (let ei = 0; ei < graph.edges.length; ei++) {
       const e = graph.edges[ei];
       const a = nodes[e.a];
@@ -530,7 +499,6 @@ function initApp() {
     }
     ctx.setLineDash([]);
 
-    // Nodes
     for (const node of nodes) {
       const dim = hovered && !neighbours.has(node.index);
       ctx.globalAlpha = dim ? 0.35 : 1;
@@ -544,7 +512,7 @@ function initApp() {
     }
 
     // Labels (with a halo so they stay readable over edges)
-    ctx.font = LABEL_FONT_PX + 'px ' + getComputedStyle(document.body).fontFamily;
+    ctx.font = theme.font;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.lineJoin = 'round';
@@ -574,7 +542,6 @@ function initApp() {
     draw();
   }
 
-  // --- view helpers ------------------------------------------------------
 
   function toWorld(x, y) {
     return { x: (x - view.offsetX) / view.scale, y: (y - view.offsetY) / view.scale };
@@ -608,7 +575,6 @@ function initApp() {
     return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
   }
 
-  // --- pointer interaction -----------------------------------------------
 
   const pointers = new Map();     // pointerId -> {x, y}
   let drag = null;                // {startX, startY, node, moved, pointerId}
@@ -681,6 +647,7 @@ function initApp() {
       if (dx * dx + dy * dy < CLICK_SLOP * CLICK_SLOP) return;
       drag.moved = true;
       if (drag.node !== null) {
+        userMoved = true;
         graph.nodes[drag.node].pinned = true;
         wake(600);
       }
@@ -782,12 +749,10 @@ function initApp() {
     draw();
   });
 
-  // --- modal -------------------------------------------------------------
 
   function openIdea(index) {
     const node = graph.nodes[index];
     if (!node) return;
-    currentIndex = index;
     selectedIndex = index;
     const idea = node.idea;
 
@@ -832,10 +797,7 @@ function initApp() {
       relatedEl.appendChild(li);
     }
 
-    if (!dialog.open) {
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-      else dialog.setAttribute('open', '');
-    }
+    if (!dialog.open) dialog.showModal();
     dialog.scrollTop = 0;
     titleEl.focus({ preventScroll: true });
     requestDraw();
@@ -847,7 +809,6 @@ function initApp() {
 
   dialog.addEventListener('close', () => {
     selectedIndex = -1;
-    currentIndex = -1;
     requestDraw();
     canvas.focus({ preventScroll: true });
   });
@@ -862,7 +823,6 @@ function initApp() {
     downOnBackdrop = false;
   });
 
-  // --- file picker fallback ----------------------------------------------
 
   fileBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', async () => {
@@ -877,7 +837,6 @@ function initApp() {
     fileInput.value = '';
   });
 
-  // --- start-up ----------------------------------------------------------
 
   readTheme();
   resize();
