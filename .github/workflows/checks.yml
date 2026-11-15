@@ -1,0 +1,26 @@
+# Runs on every pull request and every push to main.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: JavaScript syntax
+        run: git ls-files -z '*.js' '*.mjs' '*.cjs' | xargs -0 -r -n1 node --check
+
+      - name: JSON syntax
+        run: git ls-files -z '*.json' | xargs -0 -r -n1 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))'
