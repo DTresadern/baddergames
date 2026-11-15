@@ -94,7 +94,7 @@ pixel difference.
 | | three.js 2D | PixiJS 2D | three.js 3D | PixiJS 3D |
 |---|---|---|---|---|
 | layout and every listed element | yes | yes | yes | yes |
-| palette and mood | close; city a little bluer and lighter than the reference | same as three.js 2D | close; strongest lamp glow of the four (bloom variant) | close; darkest of the four, lamps weaker |
+| palette and mood | close; city a little bluer and lighter than the reference | same as three.js 2D | close; strongest lamp glow of the four (bloom variant) | close; same mist layer as three.js 3D, lamps weaker |
 | wet reflections | painted light pools and streaks (shader) | same | real lit reflections, small highlights rather than long streaks | low-roughness material only; faint |
 | lamps light surfaces | no: additive glow only | no: additive glow only | yes: real point lights | yes: real point lights |
 | growth | thin red tendrils | same | tube geometry, thicker, with glowing pods | tube geometry, thinner |
@@ -150,7 +150,7 @@ with a message if it is unset.
 1. `export CDP_LIB=/absolute/path/to/chromium-automation/scripts/cdp.mjs`
 2. Close other GPU-heavy programs and leave the machine idle for the whole run.
 3. Full run: `npm run bench` # builds, then every build × every stress level, 3 repeats (about 7 minutes here)
-4. Readback cost run: `npm run bench -- --no-build --no-sync --quick` # writes `bench/results/results-nosync.json` (about 30 s)
+4. Readback cost run: `npm run bench -- --no-build --no-sync --levels base` # base level only, same frame counts and repeats as the full run; writes `bench/results/results-nosync.json` (about 1 minute)
 5. Screenshots: `npm run screenshots`
 6. Tables: `npm run report` # prints every table in this section from the results files
 7. Lines of code: `npm run loc`
@@ -159,8 +159,9 @@ Check after a run: `npm run report` prints an Environment table. `GPU` must name
 GPU (not SwiftShader) and `frame rate uncapped` must be `true`. If `GPU` names SwiftShader,
 Chromium did not get GPU access: the runner's flags (below) are what fixed that here.
 
-Other options: `--only threejs-2d,pixijs-2d`, `--no-build` (reuse `dist/`), `--quick`
-(base level only, one repeat, fewer frames), `--headed`.
+Other options: `--only threejs-2d,pixijs-2d`, `--levels base,rain-16000` (some stress levels
+only), `--no-build` (reuse `dist/`), `--quick` (base level only, one repeat, fewer frames),
+`--headed`.
 
 ### Environment of the recorded results
 
@@ -171,9 +172,9 @@ Other options: `--only threejs-2d,pixijs-2d`, `--no-build` (reuse `dist/`), `--q
 | CPU | AMD Ryzen 5 8645HS, 12 threads, 16 GB RAM |
 | OS | Linux 7.0.0-38-generic |
 | Node.js | 26.3.1 |
-| resolution | 1800×600 canvas, device pixel ratio 1, antialias on (WebGL2 in every build) |
+| resolution | 1800×600 canvas, device pixel ratio 1, WebGL2 in every build. Antialias on in the canvas, except three.js 3D with bloom, which turns canvas antialias off and renders into a 4-sample multisampled target instead |
 | Chromium flags | `--ignore-gpu-blocklist --enable-gpu --disable-gpu-vsync --disable-frame-rate-limit --disable-renderer-backgrounding --disable-background-timer-throttling --force-device-scale-factor=1 --window-size=1800,600` |
-| recorded | full run 2026-11-15 20:36:39–20:43:35 (UTC+0), machine idle |
+| recorded | 2026-11-15 (UTC+0), machine idle: full run 21:22:54–21:29:49, run without readback 21:29:49–21:30:36 |
 
 Flags: without `--ignore-gpu-blocklist --enable-gpu`, headless Chromium on this machine
 used SwiftShader (software WebGL). Without `--disable-gpu-vsync --disable-frame-rate-limit`,
@@ -187,8 +188,8 @@ display rate, not the work.
 | frame time | `requestAnimationFrame` interval, 60 warm-up frames then 300 sampled frames; mean, p95, p99 |
 | JS + submit time | time inside the build's frame function before the GPU wait (CPU cost) |
 | stress levels | one axis at a time from the base level: rain 4k / 16k / 64k / 256k, lights 8 / 32 / 128, objects ×1 / ×4 / ×16 |
-| repeats | 3 fresh page loads per level; the table shows the median run and the range of the 3 means |
-| start-up | 5 fresh loads; median time from navigation start to the first rendered frame |
+| repeats | 3 fresh page loads per level. The tables show every figure from one run: the run whose mean is the median of the 3 means. The range of the 3 means is recorded too |
+| start-up | 5 fresh loads; median of each timing separately (so the timings can come from different loads), from navigation start to the first rendered frame |
 | bundle size | the JS chunks each page loads after `vite build` (minified), and their gzip -9 size |
 | memory | JS heap after a forced garbage collection (CDP `HeapProfiler.collectGarbage`, then `Runtime.getHeapUsage`) |
 | draw calls | the shared hook wraps every WebGL draw method, identically in all builds; three.js's own count (`renderer.info.render.calls`) is recorded too and matched the hook in every run. PixiJS and @pixi/3d report no draw count of their own |
@@ -206,38 +207,47 @@ Why the readback is there: without it, the uncapped headless page queued frames 
 blocked for 100–500 ms at a time. p95 came out below the mean, which means the
 percentiles described the queue, not the frames.
 
-Size of the readback cost, base level, mean only. The runs without `sync=1` are one run
-per build and their percentiles are not reliable, so only means are shown:
+Size of the readback cost, base level, mean only. The run without `sync=1` used the same
+frame counts and 3 repeats as the full run, but without the readback frames overlap and
+queue, so its percentiles are not reliable and only means are shown:
 
 | build | mean with sync=1 (ms) | mean without sync (ms) | difference (ms) |
 |---|---:|---:|---:|
-| three.js 2D | 4.77 | 1.22 | 3.55 |
-| three.js 3D | 8.18 | 2.46 | 5.72 |
-| three.js 3D + bloom | 8.79 | 5.54 | 3.25 |
-| PixiJS 2D | 4.33 | 1.61 | 2.71 |
-| PixiJS 3D | 5.91 | 1.60 | 4.31 |
+| three.js 2D | 4.84 | 1.47 | 3.37 |
+| three.js 3D | 8.46 | 2.56 | 5.91 |
+| three.js 3D + bloom | 8.95 | 3.84 | 5.10 |
+| PixiJS 2D | 4.32 | 2.21 | 2.11 |
+| PixiJS 3D | 6.00 | 2.02 | 3.99 |
 
 The difference is not a fixed cost: it is the readback plus the overlap the browser loses,
-and it varies by build.
+and it varies by build. Without the readback, the ranking of the two 2D builds reverses
+(three.js 2D 1.47 ms, PixiJS 2D 2.21 ms); with it, PixiJS 2D is lower. So the 2D frame-time
+comparison depends on the measuring method; see [What the numbers show](#what-the-numbers-show).
 
 ### How much results varied
 
-- **Within one run (3 repeats):** in the recorded run, 38 of 40 build-and-level results have
-  the 3 means within 12% of each other, most within 5%. Two have one run far from the other two:
-  - three.js 3D, objects ×4: 6.36 / 8.22 / 8.44 ms (33%)
-  - PixiJS 3D, lights 32: 6.38 / 6.67 / 4.58 ms (46%)
-- **Between sessions:** the same build and level gave quite different numbers on different
-  runs on the same day. three.js 2D, base level, mean frame time with `sync=1`:
+- **Within one run (3 repeats):** in the recorded run, 36 of 40 build-and-level results have
+  the 3 means within 12% of each other, most within 5%. Four do not:
+  - three.js 3D, rain 16k: 6.08 / 7.80 / 8.13 ms (34%)
+  - three.js 3D, objects ×16: 8.61 / 8.81 / 6.75 ms (30%)
+  - three.js 2D, rain 64k: 6.49 / 5.81 / 5.67 ms (15%)
+  - three.js 3D + bloom, rain 16k: 9.00 / 8.04 / 8.83 ms (12.03%)
+
+  The spread is the slowest run's mean minus the fastest's, divided by the fastest's.
+- **Between sessions:** the same build and level gave different numbers on different runs
+  on the same day. three.js 2D, base level, mean frame time with `sync=1`:
 
   | run | warm-up frames | machine | mean (ms) |
   |---|---:|---|---:|
   | quick check | 30 | not known to be idle | 9.5 |
   | provisional full run | 60 | not known to be idle | 5.7 |
-  | recorded full run | 60 | idle | 4.77 |
+  | full run at 20:36, before the review fixes | 60 | idle | 4.77 |
+  | recorded full run at 21:22 | 60 | idle | 4.84 |
 
-  Start-up times varied the same way: three.js 2D first frame 258 ms in an earlier run,
-  163 ms in the recorded one. Possible causes, none confirmed: other programs using the
-  machine, the GPU or CPU clock speed, a different number of warm-up frames.
+  The two runs on an idle machine agree within 2%; the earlier ones do not. Start-up times
+  varied the same way: three.js 2D first frame 258 ms in an earlier run, 163 ms at 20:36 and
+  153 ms at 21:22. Possible causes, none confirmed: other programs using the machine, the
+  GPU or CPU clock speed, a different number of warm-up frames.
 - **What this means:** only differences between builds that are well above about 15–20%
   should be read as real. Repeat the full run before relying on smaller differences.
 
@@ -246,39 +256,43 @@ and it varies by build.
 ## Performance
 
 All numbers are from the recorded full run (`bench/results/results.json`) unless stated.
-Frame times are the median of 3 runs; see the warning above about what they mean.
+Each figure comes from the run with the median mean of 3; see the warning above about what
+the frame times mean.
 
 ### Base level
 
 | | three.js 2D | PixiJS 2D | three.js 3D | PixiJS 3D | three.js 3D + bloom |
 |---|---:|---:|---:|---:|---:|
-| frame time mean (ms) | 4.77 | 4.33 | 8.18 | 5.91 | 8.79 |
-| frame time p95 (ms) | 5.3 | 4.9 | 9.6 | 6.8 | 10.0 |
-| frame time p99 (ms) | 5.8 | 5.5 | 10.0 | 7.3 | 10.9 |
-| JS + submit per frame (ms) | 1.38 | 0.40 | 1.09 | 0.61 | 1.32 |
-| draw calls per frame | 98 | 59 | 108 | 58 | 122 |
-| start-up to first frame (ms) | 163 | 192 | 320 | 224 | 371 |
-| bundle minified (kB) | 617.7 | 375.1 | 644.5 | 910.2 | 644.5 |
-| bundle gzip -9 (kB) | 158.9 | 118.6 | 166.1 | 275.1 | 166.1 |
-| JS heap after GC (MB) | 3.8 | 13.3 | 5.1 | 7.2 | 5.4 |
+| frame time mean (ms) | 4.84 | 4.32 | 8.46 | 6.00 | 8.95 |
+| frame time p95 (ms) | 5.4 | 5.0 | 9.7 | 7.1 | 10.2 |
+| frame time p99 (ms) | 6.5 | 5.4 | 10.3 | 7.4 | 10.5 |
+| JS + submit per frame (ms) | 1.40 | 0.42 | 1.13 | 0.61 | 1.32 |
+| draw calls per frame | 98 | 59 | 108 | 52 | 122 |
+| start-up to first frame (ms) | 153 | 195 | 313 | 227 | 363 |
+| bundle minified (kB) | 617.7 | 375.2 | 644.7 | 919.6 | 644.7 |
+| bundle gzip -9 (kB) | 158.9 | 118.8 | 166.2 | 278.4 | 166.2 |
+| JS heap after GC (MB) | 3.8 | 13.3 | 5.0 | 7.0 | 5.4 |
 
 ### Stress levels: mean frame time (ms)
 
 | level | three.js 2D | PixiJS 2D | three.js 3D | PixiJS 3D | three.js 3D + bloom |
 |---|---:|---:|---:|---:|---:|
-| base (rain 4k, lights 8, objects ×1) | 4.77 | 4.33 | 8.18 | 5.91 | 8.79 |
-| rain 16k | 5.08 | 4.55 | 7.88 | 6.14 | 8.86 |
-| rain 64k | 6.32 | 5.27 | 8.37 | 6.43 | 9.43 |
-| rain 256k | 9.15 | 8.55 | 8.64 | 7.09 | 13.21 |
-| lights 32 | 4.94 | 4.48 | 9.10 | 6.38 † | 11.18 |
-| lights 128 | 5.44 | 4.93 | 21.65 | 6.65 † | 24.24 |
-| objects ×4 | 5.20 | 4.67 | 8.22 | 6.63 | 9.00 |
-| objects ×16 | 6.02 | 4.99 | 8.46 | 6.74 | 9.21 |
+| base (rain 4k, lights 8, objects ×1) | 4.84 | 4.32 | 8.46 | 6.00 | 8.95 |
+| rain 16k | 5.09 | 4.62 | 7.80 | 6.35 | 8.83 |
+| rain 64k | 5.81 | 5.14 | 8.71 | 6.64 | 9.40 |
+| rain 256k | 9.15 | 8.48 | 8.68 | 7.34 | 12.96 |
+| lights 32 | 4.96 | 4.46 | 9.09 | 6.96 | 11.38 |
+| lights 128 | 5.46 | 4.83 | 21.66 | 6.83 † | 24.39 |
+| objects ×4 | 5.24 | 4.67 | 8.71 | 6.34 | 8.97 |
+| objects ×16 | 6.13 | 4.99 | 8.61 | 6.61 | 9.05 |
 
 † **Not like for like.** `@pixi/3d` shades at most 32 lights (`MAX_LIGHTS = 32` in
 `node_modules/@pixi/3d/dist/core/lightLimits.mjs`) and drops the rest without a warning.
 At 128 lights the PixiJS 3D build lights the scene with 32; three.js 3D shades all 128.
 In the 2D builds "lights" are additive glow sprites, not lights.
+
+The two 3D builds do the same work: no shadows in either, the same full-screen mist layer
+in both, no post-processing (the bloom variant is listed separately).
 
 Full tables (p95, p99, JS heap and draw calls for every level) come from `npm run report`.
 
@@ -286,27 +300,31 @@ Full tables (p95, p99, JS heap and draw calls for every level) come from `npm ru
 
 Measured:
 
-- **2D:** PixiJS 2D has a lower mean frame time than three.js 2D at every level, by 7–17%.
-  Most of these differences are inside the 15–20% noise band above, so treat the 2D frame
-  times as roughly equal. The CPU cost per frame is the clear difference: 0.40 ms against
-  1.38 ms at the base level, with 59 draw calls against 98.
-- **3D:** PixiJS 3D is faster than three.js 3D (bloom off) at every level except lights 128
-  (not comparable, see †): 28% faster at the base level, 18% at rain 256k.
+- **2D CPU cost:** PixiJS 2D spends less CPU time per frame than three.js 2D: 0.42 ms
+  against 1.40 ms at the base level, and 0.40–0.52 ms against 1.30–1.47 ms across all levels.
+  It also issues fewer draw calls (59 against 98).
+- **2D frame time:** with the readback, PixiJS 2D has a lower mean than three.js 2D at every
+  level, by 7–19%. Without the readback (base level only) the order reverses: 1.47 ms for
+  three.js 2D against 2.21 ms for PixiJS 2D. Treat the 2D frame times as roughly equal.
+- **3D:** PixiJS 3D has a lower mean than three.js 3D (bloom off) at every level except
+  lights 128 (not comparable, see †): by 15–29% with the readback, 21% without it at the
+  base level (2.02 against 2.56 ms).
 - **Rain scaling:** from 4k to 256k drops, both 2D builds roughly double their frame time
-  (three.js 4.77 → 9.15, PixiJS 4.33 → 8.55). The 3D builds grow less (three.js 8.18 → 8.64,
-  PixiJS 5.91 → 7.09).
-- **Lights:** three.js 3D grows from 8.18 ms (8 lights) to 21.65 ms (128 lights).
-- **Bloom** (three.js `UnrealBloomPass`) adds 0.6 ms at the base level and 4.6 ms at rain 256k.
+  (three.js 4.84 → 9.15, PixiJS 4.32 → 8.48). The 3D builds grow less (three.js 8.46 → 8.68,
+  PixiJS 6.00 → 7.34).
+- **Lights:** three.js 3D grows from 8.46 ms (8 lights) to 21.66 ms (128 lights).
+- **Bloom** (three.js `UnrealBloomPass`) adds 0.49 ms at the base level and 4.28 ms at rain 256k.
 - **Memory:** PixiJS 2D has the largest JS heap (13.3 MB at base, 22.3 MB at objects ×16);
   three.js 2D the smallest (3.8 MB).
-- **Bundle:** PixiJS 2D is the smallest (118.6 kB gzip); PixiJS 3D the largest (275.1 kB
+- **Bundle:** PixiJS 2D is the smallest (118.8 kB gzip); PixiJS 3D the largest (278.4 kB
   gzip), because it is pixi.js plus @pixi/3d.
 
 Not explained (causes not investigated, so none is claimed): why the three.js 2D build
-spends more CPU per frame than PixiJS 2D, why three.js 3D rain cost barely grows with the
-drop count, and why the PixiJS 2D heap is larger. Possible causes include the two builds'
-different batching (98 against 59 draw calls), per-object work in each framework's render
-loop, and how each framework stores built shape geometry in JS memory.
+spends more CPU per frame than PixiJS 2D, why the 2D order reverses without the readback,
+why three.js 3D rain cost barely grows with the drop count, and why the PixiJS 2D heap is
+larger. Possible causes include the two builds' different batching (98 against 59 draw
+calls), per-object work in each framework's render loop, and how each framework stores built
+shape geometry in JS memory.
 
 -----
 
@@ -326,9 +344,9 @@ source in `node_modules` or the official docs.
 | CPU particles (smoke, drips) | dynamic buffers | dynamic `Buffer` | `ParticleContainer3D` (`writePacked`, `upload`) |
 | draw order | `renderOrder`, all materials transparent, depth test off | one sorted `RenderLayer` + `zIndex` | depth buffer |
 | instancing | `InstancedMesh` | — | `BatchedMesh3D`, automatic instancing of meshes sharing a geometry |
-| lights | `PointLight`, `SpotLight`, `HemisphereLight`, `DirectionalLight` | — | `PointLight`, `SpotLight` with `castShadow`, `DirectionalLight`, hemisphere `environment` |
+| lights | `PointLight`, `SpotLight`, `HemisphereLight`, `DirectionalLight` | — | `PointLight`, `SpotLight` (shadows off, to match three.js 3D), `DirectionalLight`, hemisphere `environment` |
 | materials | `MeshStandardMaterial` (PBR), `MeshLambertMaterial`, `MeshBasicMaterial` | — | `Material3D` (PBR), `FlatMaterial` (unlit) |
-| fog / haze | `Fog`, with `ShaderChunk.fog_fragment` replaced by the shared haze curve | per-layer colour + mist shader | exponential `fog` (one colour) |
+| fog / haze | `Fog`, with `ShaderChunk.fog_fragment` replaced by the shared haze curve; full-screen mist quad on the camera | per-layer colour + mist shader | exponential `fog` (one colour); the same full-screen mist as a 2D `Mesh` on the PixiJS stage above the `View3D` |
 | reflections | procedural environment via `PMREMGenerator.fromScene` | painted in shader | low-roughness material only |
 | geometry helpers | `ExtrudeGeometry`, `TubeGeometry`, `CatmullRomCurve3`, `mergeGeometries` | — | `CubeGeometry`, `PlaneGeometry`, custom `Geometry3D` |
 | post-processing | `EffectComposer`, `RenderPass`, `UnrealBloomPass`, `OutputPass` (three.js 3D, optional) | none | none |
@@ -343,7 +361,7 @@ source in `node_modules` or the official docs.
 | freezable shader time | @pixi/3d 0.1.0 | `uTime` set from `performance.now()` in `dist/core/gl/View3DPipeGl.mjs` | each animated material gets its own time value |
 | externally driven particle clock | @pixi/3d 0.1.0 | `ParticleSystem3D` steps itself | smoke and drips written by hand to `ParticleContainer3D` |
 | planar or screen-space reflections | @pixi/3d 0.1.0 | not in `dist/` or the docs' post-processing list (bloom, FXAA, SSAO, motion blur, tilt-shift, tint, outline, wireframe) | low-roughness material only |
-| geometry merge, `computeVertexNormals` | @pixi/3d 0.1.0 | stated in the package's geometry reference | own `MeshBuilder` in `pixijs/src/3d/effects/builder.js` |
+| geometry merge, `computeVertexNormals` | @pixi/3d 0.1.0 | stated in the package's geometry reference | own `MeshBuilder` in `pixijs/src/3d/effects/batch.js` |
 | per-depth fog colour | @pixi/3d 0.1.0 | fog takes one colour | approximated |
 | tube / extrude geometry | @pixi/3d 0.1.0 | not in the geometry list | built by hand in `MeshBuilder` |
 | planar reflections | three.js (core) | not in core; `SSRPass` and `Reflector` exist as addons | not used: procedural environment map instead |
@@ -364,16 +382,17 @@ Judgement, based on the problems the builds hit:
   2D game would carry these settings everywhere.
 - **PixiJS 2D gives 2D primitives directly** (`Graphics`, `FillGradient`, `RenderLayer`) and
   still allows raw `Mesh` + `Shader` for anything custom. The PixiJS 2D build reproduced the
-  three.js 2D image almost pixel for pixel with fewer framework names (12 against 26).
+  three.js 2D image almost pixel for pixel with fewer framework names (13 against 26).
 - **three.js 3D is the most open.** Any built-in shader chunk can be replaced
   (`ShaderChunk.fog_fragment` was), and the addons include many post-processing passes,
-  reflections and physics adapters. It also had the most framework concepts to learn (68
+  reflections and physics adapters. It also had the most framework concepts to learn (67
   names).
 - **@pixi/3d is narrower but extensible.** `ShaderBit`s insert code into its built-in
   materials, which covered rain and billboards. Its fixed attribute names, 32-light cap and
   self-clocked shader time and particles each needed a workaround.
 - **2D and 3D together:** a `View3D` is added to the PixiJS stage like a sprite, so a PixiJS
-  game can mix 2D and 3D in one scene graph. Not used here (each build is one or the other).
+  game can mix 2D and 3D in one scene graph. The PixiJS 3D build uses this once: its
+  full-screen mist is a 2D `Mesh` drawn on the stage above the `View3D`.
 
 -----
 
@@ -383,18 +402,19 @@ Judgement, based on the problems the builds hit:
 
 From `npm run loc`. Code lines are non-blank and not only a comment; GLSL inside strings
 counts as code. "Framework API names" counts the distinct names a build imports from its
-framework packages (for three.js, every `THREE.Name` used, including in JSDoc types).
+framework packages, including names used only in JSDoc types (`THREE.Name` and
+`import('<package>').Name`).
 It is a rough measure of how many framework concepts a build needs: it counts names, not
 how hard each one is.
 
 | build | files | code lines | comment lines | framework API names |
 |---|---:|---:|---:|---:|
-| three.js 2D | 20 | 1281 | 347 | 26 |
-| PixiJS 2D | 20 | 1280 | 394 | 12 |
-| three.js 3D | 20 | 1495 | 414 | 68 |
-| PixiJS 3D | 19 | 1176 | 360 | 24 |
-| shared (all builds) | 5 | 796 | 378 | 0 |
-| bench | 3 | 373 | 92 | 0 |
+| three.js 2D | 20 | 1275 | 343 | 26 |
+| PixiJS 2D | 20 | 1274 | 390 | 13 |
+| three.js 3D | 20 | 1493 | 414 | 67 |
+| PixiJS 3D | 20 | 1253 | 390 | 30 |
+| shared (all builds) | 5 | 819 | 394 | 0 |
+| bench | 3 | 412 | 109 | 0 |
 
 The two 2D builds are the same size because they mirror each other module for module;
 the PixiJS one needs fewer framework names.
@@ -418,6 +438,7 @@ the PixiJS one needs fewer framework names.
 | PixiJS 3D | the 32-light cap, fixed attribute names, self-clocked shader time and particles | see [Missing](#missing-and-how-the-builds-worked-around-it) |
 | bench | headless Chromium used software WebGL and was frame-capped | Chromium flags (see [Environment](#environment-of-the-recorded-results)) |
 | bench | uncapped frames queued and stalled in bursts; percentiles meaningless | one-pixel readback per frame (`sync=1`) |
+| 3D pair | code review found the 3D builds doing different work: PixiJS 3D drew spot-light shadows, three.js 3D drew a full-screen mist | shadows off in PixiJS 3D (`Mesh3D.defaultOptions.castShadow = false`, spot light without `castShadow`; @pixi/3d then skips its shadow pass), and the three.js mist shader ported to PixiJS 3D |
 
 -----
 
@@ -431,7 +452,7 @@ All code is JavaScript with JSDoc, type-checked by TypeScript 7.0.2 in strict mo
 | | three.js | pixi.js | @pixi/3d |
 |---|---|---|---|
 | type declarations | separate package, `@types/three` (DefinitelyTyped), versioned to match (0.187.0) | shipped in the package (`lib/index.d.ts`) | shipped in the package (`dist/index.d.ts`) |
-| builder's experience (judgement) | complete for what was used | complete for what was used | strict check passed with 2 errors, both in the build's own code; `ShaderBit` and `Geometry3D` types are thorough |
+| builder's experience (judgement) | complete for what was used | complete for what was used | complete for what was used; `ShaderBit` and `Geometry3D` types are thorough |
 
 ### Documentation (judgement)
 
@@ -473,23 +494,23 @@ Judgement, from the measurements and the build experience above.
 **For Technophage, a side-on 2D game: PixiJS v8.**
 
 1. **Same result, fewer concepts.** PixiJS 2D drew a near-identical image (mean difference
-   0.39/255 per pixel) with the same amount of code and 12 framework names against 26.
+   0.39/255 per pixel) with the same amount of code and 13 framework names against 26.
    three.js needed workarounds for its 3D defaults (draw order, winding, colour management).
-2. **Lower CPU cost per frame** (0.40 ms against 1.38 ms at the base level) and fewer draw
+2. **Lower CPU cost per frame** (0.42 ms against 1.40 ms at the base level) and fewer draw
    calls (59 against 98). CPU time matters for a game, which also runs game logic each frame.
    GPU frame times were roughly equal.
-3. **Smaller download:** 118.6 kB gzip against 158.9 kB.
+3. **Smaller download:** 118.8 kB gzip against 158.9 kB.
 4. **2D game ecosystem:** an official tilemap package, a viewport/camera package, sound, UI
    and Spine support for v8. three.js has no official tilemap package.
 5. **A way into 3D:** `@pixi/3d` adds 3D to the same scene graph, and in this test it was
-   faster than three.js 3D with fewer framework names.
+   faster than three.js 3D (15–29% lower mean frame time) with fewer framework names (30 against 67).
 
 **Against PixiJS:** a larger JS heap (13.3 MB against 3.8 MB in 2D); no built-in physics
 (neither framework has it); the main particle-emitter library does not support v8.
 
 **If the game needs real 3D now: three.js.** `@pixi/3d` performed well here, but it is a
-0.1.0 beta: the package was first published on 2026-11-12, three days before this test. It caps shaded lights at 32 without
-warning and lacks custom vertex attributes, reflections and several geometry helpers.
+0.1.0 beta: the package was first published on 2026-11-12, three days before this test.
+It caps shaded lights at 32 without warning and lacks custom vertex attributes, reflections and several geometry helpers.
 three.js 3D has the mature feature set, addons and ecosystem. Re-evaluate `@pixi/3d` when
 it leaves beta.
 
@@ -523,6 +544,11 @@ it leaves beta.
   depth-0 plane); X and Y scaled by `(1 + depth)` to keep the 2D composition.
 - Time helpers (pure functions of t): `trainX`, `droneState`, `smokeParticle`, `dripState`,
   `rainDropAt`, `cameraX`, `lampFlicker`, `redBlink`. Rain per-drop data: `rainAttributes`.
+  Shared helpers: `pointInPolygon`, `isFlickering`.
+- Layers: every module in `layers/` exports `createX(scene, ctx?)`. 2D builds return
+  `{ parts: [{ object, depth }], update?(t) }` and `main.js` applies parallax per part.
+  3D builds return `{ parts, update?(t), info? }`, where a part is a three.js `Object3D` or
+  a @pixi/3d `Container3D`. Each `stage.js` documents its build's contract.
 - Bench hook: `installBench({ framework, mode, version, getFrameworkDrawCalls })` returns
   `{ frameBegin, frameEnd, markFirstFrame, params, setInfo }`. Call `frameBegin()` /
   `frameEnd()` around the render and `markFirstFrame()` after the first render. Every
