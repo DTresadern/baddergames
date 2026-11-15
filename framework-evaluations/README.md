@@ -14,9 +14,11 @@ Everything is made in code: geometry, shaders, particles and lights. No bitmap i
 loaded or committed. All four builds draw the same scene data from `shared/scene.js`, with
 the same seed and the same animation timing, so differences come from the frameworks.
 
-**Recommendation (judgement, reasons in [Recommendation](#recommendation)):** PixiJS for a
-2D game such as Technophage. three.js if the game needs real 3D now, because `@pixi/3d` is
-a beta 0.1.0 release.
+**Decision (the project owner's, 2026-11-15):** three.js for Technophage, with a 2.5D
+approach: a 3D world with 2D gameplay, and the pixel-art look made with basic textures
+rather than post-processing. This overrides the evaluation's own recommendation, which was
+PixiJS for a 2D game and three.js if the game needs real 3D now. Reasons and the evaluation's analysis are in
+[Recommendation](#recommendation).
 
 -----
 
@@ -495,6 +497,27 @@ package's `peerDependencies`.
 
 ## Recommendation
 
+### Decision
+
+The project owner decided on **three.js** for Technophage, used for a **2.5D** game: a 3D
+world with 2D gameplay. The pixel-art look will come from basic textures, not from
+post-processing.
+
+The project owner's reasons:
+
+1. three.js looked the best in these builds.
+2. It performs well.
+3. It is the framework the project owner already knows.
+4. A 3D renderer does not stop the game being 2D, and a 3D world adds richness to the
+   environments.
+
+This decision overrides the evaluation's recommendation below. That recommendation was
+for a side-on 2D game. For a game that needs real 3D, the evaluation recommended three.js
+because `@pixi/3d` is a 0.1.0 beta, even though `@pixi/3d` measured faster than three.js 3D
+in this test.
+
+### The evaluation's recommendation (superseded by the decision above)
+
 Judgement, from the measurements and the build experience above.
 
 **For Technophage, a side-on 2D game: PixiJS v8.**
@@ -509,7 +532,8 @@ Judgement, from the measurements and the build experience above.
 4. **2D game ecosystem:** an official tilemap package, a viewport/camera package, sound, UI
    and Spine support for v8. three.js has no official tilemap package.
 5. **A way into 3D:** `@pixi/3d` adds 3D to the same scene graph, and in this test it was
-   faster than three.js 3D (15–29% lower mean frame time) with fewer framework names (30 against 67).
+   faster than three.js 3D (15–29% lower mean frame time) with fewer framework names
+   (30 against 67).
 
 **Against PixiJS:** a larger JS heap (13.3 MB against 3.8 MB in 2D); no built-in physics
 (neither framework has it); the main particle-emitter library does not support v8.
