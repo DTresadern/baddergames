@@ -6,8 +6,9 @@
 
 import { Container3D, FlatMaterial, Mesh3D, SpotLight } from '@pixi/3d';
 import { droneState } from '@fw-eval/shared/scene.js';
-import { MeshBuilder } from '../effects/builder.js';
-import { createGlows, litVertexMaterial } from '../effects/materials.js';
+import { MeshBuilder } from '../effects/batch.js';
+import { createGlows } from '../effects/glow.js';
+import { litVertexMaterial } from '../effects/materials.js';
 import { DECK, S, X, Y, Z } from '../stage.js';
 
 /**

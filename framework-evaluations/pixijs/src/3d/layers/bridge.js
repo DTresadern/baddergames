@@ -4,8 +4,9 @@
 
 import { Mesh3D } from '@pixi/3d';
 import { redBlink } from '@fw-eval/shared/scene.js';
-import { MeshBuilder } from '../effects/builder.js';
-import { createGlows, litVertexMaterial } from '../effects/materials.js';
+import { MeshBuilder } from '../effects/batch.js';
+import { createGlows } from '../effects/glow.js';
+import { litVertexMaterial } from '../effects/materials.js';
 import { DECK, P3, X, Y } from '../stage.js';
 import { Material3D } from '@pixi/3d';
 

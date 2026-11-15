@@ -4,8 +4,9 @@
 // feet, in 2D units x scale) and placed on the sloped deck. Muzzle glints are glow sprites.
 
 import { Container3D, Mesh3D } from '@pixi/3d';
-import { MeshBuilder } from '../effects/builder.js';
-import { createGlows, litVertexMaterial } from '../effects/materials.js';
+import { MeshBuilder } from '../effects/batch.js';
+import { createGlows } from '../effects/glow.js';
+import { litVertexMaterial } from '../effects/materials.js';
 import { D, deckTopAt } from '../stage.js';
 
 /**

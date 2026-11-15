@@ -6,7 +6,7 @@
 // with the grey vertex colours of the unit geometry.
 
 import { Mesh3D } from '@pixi/3d';
-import { MeshBuilder } from '../effects/builder.js';
+import { MeshBuilder } from '../effects/batch.js';
 import { litVertexMaterial } from '../effects/materials.js';
 import { DECK, standY } from '../stage.js';
 import { D } from '../stage.js';

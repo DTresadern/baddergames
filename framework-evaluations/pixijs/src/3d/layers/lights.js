@@ -7,8 +7,9 @@
 
 import { Mesh3D, PointLight } from '@pixi/3d';
 import { lampFlicker } from '@fw-eval/shared/scene.js';
-import { MeshBuilder } from '../effects/builder.js';
-import { createGlows, glowVertexMaterial, litVertexMaterial } from '../effects/materials.js';
+import { MeshBuilder } from '../effects/batch.js';
+import { createGlows } from '../effects/glow.js';
+import { glowVertexMaterial, litVertexMaterial } from '../effects/materials.js';
 import { DECK, X, Y, deckTopAt } from '../stage.js';
 
 /**

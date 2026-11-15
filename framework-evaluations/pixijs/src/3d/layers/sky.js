@@ -4,7 +4,7 @@
 // (colour or hemisphere) cannot place gradient stops at given heights, so a mesh is used.
 
 import { FlatMaterial, Mesh3D } from '@pixi/3d';
-import { MeshBuilder, linear } from '../effects/builder.js';
+import { MeshBuilder, linear } from '../effects/batch.js';
 import { X, Y, Z } from '../stage.js';
 
 /**

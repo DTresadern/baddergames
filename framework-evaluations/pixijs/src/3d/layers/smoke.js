@@ -6,8 +6,9 @@
 
 import { Mesh3D, ParticleContainer3D, packParticleColor } from '@pixi/3d';
 import { smokeParticle } from '@fw-eval/shared/scene.js';
-import { MeshBuilder } from '../effects/builder.js';
-import { litVertexMaterial, softDot } from '../effects/materials.js';
+import { MeshBuilder } from '../effects/batch.js';
+import { softDot } from '../effects/glow.js';
+import { litVertexMaterial } from '../effects/materials.js';
 import { S, X, Y, Z } from '../stage.js';
 
 /**

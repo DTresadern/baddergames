@@ -5,8 +5,9 @@
 
 import { FlatMaterial, Mesh3D, PlaneGeometry } from '@pixi/3d';
 import { Color } from 'pixi.js';
-import { MeshBuilder } from '../effects/builder.js';
-import { createGlows, litVertexMaterial } from '../effects/materials.js';
+import { MeshBuilder } from '../effects/batch.js';
+import { createGlows } from '../effects/glow.js';
+import { litVertexMaterial } from '../effects/materials.js';
 import { S, X, Y, Z } from '../stage.js';
 
 /** @type {import('@pixi/3d').ShaderBit} */

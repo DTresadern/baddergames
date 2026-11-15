@@ -3,8 +3,9 @@
 // tendrils, glossy so the lamps catch them, and pods that glow from inside.
 
 import { Material3D, Mesh3D } from '@pixi/3d';
-import { MeshBuilder } from '../effects/builder.js';
-import { createGlows, glowVertexMaterial, litVertexMaterial } from '../effects/materials.js';
+import { MeshBuilder } from '../effects/batch.js';
+import { createGlows } from '../effects/glow.js';
+import { glowVertexMaterial, litVertexMaterial } from '../effects/materials.js';
 import { X, Y } from '../stage.js';
 
 /** Front face of the rock, in front of the structures. */

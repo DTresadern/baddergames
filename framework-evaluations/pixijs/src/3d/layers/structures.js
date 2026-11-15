@@ -4,7 +4,7 @@
 // one unlit mesh for glowing details, fan blades as their own meshes (rotated each frame).
 
 import { Mesh3D } from '@pixi/3d';
-import { MeshBuilder } from '../effects/builder.js';
+import { MeshBuilder } from '../effects/batch.js';
 import { glowVertexMaterial, litVertexMaterial } from '../effects/materials.js';
 import { S, X, Y, Z } from '../stage.js';
 

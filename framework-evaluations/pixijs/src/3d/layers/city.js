@@ -5,7 +5,7 @@
 // mesh; domes into one lit mesh. Distance haze comes from the view's fog.
 
 import { BatchedMesh3D, CubeGeometry, Material3D, Matrix4, Mesh3D, RenderPassBit } from '@pixi/3d';
-import { MeshBuilder } from '../effects/builder.js';
+import { MeshBuilder } from '../effects/batch.js';
 import { glowVertexMaterial, litVertexMaterial } from '../effects/materials.js';
 import { S, X, Y, Z } from '../stage.js';
 

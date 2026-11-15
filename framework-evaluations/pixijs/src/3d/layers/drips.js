@@ -5,7 +5,7 @@
 
 import { ParticleContainer3D, packParticleColor } from '@pixi/3d';
 import { dripState } from '@fw-eval/shared/scene.js';
-import { softDot } from '../effects/materials.js';
+import { softDot } from '../effects/glow.js';
 import { X, Y } from '../stage.js';
 
 const TRAIL = 3;
