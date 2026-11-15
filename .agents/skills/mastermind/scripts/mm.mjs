@@ -9,7 +9,7 @@ import {
 } from "./core.mjs";
 import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setSummary } from "./devlog.mjs";
 import {
-  claim, gitPreflight, issueNew, laneAttach, laneList, laneMerge, laneNew, laneSet, laneUpdate, nsAdd, owner, reconcile,
+  claim, gitPreflight, issueNew, laneAttach, laneCleanup, laneList, laneMerge, laneNew, laneSet, laneUpdate, nsAdd, owner, reconcile,
   release, syncLanes, taskFind, taskList,
   taskNew, taskStart,
 } from "./work.mjs";
@@ -31,6 +31,8 @@ and reads every open lane's thread, recording what it reports (HELD, WAITING, BL
   mm lane attach <name>                     run by the lane itself as its first step: records its thread
   mm lane merge <name>                      on the user's word only: merges the held pull request if it is open,
                                             CLEAN and every check passed; then removes the lane's branch and worktree
+  mm lane cleanup <name>                    finish removing a merged or closed lane's branches and worktree (safe to repeat);
+                                            never deletes anything in the main checkout
 
   mm issue new <ns> "<title>" [--body-file <f>]   GitHub issue with the ns:<name> label
   mm task new <ns> "<title>" [--body-file <f>]    local backlog task
@@ -118,6 +120,10 @@ function status(ctx, ledger, roll) {
     closedDays: roll.closed, finaliseSent: roll.finaliseSent, laneChanges: ledger.pendingChanges || [],
     waitingForUser: { approval: by(["held"]), answer: by(["waiting"]), blocked: by(["blocked"]) },
     running: by(["started", "running"]),
+    quietLanes: laneList(ledger, { open: true }).filter((l) => l.quietSince).map((l) => ({
+      lane: l.name, quietSince: l.quietSince,
+      recheckAt: new Date(new Date(l.quietSince).getTime() + (ctx.config.laneQuietMinutes ?? 15) * 60000 + 60000).toISOString(),
+    })),
     completedToday: done,
     devlog: devlogSummaryLine(ctx, ledger),
     orchestrators: ledger.claims,
@@ -187,12 +193,14 @@ function main(argv) {
           result = laneUpdate(ctx, ledger, pos[0], pos[1], { note: opt.note, why: opt.why, pr: num(opt.pr) });
         } else if (sub === "attach") {
           result = laneAttach(ctx, ledger, pos[0], opt.threadId || currentThreadId());
+        } else if (sub === "cleanup") {
+          result = laneCleanup(ctx, ledger, pos[0]);
         } else if (sub === "merge") {
           result = laneMerge(ctx, ledger, pos[0]);
         } else if (sub === "list") {
           const lanes = laneList(ledger, { open: !!opt.open });
           result = opt.json ? lanes : lanes.map((l) => `${l.name.padEnd(20)} ${l.state.padEnd(8)} ${l.ns}  ${l.title}${l.issue ? ` #${l.issue}` : ""}${l.pr ? ` PR #${l.pr}` : ""}`).join("\n") || "no lanes";
-        } else fail("usage: mm lane new|set|update|list|attach|merge");
+        } else fail("usage: mm lane new|set|update|list|attach|merge|cleanup");
         break;
       case "issue":
         if (sub !== "new") fail("usage: mm issue new <ns> \"<title>\" [--body-file <f>]");

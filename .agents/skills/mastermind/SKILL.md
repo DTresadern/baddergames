@@ -69,6 +69,8 @@ T3 wakes you when a lane finishes a turn or asks a question. Start that turn wit
 
 Forward the user's answers and change requests to the lane with `t3_thread_send` (mode `auto`), beginning "User says:", in their words. The lane does the work and reports again.
 
+A lane can end a turn while its own reviews or checks run in the background, and wake again when they finish. A turn that ends without a status line therefore counts as running for `laneQuietMinutes` (15, in `.mastermind/config.json`); only if no new run starts in that time does `mm` report the lane as waiting. Do not change a lane's state by hand for this. Nothing wakes you when that time runs out, so when `mm status` lists `quietLanes`, schedule one check: `schedule_task` with schedule `{"type": "once", "runAt": <the latest recheckAt>}`, bound to this thread, prompt "Run mm status and act on it."
+
 `mm` follows each lane by its thread, not by task ID. A `t3_thread_send` to a lane may return a new task ID; it needs no recording.
 
 **Stopping a lane** (the user drops the work, or it is replaced): `task_cancel` with the lane's first task ID (`mm lane list --json`, field `taskId`), which also stops every later run in its thread; then `mm lane update <name> closed --note "<why>"`; then settle its thread with `t3_thread_organize`. Close its pull request, if it has one, only when the user says so.
@@ -79,7 +81,8 @@ Every pull request is held for the user. Merge only when the user approves that 
 
 1. `mm lane merge <name>`. It merges only the lane's own branch into `main`, only when the pull request is open, GitHub reports it CLEAN, at least one check passed and none failed, and the pull request contains exactly what the lane's worktree has. It then updates the main checkout and removes the lane's branches and worktree, and reports each cleanup step.
 2. If `mm` refuses, tell the user why. `BEHIND` or a merge conflict: ask the lane to update its branch from `main` and report again. A failing check: ask the lane to fix it. The user's word never overrides a failing or unmergeable pull request, and nothing else may merge.
-3. Settle the lane's thread with `t3_thread_organize` (action `settle`), and settle other finished lanes the same way. Tell the user about any cleanup step that did not complete.
+3. Settle the lane's thread with `t3_thread_organize` (action `settle`), and settle other finished lanes the same way.
+4. If a merge was stopped partway, or a cleanup step did not complete: run `mm status` (it records a merge GitHub already made), then `mm lane cleanup <name>`. It is safe to repeat. It never deletes anything in the main checkout: there it only fast-forwards `main`, and skips that if `main` has uncommitted changes. It deletes only branches that `main` contains, never `main` itself. It removes only lane worktrees (linked worktrees inside T3's worktree folder) whose commit `main` contains and that have no uncommitted changes or new files; their ignored files (build output, caches) go with them and are listed in the result. Tell the user about anything it kept. Never do the cleanup by hand.
 
 ## Devlog
 
