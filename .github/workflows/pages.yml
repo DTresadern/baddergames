@@ -41,7 +41,7 @@ jobs:
           cp -r ideas/. _site/ideas/
           # list what upload-pages-artifact publishes: it skips hidden files
           # and follows symlinks
-          find _site \( -name '.*' -prune \) -o \( -type f -o -type l \) -print | sort
+          find -L _site \( -name '.*' -prune \) -o -type f -print | sort
 
       - uses: actions/configure-pages@v6
 
