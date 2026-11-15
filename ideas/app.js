@@ -295,7 +295,7 @@ function initApp() {
   let hoverIndex = -1;
   let selectedIndex = -1;
   const pointers = new Map();     // pointerId -> {x, y}
-  let drag = null;                // {startX, startY, node, moved, pointerId}
+  let drag = null;
   let pinch = null;               // {dist, midX, midY}
 
   function readTheme() {
@@ -338,7 +338,6 @@ function initApp() {
       setStatus(sourceName + ': ' + err.message, true);
       return;
     }
-    fileFallback.hidden = true;
     setGraph(buildGraph(result.ideas));
     const count = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
     const skippedNote = result.skipped === 0 ? ''
@@ -347,6 +346,7 @@ function initApp() {
       setStatus('No valid ideas in ' + sourceName + '.' + skippedNote, true);
       return;
     }
+    fileFallback.hidden = true;
     setStatus(count(result.ideas.length, 'idea') + ', ' + count(graph.edges.length, 'connection') + '.' + skippedNote, false);
   }
 
@@ -673,9 +673,11 @@ function initApp() {
     if (pointers.size < 2) pinch = null;
     if (drag && drag.pointerId === ev.pointerId) {
       const wasClick = !cancelled && !drag.moved && drag.node !== null;
+      const wasNodeDrag = drag.moved && drag.node !== null;
       const idx = drag.node;
       drag = null;
       if (wasClick) openIdea(idx);
+      if (wasNodeDrag) wake(300);
     }
     if (pointers.size === 0) {
       canvas.classList.remove('panning');
