@@ -45,7 +45,9 @@ Reviewer: {{reviewer}}, on {{reviewerModel}}. Run the review with the skill of t
 
 ## Report
 
-Your final message starts with exactly one of these lines, then the details:
+Every turn you end starts its final message with exactly one of these lines, then the details:
+
+- `WORKING: <what you are waiting for>` when you end a turn while your own background work runs (a background command, a sub-agent, a check) and you will continue when it finishes
 
 - `HELD: <PR link> — reviews done, checks green, waiting for approval`
 - `WAITING: <what you need from the user, with options>`

@@ -59,6 +59,7 @@ T3 wakes you when a lane finishes a turn or asks a question. Start that turn wit
 
 | Lane reports | You do |
 |---|---|
+| `WORKING` | Nothing: the lane is waiting for its own background work and continues by itself. |
 | `HELD` | Tell the user the pull request is ready for approval: what it does, the link, and the review and check results. |
 | `WAITING` or a question | Put the question to the user in plain words, with the options. |
 | `BLOCKED` | Tell the user what blocks it. If it needs a stronger model, start a new lane for the same issue with `--class hard`. |
