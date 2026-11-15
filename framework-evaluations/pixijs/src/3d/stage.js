@@ -33,7 +33,7 @@ export const S = (v, depth = 0) => v * (1 + depth);
 /**
  * @typedef {import('@pixi/3d').Container3D} Part
  * @typedef {{ parts: Part[], update?: (t: number) => void, info?: Record<string, number> }} Layer
- * @typedef {{ parts: import('pixi.js').Container[], update: (t: number) => void }} Overlay
+ * @typedef {{ parts: import('pixi.js').Container[], update?: (t: number) => void }} Overlay
  * @typedef {{ data: Record<string, any> }} TimedMaterial
  * @typedef {{
  *   timed: TimedMaterial[],

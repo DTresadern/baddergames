@@ -237,6 +237,7 @@ try {
       const means = runs.map((f) => f.mean);
       // every field from one run, the one with the median mean, so p95/p99/cpu match the mean
       const frames = { ...medianRun(runs), runs: runs.length, meanRange: [Math.min(...means), Math.max(...means)] };
+      // heap is read once, after the last of the repeats, not from the median run
       await s.send('HeapProfiler.collectGarbage');
       const heap = await s.send('Runtime.getHeapUsage');
       const perfMemory = await s.evaluate('window.__bench.heap()');
@@ -244,7 +245,9 @@ try {
       entry.version = info.version;
       entry.gl = info.gl;
       entry.info = info.info;
+      // per level: --levels keeps older levels, so each records when and on which bundle it ran
       entry.levels[level.id] = {
+        measuredAt: new Date().toISOString(), bundleGzip: bundle.js.gzip,
         stress: info.stress, frames, runs,
         heap: { usedSize: heap.usedSize, totalSize: heap.totalSize, performanceMemory: perfMemory },
         setupDrawCalls: info.setupDrawCalls,

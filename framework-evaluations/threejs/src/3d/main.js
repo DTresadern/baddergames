@@ -20,7 +20,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { buildScene, cameraX } from '@fw-eval/shared/scene.js';
 import { createCtx, D, CAM_H } from './stage.js';
 import { installHazeFog, createEnvironment } from './effects/materials.js';
-import { createSky, createMist } from './layers/sky.js';
+import { createSkyBackground, createMist } from './layers/sky.js';
 import { createCity } from './layers/city.js';
 import { createTrain } from './layers/train.js';
 import { createBillboards } from './layers/billboards.js';
@@ -86,7 +86,8 @@ const scene = buildScene(seed, stress);
 const root = new THREE.Scene();
 root.add(camera); // the mist overlay is a child of the camera
 installHazeFog(root, scene);
-const ctx = createCtx(root);
+const ctx = createCtx();
+root.background = createSkyBackground(scene);
 ctx.env = createEnvironment(renderer, scene);
 
 // ambient: bruised-navy sky light from above, near-black bounce from below, and a cold
@@ -101,7 +102,6 @@ fill.position.set(-200, 300, 800);
 root.add(fill);
 
 const layers = [
-  createSky(scene, ctx),
   createCity(scene),
   createTrain(scene, ctx),
   createBillboards(scene, ctx),
@@ -120,7 +120,6 @@ for (const l of layers) for (const p of l.parts) root.add(p);
 // the mist is a screen overlay: its quad rides on the camera and draws after everything
 const mist = createMist(scene, ctx);
 for (const p of mist.parts) camera.add(p);
-layers.push(mist);
 
 /** @type {Record<string, number>} */
 const info = {};
@@ -150,6 +149,7 @@ function loop() {
   ctx.time.value = t;
   camera.position.x = cameraX(scene, t);
   for (const l of layers) l.update?.(t);
+  mist.update?.(t);
   if (composer) composer.render();
   else renderer.render(root, camera);
   bench.frameEnd();

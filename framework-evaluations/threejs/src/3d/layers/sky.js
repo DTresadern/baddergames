@@ -10,12 +10,11 @@ import { NOISE_GLSL, fragmentTail } from '../effects/materials.js';
 /**
  * The sky is the scene background: a vertical gradient texture (generated in code, one
  * texel per world y) that fills the frame behind everything and does not move with the
- * camera, like the 2D sky.
+ * camera, like the 2D sky. main.js assigns it to the scene's `background`.
  * @param {import('@fw-eval/shared/scene.js').Scene} scene
- * @param {import('../stage.js').Ctx} ctx
- * @returns {import('../stage.js').Layer}
+ * @returns {THREE.DataTexture}
  */
-export function createSky(scene, ctx) {
+export function createSkyBackground(scene) {
   const H = scene.world.height;
   const data = new Uint8Array(H * 4);
   const stops = scene.sky.stops;
@@ -31,14 +30,13 @@ export function createSky(scene, ctx) {
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.magFilter = THREE.LinearFilter;
   tex.needsUpdate = true;
-  ctx.root.background = tex;
-  return { parts: [] };
+  return tex;
 }
 
 /**
  * @param {import('@fw-eval/shared/scene.js').Scene} scene
  * @param {import('../stage.js').Ctx} ctx
- * @returns {import('../stage.js').Layer} parts in camera space: add them to the camera
+ * @returns {import('../stage.js').Overlay} parts in camera space: add them to the camera
  */
 export function createMist(scene, ctx) {
   const dist = 60;

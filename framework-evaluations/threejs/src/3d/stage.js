@@ -69,23 +69,22 @@ export function frustumRect(dist) {
 /**
  * @typedef {import('three').Object3D} Part
  * @typedef {{ parts: Part[], update?: (t: number) => void, info?: Record<string, number> }} Layer
+ * @typedef {{ parts: Part[], update?: (t: number) => void }} Overlay
  * @typedef {{
- *   root: import('three').Scene,
  *   time: import('three').IUniform<number>,
  *   coneApex: import('three').IUniform<import('three').Vector3>,
  *   coneDir: import('three').IUniform<import('three').Vector3>,
  *   coneParams: import('three').IUniform<import('three').Vector2>,
  *   env: import('three').Texture | null,
  * }} Ctx
- *   root: the scene graph (the sky layer sets its background). time: seconds. cone*: the drone searchlight in world space (apex, unit direction,
+ *   time: seconds. cone*: the drone searchlight in world space (apex, unit direction,
  *   (cos of the half-angle, length)); the rain shader lights drops inside it.
  *   env: procedural environment map for wet reflections (set by main.js).
  */
 
-/** @param {THREE.Scene} root @returns {Ctx} */
-export function createCtx(root) {
+/** @returns {Ctx} */
+export function createCtx() {
   return {
-    root,
     time: { value: 0 },
     coneApex: { value: new THREE.Vector3() },
     coneDir: { value: new THREE.Vector3(1, 0, 0) },

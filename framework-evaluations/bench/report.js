@@ -57,7 +57,7 @@ for (const [id, b] of builds) {
 }
 table(['build', 'level', 'mean', 'mean range (runs)', 'p95', 'p99', 'fps', 'JS+submit mean', 'draw calls (hook)', 'draw calls (framework)', 'JS heap kB after GC'], rows);
 
-// readback cost: the same builds measured without sync=1 (npm run bench -- --no-sync --quick)
+// readback cost: the same builds measured without sync=1 (npm run bench -- --no-sync --levels base)
 const noSyncPath = join(import.meta.dirname, 'results', 'results-nosync.json');
 if (existsSync(noSyncPath)) {
   const noSync = JSON.parse(readFileSync(noSyncPath, 'utf8'));

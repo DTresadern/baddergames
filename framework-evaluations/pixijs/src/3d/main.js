@@ -135,7 +135,7 @@ function loop() {
   camera.position.x = cameraX(scene, t);
   for (const m of ctx.timed) m.data.time = t;
   for (const l of layers) l.update?.(t);
-  mist.update(t);
+  mist.update?.(t);
   app.renderer.render(app.stage);
   bench.frameEnd();
   if (first) {

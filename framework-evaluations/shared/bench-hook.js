@@ -20,7 +20,7 @@
 //   ready, framework, mode, version, stress, seed, t, startup, gl,
 //   sample(nFrames) -> Promise<FrameStats>, heap()
 //
-// GPU sync (`?sync=1`, which the runner always sets): after each frame the hook reads one
+// GPU sync (`?sync=1`, which the runner sets unless `--no-sync`): after each frame the hook reads one
 // pixel back from the renderer's context. readPixels waits until the GPU has finished the
 // frame, so each frame's time includes its GPU work. Without it, an uncapped headless page
 // queues frames and then blocks in bursts, so per-frame percentiles describe the queue,

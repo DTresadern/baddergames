@@ -174,7 +174,7 @@ only), `--no-build` (reuse `dist/`), `--quick` (base level only, one repeat, few
 | Node.js | 26.3.1 |
 | resolution | 1800×600 canvas, device pixel ratio 1, WebGL2 in every build. Antialias on in the canvas, except three.js 3D with bloom, which turns canvas antialias off and renders into a 4-sample multisampled target instead |
 | Chromium flags | `--ignore-gpu-blocklist --enable-gpu --disable-gpu-vsync --disable-frame-rate-limit --disable-renderer-backgrounding --disable-background-timer-throttling --force-device-scale-factor=1 --window-size=1800,600` |
-| recorded | 2026-11-15 (UTC+0), machine idle: full run 21:22:54–21:29:49, run without readback 21:29:49–21:30:36 |
+| recorded | 2026-11-15 (UTC+0), machine idle: full run 21:22:54–21:29:49, run without readback 21:29:49–21:30:36. A later code-review change moved the three.js 3D sky and mist out of the layer list without changing what is drawn; it made the three.js 3D bundle 0.1 kB smaller (minified), and was not re-measured |
 
 Flags: without `--ignore-gpu-blocklist --enable-gpu`, headless Chromium on this machine
 used SwiftShader (software WebGL). Without `--disable-gpu-vsync --disable-frame-rate-limit`,
@@ -191,7 +191,7 @@ display rate, not the work.
 | repeats | 3 fresh page loads per level. The tables show every figure from one run: the run whose mean is the median of the 3 means. The range of the 3 means is recorded too |
 | start-up | 5 fresh loads; median of each timing separately (so the timings can come from different loads), from navigation start to the first rendered frame |
 | bundle size | the JS chunks each page loads after `vite build` (minified), and their gzip -9 size |
-| memory | JS heap after a forced garbage collection (CDP `HeapProfiler.collectGarbage`, then `Runtime.getHeapUsage`) |
+| memory | JS heap after a forced garbage collection (CDP `HeapProfiler.collectGarbage`, then `Runtime.getHeapUsage`), read once per level after the last of the 3 runs, so it is the one figure not taken from the median run |
 | draw calls | the shared hook wraps every WebGL draw method, identically in all builds; three.js's own count (`renderer.info.render.calls`) is recorded too and matched the hook in every run. PixiJS and @pixi/3d report no draw count of their own |
 
 ### Read the frame times as a comparison, not as real frame rates
@@ -220,9 +220,12 @@ queue, so its percentiles are not reliable and only means are shown:
 | PixiJS 3D | 6.00 | 2.02 | 3.99 |
 
 The difference is not a fixed cost: it is the readback plus the overlap the browser loses,
-and it varies by build. Without the readback, the ranking of the two 2D builds reverses
-(three.js 2D 1.47 ms, PixiJS 2D 2.21 ms); with it, PixiJS 2D is lower. So the 2D frame-time
-comparison depends on the measuring method; see [What the numbers show](#what-the-numbers-show).
+and it varies by build.
+
+The runs without the readback are much less consistent than the runs with it. Spread of
+their 3 means: PixiJS 2D 1.35 / 2.21 / 2.40 ms (78%), three.js 3D + bloom 57%, three.js 3D
+20%, three.js 2D 9%, PixiJS 3D 7%. So the no-readback means show roughly how large the
+readback cost is, but they are not good enough to rank builds against each other.
 
 ### How much results varied
 
@@ -239,14 +242,16 @@ comparison depends on the measuring method; see [What the numbers show](#what-th
 
   | run | warm-up frames | machine | mean (ms) |
   |---|---:|---|---:|
-  | quick check | 30 | not known to be idle | 9.5 |
-  | provisional full run | 60 | not known to be idle | 5.7 |
+  | quick check at 19:35 | 30 | not known to be idle | 9.5 |
+  | provisional full run at 19:36 | 60 | not known to be idle | 5.7 |
   | full run at 20:36, before the review fixes | 60 | idle | 4.77 |
   | recorded full run at 21:22 | 60 | idle | 4.84 |
 
   The two runs on an idle machine agree within 2%; the earlier ones do not. Start-up times
-  varied the same way: three.js 2D first frame 258 ms in an earlier run, 163 ms at 20:36 and
-  153 ms at 21:22. Possible causes, none confirmed: other programs using the machine, the
+  varied the same way: three.js 2D first frame 258 ms in a run at 19:31 (before the readback
+  was added), 277 ms at 19:36, 163 ms at 20:36 and 153 ms at 21:22. The runs before 21:22 are
+  in the runner's raw output files (`bench/results/raw/`, not committed); only the 21:22 run
+  is in `results.json`. Possible causes, none confirmed: other programs using the machine, the
   GPU or CPU clock speed, a different number of warm-up frames.
 - **What this means:** only differences between builds that are well above about 15–20%
   should be read as real. Repeat the full run before relying on smaller differences.
@@ -304,11 +309,13 @@ Measured:
   against 1.40 ms at the base level, and 0.40–0.52 ms against 1.30–1.47 ms across all levels.
   It also issues fewer draw calls (59 against 98).
 - **2D frame time:** with the readback, PixiJS 2D has a lower mean than three.js 2D at every
-  level, by 7–19%. Without the readback (base level only) the order reverses: 1.47 ms for
-  three.js 2D against 2.21 ms for PixiJS 2D. Treat the 2D frame times as roughly equal.
+  level, by 7–19%. Without the readback the base-level medians are 1.47 ms (three.js 2D) and
+  2.21 ms (PixiJS 2D), but the PixiJS 2D runs ranged from 1.35 to 2.40 ms, so that run does
+  not settle the order. Treat the 2D frame times as roughly equal.
 - **3D:** PixiJS 3D has a lower mean than three.js 3D (bloom off) at every level except
-  lights 128 (not comparable, see †): by 15–29% with the readback, 21% without it at the
-  base level (2.02 against 2.56 ms).
+  lights 128 (not comparable, see †): by 15–29% with the readback. Without it, at the base
+  level, every PixiJS 3D run (1.95–2.09 ms) was faster than every three.js 3D run
+  (2.20–2.64 ms).
 - **Rain scaling:** from 4k to 256k drops, both 2D builds roughly double their frame time
   (three.js 4.84 → 9.15, PixiJS 4.32 → 8.48). The 3D builds grow less (three.js 8.46 → 8.68,
   PixiJS 6.00 → 7.34).
@@ -320,8 +327,7 @@ Measured:
   gzip), because it is pixi.js plus @pixi/3d.
 
 Not explained (causes not investigated, so none is claimed): why the three.js 2D build
-spends more CPU per frame than PixiJS 2D, why the 2D order reverses without the readback,
-why three.js 3D rain cost barely grows with the drop count, and why the PixiJS 2D heap is
+spends more CPU per frame than PixiJS 2D, why three.js 3D rain cost barely grows with the drop count, and why the PixiJS 2D heap is
 larger. Possible causes include the two builds' different batching (98 against 59 draw
 calls), per-object work in each framework's render loop, and how each framework stores built
 shape geometry in JS memory.
