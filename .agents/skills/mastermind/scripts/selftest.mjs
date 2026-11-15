@@ -43,10 +43,11 @@ if (a[0] === "thread" && a[1] === "start") {
 }
 const t = s.threads[a[2]];
 if (!t) { console.error("Thread " + a[2] + " is no longer available."); process.exit(1); }
+if (a[1] === "send" && t.sendFails) { console.error("send refused"); process.exit(1); }
 if (a[1] === "send") { t.messages.push(a[3] === "-" ? stdin() : a[3]); save(); console.log("{}"); process.exit(0); }
 if (a[1] === "show") {
   const thread = { threadId: a[2], title: t.title, settled: t.settled, archived: t.archived, status: t.status || "idle", activeRunId: t.activeRunId || null,
-    pendingRequestCount: t.pendingRequestCount || 0, latestRunId: t.latestRunId || "run:1", worktreePath: t.worktreePath || null };
+    pendingRequestCount: t.pendingRequestCount || 0, latestRunId: t.latestRunId || "run:1", runCount: t.runCount, worktreePath: t.worktreePath || null };
   console.log(JSON.stringify({ thread, messages: t.last ? [{ role: "assistant", runId: t.lastRunId || thread.latestRunId, text: t.last }] : [] }));
   process.exit(0);
 }
@@ -572,6 +573,55 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T24b the new folder resolves to its namespace", w.json?.namespace === "dev.baddergames.technowizard", w.out + w.err);
   const again = mm(["ns", "add", "technowizard"], { cwd: wt });
   check("T24c an existing namespace is refused", again.code === 1 && /already exists/.test(again.err), again.err);
+}
+
+// T26 a WORKING lane that stays idle gets reminders, then is reported; lanes send notices without ending their turn
+{
+  const at = (hm) => `2026-12-04T${hm}Z`;
+  const thread = (id, fields) => { const x = fakeState(); x.threads[id] = { title: id, messages: x.threads[id]?.messages || [], settled: false, archived: false, ...fields }; saveFake(x); };
+  const sent = (id) => fakeState().threads[id].messages;
+  const lane = (name, t) => (mm(["lane", "list"], { at: at(t) }), mm(["lane", "list", "--json"], { at: at(t) }).json.find((l) => l.name === name));
+  const idle = (n, text = "WORKING: benchmark running, about 10 minutes") => ({ status: "completed", activeRunId: null, latestRunId: `run:${n}`, runCount: n, last: text });
+  const busy = (n) => ({ status: "running", activeRunId: `run:${n}`, latestRunId: `run:${n}`, runCount: n });
+  for (const name of ["wk", "wk2", "wk3"]) {
+    mm(["lane", "new", name, "--ns", "dev.baddergames", "--title", `Working ${name}`, "--goal-file", goal, "--skip-git-check"], { at: at("09:00:00") });
+    mm(["lane", "set", name, "--thread-id", `mcp:lane-${name}`], { at: at("09:00:00") });
+  }
+  thread("mcp:lane-wk", idle(1));
+  let l = lane("wk", "10:00:00");
+  const st = mm(["status", "--json"], { at: at("10:00:30") });
+  check("T26a WORKING sets a quiet period and the lane is listed for a re-check", l.state === "running" && l.quietSince && st.json?.quietLanes?.some((q) => q.lane === "wk" && q.recheckAt === "2026-12-04T10:16:00.000Z"), JSON.stringify(st.json?.quietLanes));
+  lane("wk", "10:14:00");
+  check("T26b no reminder before the quiet period ends", sent("mcp:lane-wk").length === 0, JSON.stringify(sent("mcp:lane-wk")));
+  l = lane("wk", "10:15:30");
+  const st2 = mm(["status", "--json"], { at: at("10:15:40") });
+  check("T26c after the quiet period the idle WORKING lane gets one reminder and stays running", sent("mcp:lane-wk").length === 1 && /mm reminder \(1 of 3\).*WORKING/.test(sent("mcp:lane-wk")[0]) && l.state === "running" && st2.json.laneChanges.some((c) => /wk: .*reminder 1 of 3/.test(c.note)), JSON.stringify(st2.json.laneChanges));
+  lane("wk", "10:40:00");
+  check("T26d no second reminder while no new run has started", sent("mcp:lane-wk").length === 1, String(sent("mcp:lane-wk").length));
+  let t = 2;
+  for (const [runAt, idleAt, remindAt] of [["10:41:00", "10:42:00", "10:57:30"], ["11:00:00", "11:01:00", "11:16:30"]]) {
+    thread("mcp:lane-wk", busy(t)); lane("wk", runAt);
+    thread("mcp:lane-wk", idle(t)); lane("wk", idleAt); lane("wk", remindAt); t++;
+  }
+  check("T26e a lane that answers each reminder with WORKING gets reminders 2 and 3", sent("mcp:lane-wk").length === 3 && /\(3 of 3\)/.test(sent("mcp:lane-wk")[2]), JSON.stringify(sent("mcp:lane-wk").map((m) => m.slice(0, 20))));
+  thread("mcp:lane-wk", busy(t)); lane("wk", "11:20:00");
+  thread("mcp:lane-wk", idle(t)); lane("wk", "11:21:00");
+  l = lane("wk", "11:36:30");
+  check("T26f after 3 reminders with nothing else run, the lane is reported as waiting", l.state === "waiting" && /after 3 reminders/.test(l.history.at(-1).note) && sent("mcp:lane-wk").length === 3, JSON.stringify(l.history.at(-1)));
+  thread("mcp:lane-wk2", idle(1)); lane("wk2", "12:00:00"); lane("wk2", "12:15:30");
+  thread("mcp:lane-wk2", idle(3)); lane("wk2", "12:20:00"); lane("wk2", "12:35:30");
+  check("T26g a run the reminder did not start resets the count", sent("mcp:lane-wk2").length === 2 && /\(1 of 3\)/.test(sent("mcp:lane-wk2")[1]), JSON.stringify(sent("mcp:lane-wk2").map((m) => m.slice(0, 20))));
+  thread("mcp:lane-wk2", idle(4, "HELD: https://github.com/o/r/pull/90 ready")); l = lane("wk2", "12:40:00");
+  check("T26h any other status line clears the reminders", l.state === "held" && !l.reminders && !l.quietSince, JSON.stringify(l));
+  thread("mcp:lane-wk3", { ...idle(1), sendFails: true }); lane("wk3", "13:00:00"); l = lane("wk3", "13:15:30");
+  check("T26i if the reminder cannot be sent, the lane is reported as waiting", l.state === "waiting" && /could not send it a reminder/.test(l.history.at(-1).note), JSON.stringify(l.history.at(-1)));
+  thread("mcp:hub", { status: "completed" });
+  mm(["claim", "--force", "dev.baddergames"], { extra: { MM_THREAD_ID: "mcp:hub" }, at: at("13:20:00") });
+  const hubBefore = sent("mcp:hub").length;
+  let r = mm(["lane", "notify", "wk", "benchmarks finished at 13:20, machine is free", "--json"], { cwd: wt, at: at("13:21:00"), extra: { MM_THREAD_ID: "mcp:lane-wk" } });
+  check("T26j lane notify sends the text to the namespace's orchestrator", r.code === 0 && r.json?.sentTo === "mcp:hub" && sent("mcp:hub").length === hubBefore + 1 && /Notice from lane wk.*\n\nbenchmarks finished at 13:20, machine is free/s.test(sent("mcp:hub").at(-1)), r.out + r.err);
+  r = mm(["lane", "notify", "wk", "spoofed"], { cwd: wt, at: at("13:22:00"), extra: { MM_THREAD_ID: "mcp:lane-wk2" } });
+  check("T26k another thread cannot send a lane's notices", r.code === 1 && /only that thread sends its notices/.test(r.err) && sent("mcp:hub").length === hubBefore + 1, r.err);
 }
 
 const failed = results.filter((r) => !r.ok);

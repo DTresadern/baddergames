@@ -9,13 +9,14 @@ import {
 } from "./core.mjs";
 import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setSummary } from "./devlog.mjs";
 import {
-  claim, gitPreflight, issueNew, laneAttach, laneCleanup, laneList, laneMerge, laneNew, laneSet, laneUpdate, nsAdd, owner, reconcile,
+  claim, gitPreflight, issueNew, laneAttach, laneCleanup, laneList, laneMerge, laneNew, laneNotify, laneSet, laneUpdate, nsAdd, owner, reconcile,
   release, syncLanes, taskFind, taskList,
   taskNew, taskStart,
 } from "./work.mjs";
 
 const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and ns first closes past devlog days
-and reads every open lane's thread, recording what it reports (HELD, WAITING, BLOCKED, …).
+and reads every open lane's thread, recording what it reports (HELD, WAITING, BLOCKED, …). A WORKING lane
+that stays idle past laneQuietMinutes gets a reminder in its thread, up to 3 in a row, then is reported as waiting.
 
   mm whoami [--ns <namespace>] [--json]      namespace, root, files to read, orchestrators, current time
   mm status [--json]                         rollover, lanes by state, what waits on the user, warnings
@@ -29,6 +30,7 @@ and reads every open lane's thread, recording what it reports (HELD, WAITING, BL
   mm lane update <name> <running|held|waiting|blocked|merged|closed|request-lane> [--note "<text>"] [--why "<text>"] [--pr <n>]
   mm lane list [--open] [--json]
   mm lane attach <name>                     run by the lane itself as its first step: records its thread
+  mm lane notify <name> "<text>"            run by the lane itself: tells its orchestrator something without ending its turn
   mm lane merge <name>                      on the user's word only: merges the held pull request if it is open,
                                             CLEAN and every check passed; then removes the lane's branch and worktree
   mm lane cleanup <name>                    finish removing a merged or closed lane's branches and worktree (safe to repeat);
@@ -121,7 +123,7 @@ function status(ctx, ledger, roll) {
     waitingForUser: { approval: by(["held"]), answer: by(["waiting"]), blocked: by(["blocked"]) },
     running: by(["started", "running"]),
     quietLanes: laneList(ledger, { open: true }).filter((l) => l.quietSince).map((l) => ({
-      lane: l.name, quietSince: l.quietSince,
+      lane: l.name, quietSince: l.quietSince, reminders: l.reminders?.count || 0,
       recheckAt: new Date(new Date(l.quietSince).getTime() + (ctx.config.laneQuietMinutes ?? 15) * 60000 + 60000).toISOString(),
     })),
     completedToday: done,
@@ -193,6 +195,8 @@ function main(argv) {
           result = laneUpdate(ctx, ledger, pos[0], pos[1], { note: opt.note, why: opt.why, pr: num(opt.pr) });
         } else if (sub === "attach") {
           result = laneAttach(ctx, ledger, pos[0], opt.threadId || currentThreadId());
+        } else if (sub === "notify") {
+          result = laneNotify(ctx, ledger, pos[0], pos[1], opt.threadId || currentThreadId());
         } else if (sub === "cleanup") {
           result = laneCleanup(ctx, ledger, pos[0]);
         } else if (sub === "merge") {
@@ -200,7 +204,7 @@ function main(argv) {
         } else if (sub === "list") {
           const lanes = laneList(ledger, { open: !!opt.open });
           result = opt.json ? lanes : lanes.map((l) => `${l.name.padEnd(20)} ${l.state.padEnd(8)} ${l.ns}  ${l.title}${l.issue ? ` #${l.issue}` : ""}${l.pr ? ` PR #${l.pr}` : ""}`).join("\n") || "no lanes";
-        } else fail("usage: mm lane new|set|update|list|attach|merge|cleanup");
+        } else fail("usage: mm lane new|set|update|list|attach|notify|merge|cleanup");
         break;
       case "issue":
         if (sub !== "new") fail("usage: mm issue new <ns> \"<title>\" [--body-file <f>]");

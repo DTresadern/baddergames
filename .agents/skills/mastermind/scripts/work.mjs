@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
-  currentThreadId, fail, fillTemplate, gh, ghJson, git, now, nsInfo, nsShort, readJson, t3, threadInfo, threadState,
+  currentThreadId, fail, fillTemplate, gh, ghJson, git, localStamp, now, nsInfo, nsShort, readJson, t3, threadInfo, threadState,
   writeJson, writeLedger, writeText,
 } from "./core.mjs";
 import { LANE_STATES, recordEvent } from "./devlog.mjs";
@@ -193,6 +193,19 @@ export function laneAttach(ctx, ledger, name, threadId = currentThreadId()) {
   return lane;
 }
 
+// A lane tells its orchestrator something without ending its turn (for example "the benchmark finished; the machine is
+// free"). The message goes to the live orchestrator responsible for the lane's namespace, or else the one that started it.
+export function laneNotify(ctx, ledger, name, text, threadId = currentThreadId()) {
+  const lane = ledger.lanes[name] || fail(`no lane "${name}"`);
+  if (!text || !String(text).trim()) fail("give the text to send");
+  if (lane.threadId && threadId && lane.threadId !== threadId) fail(`lane "${name}" belongs to thread ${lane.threadId}; only that thread sends its notices`);
+  const to = owner(ctx, ledger, lane.ns)?.threadId || lane.orchestrator || fail(`no orchestrator thread is known for lane "${name}"`);
+  const message = `Notice from lane ${name} (${lane.title}). The lane is still working; this does not end its turn and needs no reply unless the user must act.\n\n${String(text).trim()}`;
+  const r = t3(["thread", "send", to, "-"], message);
+  if (r.code) fail(`could not send the notice to thread ${to}: ${r.err}`);
+  return { lane: name, sentTo: to };
+}
+
 const REPORT = /^\s*(WORKING|HELD|WAITING|BLOCKED|SCOPE|REQUEST-LANE|CLOSED):\s*(.*)/;
 const REPORT_STATE = { WORKING: "running", HELD: "held", WAITING: "waiting", BLOCKED: "blocked", SCOPE: "blocked", "REQUEST-LANE": "waiting", CLOSED: "closed" };
 const BUSY = new Set(["preparing", "queued", "starting", "running"]);
@@ -200,8 +213,18 @@ const STOPPED = new Set(["interrupted", "failed", "cancelled", "rolled_back"]);
 const PR_URL = /https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)/;
 const SYNC_BUDGET_MS = 20000;
 // A lane can end a turn while its own background work runs (reviews, browser checks) and wake again when it finishes;
-// T3 shows no sign of that work. A turn without a status line is flagged only if no new run starts within this time.
+// T3 shows no sign of that work. So a lane that ends a turn, with WORKING or with no status line, is checked again
+// only if no new run starts within this time.
 const quietMinutes = (ctx) => ctx.config.laneQuietMinutes ?? 15;
+// A WORKING lane that stays idle past the quiet period gets a reminder from mm. After this many reminders in a row
+// with no other run in between, it is reported to the orchestrator instead.
+const REMINDER_LIMIT = 3;
+const reminderText = (ctx, lane, since) => [
+  `mm reminder (${(lane.reminders?.count || 0) + 1} of ${REMINDER_LIMIT}): your last status line was WORKING, and nothing has run in this thread`,
+  `for ${quietMinutes(ctx)} minutes since mm read it at ${localStamp(since, ctx.config.timezone)}.`,
+  "If a background job you started is still running and will wake you when it finishes, end your turn with WORKING again.",
+  "If not, carry on with your work, and end the turn with a status line as your brief says.",
+].join(" ");
 
 // Read every open lane's thread and record what it reports, so the ledger does not depend on the orchestrator
 // remembering. A thread is read again only when its latest run, its status or its pending questions change.
@@ -234,13 +257,31 @@ export function syncLanes(ctx, ledger) {
     if (STOPPED.has(thread.status)) { set("blocked", `the lane's run ended as ${thread.status}; read its thread`); continue; }
     const last = [...messages].reverse().find((m) => m.role !== "user" && m.runId === thread.latestRunId)?.text || "";
     const m = last.match(REPORT);
-    if (!m) {
+    const working = m?.[1] === "WORKING";
+    if (!working) delete lane.reminders;
+    if (!m || working) {
+      const expired = lane.quietSince && (now() - new Date(lane.quietSince)) / 60000 >= quietMinutes(ctx);
       if (!lane.quietSince) {
         lane.quietSince = now().toISOString();
-        set("running", `turn ended without a status line; treated as working for ${quietMinutes(ctx)} minutes`);
-      } else if ((now() - new Date(lane.quietSince)) / 60000 >= quietMinutes(ctx)) {
+        // A run other than the one the last reminder started means the lane is active: start counting again.
+        if (lane.reminders && thread.runCount != null && lane.reminders.runCount != null && thread.runCount > lane.reminders.runCount + 1) delete lane.reminders;
+        if (working) { const pr = Number(m[2].match(PR_URL)?.[1]) || undefined; set("running", `WORKING: ${m[2].trim().slice(0, 300)}`, pr ? { pr } : {}); }
+        else set("running", `turn ended without a status line; treated as working for ${quietMinutes(ctx)} minutes`);
+      } else if (expired) {
+        const since = new Date(lane.quietSince);
         delete lane.quietSince;
-        if (lane.state === "running") set("waiting", `the lane ended its turn without a status line and has been quiet for ${quietMinutes(ctx)} minutes; read its thread`);
+        if (lane.state !== "running") continue;
+        if (!working) { set("waiting", `the lane ended its turn without a status line and has been quiet for ${quietMinutes(ctx)} minutes; read its thread`); continue; }
+        const count = lane.reminders?.count || 0;
+        if (count >= REMINDER_LIMIT) {
+          delete lane.reminders;
+          set("waiting", `the lane still reports WORKING after ${count} reminders from mm, with nothing else run in between; read its thread`);
+          continue;
+        }
+        const r = t3(["thread", "send", lane.threadId, "-"], reminderText(ctx, lane, since), 10000);
+        if (r.code) { set("waiting", `the lane reported WORKING and nothing has run for ${quietMinutes(ctx)} minutes; mm could not send it a reminder (${r.err.slice(0, 200)}); read its thread`); continue; }
+        lane.reminders = { count: count + 1, runCount: thread.runCount ?? null, at: now().toISOString() };
+        notes.push(`${lane.name}: reported WORKING and nothing has run for ${quietMinutes(ctx)} minutes; mm sent it reminder ${count + 1} of ${REMINDER_LIMIT}`);
       }
       continue;
     }

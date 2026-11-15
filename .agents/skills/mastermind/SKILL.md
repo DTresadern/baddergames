@@ -59,7 +59,7 @@ T3 wakes you when a lane finishes a turn or asks a question. Start that turn wit
 
 | Lane reports | You do |
 |---|---|
-| `WORKING` | Nothing: the lane is waiting for its own background work and continues by itself. |
+| `WORKING` | Nothing: the lane is waiting for its own background work and continues by itself. If no new run starts within 15 minutes, `mm` sends the lane a reminder. |
 | `HELD` | Tell the user the pull request is ready for approval: what it does, the link, and the review and check results. |
 | `WAITING` or a question | Put the question to the user in plain words, with the options. |
 | `BLOCKED` | Tell the user what blocks it. If it needs a stronger model, start a new lane for the same issue with `--class hard`. |
@@ -69,7 +69,9 @@ T3 wakes you when a lane finishes a turn or asks a question. Start that turn wit
 
 Forward the user's answers and change requests to the lane with `t3_thread_send` (mode `auto`), beginning "User says:", in their words. The lane does the work and reports again.
 
-A lane can end a turn while its own reviews or checks run in the background, and wake again when they finish. A turn that ends without a status line therefore counts as running for `laneQuietMinutes` (15, in `.mastermind/config.json`); only if no new run starts in that time does `mm` report the lane as waiting. Do not change a lane's state by hand for this. Nothing wakes you when that time runs out, so when `mm status` lists `quietLanes`, schedule one check: `schedule_task` with schedule `{"type": "once", "runAt": <the latest recheckAt>}`, bound to this thread, prompt "Run mm status and act on it."
+When the user wants to hear about something the moment it happens during a lane's work (for example "tell me when the benchmark finishes"), ask the lane to send it with `mm lane notify`; the notice arrives in your thread as a message beginning "Notice from lane". Pass it on to the user. Never ask a lane to end its turn to report progress: a lane that ends its turn with nothing running in the background stops until someone sends it a message.
+
+A lane can end a turn while its own reviews or checks run in the background, and wake again when they finish. A turn that ends with `WORKING` or without a status line therefore counts as running for `laneQuietMinutes` (15, in `.mastermind/config.json`). If no new run starts in that time, `mm` sends a `WORKING` lane a reminder (up to 3 in a row, each listed in `laneChanges`, then the lane is reported as waiting), and reports a lane with no status line as waiting. Do not change a lane's state by hand for this. Nothing wakes you when that time runs out, so when `mm status` lists `quietLanes`, schedule one check: `schedule_task` with schedule `{"type": "once", "runAt": <the latest recheckAt>}`, bound to this thread, prompt "Run mm status and act on it."
 
 `mm` follows each lane by its thread, not by task ID. A `t3_thread_send` to a lane may return a new task ID; it needs no recording.
 
