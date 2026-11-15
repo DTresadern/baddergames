@@ -82,7 +82,7 @@ const opts = {
   levels: listOf('--levels'),
 };
 const FRAMES = opts.quick ? { warmup: 30, sample: 120, startupLoads: 3, repeats: 1 } : { warmup: 60, sample: 300, startupLoads: 5, repeats: 3 };
-// every benchmarked page gets sync=1: the hook waits for the GPU after each frame (see
+// sync=1 (unless --no-sync): the hook waits for the GPU after each frame (see
 // shared/bench-hook.js), so frame times include GPU work instead of queueing bursts
 const SYNC = opts.sync ? '&sync=1' : '';
 const RESULTS_FILE = opts.sync ? 'results.json' : 'results-nosync.json';
