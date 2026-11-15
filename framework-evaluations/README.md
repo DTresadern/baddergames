@@ -17,8 +17,8 @@ the same seed and the same animation timing, so differences come from the framew
 **Decision (the project owner's, 2026-11-15):** three.js for Technophage, with a 2.5D
 approach: a 3D world with 2D gameplay, and the pixel-art look made with basic textures
 rather than post-processing. This overrides the evaluation's own recommendation, which was
-PixiJS for a 2D game and three.js if the game needs real 3D now. Reasons and the evaluation's analysis are in
-[Recommendation](#recommendation).
+PixiJS for a 2D game and three.js if the game needs real 3D now. Reasons and the
+evaluation's analysis are in [Recommendation](#recommendation).
 
 -----
 
