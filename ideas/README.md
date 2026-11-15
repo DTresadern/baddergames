@@ -38,7 +38,7 @@ Rules:
 - `links` must reference ids that exist. Unknown ids are ignored.
 - A link only needs to be listed on one of the two ideas.
 
-Example:
+Example: two ideas joined by the shared tag `procedural` and by an explicit link.
 
 ```json
 {
@@ -48,7 +48,13 @@ Example:
       "title": "Procedural levels",
       "description": "Levels stitched together from hand-made chunks.",
       "tags": ["procedural", "level-design"],
-      "links": ["pixel-art-style"]
+      "links": ["daily-challenge"]
+    },
+    {
+      "id": "daily-challenge",
+      "title": "Daily challenge",
+      "description": "Everyone plays the same generated level once a day.",
+      "tags": ["procedural", "social"]
     }
   ]
 }

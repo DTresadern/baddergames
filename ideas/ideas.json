@@ -7,83 +7,10 @@
       "tags": ["co-op", "multiplayer", "shooter", "sci-fi", "retro", "horror"]
     },
     {
-      "id": "procedural-levels",
-      "title": "Procedural levels",
-      "description": "Build each level from hand-made room chunks stitched together by a seeded generator. Every run feels fresh, but the pieces stay hand-tuned so pacing never turns to mush.",
-      "tags": ["procedural", "level-design", "roguelike", "replayability"]
-    },
-    {
-      "id": "roguelike-progression",
-      "title": "Roguelike progression",
-      "description": "Each run is short and lethal, but a small permanent unlock after every death keeps the player moving forward. Unlocks add options rather than raw power.",
-      "tags": ["roguelike", "progression", "procedural", "replayability"]
-    },
-    {
-      "id": "daily-seed-challenge",
-      "title": "Daily seed challenge",
-      "description": "Everyone plays the same seed once per day and compares scores on a tiny friends-only board. No servers beyond a single static score file.",
-      "tags": ["procedural", "replayability", "social"]
-    },
-    {
-      "id": "meta-skill-tree",
-      "title": "Meta skill tree",
-      "description": "A hub-side skill tree that spends currency earned across runs. Branches reshape playstyle, for example from stealth to brawler.",
-      "tags": ["progression", "roguelike", "replayability"]
-    },
-    {
-      "id": "coop-multiplayer",
-      "title": "Drop-in co-op",
-      "description": "A second player can join or leave at any time on the same level with no menus. Enemy count and rewards scale quietly with the party size.",
-      "tags": ["co-op", "multiplayer", "social"]
-    },
-    {
-      "id": "shared-screen-puzzles",
-      "title": "Shared-screen puzzles",
-      "description": "Puzzles that need two characters acting at once, such as one holds the door while the other crosses. Works on a single couch or online.",
-      "tags": ["co-op", "multiplayer", "social", "puzzle"]
-    },
-    {
-      "id": "cozy-hub-town",
-      "title": "Cozy hub town",
-      "description": "A calm home base where players decorate, meet friends and spend rewards between runs. Gives the studio's tougher games a gentle counterweight.",
-      "tags": ["cozy", "social", "progression"]
-    },
-    {
-      "id": "pixel-art-style",
-      "title": "Chunky pixel-art style",
-      "description": "A fixed low-resolution palette with strong silhouettes and limited animation frames. Keeps art production small enough for a two-person team.",
-      "tags": ["pixel-art", "art", "retro"]
-    },
-    {
-      "id": "retro-crt-shader",
-      "title": "Retro CRT shader",
-      "description": "An optional screen filter with scanlines, slight curvature and colour bleed. Makes pixel art look at home on a modern monitor.",
-      "tags": ["retro", "shaders", "visuals", "pixel-art"]
-    },
-    {
-      "id": "sound-reactive-visuals",
-      "title": "Sound-reactive visuals",
-      "description": "Backgrounds, lighting and particles pulse with the music's amplitude and beat. Drives the look of boss fights and menus without hand-keyed animation.",
-      "tags": ["audio", "visuals", "shaders"]
-    },
-    {
-      "id": "adaptive-music",
-      "title": "Adaptive music",
-      "description": "Layered stems fade in and out with danger and progress, so the soundtrack follows the action. One composer, one set of loops, many moods.",
-      "tags": ["audio", "music", "dynamic"]
-    },
-    {
-      "id": "dynamic-narrator",
-      "title": "Dynamic narrator",
-      "description": "A dry running commentary that reacts to deaths, near misses and streaks. Lines are short, tagged by situation and picked with a cooldown to avoid repeats.",
-      "tags": ["narrative", "dynamic", "audio"]
-    },
-    {
-      "id": "accessibility-options",
-      "title": "Accessibility options",
-      "description": "Remappable controls, colour-blind palettes, adjustable game speed and a switch to turn off screen effects. Planned from the start rather than bolted on.",
-      "tags": ["accessibility", "ui"],
-      "links": ["retro-crt-shader", "sound-reactive-visuals"]
+      "id": "untitled-6dof-shooter",
+      "title": "Untitled 6DoF shooter",
+      "description": "An untitled shooter with six degrees of freedom movement.",
+      "tags": ["shooter", "6dof"]
     }
   ]
 }
