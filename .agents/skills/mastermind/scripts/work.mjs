@@ -192,8 +192,8 @@ export function laneAttach(ctx, ledger, name, threadId = currentThreadId()) {
   return lane;
 }
 
-const REPORT = /^\s*(HELD|WAITING|BLOCKED|SCOPE|REQUEST-LANE|CLOSED):\s*(.*)/;
-const REPORT_STATE = { HELD: "held", WAITING: "waiting", BLOCKED: "blocked", SCOPE: "blocked", "REQUEST-LANE": "waiting", CLOSED: "closed" };
+const REPORT = /^\s*(WORKING|HELD|WAITING|BLOCKED|SCOPE|REQUEST-LANE|CLOSED):\s*(.*)/;
+const REPORT_STATE = { WORKING: "running", HELD: "held", WAITING: "waiting", BLOCKED: "blocked", SCOPE: "blocked", "REQUEST-LANE": "waiting", CLOSED: "closed" };
 const BUSY = new Set(["preparing", "queued", "starting", "running"]);
 const STOPPED = new Set(["interrupted", "failed", "cancelled", "rolled_back"]);
 const PR_URL = /https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)/;
@@ -218,7 +218,7 @@ export function syncLanes(ctx, ledger) {
     if (marker === lane.syncMarker) continue;
     lane.syncMarker = marker;
     const set = (state, note, extra = {}) => {
-      if (state === lane.state && (!extra.pr || extra.pr === lane.pr) && note === lane.history.at(-1)?.note) return;
+      if (state === lane.state && (!extra.pr || extra.pr === lane.pr) && (state === "running" || note === lane.history.at(-1)?.note)) return;
       if (lane.state === "started" && state === "running") { lane.state = "running"; lane.history.push({ at: now().toISOString(), state }); return; }
       laneUpdate(ctx, ledger, lane.name, state, { note, ...extra });
       notes.push(`${lane.name}: ${state}${note ? ` (${note})` : ""}`);

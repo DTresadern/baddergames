@@ -396,6 +396,16 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   const req = word(2, "REQUEST-LANE: add a lobby API — the menu needs it");
   check("T22k REQUEST-LANE records the request and waits", req.state === "waiting" && lines("2026-12-02").some((l) => JSON.parse(l).kind === "request-lane" && /lobby API/.test(JSON.parse(l).what)), JSON.stringify(req.history.at(-1)));
   check("T22l CLOSED closes the lane", word(3, "CLOSED: already done upstream").state === "closed", "");
+  mm(["lane", "new", "bg", "--ns", "dev.baddergames", "--title", "Background wait", "--goal-file", goal], { at: "2026-12-02T11:30:00Z" });
+  mm(["lane", "set", "bg", "--thread-id", "mcp:lane-bg"], { at: "2026-12-02T11:30:00Z" });
+  const bgEvents = () => lines("2026-12-02").filter((l) => JSON.parse(l).lane === "bg").length;
+  const bgState = (n, fields, at) => { const x = fakeState(); x.threads["mcp:lane-bg"] = { title: "bg", messages: [], settled: false, archived: false, ...fields }; saveFake(x); mm(["lane", "list"], { at }); return mm(["lane", "list", "--json"], { at }).json.find((l) => l.name === "bg"); };
+  bgState(1, { status: "running", activeRunId: "run:1", latestRunId: "run:1" }, "2026-12-02T11:31:00Z");
+  const afterRun = bgEvents();
+  const w = bgState(1, { status: "completed", latestRunId: "run:1", last: "WORKING: waiting for the browser re-check" }, "2026-12-02T11:32:00Z");
+  check("T22m WORKING keeps the lane running and records nothing new", w.state === "running" && bgEvents() === afterRun && !mm(["status", "--json"], { at: "2026-12-02T11:32:30Z" }).json.laneChanges.some((c) => c.note.startsWith("bg:")), JSON.stringify(w.history));
+  const r2 = bgState(2, { status: "running", activeRunId: "run:2", latestRunId: "run:2" }, "2026-12-02T11:33:00Z");
+  check("T22n a new run of a lane that never stopped adds no event", r2.state === "running" && bgEvents() === afterRun, `${afterRun} → ${bgEvents()}`);
 }
 
 // T23 merging only under the rule
