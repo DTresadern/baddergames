@@ -1,0 +1,31 @@
+{
+  "project": "dev.baddergames",
+  "timezone": "Europe/London",
+  "defaultBranch": "main",
+  "devlogDir": "devlog",
+  "namespaces": {
+    "dev.baddergames": ".",
+    "dev.baddergames.technophage": "technophage"
+  },
+  "defaultProvider": "claude",
+  "capabilities": {
+    "image-generation": ["codex"]
+  },
+  "models": {
+    "orchestrator": { "provider": "claudeAgent", "model": "claude-opus-5-5", "effort": "high" },
+    "dailyUpdate": { "provider": "claudeAgent", "model": "claude-opus-5-5", "effort": "medium" },
+    "lane": {
+      "claude": { "provider": "claudeAgent", "model": "claude-opus-5-5", "effort": "medium" },
+      "codex": { "provider": "codex", "model": "gpt-6.1-sol", "reasoningEffort": "medium" }
+    },
+    "builder": {
+      "default": { "model": "claude-sonnet-5-5", "effort": "high" },
+      "hard": { "model": "claude-opus-5-5", "effort": "high" }
+    },
+    "reviewer": {
+      "claude": { "model": "claude-opus-5-5", "effort": "high" },
+      "codex": { "model": "gpt-6.1-sol", "reasoningEffort": "medium" }
+    }
+  },
+  "nightly": { "timeOfDay": "00:05" }
+}
