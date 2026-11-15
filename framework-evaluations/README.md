@@ -174,7 +174,7 @@ only), `--no-build` (reuse `dist/`), `--quick` (base level only, one repeat, few
 | Node.js | 26.3.1 |
 | resolution | 1800×600 canvas, device pixel ratio 1, WebGL2 in every build. Antialias on in the canvas, except three.js 3D with bloom, which turns canvas antialias off and renders into a 4-sample multisampled target instead |
 | Chromium flags | `--ignore-gpu-blocklist --enable-gpu --disable-gpu-vsync --disable-frame-rate-limit --disable-renderer-backgrounding --disable-background-timer-throttling --force-device-scale-factor=1 --window-size=1800,600` |
-| recorded | 2026-11-15 (UTC+0), machine idle: full run 21:22:54–21:29:49, run without readback 21:29:49–21:30:36. A later code-review change moved the three.js 3D sky and mist out of the layer list without changing what is drawn; it changed the three.js 3D bundle by −26 bytes minified and −7 bytes gzip, and the PixiJS 3D bundle by +2 bytes (measured with `npm run build`); performance was not re-measured |
+| recorded | 2026-11-15 (UTC+0), machine idle: full run 21:22:54–21:29:49, run without readback 21:29:49–21:30:36. A later code-review change moved the three.js 3D sky and mist out of the layer list without changing what is drawn; it changed the three.js 3D bundle by −26 bytes minified and −7 bytes gzip, and the PixiJS 3D bundle by +2 bytes minified and −2 bytes gzip (measured with `npm run build`); performance was not re-measured |
 
 Flags: without `--ignore-gpu-blocklist --enable-gpu`, headless Chromium on this machine
 used SwiftShader (software WebGL). Without `--disable-gpu-vsync --disable-frame-rate-limit`,
@@ -553,8 +553,9 @@ and ecosystem. Re-evaluate `@pixi/3d` when it leaves beta.
   Shared helpers: `pointInPolygon`, `isFlickering`.
 - Layers: every module in `layers/` exports `createX(scene, ctx?)`, except the 3D builds'
   mist, an overlay `{ parts, update?(t) }` drawn after the scene, and the three.js 3D sky,
-  `createSkyBackground(scene)`, which returns the scene's background texture. 2D builds return
-  `{ parts: [{ object, depth }], update?(t) }` and `main.js` applies parallax per part.
+  `createSkyBackground(scene)`, which returns the scene's background texture. 2D builds
+  return `{ parts: [{ object, depth }], update?(t) }` and `main.js` applies parallax per
+  part.
   3D builds return `{ parts, update?(t), info? }`, where a part is a three.js `Object3D` or
   a @pixi/3d `Container3D`. Each `stage.js` documents its build's contract.
 - Bench hook: `installBench({ framework, mode, version, getFrameworkDrawCalls })` returns
