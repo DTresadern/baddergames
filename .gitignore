@@ -1,7 +1,49 @@
-node_modules/
-.DS_Store
-*.log
-__pycache__/
+# Archived material: kept locally, not published
+.archived/
 
-# Third-party reference screenshots: kept locally, not published
-technophage/art-references/
+# External reference material, at any depth
+.external-references/
+
+# Claude Code personal settings (.claude is a symlink to .agents,
+# so the global **/.claude/settings.local.json exclude does not match)
+.agents/settings.local.json
+.claude/settings.local.json
+
+# OS junk (other contributors)
+.DS_Store
+Thumbs.db
+
+# Editor junk (other contributors: Vim swap, Emacs backup)
+*.swp
+*~
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Logs
+*.log
+
+# Local secrets
+.env
+.env.*
+
+# Audio feedback: transcribed to text, audio not committed
+**/feedback/**/*.aac
+**/feedback/**/*.m4a
+**/feedback/**/*.mp3
+**/feedback/**/*.wav
+**/feedback/**/*.ogg
+**/feedback/**/*.oga
+**/feedback/**/*.opus
+**/feedback/**/*.flac
+**/feedback/**/*.amr
+**/feedback/**/*.aiff
+**/feedback/**/*.aif
+**/feedback/**/*.wma
+**/feedback/**/*.webm
+**/feedback/**/*.3gp

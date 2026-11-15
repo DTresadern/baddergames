@@ -2,9 +2,10 @@
 # Only runtime files are deployed; concept art, references and tools stay in the repo.
 name: Deploy to GitHub Pages
 
+# Manual only while the project restarts: the files it copies were moved to
+# .archived/. The last deployment stays live. Update the "Assemble site" step
+# before running it again or restoring the push trigger.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
