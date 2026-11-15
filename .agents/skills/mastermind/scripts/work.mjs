@@ -224,7 +224,7 @@ export function syncLanes(ctx, ledger) {
     lane.syncMarker = marker;
     const set = (state, note, extra = {}) => {
       if (state === lane.state && (!extra.pr || extra.pr === lane.pr) && (state === "running" || note === lane.history.at(-1)?.note)) return;
-      if (lane.state === "started" && state === "running") { lane.state = "running"; lane.history.push({ at: now().toISOString(), state }); return; }
+      if (["started", "running"].includes(lane.state) && state === "running") { lane.state = "running"; lane.history.push({ at: now().toISOString(), state, note }); return; }
       laneUpdate(ctx, ledger, lane.name, state, { note, ...extra });
       notes.push(`${lane.name}: ${state}${note ? ` (${note})` : ""}`);
     };
@@ -234,9 +234,13 @@ export function syncLanes(ctx, ledger) {
     const last = [...messages].reverse().find((m) => m.role !== "user" && m.runId === thread.latestRunId)?.text || "";
     const m = last.match(REPORT);
     if (!m) {
-      lane.quietSince ||= now().toISOString();
-      const mins = (now() - new Date(lane.quietSince)) / 60000;
-      if (mins >= quietMinutes(ctx)) set("waiting", `the lane ended its turn without a status line and has been quiet for ${quietMinutes(ctx)} minutes; read its thread`);
+      if (!lane.quietSince) {
+        lane.quietSince = now().toISOString();
+        set("running", `turn ended without a status line; treated as working for ${quietMinutes(ctx)} minutes`);
+      } else if ((now() - new Date(lane.quietSince)) / 60000 >= quietMinutes(ctx)) {
+        delete lane.quietSince;
+        set("waiting", `the lane ended its turn without a status line and has been quiet for ${quietMinutes(ctx)} minutes; read its thread`);
+      }
       continue;
     }
     const [, word, rest] = m;
@@ -304,14 +308,21 @@ function cleanupLane(ctx, headRef, info, wt) {
   const dirty = git(["status", "--porcelain", "--untracked-files=no"], ctx.main).out;
   if (!onBase || dirty) steps.mainCheckout = `not updated: ${!onBase ? `not on ${base}` : "it has uncommitted changes"}`;
   else { const pulled = git(["merge", "-q", "--ff-only", `origin/${base}`], ctx.main); steps.mainCheckout = pulled.code ? `not updated: ${pulled.err}` : "updated"; }
-  const remoteSha = git(["ls-remote", "--heads", "origin", headRef], ctx.main).out.split(/\s/)[0];
+  const remoteRef = `refs/heads/${headRef}`;
+  const remoteSha = git(["ls-remote", "origin", remoteRef], ctx.main).out.split("\n").map((l) => l.split("\t")).find(([, ref]) => ref === remoteRef)?.[0];
   if (remoteSha) git(["fetch", "-q", "origin", headRef], ctx.main);
   if (!remoteSha) steps.remoteBranch = `${headRef}: already gone`;
   else if (git(["merge-base", "--is-ancestor", remoteSha, `origin/${base}`], ctx.main).code) steps.remoteBranch = `${headRef}: kept, it has commits that are not in ${base}`;
-  else { const remote = git(["push", "-q", "origin", "--delete", headRef], ctx.main); steps.remoteBranch = remote.code ? `not deleted: ${remote.err}` : `deleted ${headRef}`; }
+  else { const remote = git(["push", "-q", `--force-with-lease=${remoteRef}:${remoteSha}`, "origin", "--delete", headRef], ctx.main); steps.remoteBranch = remote.code ? `not deleted: ${remote.err}` : `deleted ${headRef}`; }
   if (wt) {
-    const removed = git(["worktree", "remove", wt], ctx.main);
-    steps.worktree = removed.code ? `not removed: ${removed.err}` : `removed ${wt}`;
+    const head = git(["rev-parse", "HEAD"], wt).out;
+    const ignored = git(["status", "--porcelain", "--ignored"], wt).out.split("\n").filter((l) => l.startsWith("!! ") && !/(^|\/)node_modules\/?$/.test(l.slice(3)));
+    if (git(["merge-base", "--is-ancestor", head, `origin/${base}`], ctx.main).code) steps.worktree = `kept ${wt}: its commit ${head.slice(0, 7)} is not in ${base}`;
+    else if (ignored.length) steps.worktree = `kept ${wt}: it has ignored files (${ignored.map((l) => l.slice(3)).slice(0, 5).join(", ")})`;
+    else {
+      const removed = git(["worktree", "remove", wt], ctx.main);
+      steps.worktree = removed.code ? `not removed: ${removed.err}` : `removed ${wt}`;
+    }
   } else {
     steps.worktree = info.state === "unknown" ? "not removed: T3 not reachable, so its path is not known" : "none found";
   }

@@ -59,5 +59,6 @@
   },
   "nightly": {
     "timeOfDay": "00:05"
-  }
+  },
+  "laneQuietMinutes": 15
 }

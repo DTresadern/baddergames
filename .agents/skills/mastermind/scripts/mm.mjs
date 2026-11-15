@@ -119,6 +119,10 @@ function status(ctx, ledger, roll) {
     closedDays: roll.closed, finaliseSent: roll.finaliseSent, laneChanges: ledger.pendingChanges || [],
     waitingForUser: { approval: by(["held"]), answer: by(["waiting"]), blocked: by(["blocked"]) },
     running: by(["started", "running"]),
+    quietLanes: laneList(ledger, { open: true }).filter((l) => l.quietSince).map((l) => ({
+      lane: l.name, quietSince: l.quietSince,
+      recheckAt: new Date(new Date(l.quietSince).getTime() + (ctx.config.laneQuietMinutes ?? 15) * 60000 + 60000).toISOString(),
+    })),
     completedToday: done,
     devlog: devlogSummaryLine(ctx, ledger),
     orchestrators: ledger.claims,

@@ -368,7 +368,7 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T22d a question from the lane is recorded as waiting", (mm(["lane", "list"], { at: "2026-12-02T10:20:00Z" }), lane().state === "waiting"), JSON.stringify(lane()));
   s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", latestRunId: "run:4", pendingRequestCount: 0, last: "Done, I think." }); saveFake(s);
   mm(["lane", "list"], { at: "2026-12-02T10:30:00Z" });
-  check("T22e a final message without a status line is not flagged at once", !lane().history.at(-1).note?.includes("without a status line") && lane().quietSince, JSON.stringify(lane()));
+  check("T22e a turn without a status line is treated as working, not flagged", lane().state === "running" && lane().quietSince && !/quiet for/.test(lane().history.at(-1).note || ""), JSON.stringify(lane().history.at(-1)));
   s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { latestRunId: "run:5", last: "HELD: https://github.com/o/r/pull/31 ready" }); saveFake(s);
   mm(["lane", "list"], { at: "2026-12-02T10:40:00Z" });
   s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "running", activeRunId: "run:6", latestRunId: "run:6" }); saveFake(s);
@@ -378,7 +378,7 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T22f a run interrupted after a HELD report does not fall back to held", lane().state === "blocked" && /interrupted/.test(lane().history.at(-1).note), JSON.stringify(lane().history.slice(-2)));
   s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", latestRunId: "run:7", lastRunId: "run:6", last: "HELD: https://github.com/o/r/pull/31 ready" }); saveFake(s);
   mm(["lane", "list"], { at: "2026-12-02T10:52:00Z" });
-  check("T22g a report from an earlier run is not taken as the latest run's report", lane().state === "blocked" && lane().quietSince, JSON.stringify(lane()));
+  check("T22g a report from an earlier run is not taken as the latest run's report", lane().state === "running" && lane().quietSince, JSON.stringify(lane()));
   let st = mm(["status", "--json"], { at: "2026-12-02T10:53:00Z" });
   check("T22h changes found by other commands wait for mm status, then clear", st.json?.laneChanges?.some((c) => /sync: blocked/.test(c.note)) && mm(["status", "--json"], { at: "2026-12-02T10:54:00Z" }).json.laneChanges.length === 0, JSON.stringify(st.json?.laneChanges));
   const heldEvents = () => lines("2026-12-02").filter((l) => JSON.parse(l).kind === "held" && JSON.parse(l).lane === "sync").length;
@@ -414,6 +414,16 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   const q4 = bgState(3, { status: "running", activeRunId: "run:3", latestRunId: "run:3" }, "2026-12-02T12:16:00Z");
   const q5 = bgState(3, { status: "completed", latestRunId: "run:3", last: "Seventh review running." }, "2026-12-02T12:20:00Z");
   check("T22q a new run resets the quiet period", q4.state === "running" && q5.state === "running", JSON.stringify(q5.history.at(-1)));
+  mm(["lane", "update", "bg", "held", "--pr", "77"], { at: "2026-12-02T12:21:00Z" });
+  const q6 = bgState(4, { status: "completed", latestRunId: "run:4", last: "Review of the requested change running." }, "2026-12-02T12:22:00Z");
+  const merge = mm(["lane", "merge", "bg"], { at: "2026-12-02T12:22:30Z" });
+  check("T22r a held lane that starts new work is running at once and cannot be merged", q6.state === "running" && merge.code === 1 && /is running, not held/.test(merge.err), merge.err + JSON.stringify(q6.history.at(-1)));
+  const st2 = mm(["status", "--json"], { at: "2026-12-02T12:23:00Z" });
+  check("T22s mm status lists quiet lanes with a re-check time", st2.json?.quietLanes?.some((q) => q.lane === "bg" && q.recheckAt === "2026-12-02T12:38:00.000Z"), JSON.stringify(st2.json?.quietLanes));
+  bgState(4, { status: "completed", latestRunId: "run:4", last: "x" }, "2026-12-02T12:40:00Z");
+  mm(["lane", "update", "bg", "held", "--pr", "77", "--note", "set by hand"], { at: "2026-12-02T12:41:00Z" });
+  const q7 = bgState(4, { status: "completed", latestRunId: "run:4", last: "x" }, "2026-12-02T12:50:00Z");
+  check("T22t after the waiting report, a state set by hand is not undone", q7.state === "held", JSON.stringify(q7.history.slice(-2)));
 }
 
 // T23 merging only under the rule
@@ -486,6 +496,21 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   mm(["lane", "update", "stop", "merged", "--note", "merged, cleanup stopped"], { at });
   r = mm(["lane", "cleanup", "stop", "--json"], { at });
   check("T25g cleanup finishes a merge that was stopped partway", r.code === 0 && r.json.cleanup.remoteBranch === "deleted baddergames/stop" && r.json.cleanup.worktree.startsWith("removed") && !fs.existsSync(wtStop), r.out + r.err);
+  const wtClosed = path.join(tmp, "wt-closed");
+  mm(["lane", "new", "dropped", "--ns", "dev.baddergames", "--title", "Dropped work", "--goal-file", goal], { at });
+  sh("git", ["worktree", "add", "-q", "-b", "baddergames/dropped", wtClosed, "main"], main);
+  fs.writeFileSync(path.join(wtClosed, "d.txt"), "x\n");
+  sh("git", ["add", "d.txt"], wtClosed); sh("git", ["commit", "-qm", "dropped"], wtClosed); sh("git", ["push", "-q", "-u", "origin", "baddergames/dropped"], wtClosed);
+  const s4 = fakeState(); s4.threads["mcp:lane-dropped"] = { title: "d", messages: [], settled: false, archived: false, status: "completed", latestRunId: "run:1", worktreePath: wtClosed }; saveFake(s4);
+  mm(["lane", "set", "dropped", "--thread-id", "mcp:lane-dropped"], { at });
+  mm(["lane", "update", "dropped", "closed", "--note", "user dropped it"], { at });
+  r = mm(["lane", "cleanup", "dropped", "--json"], { at });
+  check("T25h cleanup of an unmerged lane keeps its worktree and branches", r.code === 0 && /kept .*not in main/.test(r.json.cleanup.worktree) && /kept, it has commits/.test(r.json.cleanup.remoteBranch) && fs.existsSync(wtClosed), r.out + r.err);
+  sh("git", ["push", "-q", "origin", "baddergames/dropped:main"], wtClosed);
+  fs.writeFileSync(path.join(wtClosed, ".env"), "SECRET=1\n");
+  fs.appendFileSync(path.join(wtClosed, ".gitignore"), ".env\n"); sh("git", ["commit", "-qam", "ignore env"], wtClosed); sh("git", ["push", "-q"], wtClosed); sh("git", ["push", "-q", "origin", "baddergames/dropped:main"], wtClosed);
+  r = mm(["lane", "cleanup", "dropped", "--json"], { at });
+  check("T25i a worktree with ignored files is kept", r.code === 0 && /ignored files \(\.env\)/.test(r.json.cleanup.worktree) && fs.existsSync(path.join(wtClosed, ".env")), r.out + r.err);
 }
 
 // T24 new sub-project

@@ -56,6 +56,6 @@ Every turn you end starts its final message with exactly one of these lines, the
 - `REQUEST-LANE: <goal of the other work> — <why it is needed>` (stop after reporting it; the orchestrator starts that work and tells you how to continue)
 - `CLOSED: <why the work is not needed>`
 
-The status line must be the very first line of your final message: `mm` reads it automatically and records the lane's state from it. A final message without one is recorded as "stopped without a status line". Make the first 400 characters self-contained. Report only when the state changes; do not send progress notes.
+The status line must be the very first line of your final message: `mm` reads it automatically and records the lane's state from it. A turn that ends without one is treated as still working for 15 minutes, then reported to the orchestrator as "stopped without a status line". Make the first 400 characters self-contained. Report only when the state changes; do not send progress notes.
 
 When the orchestrator sends you a message later (an answer, review fixes, changes the user asked for), do that work and end again with a status line.
