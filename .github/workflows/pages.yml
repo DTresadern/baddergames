@@ -1,10 +1,9 @@
-# Publishes the playable games to GitHub Pages.
-# Only runtime files are deployed; concept art, references and tools stay in the repo.
+# Publishes the landing page (index.html) and the idea cloud (ideas/) to GitHub Pages.
+# Nothing else in the repo is published: archived material, agent config,
+# mastermind state, the devlog and sub-project folders stay out of the site.
 name: Deploy to GitHub Pages
 
-# Manual only while the project restarts: the files it copies were moved to
-# .archived/. The last deployment stays live. Update the "Assemble site" step
-# before running it again or restoring the push trigger.
+# Manual only: running it replaces the whole live site.
 on:
   workflow_dispatch:
 
@@ -28,18 +27,21 @@ jobs:
           node-version: 22
 
       - name: Check JavaScript syntax
-        run: for f in technophage/src/*.js; do node --check "$f"; done
+        run: git ls-files -z 'ideas/*.js' | xargs -0 -r -n1 node --check
 
       - name: Assemble site
         run: |
-          mkdir -p _site/technophage
+          set -euo pipefail
+          if [ ! -f ideas/index.html ]; then
+            echo "::error::ideas/index.html not found: the idea cloud has not been committed yet"
+            exit 1
+          fi
+          mkdir -p _site/ideas
           cp index.html _site/
-          cd technophage
-          cp -r index.html style.css peer-config.js src assets vendor ../_site/technophage/
-          cd ..
-          # build stamp shown on the game's main menu
-          echo "{\"commit\":\"${GITHUB_SHA::7}\",\"built\":\"$(date -u +%Y-%m-%dT%H:%MZ)\"}" > _site/technophage/version.json
-          find _site -type f | sort
+          cp -r ideas/. _site/ideas/
+          # list what upload-pages-artifact publishes: it skips hidden files
+          # and follows symlinks
+          find -L _site \( -name '.*' -prune \) -o -type f -print | sort
 
       - uses: actions/configure-pages@v6
 
