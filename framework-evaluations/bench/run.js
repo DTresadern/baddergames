@@ -4,6 +4,12 @@
 //   npm run bench                                  full run: every build x every stress level
 //   npm run bench -- --quick                       base level only, fewer frames (smoke test)
 //   npm run bench -- --only threejs-2d,pixijs-2d   limit to some builds
+//   npm run bench -- --levels base,rain-16000      limit to some stress levels (ids as in
+//                                                  results.json), full frame counts and repeats;
+//                                                  the build's other levels already in the
+//                                                  results file are kept
+//   npm run bench -- --no-sync                     no GPU readback per frame; writes
+//                                                  results-nosync.json (only means are meaningful)
 //   npm run screenshots                            screenshots at t=12 into screenshots/
 //   extra flags: --no-build (reuse dist/), --headed (visible window)
 //
@@ -65,14 +71,15 @@ const CHROMIUM_FLAGS = [
 const argv = process.argv.slice(2);
 const has = (/** @type {string} */ f) => argv.includes(f);
 const valueOf = (/** @type {string} */ f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : undefined; };
+const listOf = (/** @type {string} */ f) => valueOf(f)?.split(',').map((v) => v.trim()).filter(Boolean) ?? null;
 const opts = {
   quick: has('--quick'),
   screenshots: has('--screenshots'),
   build: !has('--no-build'),
   headed: has('--headed'),
-  // --no-sync: no GPU readback per frame; writes results-nosync.json (means only are meaningful)
   sync: !has('--no-sync'),
-  only: valueOf('--only')?.split(',').map((s) => s.trim()).filter(Boolean) ?? null,
+  only: listOf('--only'),
+  levels: listOf('--levels'),
 };
 const FRAMES = opts.quick ? { warmup: 30, sample: 120, startupLoads: 3, repeats: 1 } : { warmup: 60, sample: 300, startupLoads: 5, repeats: 3 };
 // every benchmarked page gets sync=1: the hook waits for the GPU after each frame (see
@@ -82,6 +89,12 @@ const RESULTS_FILE = opts.sync ? 'results.json' : 'results-nosync.json';
 
 const selected = BUILDS.filter((b) => !opts.only || opts.only.includes(b.id));
 if (!selected.length) fail(`--only matched no build. Known: ${BUILDS.map((b) => b.id).join(', ')}`);
+
+const ALL_LEVELS = stressLevels();
+const unknownLevels = (opts.levels ?? []).filter((id) => !ALL_LEVELS.some((l) => l.id === id));
+if (unknownLevels.length) fail(`--levels: unknown ${unknownLevels.join(', ')}. Known: ${ALL_LEVELS.map((l) => l.id).join(', ')}`);
+const LEVELS = opts.levels ? ALL_LEVELS.filter((l) => opts.levels?.includes(l.id))
+  : opts.quick ? ALL_LEVELS.filter((l) => l.id === 'base') : ALL_LEVELS;
 
 const CDP_LIB = process.env.CDP_LIB;
 if (!CDP_LIB) {
@@ -197,9 +210,9 @@ try {
     }
     log(`${b.id}: bundle ${kb(bundle.js.raw)} min, ${kb(bundle.js.gzip)} gzip`);
     const entry = { framework: b.framework, mode: b.mode, built: true, quick: opts.quick, measuredAt: new Date().toISOString(),
-      version: /** @type {string | null} */ (null), pageErrors: /** @type {string[] | undefined} */ (undefined), bundle, startup: /** @type {any} */ (null), gl: null, info: null, levels: /** @type {Record<string, any>} */ ({}) };
+      version: /** @type {string | null} */ (null), pageErrors: /** @type {string[] | undefined} */ (undefined), bundle, startup: /** @type {any} */ (null), gl: null, info: null,
+      levels: /** @type {Record<string, any>} */ ({ ...(opts.levels ? results.builds[b.id]?.levels : undefined) }) };
 
-    // startup: N fresh loads of the base level, median of each timing
     const runs = [];
     for (let i = 0; i < FRAMES.startupLoads; i++) {
       await s.goto('about:blank');
@@ -207,13 +220,12 @@ try {
       await waitReady(b.id);
       runs.push(await s.evaluate('window.__bench.startup'));
     }
-    entry.startup = { loads: runs.length, median: medianOf(runs), runs };
+    // `median` is per field: each timing's median over the loads, so fields can come from different loads
+    entry.startup = { loads: runs.length, median: fieldMedians(runs), runs };
     log(`${b.id}: startup first frame ${entry.startup.median.firstFrameMs} ms (median of ${runs.length})`);
 
-    const levels = opts.quick ? [{ id: 'base', stress: { ...BASE } }] : stressLevels();
-    for (const level of levels) {
+    for (const level of LEVELS) {
       await s.goto('about:blank');
-      // FRAMES.repeats fresh loads per level; the level's figures are the median of the runs
       const runs = [];
       for (let r = 0; r < FRAMES.repeats; r++) {
         if (r) await s.goto('about:blank');
@@ -222,8 +234,9 @@ try {
         await s.evaluate(`window.__bench.sample(${FRAMES.warmup}).then(() => true)`);
         runs.push(await s.evaluate(`window.__bench.sample(${FRAMES.sample})`));
       }
-      /** @type {Record<string, any>} */
-      const frames = { ...medianOf(runs), frameworkDrawCalls: runs[0].frameworkDrawCalls === null ? null : medianOf(runs).frameworkDrawCalls, runs: runs.length, meanRange: [Math.min(...runs.map((f) => f.mean)), Math.max(...runs.map((f) => f.mean))] };
+      const means = runs.map((f) => f.mean);
+      // every field from one run, the one with the median mean, so p95/p99/cpu match the mean
+      const frames = { ...medianRun(runs), runs: runs.length, meanRange: [Math.min(...means), Math.max(...means)] };
       await s.send('HeapProfiler.collectGarbage');
       const heap = await s.send('Runtime.getHeapUsage');
       const perfMemory = await s.evaluate('window.__bench.heap()');
@@ -325,17 +338,33 @@ function loadResults() {
   return { builds: {} };
 }
 
-/** Median of every numeric field across runs (nested one level for `navigation`). @param {any[]} runs */
-function medianOf(runs) {
-  /** @param {number[]} v */
-  const med = (v) => { const a = [...v].sort((x, y) => x - y); return a.length ? a[Math.floor((a.length - 1) / 2)] : null; };
+/** Lower median: the middle value for an odd count. @param {number[]} v */
+function median(v) {
+  const a = [...v].sort((x, y) => x - y);
+  return a.length ? a[Math.floor((a.length - 1) / 2)] : null;
+}
+
+/** The run whose mean is the median of the runs' means. @param {any[]} runs */
+function medianRun(runs) {
+  const m = median(runs.map((r) => r.mean));
+  return runs.find((r) => r.mean === m);
+}
+
+/**
+ * Median of each field across runs, independently (one level deep for `navigation`),
+ * over the runs where it is a number; null when it is a number in none.
+ * @param {any[]} runs
+ */
+function fieldMedians(runs) {
+  /** @param {any[]} v */
+  const med = (v) => median(v.filter((x) => typeof x === 'number'));
   /** @type {Record<string, any>} */ const out = {};
   for (const k of Object.keys(runs[0] ?? {})) {
-    if (typeof runs[0][k] === 'number') out[k] = med(runs.map((r) => r[k]));
-    else if (runs[0][k] && typeof runs[0][k] === 'object') {
+    const first = runs[0][k];
+    if (first && typeof first === 'object') {
       out[k] = {};
-      for (const k2 of Object.keys(runs[0][k])) out[k][k2] = med(runs.map((r) => r[k]?.[k2]).filter((x) => typeof x === 'number'));
-    }
+      for (const k2 of Object.keys(first)) out[k][k2] = med(runs.map((r) => r[k]?.[k2]));
+    } else out[k] = med(runs.map((r) => r[k]));
   }
   return out;
 }
