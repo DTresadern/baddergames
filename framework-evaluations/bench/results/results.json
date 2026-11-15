@@ -1,0 +1,4024 @@
+{
+  "builds": {
+    "threejs-2d": {
+      "framework": "threejs",
+      "mode": "2d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:22:55.948Z",
+      "version": "187",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/2d-CHjJRotd.js",
+            "assets/scene-GHnK6Z3q.js"
+          ],
+          "raw": 632552,
+          "gzip": 162706,
+          "brotli": 134207
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 562,
+        "dynamicImports": []
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 20.2,
+          "firstFrameMs": 152.9,
+          "firstFramePresentedMs": 161.4,
+          "navigation": {
+            "responseEndMs": 2.2,
+            "domInteractiveMs": 8.3,
+            "domContentLoadedMs": 86.9,
+            "loadEventEndMs": 87.1,
+            "transferBytes": 862
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 57.3,
+            "firstFrameMs": 238.5,
+            "firstFramePresentedMs": 246.8,
+            "navigation": {
+              "responseEndMs": 38.5,
+              "domInteractiveMs": 45.4,
+              "domContentLoadedMs": 122.9,
+              "loadEventEndMs": 123.1,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 20.2,
+            "firstFrameMs": 156.2,
+            "firstFramePresentedMs": 164.1,
+            "navigation": {
+              "responseEndMs": 2.1,
+              "domInteractiveMs": 8.6,
+              "domContentLoadedMs": 83.9,
+              "loadEventEndMs": 84.2,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 19.2,
+            "firstFrameMs": 152.9,
+            "firstFramePresentedMs": 161.4,
+            "navigation": {
+              "responseEndMs": 2.2,
+              "domInteractiveMs": 8.3,
+              "domContentLoadedMs": 88.2,
+              "loadEventEndMs": 88.5,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 19.9,
+            "firstFrameMs": 150.6,
+            "firstFramePresentedMs": 158.8,
+            "navigation": {
+              "responseEndMs": 2,
+              "domInteractiveMs": 7.8,
+              "domContentLoadedMs": 86.9,
+              "loadEventEndMs": 87.1,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 21,
+            "firstFrameMs": 150.3,
+            "firstFramePresentedMs": 158.1,
+            "navigation": {
+              "responseEndMs": 2.3,
+              "domInteractiveMs": 8,
+              "domContentLoadedMs": 85.7,
+              "loadEventEndMs": 86,
+              "transferBytes": 862
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": true,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": true
+      },
+      "info": {
+        "triangles": 88699,
+        "programs": 11
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 4.836,
+            "p50": 4.8,
+            "p95": 5.4,
+            "p99": 6.5,
+            "min": 4.2,
+            "max": 7.7,
+            "fps": 206.797,
+            "cpuMean": 1.397,
+            "cpuP95": 1.9,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              4.8,
+              4.966
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 4.836,
+              "p50": 4.8,
+              "p95": 5.4,
+              "p99": 6.5,
+              "min": 4.2,
+              "max": 7.7,
+              "fps": 206.797,
+              "cpuMean": 1.397,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 4.8,
+              "p50": 4.7,
+              "p95": 5.4,
+              "p99": 6.4,
+              "min": 3.9,
+              "max": 7.4,
+              "fps": 208.333,
+              "cpuMean": 1.351,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 4.966,
+              "p50": 4.8,
+              "p95": 5.9,
+              "p99": 7.4,
+              "min": 3.9,
+              "max": 9.1,
+              "fps": 201.369,
+              "cpuMean": 1.313,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 3944412,
+            "totalSize": 4980736,
+            "performanceMemory": {
+              "usedJSHeapSize": 6845177,
+              "totalJSHeapSize": 7829893
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-16000": {
+          "stress": {
+            "rain": 16000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 5.088,
+            "p50": 5,
+            "p95": 5.6,
+            "p99": 6.7,
+            "min": 4.2,
+            "max": 8,
+            "fps": 196.554,
+            "cpuMean": 1.318,
+            "cpuP95": 1.8,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              4.756,
+              5.191
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 5.088,
+              "p50": 5,
+              "p95": 5.6,
+              "p99": 6.7,
+              "min": 4.2,
+              "max": 8,
+              "fps": 196.554,
+              "cpuMean": 1.318,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 5.191,
+              "p50": 5.1,
+              "p95": 6.1,
+              "p99": 7,
+              "min": 4.5,
+              "max": 8.6,
+              "fps": 192.641,
+              "cpuMean": 1.378,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 4.756,
+              "p50": 4.7,
+              "p95": 5.6,
+              "p99": 7.1,
+              "min": 3.7,
+              "max": 8.8,
+              "fps": 210.246,
+              "cpuMean": 1.345,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 3947348,
+            "totalSize": 5242880,
+            "performanceMemory": {
+              "usedJSHeapSize": 7092661,
+              "totalJSHeapSize": 8332037
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-64000": {
+          "stress": {
+            "rain": 64000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 5.807,
+            "p50": 5.6,
+            "p95": 7.1,
+            "p99": 7.9,
+            "min": 4.9,
+            "max": 8.8,
+            "fps": 172.216,
+            "cpuMean": 1.295,
+            "cpuP95": 1.8,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              5.667,
+              6.493
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.493,
+              "p50": 6.3,
+              "p95": 7.9,
+              "p99": 9.1,
+              "min": 5.1,
+              "max": 10.3,
+              "fps": 154.012,
+              "cpuMean": 1.368,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 5.807,
+              "p50": 5.6,
+              "p95": 7.1,
+              "p99": 7.9,
+              "min": 4.9,
+              "max": 8.8,
+              "fps": 172.216,
+              "cpuMean": 1.295,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 5.667,
+              "p50": 5.5,
+              "p95": 6.6,
+              "p99": 7.1,
+              "min": 4.8,
+              "max": 8.3,
+              "fps": 176.471,
+              "cpuMean": 1.301,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 3950872,
+            "totalSize": 5242880,
+            "performanceMemory": {
+              "usedJSHeapSize": 8051673,
+              "totalJSHeapSize": 9173253
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-256000": {
+          "stress": {
+            "rain": 256000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 9.154,
+            "p50": 9.1,
+            "p95": 9.9,
+            "p99": 10.5,
+            "min": 8.2,
+            "max": 11.4,
+            "fps": 109.238,
+            "cpuMean": 1.466,
+            "cpuP95": 2,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              9.106,
+              9.163
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 9.163,
+              "p50": 9.1,
+              "p95": 9.8,
+              "p99": 10.4,
+              "min": 8.2,
+              "max": 10.9,
+              "fps": 109.135,
+              "cpuMean": 1.479,
+              "cpuP95": 2.1,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 9.106,
+              "p50": 9.1,
+              "p95": 10,
+              "p99": 10.3,
+              "min": 8.2,
+              "max": 10.6,
+              "fps": 109.818,
+              "cpuMean": 1.41,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 9.154,
+              "p50": 9.1,
+              "p95": 9.9,
+              "p99": 10.5,
+              "min": 8.2,
+              "max": 11.4,
+              "fps": 109.238,
+              "cpuMean": 1.466,
+              "cpuP95": 2,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 3945268,
+            "totalSize": 4980736,
+            "performanceMemory": {
+              "usedJSHeapSize": 11886069,
+              "totalJSHeapSize": 12865797
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "lights-32": {
+          "stress": {
+            "rain": 4000,
+            "lights": 32,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 4.959,
+            "p50": 4.9,
+            "p95": 5.5,
+            "p99": 6.3,
+            "min": 4.4,
+            "max": 7.9,
+            "fps": 201.654,
+            "cpuMean": 1.372,
+            "cpuP95": 1.8,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              4.866,
+              5.011
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 4.959,
+              "p50": 4.9,
+              "p95": 5.5,
+              "p99": 6.3,
+              "min": 4.4,
+              "max": 7.9,
+              "fps": 201.654,
+              "cpuMean": 1.372,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 4.866,
+              "p50": 4.8,
+              "p95": 5.4,
+              "p99": 5.8,
+              "min": 4.3,
+              "max": 7.5,
+              "fps": 205.508,
+              "cpuMean": 1.329,
+              "cpuP95": 1.7,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 5.011,
+              "p50": 5,
+              "p95": 5.5,
+              "p99": 6.1,
+              "min": 4.4,
+              "max": 8.4,
+              "fps": 199.561,
+              "cpuMean": 1.416,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 3966316,
+            "totalSize": 5242880,
+            "performanceMemory": {
+              "usedJSHeapSize": 6877821,
+              "totalJSHeapSize": 8102741
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "lights-128": {
+          "stress": {
+            "rain": 4000,
+            "lights": 128,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 5.459,
+            "p50": 5.4,
+            "p95": 5.9,
+            "p99": 6.5,
+            "min": 4.6,
+            "max": 8.1,
+            "fps": 183.184,
+            "cpuMean": 1.412,
+            "cpuP95": 1.9,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              5.416,
+              5.473
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 5.473,
+              "p50": 5.4,
+              "p95": 6,
+              "p99": 6.6,
+              "min": 4.6,
+              "max": 8.9,
+              "fps": 182.726,
+              "cpuMean": 1.366,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 5.416,
+              "p50": 5.4,
+              "p95": 5.9,
+              "p99": 6.4,
+              "min": 4.8,
+              "max": 8.9,
+              "fps": 184.638,
+              "cpuMean": 1.4,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 5.459,
+              "p50": 5.4,
+              "p95": 5.9,
+              "p99": 6.5,
+              "min": 4.6,
+              "max": 8.1,
+              "fps": 183.184,
+              "cpuMean": 1.412,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 3973180,
+            "totalSize": 4980736,
+            "performanceMemory": {
+              "usedJSHeapSize": 6931885,
+              "totalJSHeapSize": 7883333
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "objects-4": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 4
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 5.243,
+            "p50": 5.2,
+            "p95": 5.8,
+            "p99": 6.5,
+            "min": 4.5,
+            "max": 8.6,
+            "fps": 190.718,
+            "cpuMean": 1.396,
+            "cpuP95": 1.8,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              5.202,
+              5.248
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 5.243,
+              "p50": 5.2,
+              "p95": 5.8,
+              "p99": 6.5,
+              "min": 4.5,
+              "max": 8.6,
+              "fps": 190.718,
+              "cpuMean": 1.396,
+              "cpuP95": 1.8,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 5.248,
+              "p50": 5.2,
+              "p95": 5.8,
+              "p99": 6.3,
+              "min": 4.7,
+              "max": 9.4,
+              "fps": 190.537,
+              "cpuMean": 1.401,
+              "cpuP95": 2,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 5.202,
+              "p50": 5.2,
+              "p95": 5.7,
+              "p99": 6,
+              "min": 4.6,
+              "max": 10.1,
+              "fps": 192.246,
+              "cpuMean": 1.384,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 4096420,
+            "totalSize": 4718592,
+            "performanceMemory": {
+              "usedJSHeapSize": 7743273,
+              "totalJSHeapSize": 8313837
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "objects-16": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 16
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 6.126,
+            "p50": 6.1,
+            "p95": 6.7,
+            "p99": 7.3,
+            "min": 5.4,
+            "max": 9.6,
+            "fps": 163.23,
+            "cpuMean": 1.432,
+            "cpuP95": 1.9,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              6.052,
+              6.133
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.126,
+              "p50": 6.1,
+              "p95": 6.7,
+              "p99": 7.3,
+              "min": 5.4,
+              "max": 9.6,
+              "fps": 163.23,
+              "cpuMean": 1.432,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 6.133,
+              "p50": 6.1,
+              "p95": 6.6,
+              "p99": 7.4,
+              "min": 5.5,
+              "max": 9.4,
+              "fps": 163.052,
+              "cpuMean": 1.445,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 6.052,
+              "p50": 6,
+              "p95": 6.6,
+              "p99": 6.9,
+              "min": 5.3,
+              "max": 7.6,
+              "fps": 165.244,
+              "cpuMean": 1.398,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 4451428,
+            "totalSize": 5767168,
+            "performanceMemory": {
+              "usedJSHeapSize": 8985693,
+              "totalJSHeapSize": 10249789
+            }
+          },
+          "setupDrawCalls": 0
+        }
+      }
+    },
+    "threejs-3d": {
+      "framework": "threejs",
+      "mode": "3d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:23:57.002Z",
+      "version": "187",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/3d-BDllPu_h.js",
+            "assets/scene-GHnK6Z3q.js"
+          ],
+          "raw": 660140,
+          "gzip": 170180,
+          "brotli": 140828
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 562,
+        "dynamicImports": []
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 20.4,
+          "firstFrameMs": 313.1,
+          "firstFramePresentedMs": 325.3,
+          "navigation": {
+            "responseEndMs": 2.6,
+            "domInteractiveMs": 8.5,
+            "domContentLoadedMs": 169.4,
+            "loadEventEndMs": 169.6,
+            "transferBytes": 862
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 23.5,
+            "firstFrameMs": 537.5,
+            "firstFramePresentedMs": 549.2,
+            "navigation": {
+              "responseEndMs": 2.9,
+              "domInteractiveMs": 9.5,
+              "domContentLoadedMs": 194.1,
+              "loadEventEndMs": 194.3,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 20.4,
+            "firstFrameMs": 258,
+            "firstFramePresentedMs": 269.8,
+            "navigation": {
+              "responseEndMs": 2.4,
+              "domInteractiveMs": 8.5,
+              "domContentLoadedMs": 120.5,
+              "loadEventEndMs": 120.8,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 19.6,
+            "firstFrameMs": 272.7,
+            "firstFramePresentedMs": 285,
+            "navigation": {
+              "responseEndMs": 2.6,
+              "domInteractiveMs": 8.9,
+              "domContentLoadedMs": 124.7,
+              "loadEventEndMs": 124.9,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 20.4,
+            "firstFrameMs": 313.1,
+            "firstFramePresentedMs": 325.3,
+            "navigation": {
+              "responseEndMs": 2.5,
+              "domInteractiveMs": 8.4,
+              "domContentLoadedMs": 170.4,
+              "loadEventEndMs": 170.7,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 20.4,
+            "firstFrameMs": 324,
+            "firstFramePresentedMs": 335.9,
+            "navigation": {
+              "responseEndMs": 2.6,
+              "domInteractiveMs": 8.5,
+              "domContentLoadedMs": 169.4,
+              "loadEventEndMs": 169.6,
+              "transferBytes": 862
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": true,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": true
+      },
+      "info": {
+        "triangles": 146382,
+        "programs": 26,
+        "bloom": false,
+        "pointLights": 8
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.46,
+            "p50": 8.6,
+            "p95": 9.7,
+            "p99": 10.3,
+            "min": 6.6,
+            "max": 10.8,
+            "fps": 118.203,
+            "cpuMean": 1.125,
+            "cpuP95": 1.5,
+            "drawCalls": 108.287,
+            "drawCallsMax": 109,
+            "frameworkDrawCalls": 108.287,
+            "runs": 3,
+            "meanRange": [
+              8.345,
+              8.647
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 8.647,
+              "p50": 8.8,
+              "p95": 9.9,
+              "p99": 10.5,
+              "min": 6.7,
+              "max": 11.2,
+              "fps": 115.652,
+              "cpuMean": 1.125,
+              "cpuP95": 1.5,
+              "drawCalls": 108.327,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.327
+            },
+            {
+              "frames": 300,
+              "mean": 8.46,
+              "p50": 8.6,
+              "p95": 9.7,
+              "p99": 10.3,
+              "min": 6.6,
+              "max": 10.8,
+              "fps": 118.203,
+              "cpuMean": 1.125,
+              "cpuP95": 1.5,
+              "drawCalls": 108.287,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.287
+            },
+            {
+              "frames": 300,
+              "mean": 8.345,
+              "p50": 8.8,
+              "p95": 9.9,
+              "p99": 11.1,
+              "min": 5.6,
+              "max": 12,
+              "fps": 119.827,
+              "cpuMean": 1.141,
+              "cpuP95": 1.5,
+              "drawCalls": 108.36,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.36
+            }
+          ],
+          "heap": {
+            "usedSize": 5286988,
+            "totalSize": 6553600,
+            "performanceMemory": {
+              "usedJSHeapSize": 8786568,
+              "totalJSHeapSize": 9983260
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "rain-16000": {
+          "stress": {
+            "rain": 16000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 7.804,
+            "p50": 7.9,
+            "p95": 9.2,
+            "p99": 9.7,
+            "min": 5.6,
+            "max": 10.1,
+            "fps": 128.139,
+            "cpuMean": 1.083,
+            "cpuP95": 1.5,
+            "drawCalls": 108.243,
+            "drawCallsMax": 109,
+            "frameworkDrawCalls": 108.243,
+            "runs": 3,
+            "meanRange": [
+              6.079,
+              8.131
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.079,
+              "p50": 5.9,
+              "p95": 7.2,
+              "p99": 7.6,
+              "min": 5.2,
+              "max": 8.1,
+              "fps": 164.501,
+              "cpuMean": 1.03,
+              "cpuP95": 1.5,
+              "drawCalls": 108.02,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.02
+            },
+            {
+              "frames": 300,
+              "mean": 7.804,
+              "p50": 7.9,
+              "p95": 9.2,
+              "p99": 9.7,
+              "min": 5.6,
+              "max": 10.1,
+              "fps": 128.139,
+              "cpuMean": 1.083,
+              "cpuP95": 1.5,
+              "drawCalls": 108.243,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.243
+            },
+            {
+              "frames": 300,
+              "mean": 8.131,
+              "p50": 8,
+              "p95": 9.6,
+              "p99": 10.2,
+              "min": 6.2,
+              "max": 10.5,
+              "fps": 122.986,
+              "cpuMean": 1.096,
+              "cpuP95": 1.6,
+              "drawCalls": 108.237,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.237
+            }
+          ],
+          "heap": {
+            "usedSize": 5309948,
+            "totalSize": 6815744,
+            "performanceMemory": {
+              "usedJSHeapSize": 9050068,
+              "totalJSHeapSize": 10321564
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "rain-64000": {
+          "stress": {
+            "rain": 64000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.705,
+            "p50": 8.8,
+            "p95": 9.8,
+            "p99": 10.2,
+            "min": 7,
+            "max": 11.5,
+            "fps": 114.872,
+            "cpuMean": 1.135,
+            "cpuP95": 1.6,
+            "drawCalls": 108.347,
+            "drawCallsMax": 109,
+            "frameworkDrawCalls": 108.347,
+            "runs": 3,
+            "meanRange": [
+              8.544,
+              8.787
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 8.787,
+              "p50": 8.8,
+              "p95": 10,
+              "p99": 10.4,
+              "min": 6.9,
+              "max": 12,
+              "fps": 113.8,
+              "cpuMean": 1.125,
+              "cpuP95": 1.6,
+              "drawCalls": 108.363,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.363
+            },
+            {
+              "frames": 300,
+              "mean": 8.544,
+              "p50": 8.4,
+              "p95": 10,
+              "p99": 10.5,
+              "min": 7,
+              "max": 10.9,
+              "fps": 117.037,
+              "cpuMean": 1.158,
+              "cpuP95": 1.6,
+              "drawCalls": 108.397,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.397
+            },
+            {
+              "frames": 300,
+              "mean": 8.705,
+              "p50": 8.8,
+              "p95": 9.8,
+              "p99": 10.2,
+              "min": 7,
+              "max": 11.5,
+              "fps": 114.872,
+              "cpuMean": 1.135,
+              "cpuP95": 1.6,
+              "drawCalls": 108.347,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.347
+            }
+          ],
+          "heap": {
+            "usedSize": 5293172,
+            "totalSize": 6291456,
+            "performanceMemory": {
+              "usedJSHeapSize": 9992752,
+              "totalJSHeapSize": 10548380
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "rain-256000": {
+          "stress": {
+            "rain": 256000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.675,
+            "p50": 8.7,
+            "p95": 9.8,
+            "p99": 10.4,
+            "min": 7.3,
+            "max": 13,
+            "fps": 115.278,
+            "cpuMean": 1.105,
+            "cpuP95": 1.5,
+            "drawCalls": 108.427,
+            "drawCallsMax": 109,
+            "frameworkDrawCalls": 108.427,
+            "runs": 3,
+            "meanRange": [
+              7.826,
+              8.707
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 8.675,
+              "p50": 8.7,
+              "p95": 9.8,
+              "p99": 10.4,
+              "min": 7.3,
+              "max": 13,
+              "fps": 115.278,
+              "cpuMean": 1.105,
+              "cpuP95": 1.5,
+              "drawCalls": 108.427,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.427
+            },
+            {
+              "frames": 300,
+              "mean": 7.826,
+              "p50": 7.7,
+              "p95": 8.8,
+              "p99": 9.4,
+              "min": 6.8,
+              "max": 9.8,
+              "fps": 127.785,
+              "cpuMean": 1.078,
+              "cpuP95": 1.4,
+              "drawCalls": 108.323,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.323
+            },
+            {
+              "frames": 300,
+              "mean": 8.707,
+              "p50": 8.6,
+              "p95": 10,
+              "p99": 10.9,
+              "min": 7.1,
+              "max": 12.6,
+              "fps": 114.85,
+              "cpuMean": 1.157,
+              "cpuP95": 1.6,
+              "drawCalls": 108.347,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.347
+            }
+          ],
+          "heap": {
+            "usedSize": 5306340,
+            "totalSize": 6553600,
+            "performanceMemory": {
+              "usedJSHeapSize": 13845920,
+              "totalJSHeapSize": 15035548
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "lights-32": {
+          "stress": {
+            "rain": 4000,
+            "lights": 32,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 9.085,
+            "p50": 9.1,
+            "p95": 10,
+            "p99": 10.9,
+            "min": 7.5,
+            "max": 11.5,
+            "fps": 110.072,
+            "cpuMean": 1.301,
+            "cpuP95": 1.7,
+            "drawCalls": 108.553,
+            "drawCallsMax": 109,
+            "frameworkDrawCalls": 108.553,
+            "runs": 3,
+            "meanRange": [
+              8.572,
+              9.235
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 9.085,
+              "p50": 9.1,
+              "p95": 10,
+              "p99": 10.9,
+              "min": 7.5,
+              "max": 11.5,
+              "fps": 110.072,
+              "cpuMean": 1.301,
+              "cpuP95": 1.7,
+              "drawCalls": 108.553,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.553
+            },
+            {
+              "frames": 300,
+              "mean": 9.235,
+              "p50": 9.4,
+              "p95": 10.6,
+              "p99": 10.9,
+              "min": 7.5,
+              "max": 11.3,
+              "fps": 108.284,
+              "cpuMean": 1.275,
+              "cpuP95": 1.7,
+              "drawCalls": 108.523,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.523
+            },
+            {
+              "frames": 300,
+              "mean": 8.572,
+              "p50": 8.4,
+              "p95": 10,
+              "p99": 10.8,
+              "min": 7.2,
+              "max": 12.6,
+              "fps": 116.663,
+              "cpuMean": 1.267,
+              "cpuP95": 1.8,
+              "drawCalls": 108.507,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.507
+            }
+          ],
+          "heap": {
+            "usedSize": 5710572,
+            "totalSize": 6815744,
+            "performanceMemory": {
+              "usedJSHeapSize": 9330668,
+              "totalJSHeapSize": 10324316
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "lights-128": {
+          "stress": {
+            "rain": 4000,
+            "lights": 128,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 21.655,
+            "p50": 21.7,
+            "p95": 23.5,
+            "p99": 24.2,
+            "min": 19.4,
+            "max": 24.6,
+            "fps": 46.179,
+            "cpuMean": 1.808,
+            "cpuP95": 2.3,
+            "drawCalls": 108.98,
+            "drawCallsMax": 109,
+            "frameworkDrawCalls": 108.98,
+            "runs": 3,
+            "meanRange": [
+              21.455,
+              21.837
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 21.455,
+              "p50": 21.6,
+              "p95": 23.3,
+              "p99": 24.1,
+              "min": 19.3,
+              "max": 24.8,
+              "fps": 46.61,
+              "cpuMean": 1.783,
+              "cpuP95": 2.2,
+              "drawCalls": 108.99,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.99
+            },
+            {
+              "frames": 300,
+              "mean": 21.837,
+              "p50": 21.9,
+              "p95": 23.7,
+              "p99": 24.4,
+              "min": 19.5,
+              "max": 24.8,
+              "fps": 45.795,
+              "cpuMean": 1.833,
+              "cpuP95": 2.3,
+              "drawCalls": 108.977,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.977
+            },
+            {
+              "frames": 300,
+              "mean": 21.655,
+              "p50": 21.7,
+              "p95": 23.5,
+              "p99": 24.2,
+              "min": 19.4,
+              "max": 24.6,
+              "fps": 46.179,
+              "cpuMean": 1.808,
+              "cpuP95": 2.3,
+              "drawCalls": 108.98,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.98
+            }
+          ],
+          "heap": {
+            "usedSize": 7582752,
+            "totalSize": 8388608,
+            "performanceMemory": {
+              "usedJSHeapSize": 11772980,
+              "totalJSHeapSize": 12487260
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "objects-4": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 4
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.713,
+            "p50": 8.8,
+            "p95": 10.1,
+            "p99": 10.6,
+            "min": 6.5,
+            "max": 11,
+            "fps": 114.771,
+            "cpuMean": 1.167,
+            "cpuP95": 1.6,
+            "drawCalls": 108.333,
+            "drawCallsMax": 109,
+            "frameworkDrawCalls": 108.333,
+            "runs": 3,
+            "meanRange": [
+              8.626,
+              8.873
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 8.873,
+              "p50": 9,
+              "p95": 10.1,
+              "p99": 11.5,
+              "min": 6.7,
+              "max": 12,
+              "fps": 112.697,
+              "cpuMean": 1.155,
+              "cpuP95": 1.6,
+              "drawCalls": 108.333,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.333
+            },
+            {
+              "frames": 300,
+              "mean": 8.713,
+              "p50": 8.8,
+              "p95": 10.1,
+              "p99": 10.6,
+              "min": 6.5,
+              "max": 11,
+              "fps": 114.771,
+              "cpuMean": 1.167,
+              "cpuP95": 1.6,
+              "drawCalls": 108.333,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.333
+            },
+            {
+              "frames": 300,
+              "mean": 8.626,
+              "p50": 8.5,
+              "p95": 10.1,
+              "p99": 11.1,
+              "min": 6.8,
+              "max": 11.8,
+              "fps": 115.924,
+              "cpuMean": 1.17,
+              "cpuP95": 1.6,
+              "drawCalls": 108.337,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.337
+            }
+          ],
+          "heap": {
+            "usedSize": 5445508,
+            "totalSize": 6553600,
+            "performanceMemory": {
+              "usedJSHeapSize": 9260464,
+              "totalJSHeapSize": 10175780
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "objects-16": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 16
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.612,
+            "p50": 8.7,
+            "p95": 10,
+            "p99": 10.4,
+            "min": 7,
+            "max": 11.6,
+            "fps": 116.113,
+            "cpuMean": 1.122,
+            "cpuP95": 1.5,
+            "drawCalls": 108.257,
+            "drawCallsMax": 109,
+            "frameworkDrawCalls": 108.257,
+            "runs": 3,
+            "meanRange": [
+              6.752,
+              8.81
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 8.612,
+              "p50": 8.7,
+              "p95": 10,
+              "p99": 10.4,
+              "min": 7,
+              "max": 11.6,
+              "fps": 116.113,
+              "cpuMean": 1.122,
+              "cpuP95": 1.5,
+              "drawCalls": 108.257,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.257
+            },
+            {
+              "frames": 300,
+              "mean": 8.81,
+              "p50": 9,
+              "p95": 9.9,
+              "p99": 10.1,
+              "min": 7,
+              "max": 10.8,
+              "fps": 113.512,
+              "cpuMean": 1.156,
+              "cpuP95": 1.6,
+              "drawCalls": 108.387,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.387
+            },
+            {
+              "frames": 300,
+              "mean": 6.752,
+              "p50": 6.2,
+              "p95": 8.7,
+              "p99": 9.3,
+              "min": 4.9,
+              "max": 10.5,
+              "fps": 148.112,
+              "cpuMean": 1.092,
+              "cpuP95": 1.5,
+              "drawCalls": 108.267,
+              "drawCallsMax": 109,
+              "frameworkDrawCalls": 108.267
+            }
+          ],
+          "heap": {
+            "usedSize": 5795376,
+            "totalSize": 6291456,
+            "performanceMemory": {
+              "usedJSHeapSize": 9913552,
+              "totalJSHeapSize": 10356216
+            }
+          },
+          "setupDrawCalls": 81
+        }
+      }
+    },
+    "pixijs-2d": {
+      "framework": "pixijs",
+      "mode": "2d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:27:40.814Z",
+      "version": "8.23.0",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/2d-C_flimNT.js",
+            "assets/scene-CGGl4xmo.js",
+            "assets/CanvasPool-C0KDo9zs.js",
+            "assets/lib-DGvviLPV.js",
+            "assets/init-nM4v_D0G.js",
+            "assets/canvasUtils-BbhFe4r-.js",
+            "assets/RenderTargetSystem-DsmUMQHz.js",
+            "assets/CanvasRenderer-VdIU49Rq.js",
+            "assets/getTextureBatchBindGroup-aLbagKvE.js"
+          ],
+          "raw": 384156,
+          "gzip": 121620,
+          "brotli": 107661
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 1134,
+        "dynamicImports": [
+          "assets/browserAll-CofPQrFt.js",
+          "assets/webworkerAll-BIGJQZtQ.js",
+          "assets/WebGPURenderer-BVsLTkYU.js",
+          "assets/WebGLRenderer-DWH9k9X8.js",
+          "assets/CanvasRenderer-TEhNeMYH.js"
+        ]
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 24.7,
+          "firstFrameMs": 195.2,
+          "firstFramePresentedMs": 201.1,
+          "navigation": {
+            "responseEndMs": 2.2,
+            "domInteractiveMs": 8.9,
+            "domContentLoadedMs": 39.5,
+            "loadEventEndMs": 39.7,
+            "transferBytes": 1434
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 24.4,
+            "firstFrameMs": 276.1,
+            "firstFramePresentedMs": 282.8,
+            "navigation": {
+              "responseEndMs": 2.4,
+              "domInteractiveMs": 8.6,
+              "domContentLoadedMs": 38.2,
+              "loadEventEndMs": 38.4,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 224.5,
+            "firstFrameMs": 405.5,
+            "firstFramePresentedMs": 412.3,
+            "navigation": {
+              "responseEndMs": 2.1,
+              "domInteractiveMs": 8.5,
+              "domContentLoadedMs": 232.3,
+              "loadEventEndMs": 232.4,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 25.7,
+            "firstFrameMs": 195.2,
+            "firstFramePresentedMs": 201.1,
+            "navigation": {
+              "responseEndMs": 2.2,
+              "domInteractiveMs": 9.9,
+              "domContentLoadedMs": 44.1,
+              "loadEventEndMs": 44.3,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 22.5,
+            "firstFrameMs": 184.2,
+            "firstFramePresentedMs": 194.8,
+            "navigation": {
+              "responseEndMs": 2.4,
+              "domInteractiveMs": 9,
+              "domContentLoadedMs": 38,
+              "loadEventEndMs": 38.1,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 24.7,
+            "firstFrameMs": 183.9,
+            "firstFramePresentedMs": 196.8,
+            "navigation": {
+              "responseEndMs": 2.2,
+              "domInteractiveMs": 8.9,
+              "domContentLoadedMs": 39.5,
+              "loadEventEndMs": 39.7,
+              "transferBytes": 1434
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": true,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": true
+      },
+      "info": {
+        "drawables": 65,
+        "renderer": "webgl",
+        "webgl2": true
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 4.322,
+            "p50": 4.2,
+            "p95": 5,
+            "p99": 5.4,
+            "min": 3.5,
+            "max": 5.5,
+            "fps": 231.374,
+            "cpuMean": 0.418,
+            "cpuP95": 0.7,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              4.272,
+              4.328
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 4.272,
+              "p50": 4.2,
+              "p95": 4.8,
+              "p99": 5.1,
+              "min": 3.4,
+              "max": 6.9,
+              "fps": 234.082,
+              "cpuMean": 0.409,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.322,
+              "p50": 4.2,
+              "p95": 5,
+              "p99": 5.4,
+              "min": 3.5,
+              "max": 5.5,
+              "fps": 231.374,
+              "cpuMean": 0.418,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.328,
+              "p50": 4.2,
+              "p95": 4.9,
+              "p99": 5.5,
+              "min": 3.6,
+              "max": 7.7,
+              "fps": 231.071,
+              "cpuMean": 0.402,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 13959832,
+            "totalSize": 15048704,
+            "performanceMemory": {
+              "usedJSHeapSize": 16065415,
+              "totalJSHeapSize": 17141951
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-16000": {
+          "stress": {
+            "rain": 16000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 4.623,
+            "p50": 4.6,
+            "p95": 5.3,
+            "p99": 5.7,
+            "min": 3.7,
+            "max": 6.6,
+            "fps": 216.325,
+            "cpuMean": 0.418,
+            "cpuP95": 0.7,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              4.547,
+              4.715
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 4.715,
+              "p50": 4.6,
+              "p95": 5.4,
+              "p99": 5.7,
+              "min": 3.8,
+              "max": 6.8,
+              "fps": 212.074,
+              "cpuMean": 0.456,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.547,
+              "p50": 4.5,
+              "p95": 5.1,
+              "p99": 5.8,
+              "min": 3.8,
+              "max": 6,
+              "fps": 219.941,
+              "cpuMean": 0.408,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.623,
+              "p50": 4.6,
+              "p95": 5.3,
+              "p99": 5.7,
+              "min": 3.7,
+              "max": 6.6,
+              "fps": 216.325,
+              "cpuMean": 0.418,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 13958552,
+            "totalSize": 15048704,
+            "performanceMemory": {
+              "usedJSHeapSize": 16304135,
+              "totalJSHeapSize": 17267263
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-64000": {
+          "stress": {
+            "rain": 64000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 5.14,
+            "p50": 5.1,
+            "p95": 5.9,
+            "p99": 6.2,
+            "min": 4.2,
+            "max": 6.9,
+            "fps": 194.54,
+            "cpuMean": 0.46,
+            "cpuP95": 0.7,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              5.068,
+              5.57
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 5.57,
+              "p50": 5.5,
+              "p95": 6.5,
+              "p99": 6.8,
+              "min": 4.5,
+              "max": 8.2,
+              "fps": 179.522,
+              "cpuMean": 0.484,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 5.068,
+              "p50": 5,
+              "p95": 5.9,
+              "p99": 6.2,
+              "min": 4.2,
+              "max": 7.1,
+              "fps": 197.329,
+              "cpuMean": 0.441,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 5.14,
+              "p50": 5.1,
+              "p95": 5.9,
+              "p99": 6.2,
+              "min": 4.2,
+              "max": 6.9,
+              "fps": 194.54,
+              "cpuMean": 0.46,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 13961184,
+            "totalSize": 15048704,
+            "performanceMemory": {
+              "usedJSHeapSize": 17266755,
+              "totalJSHeapSize": 18247743
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-256000": {
+          "stress": {
+            "rain": 256000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.484,
+            "p50": 8.4,
+            "p95": 9.4,
+            "p99": 9.9,
+            "min": 7.5,
+            "max": 10.3,
+            "fps": 117.874,
+            "cpuMean": 0.523,
+            "cpuP95": 0.7,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              8.473,
+              8.649
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 8.484,
+              "p50": 8.4,
+              "p95": 9.4,
+              "p99": 9.9,
+              "min": 7.5,
+              "max": 10.3,
+              "fps": 117.874,
+              "cpuMean": 0.523,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 8.473,
+              "p50": 8.4,
+              "p95": 9.5,
+              "p99": 9.8,
+              "min": 7.4,
+              "max": 10.5,
+              "fps": 118.027,
+              "cpuMean": 0.55,
+              "cpuP95": 0.8,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 8.649,
+              "p50": 8.5,
+              "p95": 9.7,
+              "p99": 10.2,
+              "min": 7.7,
+              "max": 10.7,
+              "fps": 115.625,
+              "cpuMean": 0.567,
+              "cpuP95": 0.8,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 13961464,
+            "totalSize": 14786560,
+            "performanceMemory": {
+              "usedJSHeapSize": 21107047,
+              "totalJSHeapSize": 21723199
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "lights-32": {
+          "stress": {
+            "rain": 4000,
+            "lights": 32,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 4.462,
+            "p50": 4.4,
+            "p95": 5.1,
+            "p99": 5.3,
+            "min": 3.8,
+            "max": 7.5,
+            "fps": 224.115,
+            "cpuMean": 0.459,
+            "cpuP95": 0.7,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              4.407,
+              4.677
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 4.462,
+              "p50": 4.4,
+              "p95": 5.1,
+              "p99": 5.3,
+              "min": 3.8,
+              "max": 7.5,
+              "fps": 224.115,
+              "cpuMean": 0.459,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.677,
+              "p50": 4.7,
+              "p95": 5.3,
+              "p99": 5.5,
+              "min": 3.6,
+              "max": 5.7,
+              "fps": 213.797,
+              "cpuMean": 0.438,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.407,
+              "p50": 4.3,
+              "p95": 5,
+              "p99": 5.4,
+              "min": 3.5,
+              "max": 6.1,
+              "fps": 226.895,
+              "cpuMean": 0.419,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 14026080,
+            "totalSize": 15048704,
+            "performanceMemory": {
+              "usedJSHeapSize": 16141431,
+              "totalJSHeapSize": 17139431
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "lights-128": {
+          "stress": {
+            "rain": 4000,
+            "lights": 128,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 4.834,
+            "p50": 4.8,
+            "p95": 5.4,
+            "p99": 6,
+            "min": 4.1,
+            "max": 7.1,
+            "fps": 206.854,
+            "cpuMean": 0.451,
+            "cpuP95": 0.6,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              4.834,
+              4.97
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 4.834,
+              "p50": 4.8,
+              "p95": 5.4,
+              "p99": 6,
+              "min": 4.1,
+              "max": 7.1,
+              "fps": 206.854,
+              "cpuMean": 0.451,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.834,
+              "p50": 4.8,
+              "p95": 5.5,
+              "p99": 5.8,
+              "min": 4.2,
+              "max": 6.7,
+              "fps": 206.882,
+              "cpuMean": 0.425,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.97,
+              "p50": 4.8,
+              "p95": 5.7,
+              "p99": 6.2,
+              "min": 4.1,
+              "max": 8.5,
+              "fps": 201.221,
+              "cpuMean": 0.457,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 14244368,
+            "totalSize": 15048704,
+            "performanceMemory": {
+              "usedJSHeapSize": 16390935,
+              "totalJSHeapSize": 17068247
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "objects-4": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 4
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 4.671,
+            "p50": 4.6,
+            "p95": 5.3,
+            "p99": 5.6,
+            "min": 4,
+            "max": 6,
+            "fps": 214.087,
+            "cpuMean": 0.403,
+            "cpuP95": 0.6,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              4.639,
+              4.736
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 4.671,
+              "p50": 4.6,
+              "p95": 5.3,
+              "p99": 5.6,
+              "min": 4,
+              "max": 6,
+              "fps": 214.087,
+              "cpuMean": 0.403,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.639,
+              "p50": 4.6,
+              "p95": 5.2,
+              "p99": 5.5,
+              "min": 4,
+              "max": 7,
+              "fps": 215.548,
+              "cpuMean": 0.392,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.736,
+              "p50": 4.6,
+              "p95": 5.5,
+              "p99": 5.9,
+              "min": 4,
+              "max": 6.5,
+              "fps": 211.164,
+              "cpuMean": 0.437,
+              "cpuP95": 0.7,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 18534544,
+            "totalSize": 20094976,
+            "performanceMemory": {
+              "usedJSHeapSize": 21111271,
+              "totalJSHeapSize": 22569291
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "objects-16": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 16
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 4.99,
+            "p50": 4.9,
+            "p95": 5.8,
+            "p99": 6.3,
+            "min": 4.3,
+            "max": 6.7,
+            "fps": 200.401,
+            "cpuMean": 0.415,
+            "cpuP95": 0.6,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              4.951,
+              5.385
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 4.951,
+              "p50": 4.8,
+              "p95": 5.9,
+              "p99": 6.2,
+              "min": 4,
+              "max": 6.3,
+              "fps": 201.979,
+              "cpuMean": 0.394,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 5.385,
+              "p50": 5.3,
+              "p95": 6.2,
+              "p99": 6.4,
+              "min": 4.2,
+              "max": 6.8,
+              "fps": 185.713,
+              "cpuMean": 0.442,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 4.99,
+              "p50": 4.9,
+              "p95": 5.8,
+              "p99": 6.3,
+              "min": 4.3,
+              "max": 6.7,
+              "fps": 200.401,
+              "cpuMean": 0.415,
+              "cpuP95": 0.6,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 23378256,
+            "totalSize": 24338432,
+            "performanceMemory": {
+              "usedJSHeapSize": 26485779,
+              "totalJSHeapSize": 27282067
+            }
+          },
+          "setupDrawCalls": 0
+        }
+      }
+    },
+    "pixijs-3d": {
+      "framework": "pixijs",
+      "mode": "3d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:28:38.324Z",
+      "version": "pixi.js 8.23.0 + @pixi/3d 0.1.0",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/3d-CzAfvbI0.js",
+            "assets/scene-CGGl4xmo.js",
+            "assets/CanvasPool-C0KDo9zs.js",
+            "assets/lib-DGvviLPV.js",
+            "assets/init-nM4v_D0G.js",
+            "assets/canvasUtils-BbhFe4r-.js",
+            "assets/RenderTargetSystem-DsmUMQHz.js",
+            "assets/toneMappingBits-Bs03sNI8.js",
+            "assets/isMobile-CDZeHBYg.js",
+            "assets/getTexelRangeRects-DnuPFlvv.js",
+            "assets/WebGLRenderer-ChdHTASR.js",
+            "assets/WebGPURenderer-kSOQGLUj.js",
+            "assets/getTextureBatchBindGroup-aLbagKvE.js",
+            "assets/collectAttributes-Cbg1qttx.js",
+            "assets/EventSystem-CSN4A2SJ.js",
+            "assets/CanvasRenderer-VdIU49Rq.js"
+          ],
+          "raw": 941700,
+          "gzip": 285066,
+          "brotli": 248660
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 1720,
+        "dynamicImports": [
+          "assets/browserAll-CofPQrFt.js",
+          "assets/webworkerAll-BIGJQZtQ.js",
+          "assets/WebGPURenderer-BVsLTkYU.js",
+          "assets/WebGLRenderer-DWH9k9X8.js",
+          "assets/CanvasRenderer-TEhNeMYH.js",
+          "assets/meshopt_decoder-4Ef-c7zw.js",
+          "assets/init-DXnPbR5n.js",
+          "assets/init-Bm6SWImz.js"
+        ]
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 35.3,
+          "firstFrameMs": 227.2,
+          "firstFramePresentedMs": 236.5,
+          "navigation": {
+            "responseEndMs": 2.3,
+            "domInteractiveMs": 9.9,
+            "domContentLoadedMs": 59.4,
+            "loadEventEndMs": 59.4,
+            "transferBytes": 2020
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 38.6,
+            "firstFrameMs": 309.7,
+            "firstFramePresentedMs": 320.7,
+            "navigation": {
+              "responseEndMs": 4.4,
+              "domInteractiveMs": 12.1,
+              "domContentLoadedMs": 68.7,
+              "loadEventEndMs": 68.8,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 33.5,
+            "firstFrameMs": 227.2,
+            "firstFramePresentedMs": 236.5,
+            "navigation": {
+              "responseEndMs": 2.3,
+              "domInteractiveMs": 8.5,
+              "domContentLoadedMs": 59.4,
+              "loadEventEndMs": 59.4,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 35.3,
+            "firstFrameMs": 214.9,
+            "firstFramePresentedMs": 224.9,
+            "navigation": {
+              "responseEndMs": 2.3,
+              "domInteractiveMs": 9.9,
+              "domContentLoadedMs": 58.5,
+              "loadEventEndMs": 58.7,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 37,
+            "firstFrameMs": 231.2,
+            "firstFramePresentedMs": 240.1,
+            "navigation": {
+              "responseEndMs": 2.6,
+              "domInteractiveMs": 10.3,
+              "domContentLoadedMs": 61.2,
+              "loadEventEndMs": 61.3,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 34.8,
+            "firstFrameMs": 220,
+            "firstFramePresentedMs": 229.3,
+            "navigation": {
+              "responseEndMs": 2.1,
+              "domInteractiveMs": 8.5,
+              "domContentLoadedMs": 57.7,
+              "loadEventEndMs": 57.9,
+              "transferBytes": 2020
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": true,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": true
+      },
+      "info": {
+        "citySlots": 2020,
+        "smokeParticles": 175,
+        "clutterMeshes": 176,
+        "lamps": 8,
+        "rainDrops": 4000,
+        "lightsShadedMax": 32,
+        "cameraDistance": 483
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 6.004,
+            "p50": 6,
+            "p95": 7.1,
+            "p99": 7.4,
+            "min": 4.2,
+            "max": 9.6,
+            "fps": 166.546,
+            "cpuMean": 0.606,
+            "cpuP95": 0.9,
+            "drawCalls": 52.23,
+            "drawCallsMax": 53,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              5.982,
+              6.279
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.004,
+              "p50": 6,
+              "p95": 7.1,
+              "p99": 7.4,
+              "min": 4.2,
+              "max": 9.6,
+              "fps": 166.546,
+              "cpuMean": 0.606,
+              "cpuP95": 0.9,
+              "drawCalls": 52.23,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 5.982,
+              "p50": 6.1,
+              "p95": 7.1,
+              "p99": 7.6,
+              "min": 3.9,
+              "max": 8,
+              "fps": 167.177,
+              "cpuMean": 0.593,
+              "cpuP95": 0.9,
+              "drawCalls": 52.243,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.279,
+              "p50": 6.3,
+              "p95": 7.2,
+              "p99": 7.5,
+              "min": 4.5,
+              "max": 8.5,
+              "fps": 159.261,
+              "cpuMean": 0.617,
+              "cpuP95": 0.9,
+              "drawCalls": 52.257,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 7331504,
+            "totalSize": 8388608,
+            "performanceMemory": {
+              "usedJSHeapSize": 13944745,
+              "totalJSHeapSize": 14644125
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-16000": {
+          "stress": {
+            "rain": 16000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 6.347,
+            "p50": 6.2,
+            "p95": 7.4,
+            "p99": 7.9,
+            "min": 5,
+            "max": 8.7,
+            "fps": 157.563,
+            "cpuMean": 0.612,
+            "cpuP95": 0.9,
+            "drawCalls": 52.303,
+            "drawCallsMax": 53,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              6.14,
+              6.385
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.385,
+              "p50": 6.4,
+              "p95": 7.5,
+              "p99": 7.9,
+              "min": 4.9,
+              "max": 9.2,
+              "fps": 156.617,
+              "cpuMean": 0.622,
+              "cpuP95": 0.9,
+              "drawCalls": 52.283,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.347,
+              "p50": 6.2,
+              "p95": 7.4,
+              "p99": 7.9,
+              "min": 5,
+              "max": 8.7,
+              "fps": 157.563,
+              "cpuMean": 0.612,
+              "cpuP95": 0.9,
+              "drawCalls": 52.303,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.14,
+              "p50": 6.2,
+              "p95": 7.3,
+              "p99": 7.8,
+              "min": 4.4,
+              "max": 8.8,
+              "fps": 162.866,
+              "cpuMean": 0.57,
+              "cpuP95": 0.8,
+              "drawCalls": 52.273,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 7331636,
+            "totalSize": 8650752,
+            "performanceMemory": {
+              "usedJSHeapSize": 16569109,
+              "totalJSHeapSize": 17407645
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-64000": {
+          "stress": {
+            "rain": 64000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 6.636,
+            "p50": 6.4,
+            "p95": 8.2,
+            "p99": 8.6,
+            "min": 4.9,
+            "max": 10.3,
+            "fps": 150.686,
+            "cpuMean": 0.607,
+            "cpuP95": 0.9,
+            "drawCalls": 52.43,
+            "drawCallsMax": 53,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              6.288,
+              6.645
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.636,
+              "p50": 6.4,
+              "p95": 8.2,
+              "p99": 8.6,
+              "min": 4.9,
+              "max": 10.3,
+              "fps": 150.686,
+              "cpuMean": 0.607,
+              "cpuP95": 0.9,
+              "drawCalls": 52.43,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.288,
+              "p50": 6.1,
+              "p95": 8.5,
+              "p99": 9.1,
+              "min": 4.3,
+              "max": 10,
+              "fps": 159.033,
+              "cpuMean": 0.586,
+              "cpuP95": 1,
+              "drawCalls": 52.44,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.645,
+              "p50": 6.6,
+              "p95": 7.7,
+              "p99": 8.2,
+              "min": 5.2,
+              "max": 8.8,
+              "fps": 150.497,
+              "cpuMean": 0.607,
+              "cpuP95": 0.9,
+              "drawCalls": 52.34,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 7354584,
+            "totalSize": 8388608,
+            "performanceMemory": {
+              "usedJSHeapSize": 27091845,
+              "totalJSHeapSize": 28080797
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "rain-256000": {
+          "stress": {
+            "rain": 256000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 7.337,
+            "p50": 7.3,
+            "p95": 8.3,
+            "p99": 8.6,
+            "min": 5.9,
+            "max": 8.7,
+            "fps": 136.289,
+            "cpuMean": 0.654,
+            "cpuP95": 0.9,
+            "drawCalls": 52.543,
+            "drawCallsMax": 53,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              6.977,
+              7.486
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 7.337,
+              "p50": 7.3,
+              "p95": 8.3,
+              "p99": 8.6,
+              "min": 5.9,
+              "max": 8.7,
+              "fps": 136.289,
+              "cpuMean": 0.654,
+              "cpuP95": 0.9,
+              "drawCalls": 52.543,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 7.486,
+              "p50": 7.3,
+              "p95": 8.9,
+              "p99": 9.5,
+              "min": 5.7,
+              "max": 10.5,
+              "fps": 133.589,
+              "cpuMean": 0.699,
+              "cpuP95": 1,
+              "drawCalls": 52.577,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.977,
+              "p50": 7,
+              "p95": 7.9,
+              "p99": 8.5,
+              "min": 5.7,
+              "max": 10.2,
+              "fps": 143.321,
+              "cpuMean": 0.611,
+              "cpuP95": 0.9,
+              "drawCalls": 52.5,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 7189696,
+            "totalSize": 8126464,
+            "performanceMemory": {
+              "usedJSHeapSize": 69050960,
+              "totalJSHeapSize": 69728296
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "lights-32": {
+          "stress": {
+            "rain": 4000,
+            "lights": 32,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 6.963,
+            "p50": 7.2,
+            "p95": 8.4,
+            "p99": 8.7,
+            "min": 4.6,
+            "max": 9.9,
+            "fps": 143.623,
+            "cpuMean": 0.668,
+            "cpuP95": 0.9,
+            "drawCalls": 52.393,
+            "drawCallsMax": 53,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              6.243,
+              6.969
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.969,
+              "p50": 6.9,
+              "p95": 8.2,
+              "p99": 8.6,
+              "min": 5.5,
+              "max": 8.8,
+              "fps": 143.493,
+              "cpuMean": 0.656,
+              "cpuP95": 1,
+              "drawCalls": 52.397,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.963,
+              "p50": 7.2,
+              "p95": 8.4,
+              "p99": 8.7,
+              "min": 4.6,
+              "max": 9.9,
+              "fps": 143.623,
+              "cpuMean": 0.668,
+              "cpuP95": 0.9,
+              "drawCalls": 52.393,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.243,
+              "p50": 6,
+              "p95": 8.1,
+              "p99": 8.4,
+              "min": 4.1,
+              "max": 8.5,
+              "fps": 160.188,
+              "cpuMean": 0.595,
+              "cpuP95": 0.9,
+              "drawCalls": 52.4,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 7420800,
+            "totalSize": 8650752,
+            "performanceMemory": {
+              "usedJSHeapSize": 16418626,
+              "totalJSHeapSize": 17451234
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "lights-128": {
+          "stress": {
+            "rain": 4000,
+            "lights": 128,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 6.833,
+            "p50": 6.6,
+            "p95": 8.4,
+            "p99": 9,
+            "min": 4.9,
+            "max": 11.1,
+            "fps": 146.341,
+            "cpuMean": 0.675,
+            "cpuP95": 1,
+            "drawCalls": 52.417,
+            "drawCallsMax": 53,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              6.765,
+              7.173
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.833,
+              "p50": 6.6,
+              "p95": 8.4,
+              "p99": 9,
+              "min": 4.9,
+              "max": 11.1,
+              "fps": 146.341,
+              "cpuMean": 0.675,
+              "cpuP95": 1,
+              "drawCalls": 52.417,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.765,
+              "p50": 6.7,
+              "p95": 8.5,
+              "p99": 8.9,
+              "min": 4.5,
+              "max": 9.8,
+              "fps": 147.82,
+              "cpuMean": 0.672,
+              "cpuP95": 1,
+              "drawCalls": 52.383,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 7.173,
+              "p50": 7.2,
+              "p95": 8.4,
+              "p99": 8.6,
+              "min": 4.9,
+              "max": 9.8,
+              "fps": 139.418,
+              "cpuMean": 0.694,
+              "cpuP95": 1,
+              "drawCalls": 52.41,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 7809536,
+            "totalSize": 8912896,
+            "performanceMemory": {
+              "usedJSHeapSize": 16902873,
+              "totalJSHeapSize": 17467965
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "objects-4": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 4
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 6.343,
+            "p50": 6.4,
+            "p95": 7.8,
+            "p99": 8.2,
+            "min": 4.5,
+            "max": 8.2,
+            "fps": 157.654,
+            "cpuMean": 0.622,
+            "cpuP95": 1,
+            "drawCalls": 52.34,
+            "drawCallsMax": 53,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              6.326,
+              6.765
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.343,
+              "p50": 6.4,
+              "p95": 7.8,
+              "p99": 8.2,
+              "min": 4.5,
+              "max": 8.2,
+              "fps": 157.654,
+              "cpuMean": 0.622,
+              "cpuP95": 1,
+              "drawCalls": 52.34,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.326,
+              "p50": 6.4,
+              "p95": 7.7,
+              "p99": 8.3,
+              "min": 4.5,
+              "max": 8.7,
+              "fps": 158.086,
+              "cpuMean": 0.632,
+              "cpuP95": 1,
+              "drawCalls": 52.333,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.765,
+              "p50": 6.8,
+              "p95": 8,
+              "p99": 8.3,
+              "min": 4.8,
+              "max": 9.1,
+              "fps": 147.82,
+              "cpuMean": 0.635,
+              "cpuP95": 0.9,
+              "drawCalls": 52.367,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 7666112,
+            "totalSize": 8650752,
+            "performanceMemory": {
+              "usedJSHeapSize": 17015381,
+              "totalJSHeapSize": 17785921
+            }
+          },
+          "setupDrawCalls": 0
+        },
+        "objects-16": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 16
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 6.612,
+            "p50": 6.5,
+            "p95": 8.7,
+            "p99": 9.1,
+            "min": 4.6,
+            "max": 9.8,
+            "fps": 151.233,
+            "cpuMean": 0.638,
+            "cpuP95": 1,
+            "drawCalls": 52.413,
+            "drawCallsMax": 53,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              6.034,
+              6.746
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 6.612,
+              "p50": 6.5,
+              "p95": 8.7,
+              "p99": 9.1,
+              "min": 4.6,
+              "max": 9.8,
+              "fps": 151.233,
+              "cpuMean": 0.638,
+              "cpuP95": 1,
+              "drawCalls": 52.413,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.746,
+              "p50": 6.6,
+              "p95": 8.8,
+              "p99": 9.4,
+              "min": 4.7,
+              "max": 10.1,
+              "fps": 148.229,
+              "cpuMean": 0.618,
+              "cpuP95": 0.9,
+              "drawCalls": 52.46,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 6.034,
+              "p50": 5.5,
+              "p95": 8.3,
+              "p99": 8.6,
+              "min": 4.3,
+              "max": 9.1,
+              "fps": 165.728,
+              "cpuMean": 0.601,
+              "cpuP95": 1,
+              "drawCalls": 52.393,
+              "drawCallsMax": 53,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 8589240,
+            "totalSize": 9961472,
+            "performanceMemory": {
+              "usedJSHeapSize": 18715070,
+              "totalJSHeapSize": 19825418
+            }
+          },
+          "setupDrawCalls": 0
+        }
+      }
+    },
+    "threejs-3d-bloom": {
+      "framework": "threejs",
+      "mode": "3d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:25:40.877Z",
+      "version": "187",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/3d-BDllPu_h.js",
+            "assets/scene-GHnK6Z3q.js"
+          ],
+          "raw": 660140,
+          "gzip": 170180,
+          "brotli": 140828
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 562,
+        "dynamicImports": []
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 23.2,
+          "firstFrameMs": 363,
+          "firstFramePresentedMs": 388.5,
+          "navigation": {
+            "responseEndMs": 2.7,
+            "domInteractiveMs": 10.7,
+            "domContentLoadedMs": 174.3,
+            "loadEventEndMs": 174.6,
+            "transferBytes": 862
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 21.8,
+            "firstFrameMs": 434.9,
+            "firstFramePresentedMs": 450.6,
+            "navigation": {
+              "responseEndMs": 2.4,
+              "domInteractiveMs": 9.7,
+              "domContentLoadedMs": 174.3,
+              "loadEventEndMs": 174.6,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 23.6,
+            "firstFrameMs": 384.9,
+            "firstFramePresentedMs": 401.9,
+            "navigation": {
+              "responseEndMs": 2.8,
+              "domInteractiveMs": 10.7,
+              "domContentLoadedMs": 183,
+              "loadEventEndMs": 183.3,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 21.7,
+            "firstFrameMs": 362,
+            "firstFramePresentedMs": 388,
+            "navigation": {
+              "responseEndMs": 2.7,
+              "domInteractiveMs": 8.9,
+              "domContentLoadedMs": 176.6,
+              "loadEventEndMs": 176.9,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 23.3,
+            "firstFrameMs": 363,
+            "firstFramePresentedMs": 388.5,
+            "navigation": {
+              "responseEndMs": 3.4,
+              "domInteractiveMs": 11.6,
+              "domContentLoadedMs": 167.3,
+              "loadEventEndMs": 167.5,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 23.2,
+            "firstFrameMs": 349.1,
+            "firstFramePresentedMs": 373.3,
+            "navigation": {
+              "responseEndMs": 2.6,
+              "domInteractiveMs": 12.6,
+              "domContentLoadedMs": 170.1,
+              "loadEventEndMs": 170.4,
+              "transferBytes": 862
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": false,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": true
+      },
+      "info": {
+        "triangles": 146396,
+        "programs": 35,
+        "bloom": true,
+        "pointLights": 8
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.946,
+            "p50": 8.8,
+            "p95": 10.2,
+            "p99": 10.5,
+            "min": 7.5,
+            "max": 11.5,
+            "fps": 111.778,
+            "cpuMean": 1.324,
+            "cpuP95": 1.8,
+            "drawCalls": 122.487,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 122.487,
+            "runs": 3,
+            "meanRange": [
+              8.816,
+              8.993
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 8.946,
+              "p50": 8.8,
+              "p95": 10.2,
+              "p99": 10.5,
+              "min": 7.5,
+              "max": 11.5,
+              "fps": 111.778,
+              "cpuMean": 1.324,
+              "cpuP95": 1.8,
+              "drawCalls": 122.487,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.487
+            },
+            {
+              "frames": 300,
+              "mean": 8.993,
+              "p50": 8.8,
+              "p95": 10.2,
+              "p99": 10.8,
+              "min": 7.7,
+              "max": 11.1,
+              "fps": 111.202,
+              "cpuMean": 1.348,
+              "cpuP95": 1.8,
+              "drawCalls": 122.497,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.497
+            },
+            {
+              "frames": 300,
+              "mean": 8.816,
+              "p50": 8.7,
+              "p95": 9.9,
+              "p99": 10.3,
+              "min": 7.3,
+              "max": 11.1,
+              "fps": 113.434,
+              "cpuMean": 1.333,
+              "cpuP95": 1.8,
+              "drawCalls": 122.42,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.42
+            }
+          ],
+          "heap": {
+            "usedSize": 5642772,
+            "totalSize": 6815744,
+            "performanceMemory": {
+              "usedJSHeapSize": 9437067,
+              "totalJSHeapSize": 10519935
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "rain-16000": {
+          "stress": {
+            "rain": 16000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.831,
+            "p50": 8.8,
+            "p95": 9.9,
+            "p99": 10.3,
+            "min": 7.2,
+            "max": 10.6,
+            "fps": 113.242,
+            "cpuMean": 1.35,
+            "cpuP95": 1.8,
+            "drawCalls": 122.507,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 122.507,
+            "runs": 3,
+            "meanRange": [
+              8.037,
+              9.004
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 9.004,
+              "p50": 9,
+              "p95": 10,
+              "p99": 10.3,
+              "min": 7.7,
+              "max": 12.8,
+              "fps": 111.058,
+              "cpuMean": 1.341,
+              "cpuP95": 1.8,
+              "drawCalls": 122.437,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.437
+            },
+            {
+              "frames": 300,
+              "mean": 8.037,
+              "p50": 7.9,
+              "p95": 9.1,
+              "p99": 9.7,
+              "min": 7,
+              "max": 9.9,
+              "fps": 124.425,
+              "cpuMean": 1.299,
+              "cpuP95": 1.7,
+              "drawCalls": 122.363,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.363
+            },
+            {
+              "frames": 300,
+              "mean": 8.831,
+              "p50": 8.8,
+              "p95": 9.9,
+              "p99": 10.3,
+              "min": 7.2,
+              "max": 10.6,
+              "fps": 113.242,
+              "cpuMean": 1.35,
+              "cpuP95": 1.8,
+              "drawCalls": 122.507,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.507
+            }
+          ],
+          "heap": {
+            "usedSize": 5635020,
+            "totalSize": 6815744,
+            "performanceMemory": {
+              "usedJSHeapSize": 9372623,
+              "totalJSHeapSize": 10501887
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "rain-64000": {
+          "stress": {
+            "rain": 64000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 9.402,
+            "p50": 9.4,
+            "p95": 10.7,
+            "p99": 11.2,
+            "min": 8,
+            "max": 11.8,
+            "fps": 106.364,
+            "cpuMean": 1.383,
+            "cpuP95": 1.8,
+            "drawCalls": 122.523,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 122.523,
+            "runs": 3,
+            "meanRange": [
+              9.367,
+              9.515
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 9.402,
+              "p50": 9.4,
+              "p95": 10.7,
+              "p99": 11.2,
+              "min": 8,
+              "max": 11.8,
+              "fps": 106.364,
+              "cpuMean": 1.383,
+              "cpuP95": 1.8,
+              "drawCalls": 122.523,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.523
+            },
+            {
+              "frames": 300,
+              "mean": 9.515,
+              "p50": 9.4,
+              "p95": 10.8,
+              "p99": 11.6,
+              "min": 8,
+              "max": 12.3,
+              "fps": 105.094,
+              "cpuMean": 1.326,
+              "cpuP95": 1.8,
+              "drawCalls": 122.53,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.53
+            },
+            {
+              "frames": 300,
+              "mean": 9.367,
+              "p50": 9.3,
+              "p95": 10.6,
+              "p99": 11.7,
+              "min": 8.1,
+              "max": 11.9,
+              "fps": 106.754,
+              "cpuMean": 1.318,
+              "cpuP95": 1.8,
+              "drawCalls": 122.563,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.563
+            }
+          ],
+          "heap": {
+            "usedSize": 5640480,
+            "totalSize": 6815744,
+            "performanceMemory": {
+              "usedJSHeapSize": 10338083,
+              "totalJSHeapSize": 11449599
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "rain-256000": {
+          "stress": {
+            "rain": 256000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 12.956,
+            "p50": 12.8,
+            "p95": 14.9,
+            "p99": 15.6,
+            "min": 11.5,
+            "max": 16.1,
+            "fps": 77.182,
+            "cpuMean": 1.435,
+            "cpuP95": 1.9,
+            "drawCalls": 122.753,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 122.753,
+            "runs": 3,
+            "meanRange": [
+              12.842,
+              13.115
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 13.115,
+              "p50": 13,
+              "p95": 14.8,
+              "p99": 15.6,
+              "min": 11.5,
+              "max": 17,
+              "fps": 76.251,
+              "cpuMean": 1.388,
+              "cpuP95": 1.9,
+              "drawCalls": 122.737,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.737
+            },
+            {
+              "frames": 300,
+              "mean": 12.842,
+              "p50": 12.7,
+              "p95": 14.2,
+              "p99": 15.3,
+              "min": 11.4,
+              "max": 16.3,
+              "fps": 77.872,
+              "cpuMean": 1.371,
+              "cpuP95": 1.8,
+              "drawCalls": 122.737,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.737
+            },
+            {
+              "frames": 300,
+              "mean": 12.956,
+              "p50": 12.8,
+              "p95": 14.9,
+              "p99": 15.6,
+              "min": 11.5,
+              "max": 16.1,
+              "fps": 77.182,
+              "cpuMean": 1.435,
+              "cpuP95": 1.9,
+              "drawCalls": 122.753,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.753
+            }
+          ],
+          "heap": {
+            "usedSize": 5638476,
+            "totalSize": 6815744,
+            "performanceMemory": {
+              "usedJSHeapSize": 14176623,
+              "totalJSHeapSize": 15301887
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "lights-32": {
+          "stress": {
+            "rain": 4000,
+            "lights": 32,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 11.378,
+            "p50": 11.3,
+            "p95": 12.8,
+            "p99": 13.5,
+            "min": 9.9,
+            "max": 14.1,
+            "fps": 87.889,
+            "cpuMean": 1.548,
+            "cpuP95": 2,
+            "drawCalls": 122.677,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 122.677,
+            "runs": 3,
+            "meanRange": [
+              11.288,
+              11.413
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 11.413,
+              "p50": 11.2,
+              "p95": 13,
+              "p99": 14.6,
+              "min": 9.8,
+              "max": 18.6,
+              "fps": 87.617,
+              "cpuMean": 1.524,
+              "cpuP95": 1.9,
+              "drawCalls": 122.717,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.717
+            },
+            {
+              "frames": 300,
+              "mean": 11.288,
+              "p50": 11.1,
+              "p95": 12.7,
+              "p99": 13.5,
+              "min": 10,
+              "max": 19.7,
+              "fps": 88.587,
+              "cpuMean": 1.523,
+              "cpuP95": 2,
+              "drawCalls": 122.67,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.67
+            },
+            {
+              "frames": 300,
+              "mean": 11.378,
+              "p50": 11.3,
+              "p95": 12.8,
+              "p99": 13.5,
+              "min": 9.9,
+              "max": 14.1,
+              "fps": 87.889,
+              "cpuMean": 1.548,
+              "cpuP95": 2,
+              "drawCalls": 122.677,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.677
+            }
+          ],
+          "heap": {
+            "usedSize": 6022328,
+            "totalSize": 7077888,
+            "performanceMemory": {
+              "usedJSHeapSize": 9643927,
+              "totalJSHeapSize": 10598847
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "lights-128": {
+          "stress": {
+            "rain": 4000,
+            "lights": 128,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 24.386,
+            "p50": 24.4,
+            "p95": 26.3,
+            "p99": 27.2,
+            "min": 21.9,
+            "max": 34.3,
+            "fps": 41.008,
+            "cpuMean": 2.094,
+            "cpuP95": 2.7,
+            "drawCalls": 123,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 123,
+            "runs": 3,
+            "meanRange": [
+              24.261,
+              24.403
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 24.261,
+              "p50": 24.3,
+              "p95": 26.5,
+              "p99": 27.6,
+              "min": 22,
+              "max": 31,
+              "fps": 41.218,
+              "cpuMean": 1.99,
+              "cpuP95": 2.5,
+              "drawCalls": 123,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 123
+            },
+            {
+              "frames": 300,
+              "mean": 24.386,
+              "p50": 24.4,
+              "p95": 26.3,
+              "p99": 27.2,
+              "min": 21.9,
+              "max": 34.3,
+              "fps": 41.008,
+              "cpuMean": 2.094,
+              "cpuP95": 2.7,
+              "drawCalls": 123,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 123
+            },
+            {
+              "frames": 300,
+              "mean": 24.403,
+              "p50": 24.4,
+              "p95": 26.1,
+              "p99": 26.8,
+              "min": 21.9,
+              "max": 32.8,
+              "fps": 40.979,
+              "cpuMean": 2.124,
+              "cpuP95": 2.9,
+              "drawCalls": 123,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 123
+            }
+          ],
+          "heap": {
+            "usedSize": 7923868,
+            "totalSize": 9175040,
+            "performanceMemory": {
+              "usedJSHeapSize": 12114747,
+              "totalJSHeapSize": 12974783
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "objects-4": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 4
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 8.973,
+            "p50": 8.9,
+            "p95": 10.1,
+            "p99": 10.6,
+            "min": 7.5,
+            "max": 10.8,
+            "fps": 111.445,
+            "cpuMean": 1.34,
+            "cpuP95": 1.8,
+            "drawCalls": 122.44,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 122.44,
+            "runs": 3,
+            "meanRange": [
+              8.787,
+              9.092
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 8.973,
+              "p50": 8.9,
+              "p95": 10.1,
+              "p99": 10.6,
+              "min": 7.5,
+              "max": 10.8,
+              "fps": 111.445,
+              "cpuMean": 1.34,
+              "cpuP95": 1.8,
+              "drawCalls": 122.44,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.44
+            },
+            {
+              "frames": 300,
+              "mean": 8.787,
+              "p50": 8.7,
+              "p95": 9.8,
+              "p99": 10.2,
+              "min": 7.4,
+              "max": 11.1,
+              "fps": 113.809,
+              "cpuMean": 1.334,
+              "cpuP95": 1.8,
+              "drawCalls": 122.497,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.497
+            },
+            {
+              "frames": 300,
+              "mean": 9.092,
+              "p50": 9,
+              "p95": 10,
+              "p99": 11.6,
+              "min": 7.6,
+              "max": 18.1,
+              "fps": 109.987,
+              "cpuMean": 1.344,
+              "cpuP95": 1.8,
+              "drawCalls": 122.47,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.47
+            }
+          ],
+          "heap": {
+            "usedSize": 5780260,
+            "totalSize": 7077888,
+            "performanceMemory": {
+              "usedJSHeapSize": 9593279,
+              "totalJSHeapSize": 10823047
+            }
+          },
+          "setupDrawCalls": 81
+        },
+        "objects-16": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 16
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 9.052,
+            "p50": 9,
+            "p95": 10.3,
+            "p99": 10.8,
+            "min": 8,
+            "max": 11,
+            "fps": 110.477,
+            "cpuMean": 1.32,
+            "cpuP95": 1.7,
+            "drawCalls": 122.533,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 122.533,
+            "runs": 3,
+            "meanRange": [
+              9.004,
+              9.081
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 9.081,
+              "p50": 9,
+              "p95": 10.3,
+              "p99": 11.1,
+              "min": 7.7,
+              "max": 11.7,
+              "fps": 110.124,
+              "cpuMean": 1.328,
+              "cpuP95": 1.7,
+              "drawCalls": 122.51,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.51
+            },
+            {
+              "frames": 300,
+              "mean": 9.052,
+              "p50": 9,
+              "p95": 10.3,
+              "p99": 10.8,
+              "min": 8,
+              "max": 11,
+              "fps": 110.477,
+              "cpuMean": 1.32,
+              "cpuP95": 1.7,
+              "drawCalls": 122.533,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.533
+            },
+            {
+              "frames": 300,
+              "mean": 9.004,
+              "p50": 9,
+              "p95": 10,
+              "p99": 10.3,
+              "min": 7.9,
+              "max": 10.7,
+              "fps": 111.062,
+              "cpuMean": 1.336,
+              "cpuP95": 1.8,
+              "drawCalls": 122.477,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 122.477
+            }
+          ],
+          "heap": {
+            "usedSize": 6124924,
+            "totalSize": 7077888,
+            "performanceMemory": {
+              "usedJSHeapSize": 10241099,
+              "totalJSHeapSize": 11142747
+            }
+          },
+          "setupDrawCalls": 81
+        }
+      }
+    }
+  },
+  "env": {
+    "browser": {
+      "product": "Chrome/153.0.8010.52",
+      "revision": "@78e5e45d4bb41035e17ea4da2cc257f496416ac9",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+      "headless": true,
+      "flags": [
+        "--ignore-gpu-blocklist",
+        "--enable-gpu",
+        "--disable-gpu-vsync",
+        "--disable-frame-rate-limit",
+        "--disable-renderer-backgrounding",
+        "--disable-background-timer-throttling",
+        "--force-device-scale-factor=1",
+        "--window-size=1800,600"
+      ]
+    },
+    "gpu": {
+      "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+      "vendor": "Google Inc. (AMD)",
+      "software": false
+    },
+    "frameRateCheck": {
+      "medianIntervalMs": 0.1,
+      "uncapped": true,
+      "note": "trivial WebGL2 clear per frame on about:blank"
+    },
+    "os": {
+      "platform": "linux",
+      "release": "7.0.0-38-generic",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 5 8645HS w/ Radeon 760M Graphics",
+      "cpus": 12,
+      "memoryGb": 16
+    },
+    "node": "v26.3.1",
+    "viewport": {
+      "width": 1800,
+      "height": 600,
+      "scale": 1
+    }
+  },
+  "updatedAt": "2026-11-15T21:29:48.997Z",
+  "gpuSync": true
+}

@@ -1,0 +1,1119 @@
+{
+  "builds": {
+    "threejs-2d": {
+      "framework": "threejs",
+      "mode": "2d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:29:52.799Z",
+      "version": "187",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/2d-CHjJRotd.js",
+            "assets/scene-GHnK6Z3q.js"
+          ],
+          "raw": 632552,
+          "gzip": 162706,
+          "brotli": 134207
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 562,
+        "dynamicImports": []
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 36,
+          "firstFrameMs": 206,
+          "firstFramePresentedMs": 209.6,
+          "navigation": {
+            "responseEndMs": 5.4,
+            "domInteractiveMs": 18.4,
+            "domContentLoadedMs": 142.4,
+            "loadEventEndMs": 142.7,
+            "transferBytes": 862
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 59.7,
+            "firstFrameMs": 246.1,
+            "firstFramePresentedMs": 250.5,
+            "navigation": {
+              "responseEndMs": 41.7,
+              "domInteractiveMs": 48.4,
+              "domContentLoadedMs": 124.8,
+              "loadEventEndMs": 125.1,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 36,
+            "firstFrameMs": 204.9,
+            "firstFramePresentedMs": 209.3,
+            "navigation": {
+              "responseEndMs": 5.4,
+              "domInteractiveMs": 16.4,
+              "domContentLoadedMs": 142.4,
+              "loadEventEndMs": 142.7,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 35.6,
+            "firstFrameMs": 221.3,
+            "firstFramePresentedMs": 226.3,
+            "navigation": {
+              "responseEndMs": 5.4,
+              "domInteractiveMs": 18.4,
+              "domContentLoadedMs": 161.6,
+              "loadEventEndMs": 161.8,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 36.8,
+            "firstFrameMs": 206,
+            "firstFramePresentedMs": 209.6,
+            "navigation": {
+              "responseEndMs": 4.8,
+              "domInteractiveMs": 18.7,
+              "domContentLoadedMs": 143.3,
+              "loadEventEndMs": 143.5,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 35,
+            "firstFrameMs": 193.6,
+            "firstFramePresentedMs": 197.6,
+            "navigation": {
+              "responseEndMs": 5.3,
+              "domInteractiveMs": 17.8,
+              "domContentLoadedMs": 131.9,
+              "loadEventEndMs": 132.1,
+              "transferBytes": 862
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": true,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": false
+      },
+      "info": {
+        "triangles": 49807,
+        "programs": 11
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 1.471,
+            "p50": 1.1,
+            "p95": 2.1,
+            "p99": 2.8,
+            "min": 0.7,
+            "max": 41.3,
+            "fps": 679.81,
+            "cpuMean": 1.339,
+            "cpuP95": 1.9,
+            "drawCalls": 98,
+            "drawCallsMax": 98,
+            "frameworkDrawCalls": 98,
+            "runs": 3,
+            "meanRange": [
+              1.397,
+              1.524
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 1.524,
+              "p50": 1.2,
+              "p95": 2.1,
+              "p99": 3.9,
+              "min": 0.8,
+              "max": 40.5,
+              "fps": 656.312,
+              "cpuMean": 1.374,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 1.471,
+              "p50": 1.1,
+              "p95": 2.1,
+              "p99": 2.8,
+              "min": 0.7,
+              "max": 41.3,
+              "fps": 679.81,
+              "cpuMean": 1.339,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 1.397,
+              "p50": 1.2,
+              "p95": 2.1,
+              "p99": 2.4,
+              "min": 0.8,
+              "max": 40.9,
+              "fps": 715.82,
+              "cpuMean": 1.269,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            }
+          ],
+          "heap": {
+            "usedSize": 3960688,
+            "totalSize": 5505024,
+            "performanceMemory": {
+              "usedJSHeapSize": 6861485,
+              "totalJSHeapSize": 8329601
+            }
+          },
+          "setupDrawCalls": 0
+        }
+      }
+    },
+    "threejs-3d": {
+      "framework": "threejs",
+      "mode": "3d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:29:58.488Z",
+      "version": "187",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/3d-BDllPu_h.js",
+            "assets/scene-GHnK6Z3q.js"
+          ],
+          "raw": 660140,
+          "gzip": 170180,
+          "brotli": 140828
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 562,
+        "dynamicImports": []
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 25.3,
+          "firstFrameMs": 445.8,
+          "firstFramePresentedMs": 450.1,
+          "navigation": {
+            "responseEndMs": 2.7,
+            "domInteractiveMs": 12.7,
+            "domContentLoadedMs": 301.2,
+            "loadEventEndMs": 301.4,
+            "transferBytes": 862
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 37,
+            "firstFrameMs": 742.4,
+            "firstFramePresentedMs": 746.8,
+            "navigation": {
+              "responseEndMs": 4.4,
+              "domInteractiveMs": 15.7,
+              "domContentLoadedMs": 383.3,
+              "loadEventEndMs": 383.4,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 147.9,
+            "firstFrameMs": 445.8,
+            "firstFramePresentedMs": 450.1,
+            "navigation": {
+              "responseEndMs": 3.2,
+              "domInteractiveMs": 135.2,
+              "domContentLoadedMs": 301.2,
+              "loadEventEndMs": 301.4,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 25.3,
+            "firstFrameMs": 426.4,
+            "firstFramePresentedMs": 430.3,
+            "navigation": {
+              "responseEndMs": 2.6,
+              "domInteractiveMs": 12.7,
+              "domContentLoadedMs": 291.7,
+              "loadEventEndMs": 292,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 24.7,
+            "firstFrameMs": 446.2,
+            "firstFramePresentedMs": 450.7,
+            "navigation": {
+              "responseEndMs": 2.7,
+              "domInteractiveMs": 12.3,
+              "domContentLoadedMs": 294.8,
+              "loadEventEndMs": 295,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 24.3,
+            "firstFrameMs": 441.9,
+            "firstFramePresentedMs": 446.5,
+            "navigation": {
+              "responseEndMs": 2.7,
+              "domInteractiveMs": 11.4,
+              "domContentLoadedMs": 302.2,
+              "loadEventEndMs": 302.4,
+              "transferBytes": 862
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": true,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": false
+      },
+      "info": {
+        "triangles": 58404,
+        "programs": 26,
+        "bloom": false,
+        "pointLights": 8
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 2.555,
+            "p50": 0.5,
+            "p95": 0.7,
+            "p99": 120.6,
+            "min": 0.3,
+            "max": 169,
+            "fps": 391.389,
+            "cpuMean": 1.914,
+            "cpuP95": 0.6,
+            "drawCalls": 107,
+            "drawCallsMax": 107,
+            "frameworkDrawCalls": 107,
+            "runs": 3,
+            "meanRange": [
+              2.195,
+              2.635
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 2.195,
+              "p50": 0.5,
+              "p95": 3.1,
+              "p99": 53.1,
+              "min": 0.3,
+              "max": 170.2,
+              "fps": 455.581,
+              "cpuMean": 1.526,
+              "cpuP95": 2.9,
+              "drawCalls": 107,
+              "drawCallsMax": 107,
+              "frameworkDrawCalls": 107
+            },
+            {
+              "frames": 300,
+              "mean": 2.635,
+              "p50": 0.6,
+              "p95": 3,
+              "p99": 53.1,
+              "min": 0.3,
+              "max": 129,
+              "fps": 379.459,
+              "cpuMean": 2.512,
+              "cpuP95": 2.8,
+              "drawCalls": 107,
+              "drawCallsMax": 107,
+              "frameworkDrawCalls": 107
+            },
+            {
+              "frames": 300,
+              "mean": 2.555,
+              "p50": 0.5,
+              "p95": 0.7,
+              "p99": 120.6,
+              "min": 0.3,
+              "max": 169,
+              "fps": 391.389,
+              "cpuMean": 1.914,
+              "cpuP95": 0.6,
+              "drawCalls": 107,
+              "drawCallsMax": 107,
+              "frameworkDrawCalls": 107
+            }
+          ],
+          "heap": {
+            "usedSize": 5406032,
+            "totalSize": 6553600,
+            "performanceMemory": {
+              "usedJSHeapSize": 8900900,
+              "totalJSHeapSize": 9757976
+            }
+          },
+          "setupDrawCalls": 81
+        }
+      }
+    },
+    "threejs-3d-bloom": {
+      "framework": "threejs",
+      "mode": "3d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:30:07.553Z",
+      "version": "187",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/3d-BDllPu_h.js",
+            "assets/scene-GHnK6Z3q.js"
+          ],
+          "raw": 660140,
+          "gzip": 170180,
+          "brotli": 140828
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 562,
+        "dynamicImports": []
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 34.6,
+          "firstFrameMs": 638.3,
+          "firstFramePresentedMs": 643.8,
+          "navigation": {
+            "responseEndMs": 4.2,
+            "domInteractiveMs": 17.9,
+            "domContentLoadedMs": 466.6,
+            "loadEventEndMs": 466.8,
+            "transferBytes": 862
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 152.2,
+            "firstFrameMs": 595.4,
+            "firstFramePresentedMs": 602,
+            "navigation": {
+              "responseEndMs": 2.8,
+              "domInteractiveMs": 140.8,
+              "domContentLoadedMs": 308.6,
+              "loadEventEndMs": 308.8,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 28.5,
+            "firstFrameMs": 818.6,
+            "firstFramePresentedMs": 824.2,
+            "navigation": {
+              "responseEndMs": 4.3,
+              "domInteractiveMs": 13.5,
+              "domContentLoadedMs": 637.5,
+              "loadEventEndMs": 637.7,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 34.8,
+            "firstFrameMs": 638.3,
+            "firstFramePresentedMs": 643,
+            "navigation": {
+              "responseEndMs": 4,
+              "domInteractiveMs": 18.6,
+              "domContentLoadedMs": 461.3,
+              "loadEventEndMs": 461.5,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 34.6,
+            "firstFrameMs": 638.3,
+            "firstFramePresentedMs": 643.8,
+            "navigation": {
+              "responseEndMs": 4.4,
+              "domInteractiveMs": 17.9,
+              "domContentLoadedMs": 466.6,
+              "loadEventEndMs": 466.8,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 34.4,
+            "firstFrameMs": 664.4,
+            "firstFramePresentedMs": 669.2,
+            "navigation": {
+              "responseEndMs": 4.2,
+              "domInteractiveMs": 16.6,
+              "domContentLoadedMs": 472.4,
+              "loadEventEndMs": 472.6,
+              "transferBytes": 862
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": false,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": false
+      },
+      "info": {
+        "triangles": 58418,
+        "programs": 35,
+        "bloom": true,
+        "pointLights": 8
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 3.843,
+            "p50": 0.7,
+            "p95": 5.2,
+            "p99": 94.8,
+            "min": 0.4,
+            "max": 261.7,
+            "fps": 260.213,
+            "cpuMean": 3.705,
+            "cpuP95": 5,
+            "drawCalls": 121.533,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 121.533,
+            "runs": 3,
+            "meanRange": [
+              3.165,
+              4.983
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 3.843,
+              "p50": 0.7,
+              "p95": 5.2,
+              "p99": 94.8,
+              "min": 0.4,
+              "max": 261.7,
+              "fps": 260.213,
+              "cpuMean": 3.705,
+              "cpuP95": 5,
+              "drawCalls": 121.533,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 121.533
+            },
+            {
+              "frames": 300,
+              "mean": 3.165,
+              "p50": 0.6,
+              "p95": 1.1,
+              "p99": 2.5,
+              "min": 0.4,
+              "max": 271.1,
+              "fps": 315.922,
+              "cpuMean": 3.056,
+              "cpuP95": 0.9,
+              "drawCalls": 121.483,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 121.483
+            },
+            {
+              "frames": 300,
+              "mean": 4.983,
+              "p50": 4.7,
+              "p95": 6.3,
+              "p99": 87.6,
+              "min": 0.5,
+              "max": 93.3,
+              "fps": 200.682,
+              "cpuMean": 4.819,
+              "cpuP95": 6.1,
+              "drawCalls": 121.583,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 121.583
+            }
+          ],
+          "heap": {
+            "usedSize": 5655068,
+            "totalSize": 6815744,
+            "performanceMemory": {
+              "usedJSHeapSize": 9158379,
+              "totalJSHeapSize": 9971067
+            }
+          },
+          "setupDrawCalls": 81
+        }
+      }
+    },
+    "pixijs-2d": {
+      "framework": "pixijs",
+      "mode": "2d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:30:20.417Z",
+      "version": "8.23.0",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/2d-C_flimNT.js",
+            "assets/scene-CGGl4xmo.js",
+            "assets/CanvasPool-C0KDo9zs.js",
+            "assets/lib-DGvviLPV.js",
+            "assets/init-nM4v_D0G.js",
+            "assets/canvasUtils-BbhFe4r-.js",
+            "assets/RenderTargetSystem-DsmUMQHz.js",
+            "assets/CanvasRenderer-VdIU49Rq.js",
+            "assets/getTextureBatchBindGroup-aLbagKvE.js"
+          ],
+          "raw": 384156,
+          "gzip": 121620,
+          "brotli": 107661
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 1134,
+        "dynamicImports": [
+          "assets/browserAll-CofPQrFt.js",
+          "assets/webworkerAll-BIGJQZtQ.js",
+          "assets/WebGPURenderer-BVsLTkYU.js",
+          "assets/WebGLRenderer-DWH9k9X8.js",
+          "assets/CanvasRenderer-TEhNeMYH.js"
+        ]
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 52.2,
+          "firstFrameMs": 439.8,
+          "firstFramePresentedMs": 442.7,
+          "navigation": {
+            "responseEndMs": 4.9,
+            "domInteractiveMs": 18.4,
+            "domContentLoadedMs": 262,
+            "loadEventEndMs": 262.1,
+            "transferBytes": 1434
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 316.3,
+            "firstFrameMs": 773.8,
+            "firstFramePresentedMs": 776.4,
+            "navigation": {
+              "responseEndMs": 4.1,
+              "domInteractiveMs": 253,
+              "domContentLoadedMs": 513.9,
+              "loadEventEndMs": 513.9,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 388.3,
+            "firstFrameMs": 584.8,
+            "firstFramePresentedMs": 588.2,
+            "navigation": {
+              "responseEndMs": 4.8,
+              "domInteractiveMs": 173.6,
+              "domContentLoadedMs": 399,
+              "loadEventEndMs": 399.2,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 52.2,
+            "firstFrameMs": 426.4,
+            "firstFramePresentedMs": 428.9,
+            "navigation": {
+              "responseEndMs": 5.3,
+              "domInteractiveMs": 18,
+              "domContentLoadedMs": 255.5,
+              "loadEventEndMs": 255.7,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 47,
+            "firstFrameMs": 439.8,
+            "firstFramePresentedMs": 442.7,
+            "navigation": {
+              "responseEndMs": 4.9,
+              "domInteractiveMs": 18.4,
+              "domContentLoadedMs": 262,
+              "loadEventEndMs": 262.1,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 46.7,
+            "firstFrameMs": 423.7,
+            "firstFramePresentedMs": 426.2,
+            "navigation": {
+              "responseEndMs": 5,
+              "domInteractiveMs": 17.6,
+              "domContentLoadedMs": 258.6,
+              "loadEventEndMs": 258.6,
+              "transferBytes": 1434
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": true,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": false
+      },
+      "info": {
+        "drawables": 65,
+        "renderer": "webgl",
+        "webgl2": true
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 2.214,
+            "p50": 1.2,
+            "p95": 2.4,
+            "p99": 3.7,
+            "min": 0.1,
+            "max": 261.5,
+            "fps": 451.603,
+            "cpuMean": 1.216,
+            "cpuP95": 2,
+            "drawCalls": 59,
+            "drawCallsMax": 59,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              1.349,
+              2.399
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 2.214,
+              "p50": 1.2,
+              "p95": 2.4,
+              "p99": 3.7,
+              "min": 0.1,
+              "max": 261.5,
+              "fps": 451.603,
+              "cpuMean": 1.216,
+              "cpuP95": 2,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 2.399,
+              "p50": 1.4,
+              "p95": 2.5,
+              "p99": 3.7,
+              "min": 0.1,
+              "max": 257.9,
+              "fps": 416.898,
+              "cpuMean": 1.396,
+              "cpuP95": 1.9,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 1.349,
+              "p50": 1.2,
+              "p95": 2.5,
+              "p99": 4.3,
+              "min": 0.1,
+              "max": 49.3,
+              "fps": 741.473,
+              "cpuMean": 1.222,
+              "cpuP95": 1.8,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 14082964,
+            "totalSize": 14786560,
+            "performanceMemory": {
+              "usedJSHeapSize": 16192023,
+              "totalJSHeapSize": 16740539
+            }
+          },
+          "setupDrawCalls": 0
+        }
+      }
+    },
+    "pixijs-3d": {
+      "framework": "pixijs",
+      "mode": "3d",
+      "built": true,
+      "quick": false,
+      "measuredAt": "2026-11-15T21:30:29.010Z",
+      "version": "pixi.js 8.23.0 + @pixi/3d 0.1.0",
+      "bundle": {
+        "js": {
+          "files": [
+            "assets/3d-CzAfvbI0.js",
+            "assets/scene-CGGl4xmo.js",
+            "assets/CanvasPool-C0KDo9zs.js",
+            "assets/lib-DGvviLPV.js",
+            "assets/init-nM4v_D0G.js",
+            "assets/canvasUtils-BbhFe4r-.js",
+            "assets/RenderTargetSystem-DsmUMQHz.js",
+            "assets/toneMappingBits-Bs03sNI8.js",
+            "assets/isMobile-CDZeHBYg.js",
+            "assets/getTexelRangeRects-DnuPFlvv.js",
+            "assets/WebGLRenderer-ChdHTASR.js",
+            "assets/WebGPURenderer-kSOQGLUj.js",
+            "assets/getTextureBatchBindGroup-aLbagKvE.js",
+            "assets/collectAttributes-Cbg1qttx.js",
+            "assets/EventSystem-CSN4A2SJ.js",
+            "assets/CanvasRenderer-VdIU49Rq.js"
+          ],
+          "raw": 941700,
+          "gzip": 285066,
+          "brotli": 248660
+        },
+        "css": {
+          "files": [],
+          "raw": 0,
+          "gzip": 0,
+          "brotli": 0
+        },
+        "html": 1720,
+        "dynamicImports": [
+          "assets/browserAll-CofPQrFt.js",
+          "assets/webworkerAll-BIGJQZtQ.js",
+          "assets/WebGPURenderer-BVsLTkYU.js",
+          "assets/WebGLRenderer-DWH9k9X8.js",
+          "assets/CanvasRenderer-TEhNeMYH.js",
+          "assets/meshopt_decoder-4Ef-c7zw.js",
+          "assets/init-DXnPbR5n.js",
+          "assets/init-Bm6SWImz.js"
+        ]
+      },
+      "startup": {
+        "loads": 5,
+        "median": {
+          "moduleStartMs": 83.3,
+          "firstFrameMs": 442.2,
+          "firstFramePresentedMs": 445.5,
+          "navigation": {
+            "responseEndMs": 3.5,
+            "domInteractiveMs": 48.2,
+            "domContentLoadedMs": 265.2,
+            "loadEventEndMs": 265.3,
+            "transferBytes": 2020
+          }
+        },
+        "runs": [
+          {
+            "moduleStartMs": 77.8,
+            "firstFrameMs": 485.8,
+            "firstFramePresentedMs": 490.5,
+            "navigation": {
+              "responseEndMs": 4,
+              "domInteractiveMs": 23,
+              "domContentLoadedMs": 229,
+              "loadEventEndMs": 229.2,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 209.1,
+            "firstFrameMs": 485.5,
+            "firstFramePresentedMs": 489.1,
+            "navigation": {
+              "responseEndMs": 3.2,
+              "domInteractiveMs": 175.8,
+              "domContentLoadedMs": 306.9,
+              "loadEventEndMs": 307.1,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 101.4,
+            "firstFrameMs": 438.8,
+            "firstFramePresentedMs": 442.5,
+            "navigation": {
+              "responseEndMs": 3.6,
+              "domInteractiveMs": 70.8,
+              "domContentLoadedMs": 265.2,
+              "loadEventEndMs": 265.3,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 51.7,
+            "firstFrameMs": 442.2,
+            "firstFramePresentedMs": 445.5,
+            "navigation": {
+              "responseEndMs": 3.5,
+              "domInteractiveMs": 15.4,
+              "domContentLoadedMs": 266,
+              "loadEventEndMs": 266.1,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 83.3,
+            "firstFrameMs": 422.2,
+            "firstFramePresentedMs": 425.3,
+            "navigation": {
+              "responseEndMs": 2.9,
+              "domInteractiveMs": 48.2,
+              "domContentLoadedMs": 248.2,
+              "loadEventEndMs": 248.3,
+              "transferBytes": 2020
+            }
+          }
+        ]
+      },
+      "gl": {
+        "webgl2": true,
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "vendor": "Google Inc. (AMD)",
+        "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+        "antialias": true,
+        "drawingBuffer": [
+          1800,
+          600
+        ],
+        "gpuSync": false
+      },
+      "info": {
+        "citySlots": 132,
+        "smokeParticles": 175,
+        "clutterMeshes": 11,
+        "lamps": 8,
+        "rainDrops": 4000,
+        "lightsShadedMax": 32,
+        "cameraDistance": 483
+      },
+      "levels": {
+        "base": {
+          "stress": {
+            "rain": 4000,
+            "lights": 8,
+            "objects": 1
+          },
+          "frames": {
+            "frames": 300,
+            "mean": 2.016,
+            "p50": 0.3,
+            "p95": 2.2,
+            "p99": 3.6,
+            "min": 0.1,
+            "max": 205.8,
+            "fps": 496.032,
+            "cpuMean": 1.219,
+            "cpuP95": 2.1,
+            "drawCalls": 51,
+            "drawCallsMax": 51,
+            "frameworkDrawCalls": null,
+            "runs": 3,
+            "meanRange": [
+              1.947,
+              2.087
+            ]
+          },
+          "runs": [
+            {
+              "frames": 300,
+              "mean": 2.016,
+              "p50": 0.3,
+              "p95": 2.2,
+              "p99": 3.6,
+              "min": 0.1,
+              "max": 205.8,
+              "fps": 496.032,
+              "cpuMean": 1.219,
+              "cpuP95": 2.1,
+              "drawCalls": 51,
+              "drawCallsMax": 51,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 1.947,
+              "p50": 0.4,
+              "p95": 2.2,
+              "p99": 3.8,
+              "min": 0.1,
+              "max": 165.9,
+              "fps": 513.699,
+              "cpuMean": 1.833,
+              "cpuP95": 2.1,
+              "drawCalls": 51,
+              "drawCallsMax": 51,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 2.087,
+              "p50": 0.4,
+              "p95": 2.2,
+              "p99": 5.6,
+              "min": 0.1,
+              "max": 201.4,
+              "fps": 479.233,
+              "cpuMean": 1.308,
+              "cpuP95": 2,
+              "drawCalls": 51,
+              "drawCallsMax": 51,
+              "frameworkDrawCalls": null
+            }
+          ],
+          "heap": {
+            "usedSize": 7583972,
+            "totalSize": 8650752,
+            "performanceMemory": {
+              "usedJSHeapSize": 14193437,
+              "totalJSHeapSize": 14955417
+            }
+          },
+          "setupDrawCalls": 0
+        }
+      }
+    }
+  },
+  "env": {
+    "browser": {
+      "product": "Chrome/153.0.8010.52",
+      "revision": "@78e5e45d4bb41035e17ea4da2cc257f496416ac9",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+      "headless": true,
+      "flags": [
+        "--ignore-gpu-blocklist",
+        "--enable-gpu",
+        "--disable-gpu-vsync",
+        "--disable-frame-rate-limit",
+        "--disable-renderer-backgrounding",
+        "--disable-background-timer-throttling",
+        "--force-device-scale-factor=1",
+        "--window-size=1800,600"
+      ]
+    },
+    "gpu": {
+      "renderer": "ANGLE (AMD, AMD Radeon 760M Graphics (radeonsi phoenix LLVM 20.1.2), OpenGL 4.6)",
+      "vendor": "Google Inc. (AMD)",
+      "software": false
+    },
+    "frameRateCheck": {
+      "medianIntervalMs": 0.1,
+      "uncapped": true,
+      "note": "trivial WebGL2 clear per frame on about:blank"
+    },
+    "os": {
+      "platform": "linux",
+      "release": "7.0.0-38-generic",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 5 8645HS w/ Radeon 760M Graphics",
+      "cpus": 12,
+      "memoryGb": 16
+    },
+    "node": "v26.3.1",
+    "viewport": {
+      "width": 1800,
+      "height": 600,
+      "scale": 1
+    }
+  },
+  "gpuSync": false,
+  "updatedAt": "2026-11-15T21:30:36.244Z"
+}

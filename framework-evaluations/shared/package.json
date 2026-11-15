@@ -1,0 +1,13 @@
+{
+  "name": "@fw-eval/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./rng.js": "./rng.js",
+    "./palette.js": "./palette.js",
+    "./scene.js": "./scene.js",
+    "./stress.js": "./stress.js",
+    "./bench-hook.js": "./bench-hook.js"
+  }
+}

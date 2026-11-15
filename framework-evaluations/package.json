@@ -1,0 +1,24 @@
+{
+  "name": "fw-eval",
+  "private": true,
+  "type": "module",
+  "description": "three.js vs PixiJS framework evaluation: one procedural scene built four ways, one benchmark harness",
+  "workspaces": ["shared", "threejs", "pixijs", "bench"],
+  "scripts": {
+    "dev": "npm run dev --workspace threejs & npm run dev --workspace pixijs & wait",
+    "dev:threejs": "npm run dev --workspace threejs",
+    "dev:pixijs": "npm run dev --workspace pixijs",
+    "build": "npm run build --workspace threejs && npm run build --workspace pixijs",
+    "typecheck": "tsc --noEmit -p jsconfig.json",
+    "bench": "node bench/run.js",
+    "screenshots": "node bench/run.js --screenshots",
+    "report": "node bench/report.js",
+    "loc": "node bench/loc.js"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@types/three": "0.187.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.8"
+  }
+}
