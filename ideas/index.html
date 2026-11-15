@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Idea cloud</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Idea cloud</h1>
+    <p class="hint">Click an idea to open it. Drag to pan, scroll or pinch to zoom.</p>
+    <button type="button" id="fit-btn" class="btn">Fit view</button>
+  </header>
+
+  <div id="status-area" class="status-area">
+    <p id="status" role="status" aria-live="polite">Loading ideas...</p>
+    <div id="file-fallback" class="file-fallback" hidden>
+      <button type="button" id="file-btn" class="btn btn-primary">Choose ideas.json</button>
+      <input type="file" id="file-input" accept=".json,application/json" hidden>
+    </div>
+  </div>
+
+  <main class="stage" id="stage">
+    <canvas id="cloud" tabindex="0" aria-label="Network graph of ideas. Press plus or minus to zoom, arrow keys to pan, 0 to fit."></canvas>
+  </main>
+
+  <dialog id="idea-dialog" aria-labelledby="idea-title">
+    <div class="dialog-inner">
+      <div class="dialog-head">
+        <h2 id="idea-title" tabindex="-1"></h2>
+        <button type="button" id="dialog-close" class="btn" aria-label="Close">Close</button>
+      </div>
+      <p id="idea-description" class="idea-description"></p>
+      <h3>Tags</h3>
+      <ul id="idea-tags" class="chips"></ul>
+      <h3>Related ideas</h3>
+      <ul id="idea-related" class="related"></ul>
+      <p id="idea-no-related" class="muted" hidden>No related ideas yet.</p>
+    </div>
+  </dialog>
+</body>
+</html>
