@@ -607,7 +607,7 @@ function initApp() {
       canvas.classList.add('panning');
     } else if (pointers.size === 2) {
       // Second finger: cancel any click or node drag, switch to pinch.
-      drag = null;
+      endDrag(false);
       pinch = pinchState();
     }
     // Focus for the keyboard shortcuts, without showing the keyboard focus ring.
@@ -664,6 +664,15 @@ function initApp() {
     requestDraw();
   });
 
+  function endDrag(allowClick) {
+    if (!drag) return;
+    const { node, moved } = drag;
+    drag = null;
+    if (node === null) return;
+    if (moved) wake(300);
+    else if (allowClick) openIdea(node);
+  }
+
   function endPointer(ev, cancelled) {
     if (!pointers.has(ev.pointerId)) return;
     const p = localPoint(ev);
@@ -671,14 +680,7 @@ function initApp() {
     try { canvas.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
 
     if (pointers.size < 2) pinch = null;
-    if (drag && drag.pointerId === ev.pointerId) {
-      const wasClick = !cancelled && !drag.moved && drag.node !== null;
-      const wasNodeDrag = drag.moved && drag.node !== null;
-      const idx = drag.node;
-      drag = null;
-      if (wasClick) openIdea(idx);
-      if (wasNodeDrag) wake(300);
-    }
+    if (drag && drag.pointerId === ev.pointerId) endDrag(!cancelled);
     if (pointers.size === 0) {
       canvas.classList.remove('panning');
       drag = null;
