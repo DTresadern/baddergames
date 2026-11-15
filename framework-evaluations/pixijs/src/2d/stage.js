@@ -2,9 +2,9 @@
 // Shared pieces of the PixiJS 2D build: draw order and the per-frame context.
 //
 // Layer contract (every module in layers/ follows it):
-//   export function createX(scene, ctx) -> { parts: Part[], update?(t) }
+//   export function createX(scene, ctx?) -> { parts: Part[], update?(t) }   ctx only for layers that need it
 //   Part = { object: Container, depth: number }
-// main.js adds every part to the world container and, each frame, shifts it
+// main.js adds every part to the root container and, each frame, shifts it
 // horizontally by parallaxOffset(depth, t).
 //
 // Draw order: every drawable leaf gets `zIndex = ORDER.x` and main.js attaches it to one

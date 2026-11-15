@@ -60,9 +60,9 @@ async function main() {
   fit();
 
   // world x 0..1200, y 0..400 (y down, like PixiJS) -> canvas 1800x600
-  const world = new Container();
-  world.scale.set(WIDTH / 1200);
-  app.stage.addChild(world);
+  const root = new Container();
+  root.scale.set(WIDTH / 1200);
+  app.stage.addChild(root);
 
   const scene = buildScene(seed, stress);
   const ctx = createCtx();
@@ -84,18 +84,18 @@ async function main() {
     createMist(scene, ctx),
   ];
   const parts = layers.flatMap((l) => l.parts);
-  for (const p of parts) world.addChild(p.object);
+  for (const p of parts) root.addChild(p.object);
 
   // Global painter's order: every drawable leaf carries zIndex = ORDER value; one sorted
   // RenderLayer draws them in that order while their transforms still come from their parts.
   const order = new RenderLayer({ sortableChildren: true });
-  world.addChild(order);
+  root.addChild(order);
   /** @param {Container} o @returns {Container[]} */
   const leaves = (o) => (o.children.length ? o.children.flatMap(leaves) : [o]);
   const drawables = parts.flatMap((p) => leaves(p.object));
   order.attach(...drawables);
 
-  const frame = ctx.frame.uniforms;
+  const uniforms = ctx.frame.uniforms;
   const start = performance.now();
   let first = true;
 
@@ -103,8 +103,8 @@ async function main() {
     requestAnimationFrame(loop);
     bench.frameBegin();
     const t = frozenT ?? (performance.now() - start) / 1000;
-    frame.uTime = t;
-    frame.uCameraX = cameraX(scene, t);
+    uniforms.uTime = t;
+    uniforms.uCameraX = cameraX(scene, t);
     for (const p of parts) p.object.x = parallaxOffset(scene, p.depth, t);
     for (const l of layers) l.update?.(t);
     app.renderer.render(app.stage);

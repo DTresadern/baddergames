@@ -2,7 +2,7 @@
 // Shared pieces of the three.js 2D build: draw order and the per-frame context.
 //
 // Layer contract (every module in layers/ follows it):
-//   export function createX(scene, ctx) -> { parts: Part[], update?(t) }
+//   export function createX(scene, ctx?) -> { parts: Part[], update?(t) }   ctx only for layers that need it
 //   Part = { object: THREE.Object3D, depth: number }
 // main.js adds every part to the scene and, each frame, shifts it horizontally by
 // parallaxOffset(depth, t). Shaders that animate read the SHARED uniforms below

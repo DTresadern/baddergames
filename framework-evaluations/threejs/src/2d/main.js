@@ -65,41 +65,41 @@ fit();
 // world x 0..1200, y 0..400 (y down) -> three.js x 0..1200, y 0..-400
 const camera = new THREE.OrthographicCamera(0, 1200, 0, -400, -10, 10);
 
-const world = buildScene(seed, stress);
+const scene = buildScene(seed, stress);
 const ctx = createCtx();
 const layers = [
-  createSky(world),
-  createCity(world),
-  createTrain(world, ctx),
-  createBillboards(world, ctx),
-  createSmoke(world),
-  createStructures(world, ctx),
-  createBridge(world, ctx),
-  createClutter(world),
-  createGrowth(world, ctx),
-  createHunters(world, ctx),
-  createLights(world, ctx),
-  createDrone(world, ctx),
-  createDrips(world, ctx),
-  createRain(world, ctx),
-  createMist(world, ctx),
+  createSky(scene),
+  createCity(scene),
+  createTrain(scene, ctx),
+  createBillboards(scene, ctx),
+  createSmoke(scene),
+  createStructures(scene, ctx),
+  createBridge(scene, ctx),
+  createClutter(scene),
+  createGrowth(scene, ctx),
+  createHunters(scene, ctx),
+  createLights(scene, ctx),
+  createDrone(scene, ctx),
+  createDrips(scene, ctx),
+  createRain(scene, ctx),
+  createMist(scene, ctx),
 ];
-const scene3 = new THREE.Scene();
+const root = new THREE.Scene();
 const parts = layers.flatMap((l) => l.parts);
-for (const p of parts) scene3.add(p.object);
+for (const p of parts) root.add(p.object);
 
 const start = performance.now();
 let first = true;
 
-function frame() {
-  requestAnimationFrame(frame);
+function loop() {
+  requestAnimationFrame(loop);
   bench.frameBegin();
   const t = frozenT ?? (performance.now() - start) / 1000;
   ctx.time.value = t;
-  ctx.cameraX.value = cameraX(world, t);
-  for (const p of parts) p.object.position.x = parallaxOffset(world, p.depth, t);
+  ctx.cameraX.value = cameraX(scene, t);
+  for (const p of parts) p.object.position.x = parallaxOffset(scene, p.depth, t);
   for (const l of layers) l.update?.(t);
-  renderer.render(scene3, camera);
+  renderer.render(root, camera);
   bench.frameEnd();
   if (first) {
     first = false;
@@ -107,4 +107,4 @@ function frame() {
     bench.setInfo({ triangles: renderer.info.render.triangles, programs: renderer.info.programs?.length ?? null });
   }
 }
-requestAnimationFrame(frame);
+requestAnimationFrame(loop);
