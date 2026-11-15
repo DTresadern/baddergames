@@ -52,9 +52,10 @@ const FRAMEWORK_PKG = /^(three|pixi\.js|@pixi\/3d)(\/|$)/;
 
 /**
  * Distinct framework API names a set of files uses: every name imported with
- * `import { A, B as C } from '<framework>'`, plus every `NS.Name` for a namespace
- * import `import * as NS from '<framework>'` (this includes `NS.Name` in JSDoc types, such as
- * `THREE.IUniform`). A proxy only: it counts names, not how hard each one is.
+ * `import { A, B as C } from '<framework>'`, every `NS.Name` for a namespace import
+ * `import * as NS from '<framework>'`, and every JSDoc type import `import('<framework>').Name`.
+ * Names used in JSDoc count the same way as names used in code. A proxy only: it counts
+ * names, not how hard each one is.
  * @param {string[]} files
  */
 export function frameworkApi(files) {
@@ -72,6 +73,9 @@ export function frameworkApi(files) {
     for (const m of text.matchAll(/import\s*\*\s*as\s+(\w+)\s+from\s*'([^']+)'/g)) {
       if (!FRAMEWORK_PKG.test(m[2])) continue;
       for (const u of text.matchAll(new RegExp(`\\b${m[1]}\\.(\\w+)`, 'g'))) names.add(u[1]);
+    }
+    for (const m of text.matchAll(/import\(\s*'([^']+)'\s*\)\.(\w+)/g)) {
+      if (FRAMEWORK_PKG.test(m[1])) names.add(m[2]);
     }
   }
   return [...names].sort();
