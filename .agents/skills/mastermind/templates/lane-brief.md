@@ -29,7 +29,7 @@ Before you build, write a short "done when" list for this goal: observable check
 - Commit to `{{branch}}` in small, clearly described steps.
 - Provider: {{provider}}. Difficulty class: {{class}} ({{classReason}}).
 - Builder: {{builder}}. Plan the change yourself, then give the builder a self-contained assignment: files, behaviour, the "done when" list, and the commands to verify. Check its work against the plan before review. If the work is harder than this class, move the builder to the stronger model and say so in your report.
-- Required capabilities: {{needs}}. Image work follows the `image-generation-records` skill.
+- Required capabilities: {{needs}}. Image work follows the `image-generation-records` skill. A Claude lane that needs only one or two images uses the `codex-image-generation` skill; Codex lanes use their built-in `image_gen` tool.
 - Browser work uses the `chromium-automation` skill only.
 - Never call something a bug, or say a result is caused by a bug, until a reproduction with correct inputs shows a wrong output and you have found the exact cause in the code. Until then, describe what you saw and list the possible causes as unproven.
 
