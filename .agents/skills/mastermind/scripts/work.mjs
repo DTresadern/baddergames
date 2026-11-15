@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   currentThreadId, fail, fillTemplate, gh, ghJson, git, now, nsInfo, nsShort, readJson, t3, threadInfo, threadState,
-  writeJson, writeText,
+  writeJson, writeLedger, writeText,
 } from "./core.mjs";
 import { LANE_STATES, recordEvent } from "./devlog.mjs";
 
@@ -198,6 +198,9 @@ const BUSY = new Set(["preparing", "queued", "starting", "running"]);
 const STOPPED = new Set(["interrupted", "failed", "cancelled", "rolled_back"]);
 const PR_URL = /https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)/;
 const SYNC_BUDGET_MS = 20000;
+// A lane can end a turn while its own background work runs (reviews, browser checks) and wake again when it finishes;
+// T3 shows no sign of that work. A turn without a status line is flagged only if no new run starts within this time.
+const quietMinutes = (ctx) => ctx.config.laneQuietMinutes ?? 15;
 
 // Read every open lane's thread and record what it reports, so the ledger does not depend on the orchestrator
 // remembering. A thread is read again only when its latest run, its status or its pending questions change.
@@ -215,7 +218,9 @@ export function syncLanes(ctx, ledger) {
     const pending = thread.pendingRequestCount > 0 || thread.status === "waiting";
     const busy = !pending && (Boolean(thread.activeRunId) || BUSY.has(thread.status));
     const marker = `${thread.latestRunId}|${pending}|${busy}|${thread.status}`;
-    if (marker === lane.syncMarker) continue;
+    const quietFor = lane.quietSince ? (now() - new Date(lane.quietSince)) / 60000 : 0;
+    if (marker === lane.syncMarker && !(lane.quietSince && quietFor >= quietMinutes(ctx))) continue;
+    if (marker !== lane.syncMarker) delete lane.quietSince;
     lane.syncMarker = marker;
     const set = (state, note, extra = {}) => {
       if (state === lane.state && (!extra.pr || extra.pr === lane.pr) && (state === "running" || note === lane.history.at(-1)?.note)) return;
@@ -228,7 +233,12 @@ export function syncLanes(ctx, ledger) {
     if (STOPPED.has(thread.status)) { set("blocked", `the lane's run ended as ${thread.status}; read its thread`); continue; }
     const last = [...messages].reverse().find((m) => m.role !== "user" && m.runId === thread.latestRunId)?.text || "";
     const m = last.match(REPORT);
-    if (!m) { set("waiting", "the lane stopped without a status line; read its thread"); continue; }
+    if (!m) {
+      lane.quietSince ||= now().toISOString();
+      const mins = (now() - new Date(lane.quietSince)) / 60000;
+      if (mins >= quietMinutes(ctx)) set("waiting", `the lane ended its turn without a status line and has been quiet for ${quietMinutes(ctx)} minutes; read its thread`);
+      continue;
+    }
     const [, word, rest] = m;
     const detail = rest.trim().slice(0, 300);
     const pr = Number(rest.match(PR_URL)?.[1]) || undefined;
@@ -270,7 +280,18 @@ export function laneMerge(ctx, ledger, name) {
   const merged = gh(ctx, ["pr", "merge", String(lane.pr), "--merge", "--match-head-commit", pr.headRefOid]);
   if (merged.code) fail(`gh pr merge failed: ${merged.err || merged.out}`);
   laneUpdate(ctx, ledger, name, "merged", { note: `${lane.title} (PR #${lane.pr} merged)` });
+  writeLedger(ctx, ledger);
   return { lane: name, merged: pr.url, cleanup: cleanupLane(ctx, pr.headRefName, info, wt) };
+}
+
+// Finish the cleanup of a merged or closed lane, for example after a merge that was stopped partway. Safe to repeat.
+export function laneCleanup(ctx, ledger, name) {
+  const lane = ledger.lanes[name] || fail(`no lane "${name}"`);
+  if (!["merged", "closed"].includes(lane.state)) fail(`lane "${name}" is ${lane.state}; only merged or closed lanes are cleaned up`);
+  const info = lane.threadId ? threadInfo(lane.threadId) : { state: "gone", thread: null };
+  const wt = info.thread?.worktreePath && fs.existsSync(info.thread.worktreePath) ? info.thread.worktreePath : null;
+  if (wt && git(["status", "--porcelain"], wt).out) fail(`the lane's worktree ${wt} has uncommitted changes; nothing was removed`);
+  return { lane: name, state: lane.state, cleanup: cleanupLane(ctx, lane.branch, info, wt) };
 }
 
 // Each step reports what actually happened. A branch is deleted only when origin's default branch contains it.
@@ -283,8 +304,11 @@ function cleanupLane(ctx, headRef, info, wt) {
   const dirty = git(["status", "--porcelain", "--untracked-files=no"], ctx.main).out;
   if (!onBase || dirty) steps.mainCheckout = `not updated: ${!onBase ? `not on ${base}` : "it has uncommitted changes"}`;
   else { const pulled = git(["merge", "-q", "--ff-only", `origin/${base}`], ctx.main); steps.mainCheckout = pulled.code ? `not updated: ${pulled.err}` : "updated"; }
-  const remote = git(["push", "-q", "origin", "--delete", headRef], ctx.main);
-  steps.remoteBranch = remote.code ? `not deleted: ${remote.err}` : `deleted ${headRef}`;
+  const remoteSha = git(["ls-remote", "--heads", "origin", headRef], ctx.main).out.split(/\s/)[0];
+  if (remoteSha) git(["fetch", "-q", "origin", headRef], ctx.main);
+  if (!remoteSha) steps.remoteBranch = `${headRef}: already gone`;
+  else if (git(["merge-base", "--is-ancestor", remoteSha, `origin/${base}`], ctx.main).code) steps.remoteBranch = `${headRef}: kept, it has commits that are not in ${base}`;
+  else { const remote = git(["push", "-q", "origin", "--delete", headRef], ctx.main); steps.remoteBranch = remote.code ? `not deleted: ${remote.err}` : `deleted ${headRef}`; }
   if (wt) {
     const removed = git(["worktree", "remove", wt], ctx.main);
     steps.worktree = removed.code ? `not removed: ${removed.err}` : `removed ${wt}`;

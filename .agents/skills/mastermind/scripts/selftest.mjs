@@ -368,7 +368,7 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T22d a question from the lane is recorded as waiting", (mm(["lane", "list"], { at: "2026-12-02T10:20:00Z" }), lane().state === "waiting"), JSON.stringify(lane()));
   s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", latestRunId: "run:4", pendingRequestCount: 0, last: "Done, I think." }); saveFake(s);
   mm(["lane", "list"], { at: "2026-12-02T10:30:00Z" });
-  check("T22e a final message without a status line is flagged", lane().history.at(-1).note?.includes("without a status line"), JSON.stringify(lane().history.at(-1)));
+  check("T22e a final message without a status line is not flagged at once", !lane().history.at(-1).note?.includes("without a status line") && lane().quietSince, JSON.stringify(lane()));
   s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { latestRunId: "run:5", last: "HELD: https://github.com/o/r/pull/31 ready" }); saveFake(s);
   mm(["lane", "list"], { at: "2026-12-02T10:40:00Z" });
   s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "running", activeRunId: "run:6", latestRunId: "run:6" }); saveFake(s);
@@ -378,7 +378,7 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T22f a run interrupted after a HELD report does not fall back to held", lane().state === "blocked" && /interrupted/.test(lane().history.at(-1).note), JSON.stringify(lane().history.slice(-2)));
   s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", latestRunId: "run:7", lastRunId: "run:6", last: "HELD: https://github.com/o/r/pull/31 ready" }); saveFake(s);
   mm(["lane", "list"], { at: "2026-12-02T10:52:00Z" });
-  check("T22g a report from an earlier run is not taken as the latest run's report", lane().state === "waiting" && /without a status line/.test(lane().history.at(-1).note), JSON.stringify(lane().history.at(-1)));
+  check("T22g a report from an earlier run is not taken as the latest run's report", lane().state === "blocked" && lane().quietSince, JSON.stringify(lane()));
   let st = mm(["status", "--json"], { at: "2026-12-02T10:53:00Z" });
   check("T22h changes found by other commands wait for mm status, then clear", st.json?.laneChanges?.some((c) => /sync: blocked/.test(c.note)) && mm(["status", "--json"], { at: "2026-12-02T10:54:00Z" }).json.laneChanges.length === 0, JSON.stringify(st.json?.laneChanges));
   const heldEvents = () => lines("2026-12-02").filter((l) => JSON.parse(l).kind === "held" && JSON.parse(l).lane === "sync").length;
@@ -406,6 +406,14 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T22m WORKING keeps the lane running and records nothing new", w.state === "running" && bgEvents() === afterRun && !mm(["status", "--json"], { at: "2026-12-02T11:32:30Z" }).json.laneChanges.some((c) => c.note.startsWith("bg:")), JSON.stringify(w.history));
   const r2 = bgState(2, { status: "running", activeRunId: "run:2", latestRunId: "run:2" }, "2026-12-02T11:33:00Z");
   check("T22n a new run of a lane that never stopped adds no event", r2.state === "running" && bgEvents() === afterRun, `${afterRun} → ${bgEvents()}`);
+  const q1 = bgState(2, { status: "completed", latestRunId: "run:2", last: "Sixth review running; browser run still pending." }, "2026-12-02T12:00:00Z");
+  const q2 = bgState(2, { status: "completed", latestRunId: "run:2", last: "Sixth review running; browser run still pending." }, "2026-12-02T12:14:00Z");
+  check("T22o a turn without a status line counts as running for 15 minutes", q1.state === "running" && q2.state === "running" && bgEvents() === afterRun, JSON.stringify(q2.history.at(-1)));
+  const q3 = bgState(2, { status: "completed", latestRunId: "run:2", last: "Sixth review running; browser run still pending." }, "2026-12-02T12:15:30Z");
+  check("T22p after 15 quiet minutes it is reported as waiting", q3.state === "waiting" && /quiet for 15 minutes/.test(q3.history.at(-1).note), JSON.stringify(q3.history.at(-1)));
+  const q4 = bgState(3, { status: "running", activeRunId: "run:3", latestRunId: "run:3" }, "2026-12-02T12:16:00Z");
+  const q5 = bgState(3, { status: "completed", latestRunId: "run:3", last: "Seventh review running." }, "2026-12-02T12:20:00Z");
+  check("T22q a new run resets the quiet period", q4.state === "running" && q5.state === "running", JSON.stringify(q5.history.at(-1)));
 }
 
 // T23 merging only under the rule
@@ -463,6 +471,21 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   const c = r.json?.cleanup || {};
   check("T25c the merge goes through and every cleanup step reports what happened", r.code === 0 && c.worktree?.startsWith("removed") && c.remoteBranch === "deleted baddergames/real" && c.mainCheckout === "updated" && c.localBranches?.[0] === "baddergames/real: deleted", r.out + r.err);
   check("T25d the worktree, the local branch and the remote branch are gone", !fs.existsSync(wtReal) && spawnSync("git", ["rev-parse", "--verify", "-q", "refs/heads/baddergames/real"], { cwd: main }).status !== 0 && !sh("git", ["ls-remote", "--heads", "origin", "baddergames/real"], main), "");
+  r = mm(["lane", "cleanup", "real", "--json"], { at });
+  check("T25e cleanup after a finished merge is safe to repeat", r.code === 0 && r.json.cleanup.remoteBranch === "baddergames/real: already gone" && r.json.cleanup.worktree === "none found", r.out + r.err);
+  r = mm(["lane", "cleanup", "art2"], { at });
+  check("T25f cleanup refuses a lane that is not merged or closed", r.code === 1 && /only merged or closed lanes/.test(r.err), r.err);
+  const wtStop = path.join(tmp, "wt-stop");
+  mm(["lane", "new", "stop", "--ns", "dev.baddergames", "--title", "Stopped merge", "--goal-file", goal], { at });
+  sh("git", ["worktree", "add", "-q", "-b", "baddergames/stop", wtStop, "main"], main);
+  fs.writeFileSync(path.join(wtStop, "stop.txt"), "x\n");
+  sh("git", ["add", "stop.txt"], wtStop); sh("git", ["commit", "-qm", "stop"], wtStop); sh("git", ["push", "-q", "-u", "origin", "baddergames/stop"], wtStop);
+  sh("git", ["push", "-q", "origin", "baddergames/stop:main"], wtStop);
+  const s3 = fakeState(); s3.threads["mcp:lane-stop"] = { title: "stop", messages: [], settled: false, archived: false, status: "completed", latestRunId: "run:1", worktreePath: wtStop }; saveFake(s3);
+  mm(["lane", "set", "stop", "--thread-id", "mcp:lane-stop"], { at });
+  mm(["lane", "update", "stop", "merged", "--note", "merged, cleanup stopped"], { at });
+  r = mm(["lane", "cleanup", "stop", "--json"], { at });
+  check("T25g cleanup finishes a merge that was stopped partway", r.code === 0 && r.json.cleanup.remoteBranch === "deleted baddergames/stop" && r.json.cleanup.worktree.startsWith("removed") && !fs.existsSync(wtStop), r.out + r.err);
 }
 
 // T24 new sub-project
