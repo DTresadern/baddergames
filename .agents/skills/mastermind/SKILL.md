@@ -69,6 +69,10 @@ T3 wakes you when a lane finishes a turn or asks a question. Start that turn wit
 
 Forward the user's answers and change requests to the lane with `t3_thread_send` (mode `auto`), beginning "User says:", in their words. The lane does the work and reports again.
 
+`mm` follows each lane by its thread, not by task ID. A `t3_thread_send` to a lane may return a new task ID; it needs no recording.
+
+**Stopping a lane** (the user drops the work, or it is replaced): `task_cancel` with the lane's first task ID (`mm lane list --json`, field `taskId`), which also stops every later run in its thread; then `mm lane update <name> closed --note "<why>"`; then settle its thread with `t3_thread_organize`. Close its pull request, if it has one, only when the user says so.
+
 ## Approval and merging
 
 Every pull request is held for the user. Merge only when the user approves that pull request in words.
