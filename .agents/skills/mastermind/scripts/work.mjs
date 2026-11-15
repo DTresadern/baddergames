@@ -239,7 +239,7 @@ export function syncLanes(ctx, ledger) {
         set("running", `turn ended without a status line; treated as working for ${quietMinutes(ctx)} minutes`);
       } else if ((now() - new Date(lane.quietSince)) / 60000 >= quietMinutes(ctx)) {
         delete lane.quietSince;
-        set("waiting", `the lane ended its turn without a status line and has been quiet for ${quietMinutes(ctx)} minutes; read its thread`);
+        if (lane.state === "running") set("waiting", `the lane ended its turn without a status line and has been quiet for ${quietMinutes(ctx)} minutes; read its thread`);
       }
       continue;
     }
@@ -289,17 +289,17 @@ export function laneMerge(ctx, ledger, name) {
 }
 
 // Finish the cleanup of a merged or closed lane, for example after a merge that was stopped partway. Safe to repeat.
-export function laneCleanup(ctx, ledger, name) {
+export function laneCleanup(ctx, ledger, name, { removeIgnored = false } = {}) {
   const lane = ledger.lanes[name] || fail(`no lane "${name}"`);
   if (!["merged", "closed"].includes(lane.state)) fail(`lane "${name}" is ${lane.state}; only merged or closed lanes are cleaned up`);
   const info = lane.threadId ? threadInfo(lane.threadId) : { state: "gone", thread: null };
   const wt = info.thread?.worktreePath && fs.existsSync(info.thread.worktreePath) ? info.thread.worktreePath : null;
   if (wt && git(["status", "--porcelain"], wt).out) fail(`the lane's worktree ${wt} has uncommitted changes; nothing was removed`);
-  return { lane: name, state: lane.state, cleanup: cleanupLane(ctx, lane.branch, info, wt) };
+  return { lane: name, state: lane.state, cleanup: cleanupLane(ctx, lane.branch, info, wt, { removeIgnored }) };
 }
 
 // Each step reports what actually happened. A branch is deleted only when origin's default branch contains it.
-function cleanupLane(ctx, headRef, info, wt) {
+function cleanupLane(ctx, headRef, info, wt, { removeIgnored = false } = {}) {
   const base = ctx.config.defaultBranch || "main";
   const steps = {};
   const fetched = git(["fetch", "-q", "origin", base], ctx.main);
@@ -318,9 +318,9 @@ function cleanupLane(ctx, headRef, info, wt) {
     const head = git(["rev-parse", "HEAD"], wt).out;
     const ignored = git(["status", "--porcelain", "--ignored"], wt).out.split("\n").filter((l) => l.startsWith("!! ") && !/(^|\/)node_modules\/?$/.test(l.slice(3)));
     if (git(["merge-base", "--is-ancestor", head, `origin/${base}`], ctx.main).code) steps.worktree = `kept ${wt}: its commit ${head.slice(0, 7)} is not in ${base}`;
-    else if (ignored.length) steps.worktree = `kept ${wt}: it has ignored files (${ignored.map((l) => l.slice(3)).slice(0, 5).join(", ")})`;
+    else if (ignored.length && !removeIgnored) steps.worktree = `kept ${wt}: it has ignored files (${ignored.map((l) => l.slice(3)).slice(0, 5).join(", ")}); ask the user, then rerun with --remove-ignored`;
     else {
-      const removed = git(["worktree", "remove", wt], ctx.main);
+      const removed = git(["worktree", "remove", ...(ignored.length ? ["--force"] : []), wt], ctx.main);
       steps.worktree = removed.code ? `not removed: ${removed.err}` : `removed ${wt}`;
     }
   } else {

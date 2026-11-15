@@ -424,6 +424,10 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   mm(["lane", "update", "bg", "held", "--pr", "77", "--note", "set by hand"], { at: "2026-12-02T12:41:00Z" });
   const q7 = bgState(4, { status: "completed", latestRunId: "run:4", last: "x" }, "2026-12-02T12:50:00Z");
   check("T22t after the waiting report, a state set by hand is not undone", q7.state === "held", JSON.stringify(q7.history.slice(-2)));
+  bgState(5, { status: "completed", latestRunId: "run:5", last: "**HELD:** bold report the pattern misses" }, "2026-12-02T13:00:00Z");
+  mm(["lane", "update", "bg", "held", "--pr", "77", "--note", "read from the thread"], { at: "2026-12-02T13:02:00Z" });
+  const q8 = bgState(5, { status: "completed", latestRunId: "run:5", last: "**HELD:** bold report the pattern misses" }, "2026-12-02T13:20:00Z");
+  check("T22u a state set by hand during the quiet period is not undone when it ends", q8.state === "held" && !q8.quietSince, JSON.stringify(q8.history.slice(-2)));
 }
 
 // T23 merging only under the rule
@@ -511,6 +515,8 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   fs.appendFileSync(path.join(wtClosed, ".gitignore"), ".env\n"); sh("git", ["commit", "-qam", "ignore env"], wtClosed); sh("git", ["push", "-q"], wtClosed); sh("git", ["push", "-q", "origin", "baddergames/dropped:main"], wtClosed);
   r = mm(["lane", "cleanup", "dropped", "--json"], { at });
   check("T25i a worktree with ignored files is kept", r.code === 0 && /ignored files \(\.env\)/.test(r.json.cleanup.worktree) && fs.existsSync(path.join(wtClosed, ".env")), r.out + r.err);
+  r = mm(["lane", "cleanup", "dropped", "--remove-ignored", "--json"], { at });
+  check("T25j with --remove-ignored the worktree and its branch are removed", r.code === 0 && r.json.cleanup.worktree.startsWith("removed") && !fs.existsSync(wtClosed) && r.json.cleanup.localBranches[0] === "baddergames/dropped: deleted", r.out + r.err);
 }
 
 // T24 new sub-project

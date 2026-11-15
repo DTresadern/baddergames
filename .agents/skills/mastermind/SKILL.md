@@ -82,7 +82,7 @@ Every pull request is held for the user. Merge only when the user approves that 
 1. `mm lane merge <name>`. It merges only the lane's own branch into `main`, only when the pull request is open, GitHub reports it CLEAN, at least one check passed and none failed, and the pull request contains exactly what the lane's worktree has. It then updates the main checkout and removes the lane's branches and worktree, and reports each cleanup step.
 2. If `mm` refuses, tell the user why. `BEHIND` or a merge conflict: ask the lane to update its branch from `main` and report again. A failing check: ask the lane to fix it. The user's word never overrides a failing or unmergeable pull request, and nothing else may merge.
 3. Settle the lane's thread with `t3_thread_organize` (action `settle`), and settle other finished lanes the same way.
-4. If a merge was stopped partway, or a cleanup step did not complete: run `mm status` (it records a merge GitHub already made), then `mm lane cleanup <name>`. It is safe to repeat. It removes only branches that `main` contains, and only worktrees whose commit `main` contains, with no uncommitted or ignored files (`node_modules` aside). Never do the cleanup by hand.
+4. If a merge was stopped partway, or a cleanup step did not complete: run `mm status` (it records a merge GitHub already made), then `mm lane cleanup <name>`. It is safe to repeat. It removes only branches that `main` contains, and only worktrees whose commit `main` contains, with no uncommitted or ignored files (`node_modules` aside). If it keeps a worktree because of ignored files, tell the user which files; with their agreement, rerun with `--remove-ignored`. Never do the cleanup by hand.
 
 ## Devlog
 
