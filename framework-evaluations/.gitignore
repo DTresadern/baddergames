@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# raw per-run bench output; the summary bench/results/results.json is committed
+bench/results/raw/

@@ -1,0 +1,15 @@
+{
+  "name": "@fw-eval/threejs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fw-eval/shared": "*",
+    "three": "0.187.0"
+  }
+}
