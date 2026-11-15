@@ -133,7 +133,7 @@ function stepSimulation(graph, params) {
       let d2 = dx * dx + dy * dy;
       if (d2 < 1e-6) {
         // Exactly coincident: separate along a deterministic direction.
-        dx = (i - j) * 0.01 || 0.01;
+        dx = -0.01;
         dy = 0.01;
         d2 = dx * dx + dy * dy;
       }
@@ -294,7 +294,9 @@ function initApp() {
   let drawQueued = false;
   let hoverIndex = -1;
   let selectedIndex = -1;
-
+  const pointers = new Map();     // pointerId -> {x, y}
+  let drag = null;                // {startX, startY, node, moved, pointerId}
+  let pinch = null;               // {dist, midX, midY}
 
   function readTheme() {
     const cs = getComputedStyle(document.documentElement);
@@ -310,7 +312,6 @@ function initApp() {
       font: LABEL_FONT_PX + 'px ' + getComputedStyle(document.body).fontFamily
     };
   }
-
 
   function setStatus(text, isError) {
     statusEl.textContent = text;
@@ -340,10 +341,13 @@ function initApp() {
     fileFallback.hidden = true;
     setGraph(buildGraph(result.ideas));
     const count = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
-    let msg = count(result.ideas.length, 'idea') + ', ' + count(graph.edges.length, 'connection') + '.';
-    if (result.skipped > 0) msg += ' Skipped ' + result.skipped + ' invalid or duplicate entries.';
-    if (result.ideas.length === 0) msg = 'No ideas found in ' + sourceName + '.';
-    setStatus(msg, false);
+    const skippedNote = result.skipped === 0 ? ''
+      : ' Skipped ' + result.skipped + ' invalid or duplicate ' + (result.skipped === 1 ? 'entry.' : 'entries.');
+    if (result.ideas.length === 0) {
+      setStatus('No valid ideas in ' + sourceName + '.' + skippedNote, true);
+      return;
+    }
+    setStatus(count(result.ideas.length, 'idea') + ', ' + count(graph.edges.length, 'connection') + '.' + skippedNote, false);
   }
 
   async function load() {
@@ -362,7 +366,6 @@ function initApp() {
     }
     loadText(text, 'ideas.json');
   }
-
 
   function wrapLabel(text) {
     ctx.font = theme.font;
@@ -399,7 +402,7 @@ function initApp() {
   }
 
   function extentOf(node) {
-    const lines = node.lines ? node.lines.length : 2;
+    const lines = node.lines.length;
     return {
       left: Math.max(node.r, LABEL_MAX_WIDTH / 2),
       right: Math.max(node.r, LABEL_MAX_WIDTH / 2),
@@ -407,7 +410,6 @@ function initApp() {
       bottom: node.r + 4 + lines * LABEL_LINE_PX
     };
   }
-
 
   function setGraph(g) {
     graph = g;
@@ -461,7 +463,6 @@ function initApp() {
       draw();
     });
   }
-
 
   function draw() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -543,7 +544,6 @@ function initApp() {
     draw();
   }
 
-
   function toWorld(x, y) {
     return { x: (x - view.offsetX) / view.scale, y: (y - view.offsetY) / view.scale };
   }
@@ -575,11 +575,6 @@ function initApp() {
     const rect = canvas.getBoundingClientRect();
     return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
   }
-
-
-  const pointers = new Map();     // pointerId -> {x, y}
-  let drag = null;                // {startX, startY, node, moved, pointerId}
-  let pinch = null;               // {dist, midX, midY}
 
   function pinchState() {
     const pts = Array.from(pointers.values());
@@ -636,7 +631,6 @@ function initApp() {
       view.offsetX += next.midX - pinch.midX;
       view.offsetY += next.midY - pinch.midY;
       pinch = next;
-      userMoved = true;
       requestDraw();
       return;
     }
@@ -660,7 +654,6 @@ function initApp() {
       n.y = w.y;
       n.vx = 0;
       n.vy = 0;
-      if (!simRunning) wake(300);
     } else {
       view.offsetX += p.x - drag.lastX;
       view.offsetY += p.y - drag.lastY;
@@ -750,7 +743,6 @@ function initApp() {
     draw();
   });
 
-
   function openIdea(index) {
     const node = graph.nodes[index];
     if (!node) return;
@@ -824,7 +816,6 @@ function initApp() {
     downOnBackdrop = false;
   });
 
-
   fileBtn.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files && fileInput.files[0];
@@ -838,17 +829,13 @@ function initApp() {
     fileInput.value = '';
   });
 
-
   readTheme();
   resize();
-  if (typeof ResizeObserver === 'function') new ResizeObserver(resize).observe(stage);
-  window.addEventListener('resize', resize);
-  if (window.matchMedia) {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onTheme = () => { readTheme(); requestDraw(); };
-    if (mq.addEventListener) mq.addEventListener('change', onTheme);
-    else if (mq.addListener) mq.addListener(onTheme);
-  }
+  new ResizeObserver(resize).observe(stage);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    readTheme();
+    requestDraw();
+  });
   load();
 }
 
