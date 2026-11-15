@@ -24,7 +24,7 @@
 // pixel back from the renderer's context. readPixels waits until the GPU has finished the
 // frame, so each frame's time includes its GPU work. Without it, an uncapped headless page
 // queues frames and then blocks in bursts, so per-frame percentiles describe the queue,
-// not the frame. The readback costs the same small, fixed amount in every build.
+// not the frame. The readback adds its own cost, which differs between builds.
 
 import { parseStress } from './stress.js';
 

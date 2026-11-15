@@ -9,6 +9,7 @@ import { InstanceBatch, MergeBatch, UNIT, taperedTube } from '../effects/batch.j
 import { GlowBatch, BLINK } from '../effects/glow.js';
 import { lx, ly } from '../stage.js';
 import { makeRng } from '@fw-eval/shared/rng.js';
+import { pointInPolygon } from '@fw-eval/shared/scene.js';
 
 const ROCK_FRONT = 14; // front face z of the rock (slightly in front of the platforms)
 
@@ -51,7 +52,7 @@ export function createGrowth(scene, ctx) {
   const euler = new THREE.Euler();
   for (let i = 0; i < 70; i++) {
     const x = rng.range(850, 1240), y = rng.range(230, 400);
-    if (!inside(g.rock, x, y - 8)) continue;
+    if (!pointInPolygon(g.rock, x, y - 8)) continue;
     const s = rng.range(6, 16);
     boulders.add({ x: lx(x), y: ly(y), z: ROCK_FRONT + rng.range(-4, 3) }, euler.set(rng.range(0, 3), rng.range(0, 3), 0), { x: s * 1.3, y: s, z: s * 0.8 }, rng.chance(0.5) ? P.rockLight : 0x1d1916);
   }
@@ -87,17 +88,4 @@ export function createGrowth(scene, ctx) {
   group.add(glows.build({ time: ctx.time }));
 
   return { object: group };
-}
-
-/**
- * Point-in-polygon (even-odd rule).
- * @param {{x: number, y: number}[]} poly @param {number} x @param {number} y
- */
-function inside(poly, x, y) {
-  let c = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const a = poly[i], b = poly[j];
-    if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) c = !c;
-  }
-  return c;
 }

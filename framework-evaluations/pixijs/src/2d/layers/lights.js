@@ -6,6 +6,7 @@
 import { ShapeBatch } from '../effects/batch.js';
 import { GlowBatch, BLINK } from '../effects/glow.js';
 import { ORDER } from '../stage.js';
+import { isFlickering } from '@fw-eval/shared/scene.js';
 
 /**
  * Surfaces a lamp can light (y of the walking surface and its x range).
@@ -32,7 +33,7 @@ export function createLights(scene, ctx) {
   const surf = surfaces(scene);
 
   scene.lamps.forEach((lamp, i) => {
-    const blink = i % 5 === 3 ? BLINK.flicker : BLINK.steady; // same rule as lampFlicker()
+    const blink = isFlickering(i) ? BLINK.flicker : BLINK.steady;
     // fixture shape by kind
     if (lamp.kind === 'post') {
       fixtures.rect(lamp.x - 1.5, lamp.y, 3, 18, P.gunmetalLight);

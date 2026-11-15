@@ -7,6 +7,7 @@ import { ShapeBatch } from '../effects/batch.js';
 import { GlowBatch, BLINK } from '../effects/glow.js';
 import { ORDER } from '../stage.js';
 import { makeRng } from '@fw-eval/shared/rng.js';
+import { pointInPolygon } from '@fw-eval/shared/scene.js';
 
 /**
  * @param {import('@fw-eval/shared/scene.js').Scene} scene
@@ -29,7 +30,7 @@ export function createGrowth(scene, ctx) {
   // boulders and strata inside the rock mass
   for (let i = 0; i < 40; i++) {
     const x = rng.range(860, 1200), y = rng.range(300, 400);
-    if (!inside(g.rock, x, y - 8)) continue;
+    if (!pointInPolygon(g.rock, x, y - 8)) continue;
     b.circle(x, y, rng.range(5, 14), rng.chance(0.5) ? P.rockLight : 0x1d1916, 0.7, 7, 0, Math.PI * 2, rng.range(3, 8));
   }
   for (let i = 0; i < 14; i++) {
@@ -56,17 +57,4 @@ export function createGrowth(scene, ctx) {
   const group = new Container();
   group.addChild(b.build(ORDER.growth), glows.build(ORDER.growth + 0.5, { ctx }));
   return { parts: [{ object: group, depth: g.depth }] };
-}
-
-/**
- * Point-in-polygon (even-odd rule).
- * @param {{x: number, y: number}[]} poly @param {number} x @param {number} y
- */
-function inside(poly, x, y) {
-  let c = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const a = poly[i], b = poly[j];
-    if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) c = !c;
-  }
-  return c;
 }

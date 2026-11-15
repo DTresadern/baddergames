@@ -35,7 +35,7 @@
 
 import { makeRng, subSeed } from './rng.js';
 import { PALETTE } from './palette.js';
-import { STRESS } from './stress.js';
+import { BASE } from './stress.js';
 
 export const WORLD = Object.freeze({ width: 1200, height: 400 });
 
@@ -67,8 +67,8 @@ const DECK_TOP = 196;
  * @param {number} [seed]
  * @param {Stress} [stress]
  */
-export function buildScene(seed = 1, stress = STRESS.base) {
-  const s = { ...STRESS.base, ...stress };
+export function buildScene(seed = 1, stress = BASE) {
+  const s = { ...BASE, ...stress };
   const scene = {
     seed,
     stress: s,
@@ -750,12 +750,20 @@ export function parallaxOffset(scene, depth, t) {
 }
 
 /**
- * Lamp flicker multiplier (most lamps steady, a few flicker).
+ * Whether lamp `index` flickers (one lamp in five); the others are steady.
+ * @param {number} index
+ */
+export function isFlickering(index) {
+  return index % 5 === 3;
+}
+
+/**
+ * Lamp flicker multiplier: 1 for steady lamps, dips to 0.35 for flickering ones.
  * @param {number} index
  * @param {number} t
  */
 export function lampFlicker(index, t) {
-  if (index % 5 !== 3) return 1;
+  if (!isFlickering(index)) return 1;
   const v = Math.sin(t * 17 + index * 3.1) + Math.sin(t * 7.3 + index);
   return v > 1.4 ? 0.35 : 1;
 }
@@ -781,6 +789,19 @@ export function lerpColor(a, b, f) {
   const ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
   const br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
   return (Math.round(ar + (br - ar) * f) << 16) | (Math.round(ag + (bg - ag) * f) << 8) | Math.round(ab + (bb - ab) * f);
+}
+
+/**
+ * Point-in-polygon (even-odd rule).
+ * @param {Point[]} poly @param {number} x @param {number} y
+ */
+export function pointInPolygon(poly, x, y) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i], b = poly[j];
+    if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) c = !c;
+  }
+  return c;
 }
 
 /**

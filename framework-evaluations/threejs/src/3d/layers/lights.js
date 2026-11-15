@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { MergeBatch, InstanceBatch, UNIT } from '../effects/batch.js';
 import { GlowBatch, BLINK } from '../effects/glow.js';
 import { toWorld, DECK_DEPTH, D } from '../stage.js';
-import { lampFlicker } from '@fw-eval/shared/scene.js';
+import { isFlickering, lampFlicker } from '@fw-eval/shared/scene.js';
 
 /**
  * Where a lamp sits in 3D: wall lamps on the tower fronts (behind the deck), post and
@@ -40,7 +40,7 @@ export function createLights(scene, ctx) {
 
   scene.lamps.forEach((lamp, i) => {
     const p = lampPosition(lamp, i);
-    const blink = i % 5 === 3 ? BLINK.flicker : BLINK.steady; // same rule as lampFlicker()
+    const blink = isFlickering(i) ? BLINK.flicker : BLINK.steady;
     const housing = 0x1a1a1c;
     if (lamp.kind === 'post') {
       // p is the lamp head; the post runs down to the walking surface

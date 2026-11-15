@@ -16,9 +16,6 @@ export const AXES = Object.freeze({
   objects: [1, 4, 16],
 });
 
-/** Shorthand used by scene.js default argument. */
-export const STRESS = Object.freeze({ base: BASE });
-
 /**
  * Every level the benchmark runs: base first, then each non-base value per axis.
  * @returns {{ id: string, stress: Stress }[]}
