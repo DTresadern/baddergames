@@ -328,9 +328,9 @@ Measured:
 
 Not explained (causes not investigated, so none is claimed): why the three.js 2D build
 spends more CPU per frame than PixiJS 2D, why three.js 3D rain cost barely grows with the
-drop count, and why the PixiJS 2D heap is larger. Possible causes include the two builds' different batching (98 against 59 draw
-calls), per-object work in each framework's render loop, and how each framework stores built
-shape geometry in JS memory.
+drop count, and why the PixiJS 2D heap is larger. Possible causes include the two builds'
+different batching (98 against 59 draw calls), per-object work in each framework's render
+loop, and how each framework stores built shape geometry in JS memory.
 
 -----
 
@@ -516,9 +516,9 @@ Judgement, from the measurements and the build experience above.
 
 **If the game needs real 3D now: three.js.** `@pixi/3d` performed well here, but it is a
 0.1.0 beta: the package was first published on 2026-11-12, three days before this test.
-It caps shaded lights at 32 without warning and lacks custom vertex attributes, reflections and several geometry helpers.
-three.js 3D has the mature feature set, addons and ecosystem. Re-evaluate `@pixi/3d` when
-it leaves beta.
+It caps shaded lights at 32 without warning and lacks custom vertex attributes,
+reflections and several geometry helpers. three.js 3D has the mature feature set, addons
+and ecosystem. Re-evaluate `@pixi/3d` when it leaves beta.
 
 -----
 
