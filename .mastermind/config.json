@@ -60,5 +60,6 @@
   "nightly": {
     "timeOfDay": "00:05"
   },
-  "laneQuietMinutes": 15
+  "laneQuietMinutes": 15,
+  "laneWorktreeRoot": "~/.t3/worktrees"
 }

@@ -31,8 +31,8 @@ and reads every open lane's thread, recording what it reports (HELD, WAITING, BL
   mm lane attach <name>                     run by the lane itself as its first step: records its thread
   mm lane merge <name>                      on the user's word only: merges the held pull request if it is open,
                                             CLEAN and every check passed; then removes the lane's branch and worktree
-  mm lane cleanup <name> [--remove-ignored] finish removing a merged or closed lane's branches and worktree (safe to repeat);
-                                            --remove-ignored also deletes its ignored files, only after the user agrees
+  mm lane cleanup <name>                    finish removing a merged or closed lane's branches and worktree (safe to repeat);
+                                            never deletes anything in the main checkout
 
   mm issue new <ns> "<title>" [--body-file <f>]   GitHub issue with the ns:<name> label
   mm task new <ns> "<title>" [--body-file <f>]    local backlog task
@@ -51,7 +51,7 @@ and reads every open lane's thread, recording what it reports (HELD, WAITING, BL
   mm ns add <folder>                              new sub-project namespace + its AGENTS.md/CLAUDE.md (run in a lane)
   mm selftest`;
 
-const FLAGS = new Set(["force", "json", "open", "skipGitCheck", "removeIgnored"]);
+const FLAGS = new Set(["force", "json", "open", "skipGitCheck"]);
 const VALUES = new Set(["ns", "title", "issue", "class", "classReason", "needs", "provider", "reviewer", "goalFile", "why",
   "threadId", "taskId", "pr", "note", "bodyFile", "links", "file"]);
 
@@ -194,7 +194,7 @@ function main(argv) {
         } else if (sub === "attach") {
           result = laneAttach(ctx, ledger, pos[0], opt.threadId || currentThreadId());
         } else if (sub === "cleanup") {
-          result = laneCleanup(ctx, ledger, pos[0], { removeIgnored: !!opt.removeIgnored });
+          result = laneCleanup(ctx, ledger, pos[0]);
         } else if (sub === "merge") {
           result = laneMerge(ctx, ledger, pos[0]);
         } else if (sub === "list") {

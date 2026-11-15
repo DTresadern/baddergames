@@ -85,7 +85,7 @@ sh("git", ["init", "-q", "--bare", "-b", "main", remote]);
 sh("git", ["clone", "-q", remote, main]);
 for (const [k, v] of [["user.email", "t@example.com"], ["user.name", "t"]]) sh("git", ["config", k, v], main);
 fs.mkdirSync(path.join(main, ".mastermind"));
-fs.copyFileSync(REPO_CONFIG, path.join(main, ".mastermind", "config.json"));
+fs.writeFileSync(path.join(main, ".mastermind", "config.json"), JSON.stringify({ ...JSON.parse(fs.readFileSync(REPO_CONFIG, "utf8")), laneWorktreeRoot: tmp }, null, 2) + "\n");
 fs.mkdirSync(path.join(main, "technophage"));
 fs.writeFileSync(path.join(main, "technophage", "AGENTS.md"), "# technophage\n");
 fs.writeFileSync(path.join(main, "AGENTS.md"), "# root\n");
@@ -513,10 +513,31 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   sh("git", ["push", "-q", "origin", "baddergames/dropped:main"], wtClosed);
   fs.writeFileSync(path.join(wtClosed, ".env"), "SECRET=1\n");
   fs.appendFileSync(path.join(wtClosed, ".gitignore"), ".env\n"); sh("git", ["commit", "-qam", "ignore env"], wtClosed); sh("git", ["push", "-q"], wtClosed); sh("git", ["push", "-q", "origin", "baddergames/dropped:main"], wtClosed);
+  fs.writeFileSync(path.join(main, "my-notes.txt"), "untracked work in the main checkout\n");
+  fs.mkdirSync(path.join(main, "devlog"), { recursive: true });
+  fs.writeFileSync(path.join(main, "devlog", "keep-me.txt"), "ignored file in the main checkout\n");
   r = mm(["lane", "cleanup", "dropped", "--json"], { at });
-  check("T25i a worktree with ignored files is kept", r.code === 0 && /ignored files \(\.env\)/.test(r.json.cleanup.worktree) && fs.existsSync(path.join(wtClosed, ".env")), r.out + r.err);
-  r = mm(["lane", "cleanup", "dropped", "--remove-ignored", "--json"], { at });
-  check("T25j with --remove-ignored the worktree and its branch are removed", r.code === 0 && r.json.cleanup.worktree.startsWith("removed") && !fs.existsSync(wtClosed) && r.json.cleanup.localBranches[0] === "baddergames/dropped: deleted", r.out + r.err);
+  check("T25i a lane worktree with ignored files is removed, and the files are listed", r.code === 0 && /^removed .*ignored files went with it: \.env/.test(r.json.cleanup.worktree) && !fs.existsSync(wtClosed) && r.json.cleanup.localBranches[0] === "baddergames/dropped: deleted", r.out + r.err);
+  check("T25j untracked and ignored files in the main checkout are untouched", read(path.join(main, "my-notes.txt")).startsWith("untracked") && read(path.join(main, "devlog", "keep-me.txt")).startsWith("ignored") && fs.existsSync(path.join(main, ".mastermind", "state", "ledger.json")), "");
+  const guard = (name, worktreePath) => {
+    mm(["lane", "new", name, "--ns", "dev.baddergames", "--title", name, "--goal-file", goal], { at });
+    const x = fakeState(); x.threads[`mcp:lane-${name}`] = { title: name, messages: [], settled: false, archived: false, status: "completed", latestRunId: "run:1", worktreePath }; saveFake(x);
+    mm(["lane", "set", name, "--thread-id", `mcp:lane-${name}`], { at });
+    mm(["lane", "update", name, "closed", "--note", "guard test"], { at });
+    return mm(["lane", "cleanup", name, "--json"], { at });
+  };
+  r = guard("guardmain", main);
+  check("T25k the main checkout is never removed, even if a thread points at it", r.code === 0 && /kept .*it is the main checkout/.test(r.json.cleanup.worktree) && fs.existsSync(path.join(main, "my-notes.txt")) && fs.existsSync(path.join(main, ".git")), r.out + r.err);
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "mm-outside-"));
+  sh("git", ["worktree", "add", "-q", "-b", "baddergames/outside", outside, "main"], main);
+  r = guard("guardout", outside);
+  check("T25l a worktree outside the lane worktree folder is kept", r.code === 0 && /not inside the lane worktree folder/.test(r.json.cleanup.worktree) && fs.existsSync(outside), r.out + r.err);
+  sh("git", ["worktree", "remove", "--force", outside], main); fs.rmSync(outside, { recursive: true, force: true });
+  const wtNew = path.join(tmp, "wt-newfile");
+  sh("git", ["worktree", "add", "-q", "-b", "baddergames/newfile", wtNew, "main"], main);
+  fs.writeFileSync(path.join(wtNew, "draft.txt"), "not committed\n");
+  r = guard("guardnew", wtNew);
+  check("T25m a lane worktree with a new, not ignored file is kept", r.code === 0 && /new files \(draft\.txt\)/.test(r.json.cleanup.worktree) && fs.existsSync(path.join(wtNew, "draft.txt")), r.out + r.err);
 }
 
 // T24 new sub-project

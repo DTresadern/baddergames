@@ -1,5 +1,6 @@
 // Orchestrator claims, lanes and tasks.
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   currentThreadId, fail, fillTemplate, gh, ghJson, git, now, nsInfo, nsShort, readJson, t3, threadInfo, threadState,
@@ -289,17 +290,33 @@ export function laneMerge(ctx, ledger, name) {
 }
 
 // Finish the cleanup of a merged or closed lane, for example after a merge that was stopped partway. Safe to repeat.
-export function laneCleanup(ctx, ledger, name, { removeIgnored = false } = {}) {
+export function laneCleanup(ctx, ledger, name) {
   const lane = ledger.lanes[name] || fail(`no lane "${name}"`);
   if (!["merged", "closed"].includes(lane.state)) fail(`lane "${name}" is ${lane.state}; only merged or closed lanes are cleaned up`);
   const info = lane.threadId ? threadInfo(lane.threadId) : { state: "gone", thread: null };
   const wt = info.thread?.worktreePath && fs.existsSync(info.thread.worktreePath) ? info.thread.worktreePath : null;
-  if (wt && git(["status", "--porcelain"], wt).out) fail(`the lane's worktree ${wt} has uncommitted changes; nothing was removed`);
-  return { lane: name, state: lane.state, cleanup: cleanupLane(ctx, lane.branch, info, wt, { removeIgnored }) };
+  return { lane: name, state: lane.state, cleanup: cleanupLane(ctx, lane.branch, info, wt) };
 }
 
-// Each step reports what actually happened. A branch is deleted only when origin's default branch contains it.
-function cleanupLane(ctx, headRef, info, wt, { removeIgnored = false } = {}) {
+const laneWorktreeRoot = (ctx) => path.resolve((ctx.config.laneWorktreeRoot || "~/.t3/worktrees").replace(/^~(?=\/|$)/, os.homedir()));
+
+// Only a linked git worktree inside T3's worktree folder is a lane worktree. The main checkout never is.
+function laneWorktreeProblem(ctx, wt) {
+  const real = fs.realpathSync(wt);
+  const root = laneWorktreeRoot(ctx);
+  if (real === fs.realpathSync(ctx.main)) return "it is the main checkout";
+  if (!real.startsWith(root + path.sep)) return `it is not inside the lane worktree folder ${root}`;
+  const gitDir = git(["rev-parse", "--path-format=absolute", "--git-dir"], wt).out;
+  const commonDir = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], wt).out;
+  if (!gitDir || gitDir === commonDir) return "it is not a linked git worktree";
+  return null;
+}
+
+// Each step reports what actually happened. Nothing in the main checkout is ever deleted: it is only fast-forwarded.
+// A branch is deleted only when origin's default branch contains it; the default branch itself and the branch the
+// main checkout is on are never deleted. A lane worktree is removed only when it is a lane worktree, the default
+// branch contains its commit, and it has no uncommitted changes or new files; its ignored files go with it and are listed.
+function cleanupLane(ctx, headRef, info, wt) {
   const base = ctx.config.defaultBranch || "main";
   const steps = {};
   const fetched = git(["fetch", "-q", "origin", base], ctx.main);
@@ -315,19 +332,25 @@ function cleanupLane(ctx, headRef, info, wt, { removeIgnored = false } = {}) {
   else if (git(["merge-base", "--is-ancestor", remoteSha, `origin/${base}`], ctx.main).code) steps.remoteBranch = `${headRef}: kept, it has commits that are not in ${base}`;
   else { const remote = git(["push", "-q", `--force-with-lease=${remoteRef}:${remoteSha}`, "origin", "--delete", headRef], ctx.main); steps.remoteBranch = remote.code ? `not deleted: ${remote.err}` : `deleted ${headRef}`; }
   if (wt) {
+    const notLane = laneWorktreeProblem(ctx, wt);
     const head = git(["rev-parse", "HEAD"], wt).out;
-    const ignored = git(["status", "--porcelain", "--ignored"], wt).out.split("\n").filter((l) => l.startsWith("!! ") && !/(^|\/)node_modules\/?$/.test(l.slice(3)));
-    if (git(["merge-base", "--is-ancestor", head, `origin/${base}`], ctx.main).code) steps.worktree = `kept ${wt}: its commit ${head.slice(0, 7)} is not in ${base}`;
-    else if (ignored.length && !removeIgnored) steps.worktree = `kept ${wt}: it has ignored files (${ignored.map((l) => l.slice(3)).slice(0, 5).join(", ")}); ask the user, then rerun with --remove-ignored`;
+    const changes = git(["status", "--porcelain"], wt).out;
+    const ignored = git(["status", "--porcelain", "--ignored"], wt).out.split("\n").filter((l) => l.startsWith("!! ")).map((l) => l.slice(3));
+    if (notLane) steps.worktree = `kept ${wt}: ${notLane}`;
+    else if (git(["merge-base", "--is-ancestor", head, `origin/${base}`], ctx.main).code) steps.worktree = `kept ${wt}: its commit ${head.slice(0, 7)} is not in ${base}`;
+    else if (changes) steps.worktree = `kept ${wt}: it has uncommitted changes or new files (${changes.split("\n").map((l) => l.slice(3)).slice(0, 5).join(", ")})`;
     else {
-      const removed = git(["worktree", "remove", ...(ignored.length ? ["--force"] : []), wt], ctx.main);
-      steps.worktree = removed.code ? `not removed: ${removed.err}` : `removed ${wt}`;
+      const removed = git(["worktree", "remove", "--force", wt], ctx.main);
+      steps.worktree = removed.code ? `not removed: ${removed.err}`
+        : `removed ${wt}${ignored.length ? `; its ignored files went with it: ${ignored.slice(0, 10).join(", ")}${ignored.length > 10 ? ` and ${ignored.length - 10} more` : ""}` : ""}`;
     }
   } else {
     steps.worktree = info.state === "unknown" ? "not removed: T3 not reachable, so its path is not known" : "none found";
   }
+  const current = git(["rev-parse", "--abbrev-ref", "HEAD"], ctx.main).out;
   const branches = [...new Set([headRef, info.thread?.branch].filter(Boolean))];
   steps.localBranches = branches.map((b) => {
+    if (b === base || b === current) return `${b}: kept, it is the default branch or the main checkout's branch`;
     if (git(["rev-parse", "--verify", "-q", `refs/heads/${b}`], ctx.main).code) return `${b}: not present`;
     if (git(["merge-base", "--is-ancestor", b, `origin/${base}`], ctx.main).code) return `${b}: kept, it has commits that are not in ${base}`;
     const d = git(["branch", "-D", b], ctx.main);
