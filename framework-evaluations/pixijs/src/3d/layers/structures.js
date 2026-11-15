@@ -21,8 +21,8 @@ export function createStructures(scene) {
   const m = new MeshBuilder();
   const wet = new MeshBuilder(); // low-roughness tops (platform walking surfaces)
   const glow = new MeshBuilder();
-  /** @type {import('../stage.js').Node[]} */
-  const nodes = [];
+  /** @type {import('../stage.js').Part[]} */
+  const parts = [];
 
   /** box from world rect at depth 0, Z range z0..z1 */
   const rect = (/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ w, /** @type {number} */ h, /** @type {number} */ z0, /** @type {number} */ z1, /** @type {number} */ color, /** @type {MeshBuilder} */ b = m, top = color) =>
@@ -85,7 +85,7 @@ export function createStructures(scene) {
     blades.cylinder(0, 0, 3, -3, 3, P.steelHighlight, 8);
     const fan = new Mesh3D({ geometry: blades.build() ?? undefined, material: bladeMat, position: { x: X(f.cx), y: Y(f.cy), z: -24 } });
     fans.push(fan);
-    nodes.push(fan);
+    parts.push(fan);
   }
   for (const p of rt.pipes) pipe(p, -14, P.gunmetalLight);
 
@@ -127,13 +127,13 @@ export function createStructures(scene) {
   for (const p of st.groundPipes) pipe(p, 20, P.gunmetal);
 
   const geo = m.build();
-  if (geo) nodes.push(new Mesh3D({ geometry: geo, material: litVertexMaterial({ roughness: 0.65, metallic: 0.45 }) }));
+  if (geo) parts.push(new Mesh3D({ geometry: geo, material: litVertexMaterial({ roughness: 0.65, metallic: 0.45 }) }));
   const wg = wet.build();
-  if (wg) nodes.push(new Mesh3D({ geometry: wg, material: litVertexMaterial({ roughness: 0.12, metallic: 0.7 }) }));
+  if (wg) parts.push(new Mesh3D({ geometry: wg, material: litVertexMaterial({ roughness: 0.12, metallic: 0.7 }) }));
   const gg = glow.build();
-  if (gg) nodes.push(new Mesh3D({ geometry: gg, material: glowVertexMaterial(), castShadow: false, receiveShadow: false }));
+  if (gg) parts.push(new Mesh3D({ geometry: gg, material: glowVertexMaterial() }));
   return {
-    nodes,
+    parts,
     update(t) { fans.forEach((f, i) => { f.rotation.z = -t * (2.2 + i * 0.4); }); },
   };
 }

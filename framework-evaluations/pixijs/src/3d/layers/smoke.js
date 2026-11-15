@@ -30,7 +30,7 @@ export function createSmoke(scene) {
   const puffs = new ParticleContainer3D({ texture: softDot(), capacity, blendMode: 'normal' });
   puffs.label = 'smoke';
   return {
-    nodes: [new Mesh3D({ geometry: chimneys.build() ?? undefined, material: litVertexMaterial({ roughness: 0.7, metallic: 0.3 }), castShadow: false }), puffs],
+    parts: [new Mesh3D({ geometry: chimneys.build() ?? undefined, material: litVertexMaterial({ roughness: 0.7, metallic: 0.3 }) }), puffs],
     info: { smokeParticles: capacity },
     update(t) {
       let slot = 0;

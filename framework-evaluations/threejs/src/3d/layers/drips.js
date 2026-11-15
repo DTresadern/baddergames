@@ -78,5 +78,5 @@ export function createDrips(scene, ctx) {
     mesh.frustumCulled = false;
     group.add(mesh);
   }
-  return { object: group };
+  return { parts: [group] };
 }

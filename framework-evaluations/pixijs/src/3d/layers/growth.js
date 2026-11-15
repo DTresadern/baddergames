@@ -43,13 +43,13 @@ export function createGrowth(scene) {
   glows.upload();
 
   return {
-    nodes: [
+    parts: [
       new Mesh3D({ geometry: rock.build() ?? undefined, material: litVertexMaterial({ roughness: 0.75, metallic: 0.05 }) }),
       new Mesh3D({
         geometry: tendrils.build() ?? undefined,
         material: new Material3D({ baseColor: 0xffffff, vertexColors: true, roughness: 0.25, metallic: 0.1, emissive: { color: P.growth, strength: 0.25 } }),
       }),
-      new Mesh3D({ geometry: pods.build() ?? undefined, material: glowVertexMaterial(), castShadow: false }),
+      new Mesh3D({ geometry: pods.build() ?? undefined, material: glowVertexMaterial() }),
       glows.node,
     ],
   };

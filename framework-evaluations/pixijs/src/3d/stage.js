@@ -6,11 +6,15 @@
 // straight down -Z, so an element at depth d moves with the 2D parallax factor 1 / (1 + d) and
 // fills the same part of the frame as in the 2D builds.
 //
-// Layer contract (every module in layers/ follows it):
-//   export function createX(scene, ctx) -> { nodes: Container3D[], update?(t) }
-// main.js adds every node under one content container. Materials whose shader bits animate
-// register in ctx.timed; main.js writes `data.time` on them each frame, because the
-// built-in `uTime` of @pixi/3d is performance.now() and cannot be frozen for `?t=`.
+// Layer contract (every module in layers/ follows it; the three.js 3D build uses the same):
+//   export function createX(scene, ctx?) -> { parts: Part[], update?(t), info? }
+//   Part = Container3D; ctx only for layers that need it
+// main.js adds every part under one root container in the view; nothing is shifted per
+// frame for parallax. `info` goes to the bench hook. The mist is the one exception: a screen
+// overlay of 2D parts that main.js adds to the stage above the view (Overlay below).
+// Materials whose shader bits animate register in ctx.timed; main.js writes `data.time` on
+// them each frame, because the built-in `uTime` of @pixi/3d is performance.now() and cannot
+// be frozen for `?t=`.
 
 /** Vertical field of view in degrees. */
 export const FOV = 45;
@@ -27,8 +31,9 @@ export const Z = (depth) => -depth * D;
 export const S = (v, depth = 0) => v * (1 + depth);
 
 /**
- * @typedef {import('@pixi/3d').Container3D} Node
- * @typedef {{ nodes: Node[], update?: (t: number) => void, info?: Record<string, number> }} Layer
+ * @typedef {import('@pixi/3d').Container3D} Part
+ * @typedef {{ parts: Part[], update?: (t: number) => void, info?: Record<string, number> }} Layer
+ * @typedef {{ parts: import('pixi.js').Container[], update: (t: number) => void }} Overlay
  * @typedef {{ data: Record<string, any> }} TimedMaterial
  * @typedef {{
  *   timed: TimedMaterial[],

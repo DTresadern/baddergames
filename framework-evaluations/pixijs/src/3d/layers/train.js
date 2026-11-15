@@ -54,17 +54,17 @@ export function createTrain(scene) {
 
   const train = new Container3D({ label: 'train' });
   train.addChild(
-    new Mesh3D({ geometry: body.build() ?? undefined, material: litVertexMaterial({ roughness: 0.5, metallic: 0.6 }), castShadow: false }),
-    new Mesh3D({ geometry: win.build() ?? undefined, material: glowVertexMaterial(), castShadow: false, receiveShadow: false }),
+    new Mesh3D({ geometry: body.build() ?? undefined, material: litVertexMaterial({ roughness: 0.5, metallic: 0.6 }) }),
+    new Mesh3D({ geometry: win.build() ?? undefined, material: glowVertexMaterial() }),
     glows.node,
   );
-  const nodes = [
-    new Mesh3D({ geometry: track.build() ?? undefined, material: litVertexMaterial({ roughness: 0.7, metallic: 0.4 }), castShadow: false }),
-    new Mesh3D({ geometry: trackLamps.build() ?? undefined, material: glowVertexMaterial(), castShadow: false, receiveShadow: false }),
+  const parts = [
+    new Mesh3D({ geometry: track.build() ?? undefined, material: litVertexMaterial({ roughness: 0.7, metallic: 0.4 }) }),
+    new Mesh3D({ geometry: trackLamps.build() ?? undefined, material: glowVertexMaterial() }),
     train,
   ];
   return {
-    nodes,
+    parts,
     update(t) { train.position.x = X(trainX(scene, t), d); },
   };
 }

@@ -108,5 +108,5 @@ export function createRain(scene, ctx) {
   mesh.frustumCulled = false;
   mesh.visible = n > 0;
   mesh.renderOrder = 20; // after the other transparent layers
-  return { object: mesh };
+  return { parts: [mesh] };
 }

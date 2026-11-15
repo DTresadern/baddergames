@@ -104,7 +104,7 @@ export function createDrone(scene, ctx) {
 
   const apex = new THREE.Vector3(), dir = new THREE.Vector3();
   return {
-    object: g,
+    parts: [g],
     update(t) {
       const s = droneState(scene, t);
       craft.position.set(lx(s.x), ly(s.y), 0);

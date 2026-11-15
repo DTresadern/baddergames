@@ -107,17 +107,17 @@ export function createBridge(scene) {
     }
   }
 
-  const nodes = [
+  const parts = [
     new Mesh3D({ geometry: m.build() ?? undefined, material: litVertexMaterial({ roughness: 0.6, metallic: 0.5 }) }),
     // the wet walking surface: smooth and metallic so the lamps and sky show in it
-    new Mesh3D({ geometry: deck.build() ?? undefined, material: new Material3D({ baseColor: 0xffffff, vertexColors: true, roughness: 0.07, metallic: 0.85 }), castShadow: false }),
-    new Mesh3D({ geometry: stripes.build() ?? undefined, material: litVertexMaterial({ roughness: 0.35, metallic: 0.2 }), castShadow: false }),
+    new Mesh3D({ geometry: deck.build() ?? undefined, material: new Material3D({ baseColor: 0xffffff, vertexColors: true, roughness: 0.07, metallic: 0.85 }) }),
+    new Mesh3D({ geometry: stripes.build() ?? undefined, material: litVertexMaterial({ roughness: 0.35, metallic: 0.2 }) }),
     new Mesh3D({ geometry: rail.build() ?? undefined, material: litVertexMaterial({ roughness: 0.4, metallic: 0.6 }) }),
-    new Mesh3D({ geometry: reds.build() ?? undefined, material: new Material3D({ baseColor: 0x200000, emissive: { color: P.warningRed, strength: 2.5 } }), castShadow: false }),
+    new Mesh3D({ geometry: reds.build() ?? undefined, material: new Material3D({ baseColor: 0x200000, emissive: { color: P.warningRed, strength: 2.5 } }) }),
     glows.node,
   ];
   return {
-    nodes,
+    parts,
     update(t) { glows.upload((i) => redBlink(i, t)); },
   };
 }

@@ -15,8 +15,8 @@ import { D, deckTopAt } from '../stage.js';
  */
 export function createHunters(scene) {
   const P = scene.palette;
-  /** @type {import('../stage.js').Node[]} */
-  const nodes = [];
+  /** @type {import('../stage.js').Part[]} */
+  const parts = [];
   const glows = createGlows(scene.hunters.length);
   const material = litVertexMaterial({ roughness: 0.55, metallic: 0.35 });
   scene.hunters.forEach((h, idx) => {
@@ -59,10 +59,10 @@ export function createHunters(scene) {
       scale: { x: s * h.facing, y: s, z: s },
     });
     node.addChild(new Mesh3D({ geometry: b.build() ?? undefined, material }));
-    nodes.push(node);
+    parts.push(node);
     glows.add((h.x - 600) * k + (tip[0] + 2) * s * h.facing, deckTopAt(z) + tip[1] * s, z + 8, 14 * s, P.muzzle, 0.9);
   });
   glows.upload();
-  nodes.push(glows.node);
-  return { nodes };
+  parts.push(glows.node);
+  return { parts };
 }

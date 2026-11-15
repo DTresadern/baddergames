@@ -52,8 +52,8 @@ export function createClutter(scene) {
     }
     return m;
   };
-  /** @type {import('../stage.js').Node[]} */
-  const nodes = [];
+  /** @type {import('../stage.js').Part[]} */
+  const parts = [];
   scene.clutter.forEach((it, i) => {
     const feet = it.y + it.h;
     const onDeck = feet === DECK.backY;
@@ -62,12 +62,12 @@ export function createClutter(scene) {
     const k = (D - z) / D;
     const barrelItem = it.kind === 'barrel';
     const depth = barrelItem ? it.w : it.w * 0.8;
-    nodes.push(new Mesh3D({
+    parts.push(new Mesh3D({
       geometry: barrelItem ? barrel : crate,
       material: matFor(it.tint, barrelItem),
       position: { x: (it.x + it.w / 2 - 600) * k, y: standY(feet, z), z },
       scale: { x: it.w * k, y: it.h * k, z: depth * k },
     }));
   });
-  return { nodes, info: { clutterMeshes: nodes.length } };
+  return { parts, info: { clutterMeshes: parts.length } };
 }

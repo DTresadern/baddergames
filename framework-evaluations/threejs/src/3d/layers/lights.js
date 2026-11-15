@@ -66,7 +66,7 @@ export function createLights(scene, ctx) {
   group.add(halos.build({ time: ctx.time, core: 0.05 }));
 
   return {
-    object: group,
+    parts: [group],
     update(t) {
       for (const l of lights) l.light.intensity = l.base * lampFlicker(l.i, t);
     },

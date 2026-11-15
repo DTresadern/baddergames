@@ -84,7 +84,7 @@ export function createSmoke(scene) {
     emitters.push({ stack, count, a, b });
   }
   return {
-    object: root,
+    parts: [root],
     update(t) {
       for (const e of emitters) {
         const pa = /** @type {Float32Array} */ (e.a.array), pb = /** @type {Float32Array} */ (e.b.array);

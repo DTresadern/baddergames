@@ -34,7 +34,7 @@ export function createDrone(scene, ctx) {
   b.box(-6, -h / 2 - 8, -4, 6, -h / 2, 4, P.gunmetalDark); // gimbal
   b.box(w / 2 - 2, -4, -5, w / 2 + 4, 4, 5, P.gunmetalDark); // lamp housing
   const body = new Container3D({ label: 'drone', scale: { x: 1 + d, y: 1 + d, z: 1 + d } });
-  body.addChild(new Mesh3D({ geometry: b.build() ?? undefined, material: litVertexMaterial({ roughness: 0.4, metallic: 0.7 }), castShadow: false }));
+  body.addChild(new Mesh3D({ geometry: b.build() ?? undefined, material: litVertexMaterial({ roughness: 0.4, metallic: 0.7 }) }));
 
   // visible cone: unit cone along +Z (apex at origin, length 1), alpha fades to the far end
   const c = new MeshBuilder();
@@ -54,7 +54,7 @@ export function createDrone(scene, ctx) {
   }
   const coneMat = new FlatMaterial({ baseColor: dr.color, vertexColors: true, alphaMode: 'blend', doubleSided: true });
   coneMat.state.blendMode = 'add';
-  const cone = new Mesh3D({ geometry: c.build() ?? undefined, material: coneMat, castShadow: false, receiveShadow: false });
+  const cone = new Mesh3D({ geometry: c.build() ?? undefined, material: coneMat });
   cone.label = 'drone-cone';
 
   const spot = new SpotLight({
@@ -63,13 +63,12 @@ export function createDrone(scene, ctx) {
     range: 2200,
     coneAngle: (dr.coneHalfAngle * 180) / Math.PI * 1.6,
     penumbra: 0.5,
-    castShadow: true,
   });
   const glows = createGlows(2);
   const target = { x: 0, y: 0, z: 0 };
 
   return {
-    nodes: [spot, body, cone, glows.node],
+    parts: [spot, body, cone, glows.node],
     update(t) {
       const s = droneState(scene, t);
       const px = X(s.x, d), py = Y(s.y, d), pz = Z(d);

@@ -80,5 +80,5 @@ export function createBillboards(scene, ctx) {
     g.add(glow.build({ time: ctx.time }));
     root.add(g);
   }
-  return { object: root };
+  return { parts: [root] };
 }

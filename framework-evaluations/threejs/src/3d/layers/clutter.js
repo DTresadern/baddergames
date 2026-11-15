@@ -47,5 +47,5 @@ export function createClutter(scene) {
     crates.build(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.45 })),
     barrels.build(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.5 })),
   );
-  return { object: group };
+  return { parts: [group] };
 }

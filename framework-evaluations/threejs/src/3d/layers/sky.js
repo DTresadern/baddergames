@@ -1,6 +1,6 @@
 // @ts-check
-// Sky: a gradient background texture. Mist: a soft rain veil and
-// vignette on a quad attached to the camera (in front of everything).
+// Sky: a gradient background texture. Mist: a soft rain veil and vignette on a screen
+// quad that main.js attaches to the camera, drawn after everything.
 
 import * as THREE from 'three';
 import { frustumRect } from '../stage.js';
@@ -12,10 +12,10 @@ import { NOISE_GLSL, fragmentTail } from '../effects/materials.js';
  * texel per world y) that fills the frame behind everything and does not move with the
  * camera, like the 2D sky.
  * @param {import('@fw-eval/shared/scene.js').Scene} scene
- * @param {THREE.Scene} scene3
+ * @param {import('../stage.js').Ctx} ctx
  * @returns {import('../stage.js').Layer}
  */
-export function createSky(scene, scene3) {
+export function createSky(scene, ctx) {
   const H = scene.world.height;
   const data = new Uint8Array(H * 4);
   const stops = scene.sky.stops;
@@ -31,17 +31,16 @@ export function createSky(scene, scene3) {
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.magFilter = THREE.LinearFilter;
   tex.needsUpdate = true;
-  scene3.background = tex;
-  return { object: new THREE.Group() };
+  ctx.root.background = tex;
+  return { parts: [] };
 }
 
 /**
  * @param {import('@fw-eval/shared/scene.js').Scene} scene
  * @param {import('../stage.js').Ctx} ctx
- * @param {THREE.Camera} camera
- * @returns {import('../stage.js').Layer}
+ * @returns {import('../stage.js').Layer} parts in camera space: add them to the camera
  */
-export function createMist(scene, ctx, camera) {
+export function createMist(scene, ctx) {
   const dist = 60;
   const r = frustumRect(dist);
   const geo = new THREE.PlaneGeometry(r.right - r.left, r.top - r.bottom);
@@ -83,6 +82,5 @@ export function createMist(scene, ctx, camera) {
   mesh.position.set((r.left + r.right) / 2, (r.top + r.bottom) / 2, -dist);
   mesh.renderOrder = 1000;
   mesh.frustumCulled = false;
-  camera.add(mesh);
-  return { object: camera };
+  return { parts: [mesh] };
 }

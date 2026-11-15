@@ -173,7 +173,7 @@ export function createStructures(scene, ctx) {
   root.add(front);
 
   return {
-    object: root,
+    parts: [root],
     update(t) { fans.forEach((m, i) => { m.rotation.z = -t * (2.2 + i * 0.4); }); },
   };
 }

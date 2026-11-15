@@ -49,8 +49,8 @@ const screenBit = {
  * @returns {import('../stage.js').Layer}
  */
 export function createBillboards(scene, ctx) {
-  /** @type {import('../stage.js').Node[]} */
-  const nodes = [];
+  /** @type {import('../stage.js').Part[]} */
+  const parts = [];
   const frame = new MeshBuilder();
   const glows = createGlows(scene.billboards.length * 2);
   for (const bb of scene.billboards) {
@@ -65,19 +65,17 @@ export function createBillboards(scene, ctx) {
     material.data.colorA = new Color(bb.colorA).toArray();
     material.data.colorB = new Color(bb.colorB).toArray();
     ctx.timed.push(material);
-    nodes.push(new Mesh3D({
+    parts.push(new Mesh3D({
       geometry: new PlaneGeometry({ width: S(bb.w, d), height: S(bb.h, d) }),
       material,
       position: { x: X(bb.x + bb.w / 2, d), y: Y(bb.y + bb.h / 2, d), z: z + S(0.2, d) },
-      castShadow: false,
-      receiveShadow: false,
     }));
     const cx = X(bb.x + bb.w / 2, d), cy = Y(bb.y + bb.h / 2, d);
     glows.add(cx, cy, z + S(4, d), S(bb.w * 1.6, d), bb.colorA, 0.32);
     glows.add(cx, cy - S(bb.h * 0.4, d), z + S(4, d), S(bb.w * 1.1, d), bb.colorB, 0.22);
   }
   glows.upload();
-  nodes.push(new Mesh3D({ geometry: frame.build() ?? undefined, material: litVertexMaterial({ roughness: 0.6, metallic: 0.5 }), castShadow: false }));
-  nodes.push(glows.node);
-  return { nodes };
+  parts.push(new Mesh3D({ geometry: frame.build() ?? undefined, material: litVertexMaterial({ roughness: 0.6, metallic: 0.5 }) }));
+  parts.push(glows.node);
+  return { parts };
 }

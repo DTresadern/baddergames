@@ -87,5 +87,5 @@ export function createGrowth(scene, ctx) {
   group.add(pods.build(new THREE.MeshBasicMaterial({ color: 0xffffff })));
   group.add(glows.build({ time: ctx.time }));
 
-  return { object: group };
+  return { parts: [group] };
 }

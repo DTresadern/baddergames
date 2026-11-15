@@ -12,10 +12,9 @@ import { hazed, hazeAt, lerpColor } from '@fw-eval/shared/scene.js';
 
 /**
  * @param {import('@fw-eval/shared/scene.js').Scene} scene
- * @param {import('../stage.js').Ctx} _ctx
  * @returns {import('../stage.js').Layer}
  */
-export function createCity(scene, _ctx) {
+export function createCity(scene) {
   const P = scene.palette;
   const root = new THREE.Group();
   const bodyMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
@@ -74,5 +73,5 @@ export function createCity(scene, _ctx) {
     g.add(fog);
     root.add(g);
   });
-  return { object: root };
+  return { parts: [root] };
 }

@@ -1,11 +1,11 @@
 // @ts-check
 // PixiJS 3D build (pixi.js + @pixi/3d): bootstrap, bench hook wiring and the frame loop.
 //
-// Structure (mirrors threejs/src/2d):
+// Structure (same in every build):
 //   main.js     this file: application, View3D, camera, lights, layer assembly, loop
 //   stage.js    world -> 3D mapping (X, Y, Z, S, P3), the deck slope, per-frame context
-//   layers/     one module per scene element group, each returns { nodes, update? }
-//   effects/    MeshBuilder (merged procedural geometry), shared materials, glow sprites
+//   layers/     one module per scene element group, each returns { parts, update? }
+//   effects/    MeshBuilder (merged procedural geometry), materials, glow sprites
 //
 // Page options come from the URL (see shared/stress.js parseStress):
 //   3d.html?rain=4000&lights=8&objects=1&seed=1&t=12   (t freezes time for screenshots)
@@ -15,10 +15,10 @@
 
 import { installBench } from '@fw-eval/shared/bench-hook.js';
 import { Application, VERSION } from 'pixi.js';
-import { Container3D, DirectionalLight, View3D } from '@pixi/3d';
+import { Container3D, DirectionalLight, Mesh3D, View3D } from '@pixi/3d';
 import { buildScene, cameraX } from '@fw-eval/shared/scene.js';
 import { D, FOV, createCtx } from './stage.js';
-import { createSky } from './layers/sky.js';
+import { createSky, createMist } from './layers/sky.js';
 import { createCity } from './layers/city.js';
 import { createTrain } from './layers/train.js';
 import { createBillboards } from './layers/billboards.js';
@@ -39,8 +39,8 @@ const WIDTH = 1800, HEIGHT = 600; // canvas pixels, 3:1, resolution 1
 // (no renderer.info equivalent), so only the hook's own WebGL count is reported.
 const bench = installBench({ framework: 'pixijs', mode: '3d', version: `pixi.js ${VERSION} + @pixi/3d 0.1.0` });
 const { stress, seed, t: frozenT } = bench.params;
-const world = buildScene(seed, stress);
-const P = world.palette;
+const scene = buildScene(seed, stress);
+const P = scene.palette;
 
 const app = new Application();
 await app.init({
@@ -76,7 +76,6 @@ const view = new View3D({
   environment: { skyColor: 0x56667e, groundColor: 0x1a1c22, intensity: 1.1 },
   fog: { type: 'exponential', color: 0x3c4a62, density: 0.12 / D },
   toneMapping: 'none',
-  shadowQuality: 'medium',
 });
 app.stage.addChild(view);
 
@@ -86,32 +85,40 @@ camera.near = 20;
 camera.far = D * 14;
 camera.position.set(0, 0, D);
 
+// No shadows, as in the three.js 3D build: no light has castShadow on, so @pixi/3d skips its
+// shadow pass. Mesh3D casts by default, which only puts a mesh in the shadow draw lists;
+// off here so meshes stay out of them.
+Mesh3D.defaultOptions.castShadow = false;
+
 const ctx = createCtx();
-// cool moonlight from the upper left: shapes the boxes, no shadows (its box would span the whole city)
+// cool moonlight from the upper left, to shape the boxes
 const moon = new DirectionalLight({ color: 0x9fb4d8, intensity: 1.1 });
 moon.rotation.set(-0.7, -0.5, 0);
 const layers = [
-  createSky(world),
-  createCity(world),
-  createTrain(world),
-  createBillboards(world, ctx),
-  createSmoke(world),
-  createStructures(world),
-  createBridge(world),
-  createClutter(world),
-  createGrowth(world),
-  createHunters(world),
+  createSky(scene),
+  createCity(scene),
+  createTrain(scene),
+  createBillboards(scene, ctx),
+  createSmoke(scene),
+  createStructures(scene),
+  createBridge(scene),
+  createClutter(scene),
+  createGrowth(scene),
+  createHunters(scene),
   // the drone (its spot light) before the lamps: past 32 lights the last ones are dropped
-  createDrone(world, ctx),
-  createLights(world),
-  createDrips(world),
-  createRain(world, ctx),
+  createDrone(scene, ctx),
+  createLights(scene),
+  createDrips(scene),
+  createRain(scene, ctx),
 ];
-// view.root also holds the camera; keep content in its own container
-const content = new Container3D({ label: 'content' });
-content.addChild(moon);
-for (const l of layers) for (const n of l.nodes) content.addChild(n);
-view.root.addChild(content);
+// view.root also holds the camera; the scene goes in its own container
+const root = new Container3D({ label: 'root' });
+root.addChild(moon);
+for (const l of layers) for (const p of l.parts) root.addChild(p);
+view.root.addChild(root);
+// the mist is a screen overlay: 2D on the stage after the view, so it draws after the 3D scene
+const mist = createMist(scene);
+for (const p of mist.parts) app.stage.addChild(p);
 
 /** @type {Record<string, number>} */
 const info = {};
@@ -121,13 +128,14 @@ bench.setInfo({ ...info, lightsShadedMax: 32, cameraDistance: Math.round(D) });
 const start = performance.now();
 let first = true;
 
-function frame() {
-  requestAnimationFrame(frame);
+function loop() {
+  requestAnimationFrame(loop);
   bench.frameBegin();
   const t = frozenT ?? (performance.now() - start) / 1000;
-  camera.position.x = cameraX(world, t);
+  camera.position.x = cameraX(scene, t);
   for (const m of ctx.timed) m.data.time = t;
   for (const l of layers) l.update?.(t);
+  mist.update(t);
   app.renderer.render(app.stage);
   bench.frameEnd();
   if (first) {
@@ -135,4 +143,4 @@ function frame() {
     bench.markFirstFrame();
   }
 }
-requestAnimationFrame(frame);
+requestAnimationFrame(loop);

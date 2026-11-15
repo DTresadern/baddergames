@@ -70,5 +70,5 @@ export function createHunters(scene, ctx) {
   group.add(body.build(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.1, envMap: ctx.env, envMapIntensity: 0.5 })));
   group.add(glowParts.build(new THREE.MeshBasicMaterial({ vertexColors: true })));
   group.add(glows.build({ time: ctx.time, core: 0.3 }));
-  return { object: group };
+  return { parts: [group] };
 }

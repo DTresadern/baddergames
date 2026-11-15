@@ -17,8 +17,8 @@ const unitCube = new CubeGeometry({ width: 1, height: 1, depth: 1 });
  */
 export function createCity(scene) {
   const P = scene.palette;
-  /** @type {import('../stage.js').Node[]} */
-  const nodes = [];
+  /** @type {import('../stage.js').Part[]} */
+  const parts = [];
   let slotsTotal = 0;
   for (const layer of scene.city) {
     const d = layer.depth;
@@ -62,13 +62,13 @@ export function createCity(scene) {
         put(batch, slot++, mat, m.makeScale(w, h, w).setPosition({ x: X(a.x, d), y: Y(top, d) + h / 2, z: z - thick / 4 }));
       }
     }
-    nodes.push(batch);
+    parts.push(batch);
     const wg = windows.build();
-    if (wg) nodes.push(new Mesh3D({ geometry: wg, material: glowVertexMaterial(), castShadow: false, receiveShadow: false }));
+    if (wg) parts.push(new Mesh3D({ geometry: wg, material: glowVertexMaterial() }));
     const dg = domes.build();
-    if (dg) nodes.push(new Mesh3D({ geometry: dg, material: litVertexMaterial({ roughness: 0.6, metallic: 0.4 }), castShadow: false }));
+    if (dg) parts.push(new Mesh3D({ geometry: dg, material: litVertexMaterial({ roughness: 0.6, metallic: 0.4 }) }));
   }
-  return { nodes, info: { citySlots: slotsTotal } };
+  return { parts, info: { citySlots: slotsTotal } };
 }
 
 /**

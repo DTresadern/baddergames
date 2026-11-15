@@ -68,5 +68,5 @@ export function createBridge(scene, ctx) {
   }
   group.add(cables.build(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4 })));
 
-  return { object: group };
+  return { parts: [group] };
 }

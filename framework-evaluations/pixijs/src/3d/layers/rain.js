@@ -92,11 +92,11 @@ export function createRain(scene, ctx) {
   material.data.litColor = new Color(scene.palette.amberPale).toArray();
   material.data.cone = [0, 0, 0, 0];
   ctx.timed.push(material);
-  const mesh = new Mesh3D({ geometry, material, castShadow: false, receiveShadow: false });
+  const mesh = new Mesh3D({ geometry, material });
   mesh.label = 'rain';
   mesh.visible = n > 0;
   return {
-    nodes: [mesh],
+    parts: [mesh],
     info: { rainDrops: n },
     update() {
       const c = ctx.cone;

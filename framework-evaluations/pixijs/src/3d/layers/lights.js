@@ -53,14 +53,14 @@ export function createLights(scene) {
     });
     lights.push(light);
   });
-  const nodes = [
-    new Mesh3D({ geometry: fixtures.build() ?? undefined, material: litVertexMaterial({ roughness: 0.5, metallic: 0.6 }), castShadow: false }),
-    new Mesh3D({ geometry: bulbs.build() ?? undefined, material: glowVertexMaterial(), castShadow: false, receiveShadow: false }),
+  const parts = [
+    new Mesh3D({ geometry: fixtures.build() ?? undefined, material: litVertexMaterial({ roughness: 0.5, metallic: 0.6 }) }),
+    new Mesh3D({ geometry: bulbs.build() ?? undefined, material: glowVertexMaterial() }),
     glows.node,
     ...lights,
   ];
   return {
-    nodes,
+    parts,
     info: { lamps: scene.lamps.length },
     update(t) {
       const base = scene.lamps;

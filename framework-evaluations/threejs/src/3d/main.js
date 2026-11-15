@@ -1,10 +1,10 @@
 // @ts-check
 // three.js 3D build: bootstrap, bench hook wiring and the frame loop.
 //
-// Structure (mirrors src/2d):
+// Structure (same in every build):
 //   main.js     this file: renderer, camera, post-processing, layer assembly, loop
 //   stage.js    world -> 3D mapping (depthGroup), camera constants, per-frame context
-//   layers/     one module per scene element group, each returns { object, update? }
+//   layers/     one module per scene element group, each returns { parts, update? }
 //   effects/    batching (InstancedMesh / merged geometry), halos, materials, fog
 //
 // Page options come from the URL (see shared/stress.js parseStress):
@@ -82,42 +82,49 @@ camera.position.set(0, CAM_H, D);
   camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
 }
 
-const world = buildScene(seed, stress);
-const scene3 = new THREE.Scene();
-scene3.add(camera); // the mist overlay is a child of the camera
-installHazeFog(scene3, world);
-const ctx = createCtx();
-ctx.env = createEnvironment(renderer, world);
+const scene = buildScene(seed, stress);
+const root = new THREE.Scene();
+root.add(camera); // the mist overlay is a child of the camera
+installHazeFog(root, scene);
+const ctx = createCtx(root);
+ctx.env = createEnvironment(renderer, scene);
 
 // ambient: bruised-navy sky light from above, near-black bounce from below, and a cold
 // rim light from the hazy city behind
-scene3.add(new THREE.HemisphereLight(0x5a6c90, 0x0c0d10, 1.4));
+root.add(new THREE.HemisphereLight(0x5a6c90, 0x0c0d10, 1.4));
 const rim = new THREE.DirectionalLight(0x8090b0, 0.9);
 rim.position.set(-300, 500, -600);
-scene3.add(rim);
+root.add(rim);
 // weak cold fill from the camera side so the figures and crates read as forms
 const fill = new THREE.DirectionalLight(0x7f8db0, 0.7);
 fill.position.set(-200, 300, 800);
-scene3.add(fill);
+root.add(fill);
 
 const layers = [
-  createSky(world, scene3),
-  createCity(world, ctx),
-  createTrain(world, ctx),
-  createBillboards(world, ctx),
-  createSmoke(world),
-  createStructures(world, ctx),
-  createBridge(world, ctx),
-  createClutter(world),
-  createGrowth(world, ctx),
-  createHunters(world, ctx),
-  createLights(world, ctx),
-  createDrone(world, ctx),
-  createDrips(world, ctx),
-  createRain(world, ctx),
-  createMist(world, ctx, camera),
+  createSky(scene, ctx),
+  createCity(scene),
+  createTrain(scene, ctx),
+  createBillboards(scene, ctx),
+  createSmoke(scene),
+  createStructures(scene, ctx),
+  createBridge(scene, ctx),
+  createClutter(scene),
+  createGrowth(scene, ctx),
+  createHunters(scene, ctx),
+  createLights(scene, ctx),
+  createDrone(scene, ctx),
+  createDrips(scene, ctx),
+  createRain(scene, ctx),
 ];
-for (const l of layers) if (l.object.parent === null) scene3.add(l.object);
+for (const l of layers) for (const p of l.parts) root.add(p);
+// the mist is a screen overlay: its quad rides on the camera and draws after everything
+const mist = createMist(scene, ctx);
+for (const p of mist.parts) camera.add(p);
+layers.push(mist);
+
+/** @type {Record<string, number>} */
+const info = {};
+for (const l of layers) Object.assign(info, l.info ?? {});
 
 /** @type {EffectComposer | null} */
 let composer = null;
@@ -126,7 +133,7 @@ if (useBloom) {
   composer = new EffectComposer(renderer, target);
   composer.setPixelRatio(1);
   composer.setSize(WIDTH, HEIGHT);
-  composer.addPass(new RenderPass(scene3, camera));
+  composer.addPass(new RenderPass(root, camera));
   // threshold 1.0: only emissive surfaces pushed above 1 (lamps, windows, screens, pods) bloom
   composer.addPass(new UnrealBloomPass(new THREE.Vector2(WIDTH / 2, HEIGHT / 2), 0.7, 0.45, 1.0));
   composer.addPass(new OutputPass());
@@ -135,26 +142,27 @@ if (useBloom) {
 const start = performance.now();
 let first = true;
 
-function frame() {
-  requestAnimationFrame(frame);
+function loop() {
+  requestAnimationFrame(loop);
   bench.frameBegin();
   renderer.info.reset();
   const t = frozenT ?? (performance.now() - start) / 1000;
   ctx.time.value = t;
-  camera.position.x = cameraX(world, t);
+  camera.position.x = cameraX(scene, t);
   for (const l of layers) l.update?.(t);
   if (composer) composer.render();
-  else renderer.render(scene3, camera);
+  else renderer.render(root, camera);
   bench.frameEnd();
   if (first) {
     first = false;
     bench.markFirstFrame();
     bench.setInfo({
+      ...info,
       triangles: renderer.info.render.triangles,
       programs: renderer.info.programs?.length ?? null,
       bloom: useBloom,
-      pointLights: world.lamps.length,
+      pointLights: scene.lamps.length,
     });
   }
 }
-requestAnimationFrame(frame);
+requestAnimationFrame(loop);

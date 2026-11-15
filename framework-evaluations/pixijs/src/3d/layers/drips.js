@@ -20,7 +20,7 @@ export function createDrips(scene) {
   dots.label = 'drips';
   const water = scene.drips.color;
   return {
-    nodes: [dots],
+    parts: [dots],
     update(t) {
       let slot = 0;
       for (const drip of drips) {

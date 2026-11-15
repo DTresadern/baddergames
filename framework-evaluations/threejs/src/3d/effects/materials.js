@@ -17,32 +17,32 @@ import { makeRng } from '@fw-eval/shared/rng.js';
  *   opacity(depth) = maxOpacity * (1 - exp(-falloff * depth)),  colour near -> far over depth 0..10
  * so the fog_fragment chunk is replaced (this page only) with that curve. vFogDepth is the
  * view-space distance along the camera axis = D * (1 + depth); fogNear = D, fogFar = D.
- * @param {THREE.Scene} scene3
- * @param {import('@fw-eval/shared/scene.js').Scene} world
+ * @param {THREE.Scene} root
+ * @param {import('@fw-eval/shared/scene.js').Scene} scene
  */
-export function installHazeFog(scene3, world) {
-  const far = new THREE.Color(world.haze.far);
+export function installHazeFog(root, scene) {
+  const far = new THREE.Color(scene.haze.far);
   /** @param {number} v */
   const f = (v) => v.toFixed(5);
   THREE.ShaderChunk.fog_fragment = /* glsl */ `
 #ifdef USE_FOG
   float hazeDepth = max(0.0, vFogDepth - fogNear) / fogFar;
-  float fogFactor = ${f(world.haze.maxOpacity)} * (1.0 - exp(-${f(world.haze.falloff)} * hazeDepth));
+  float fogFactor = ${f(scene.haze.maxOpacity)} * (1.0 - exp(-${f(scene.haze.falloff)} * hazeDepth));
   vec3 hazeColor = mix(fogColor, vec3(${f(far.r)}, ${f(far.g)}, ${f(far.b)}), clamp(hazeDepth / 10.0, 0.0, 1.0));
   gl_FragColor.rgb = mix(gl_FragColor.rgb, hazeColor, fogFactor);
 #endif
 `;
-  scene3.fog = new THREE.Fog(world.haze.near, D, D);
+  root.fog = new THREE.Fog(scene.haze.near, D, D);
 }
 
 /**
  * Procedural environment for reflections: a gradient sky dome with amber and billboard
  * glows near the horizon, baked once with PMREMGenerator.
  * @param {THREE.WebGLRenderer} renderer
- * @param {import('@fw-eval/shared/scene.js').Scene} world
+ * @param {import('@fw-eval/shared/scene.js').Scene} scene
  */
-export function createEnvironment(renderer, world) {
-  const P = world.palette;
+export function createEnvironment(renderer, scene) {
+  const P = scene.palette;
   const env = new THREE.Scene();
   const sky = new THREE.SphereGeometry(100, 32, 16);
   const pos = sky.getAttribute('position');

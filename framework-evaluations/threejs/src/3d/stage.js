@@ -11,9 +11,11 @@
 // rectangle x 0..1200, y 0..400. A sideways camera move by cameraX(t) then gives the 2D
 // parallax factor 1 / (1 + depth) from real perspective.
 //
-// Layer contract (every module in layers/ follows it):
-//   export function createX(scene, ctx) -> { object: THREE.Object3D, update?(t) }
-// main.js adds every object to the scene once; nothing is shifted per frame for parallax.
+// Layer contract (every module in layers/ follows it; the PixiJS 3D build uses the same):
+//   export function createX(scene, ctx?) -> { parts: Part[], update?(t), info? }
+//   Part = THREE.Object3D; ctx only for layers that need it
+// main.js adds every part to the scene graph once (the mist's to the camera: it is a screen
+// overlay); nothing is shifted per frame for parallax. `info` goes to the bench hook.
 
 import * as THREE from 'three';
 
@@ -65,22 +67,25 @@ export function frustumRect(dist) {
 }
 
 /**
- * @typedef {{ object: import('three').Object3D, update?: (t: number) => void }} Layer
+ * @typedef {import('three').Object3D} Part
+ * @typedef {{ parts: Part[], update?: (t: number) => void, info?: Record<string, number> }} Layer
  * @typedef {{
+ *   root: import('three').Scene,
  *   time: import('three').IUniform<number>,
  *   coneApex: import('three').IUniform<import('three').Vector3>,
  *   coneDir: import('three').IUniform<import('three').Vector3>,
  *   coneParams: import('three').IUniform<import('three').Vector2>,
  *   env: import('three').Texture | null,
  * }} Ctx
- *   time: seconds. cone*: the drone searchlight in world space (apex, unit direction,
+ *   root: the scene graph (the sky layer sets its background). time: seconds. cone*: the drone searchlight in world space (apex, unit direction,
  *   (cos of the half-angle, length)); the rain shader lights drops inside it.
  *   env: procedural environment map for wet reflections (set by main.js).
  */
 
-/** @returns {Ctx} */
-export function createCtx() {
+/** @param {THREE.Scene} root @returns {Ctx} */
+export function createCtx(root) {
   return {
+    root,
     time: { value: 0 },
     coneApex: { value: new THREE.Vector3() },
     coneDir: { value: new THREE.Vector3(1, 0, 0) },

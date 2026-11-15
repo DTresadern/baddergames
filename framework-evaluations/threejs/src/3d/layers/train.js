@@ -55,7 +55,7 @@ export function createTrain(scene, ctx) {
   g.add(train);
 
   return {
-    object: g,
+    parts: [g],
     update(t) { train.position.x = trainX(scene, t); },
   };
 }
