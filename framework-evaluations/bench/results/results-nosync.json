@@ -4,18 +4,18 @@
       "framework": "threejs",
       "mode": "2d",
       "built": true,
-      "quick": true,
-      "measuredAt": "2026-11-15T20:36:20.210Z",
+      "quick": false,
+      "measuredAt": "2026-11-15T21:29:52.799Z",
       "version": "187",
       "bundle": {
         "js": {
           "files": [
-            "assets/2d-DvAk9yVf.js",
-            "assets/scene-ZLi3IzT2.js"
+            "assets/2d-CHjJRotd.js",
+            "assets/scene-GHnK6Z3q.js"
           ],
-          "raw": 632531,
-          "gzip": 162737,
-          "brotli": 134277
+          "raw": 632552,
+          "gzip": 162706,
+          "brotli": 134207
         },
         "css": {
           "files": [],
@@ -27,53 +27,77 @@
         "dynamicImports": []
       },
       "startup": {
-        "loads": 3,
+        "loads": 5,
         "median": {
-          "moduleStartMs": 48,
-          "firstFrameMs": 203.3,
-          "firstFramePresentedMs": 208.9,
+          "moduleStartMs": 36,
+          "firstFrameMs": 206,
+          "firstFramePresentedMs": 209.6,
           "navigation": {
-            "responseEndMs": 5.3,
-            "domInteractiveMs": 28.9,
-            "domContentLoadedMs": 124,
-            "loadEventEndMs": 124.3,
+            "responseEndMs": 5.4,
+            "domInteractiveMs": 18.4,
+            "domContentLoadedMs": 142.4,
+            "loadEventEndMs": 142.7,
             "transferBytes": 862
           }
         },
         "runs": [
           {
-            "moduleStartMs": 52.6,
-            "firstFrameMs": 256.4,
-            "firstFramePresentedMs": 261.7,
+            "moduleStartMs": 59.7,
+            "firstFrameMs": 246.1,
+            "firstFramePresentedMs": 250.5,
             "navigation": {
-              "responseEndMs": 34.4,
-              "domInteractiveMs": 41.4,
-              "domContentLoadedMs": 124,
-              "loadEventEndMs": 124.3,
+              "responseEndMs": 41.7,
+              "domInteractiveMs": 48.4,
+              "domContentLoadedMs": 124.8,
+              "loadEventEndMs": 125.1,
               "transferBytes": 862
             }
           },
           {
-            "moduleStartMs": 48,
-            "firstFrameMs": 203.3,
-            "firstFramePresentedMs": 208.9,
+            "moduleStartMs": 36,
+            "firstFrameMs": 204.9,
+            "firstFramePresentedMs": 209.3,
+            "navigation": {
+              "responseEndMs": 5.4,
+              "domInteractiveMs": 16.4,
+              "domContentLoadedMs": 142.4,
+              "loadEventEndMs": 142.7,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 35.6,
+            "firstFrameMs": 221.3,
+            "firstFramePresentedMs": 226.3,
+            "navigation": {
+              "responseEndMs": 5.4,
+              "domInteractiveMs": 18.4,
+              "domContentLoadedMs": 161.6,
+              "loadEventEndMs": 161.8,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 36.8,
+            "firstFrameMs": 206,
+            "firstFramePresentedMs": 209.6,
+            "navigation": {
+              "responseEndMs": 4.8,
+              "domInteractiveMs": 18.7,
+              "domContentLoadedMs": 143.3,
+              "loadEventEndMs": 143.5,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 35,
+            "firstFrameMs": 193.6,
+            "firstFramePresentedMs": 197.6,
             "navigation": {
               "responseEndMs": 5.3,
-              "domInteractiveMs": 28.9,
-              "domContentLoadedMs": 128.9,
-              "loadEventEndMs": 129.2,
-              "transferBytes": 862
-            }
-          },
-          {
-            "moduleStartMs": 33.8,
-            "firstFrameMs": 185.2,
-            "firstFramePresentedMs": 191.1,
-            "navigation": {
-              "responseEndMs": 5,
-              "domInteractiveMs": 19.1,
-              "domContentLoadedMs": 103.5,
-              "loadEventEndMs": 103.8,
+              "domInteractiveMs": 17.8,
+              "domContentLoadedMs": 131.9,
+              "loadEventEndMs": 132.1,
               "transferBytes": 862
             }
           }
@@ -103,48 +127,78 @@
             "objects": 1
           },
           "frames": {
-            "frames": 120,
-            "mean": 1.222,
+            "frames": 300,
+            "mean": 1.471,
             "p50": 1.1,
-            "p95": 1.8,
+            "p95": 2.1,
             "p99": 2.8,
             "min": 0.7,
-            "max": 3,
-            "fps": 818.554,
-            "cpuMean": 1.083,
-            "cpuP95": 1.7,
+            "max": 41.3,
+            "fps": 679.81,
+            "cpuMean": 1.339,
+            "cpuP95": 1.9,
             "drawCalls": 98,
             "drawCallsMax": 98,
             "frameworkDrawCalls": 98,
-            "runs": 1,
+            "runs": 3,
             "meanRange": [
-              1.222,
-              1.222
+              1.397,
+              1.524
             ]
           },
           "runs": [
             {
-              "frames": 120,
-              "mean": 1.222,
+              "frames": 300,
+              "mean": 1.524,
+              "p50": 1.2,
+              "p95": 2.1,
+              "p99": 3.9,
+              "min": 0.8,
+              "max": 40.5,
+              "fps": 656.312,
+              "cpuMean": 1.374,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 1.471,
               "p50": 1.1,
-              "p95": 1.8,
+              "p95": 2.1,
               "p99": 2.8,
               "min": 0.7,
-              "max": 3,
-              "fps": 818.554,
-              "cpuMean": 1.083,
-              "cpuP95": 1.7,
+              "max": 41.3,
+              "fps": 679.81,
+              "cpuMean": 1.339,
+              "cpuP95": 1.9,
+              "drawCalls": 98,
+              "drawCallsMax": 98,
+              "frameworkDrawCalls": 98
+            },
+            {
+              "frames": 300,
+              "mean": 1.397,
+              "p50": 1.2,
+              "p95": 2.1,
+              "p99": 2.4,
+              "min": 0.8,
+              "max": 40.9,
+              "fps": 715.82,
+              "cpuMean": 1.269,
+              "cpuP95": 1.9,
               "drawCalls": 98,
               "drawCallsMax": 98,
               "frameworkDrawCalls": 98
             }
           ],
           "heap": {
-            "usedSize": 3931304,
-            "totalSize": 4980736,
+            "usedSize": 3960688,
+            "totalSize": 5505024,
             "performanceMemory": {
-              "usedJSHeapSize": 6855156,
-              "totalJSHeapSize": 7829868
+              "usedJSHeapSize": 6861485,
+              "totalJSHeapSize": 8329601
             }
           },
           "setupDrawCalls": 0
@@ -155,18 +209,18 @@
       "framework": "threejs",
       "mode": "3d",
       "built": true,
-      "quick": true,
-      "measuredAt": "2026-11-15T20:36:22.936Z",
+      "quick": false,
+      "measuredAt": "2026-11-15T21:29:58.488Z",
       "version": "187",
       "bundle": {
         "js": {
           "files": [
-            "assets/3d-CctSzbKg.js",
-            "assets/scene-ZLi3IzT2.js"
+            "assets/3d-BDllPu_h.js",
+            "assets/scene-GHnK6Z3q.js"
           ],
-          "raw": 660002,
-          "gzip": 170102,
-          "brotli": 140808
+          "raw": 660140,
+          "gzip": 170180,
+          "brotli": 140828
         },
         "css": {
           "files": [],
@@ -178,53 +232,77 @@
         "dynamicImports": []
       },
       "startup": {
-        "loads": 3,
+        "loads": 5,
         "median": {
-          "moduleStartMs": 57.9,
-          "firstFrameMs": 501.5,
-          "firstFramePresentedMs": 507,
+          "moduleStartMs": 25.3,
+          "firstFrameMs": 445.8,
+          "firstFramePresentedMs": 450.1,
           "navigation": {
-            "responseEndMs": 3.7,
-            "domInteractiveMs": 30.8,
-            "domContentLoadedMs": 313.8,
-            "loadEventEndMs": 314.1,
+            "responseEndMs": 2.7,
+            "domInteractiveMs": 12.7,
+            "domContentLoadedMs": 301.2,
+            "loadEventEndMs": 301.4,
             "transferBytes": 862
           }
         },
         "runs": [
           {
-            "moduleStartMs": 57.9,
-            "firstFrameMs": 617.9,
-            "firstFramePresentedMs": 625.2,
+            "moduleStartMs": 37,
+            "firstFrameMs": 742.4,
+            "firstFramePresentedMs": 746.8,
             "navigation": {
-              "responseEndMs": 9.1,
-              "domInteractiveMs": 30.8,
-              "domContentLoadedMs": 250.6,
-              "loadEventEndMs": 250.8,
+              "responseEndMs": 4.4,
+              "domInteractiveMs": 15.7,
+              "domContentLoadedMs": 383.3,
+              "loadEventEndMs": 383.4,
               "transferBytes": 862
             }
           },
           {
-            "moduleStartMs": 156.3,
-            "firstFrameMs": 494.6,
-            "firstFramePresentedMs": 500.5,
+            "moduleStartMs": 147.9,
+            "firstFrameMs": 445.8,
+            "firstFramePresentedMs": 450.1,
             "navigation": {
-              "responseEndMs": 3.6,
-              "domInteractiveMs": 140,
-              "domContentLoadedMs": 316.2,
-              "loadEventEndMs": 316.5,
+              "responseEndMs": 3.2,
+              "domInteractiveMs": 135.2,
+              "domContentLoadedMs": 301.2,
+              "loadEventEndMs": 301.4,
               "transferBytes": 862
             }
           },
           {
-            "moduleStartMs": 32.2,
-            "firstFrameMs": 501.5,
-            "firstFramePresentedMs": 507,
+            "moduleStartMs": 25.3,
+            "firstFrameMs": 426.4,
+            "firstFramePresentedMs": 430.3,
             "navigation": {
-              "responseEndMs": 3.7,
-              "domInteractiveMs": 15,
-              "domContentLoadedMs": 313.8,
-              "loadEventEndMs": 314.1,
+              "responseEndMs": 2.6,
+              "domInteractiveMs": 12.7,
+              "domContentLoadedMs": 291.7,
+              "loadEventEndMs": 292,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 24.7,
+            "firstFrameMs": 446.2,
+            "firstFramePresentedMs": 450.7,
+            "navigation": {
+              "responseEndMs": 2.7,
+              "domInteractiveMs": 12.3,
+              "domContentLoadedMs": 294.8,
+              "loadEventEndMs": 295,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 24.3,
+            "firstFrameMs": 441.9,
+            "firstFramePresentedMs": 446.5,
+            "navigation": {
+              "responseEndMs": 2.7,
+              "domInteractiveMs": 11.4,
+              "domContentLoadedMs": 302.2,
+              "loadEventEndMs": 302.4,
               "transferBytes": 862
             }
           }
@@ -256,48 +334,78 @@
             "objects": 1
           },
           "frames": {
-            "frames": 120,
-            "mean": 2.457,
-            "p50": 1.5,
-            "p95": 3.3,
-            "p99": 55.5,
-            "min": 0.4,
-            "max": 56,
-            "fps": 406.918,
-            "cpuMean": 2.284,
-            "cpuP95": 3,
+            "frames": 300,
+            "mean": 2.555,
+            "p50": 0.5,
+            "p95": 0.7,
+            "p99": 120.6,
+            "min": 0.3,
+            "max": 169,
+            "fps": 391.389,
+            "cpuMean": 1.914,
+            "cpuP95": 0.6,
             "drawCalls": 107,
             "drawCallsMax": 107,
             "frameworkDrawCalls": 107,
-            "runs": 1,
+            "runs": 3,
             "meanRange": [
-              2.457,
-              2.457
+              2.195,
+              2.635
             ]
           },
           "runs": [
             {
-              "frames": 120,
-              "mean": 2.457,
-              "p50": 1.5,
-              "p95": 3.3,
-              "p99": 55.5,
-              "min": 0.4,
-              "max": 56,
-              "fps": 406.918,
-              "cpuMean": 2.284,
-              "cpuP95": 3,
+              "frames": 300,
+              "mean": 2.195,
+              "p50": 0.5,
+              "p95": 3.1,
+              "p99": 53.1,
+              "min": 0.3,
+              "max": 170.2,
+              "fps": 455.581,
+              "cpuMean": 1.526,
+              "cpuP95": 2.9,
+              "drawCalls": 107,
+              "drawCallsMax": 107,
+              "frameworkDrawCalls": 107
+            },
+            {
+              "frames": 300,
+              "mean": 2.635,
+              "p50": 0.6,
+              "p95": 3,
+              "p99": 53.1,
+              "min": 0.3,
+              "max": 129,
+              "fps": 379.459,
+              "cpuMean": 2.512,
+              "cpuP95": 2.8,
+              "drawCalls": 107,
+              "drawCallsMax": 107,
+              "frameworkDrawCalls": 107
+            },
+            {
+              "frames": 300,
+              "mean": 2.555,
+              "p50": 0.5,
+              "p95": 0.7,
+              "p99": 120.6,
+              "min": 0.3,
+              "max": 169,
+              "fps": 391.389,
+              "cpuMean": 1.914,
+              "cpuP95": 0.6,
               "drawCalls": 107,
               "drawCallsMax": 107,
               "frameworkDrawCalls": 107
             }
           ],
           "heap": {
-            "usedSize": 5294368,
-            "totalSize": 6291456,
+            "usedSize": 5406032,
+            "totalSize": 6553600,
             "performanceMemory": {
-              "usedJSHeapSize": 8794850,
-              "totalJSHeapSize": 9548942
+              "usedJSHeapSize": 8900900,
+              "totalJSHeapSize": 9757976
             }
           },
           "setupDrawCalls": 81
@@ -308,18 +416,18 @@
       "framework": "threejs",
       "mode": "3d",
       "built": true,
-      "quick": true,
-      "measuredAt": "2026-11-15T20:36:27.231Z",
+      "quick": false,
+      "measuredAt": "2026-11-15T21:30:07.553Z",
       "version": "187",
       "bundle": {
         "js": {
           "files": [
-            "assets/3d-CctSzbKg.js",
-            "assets/scene-ZLi3IzT2.js"
+            "assets/3d-BDllPu_h.js",
+            "assets/scene-GHnK6Z3q.js"
           ],
-          "raw": 660002,
-          "gzip": 170102,
-          "brotli": 140808
+          "raw": 660140,
+          "gzip": 170180,
+          "brotli": 140828
         },
         "css": {
           "files": [],
@@ -331,53 +439,77 @@
         "dynamicImports": []
       },
       "startup": {
-        "loads": 3,
+        "loads": 5,
         "median": {
-          "moduleStartMs": 136.7,
-          "firstFrameMs": 663.2,
-          "firstFramePresentedMs": 668.1,
+          "moduleStartMs": 34.6,
+          "firstFrameMs": 638.3,
+          "firstFramePresentedMs": 643.8,
           "navigation": {
-            "responseEndMs": 4.7,
-            "domInteractiveMs": 124,
-            "domContentLoadedMs": 476.4,
-            "loadEventEndMs": 476.6,
+            "responseEndMs": 4.2,
+            "domInteractiveMs": 17.9,
+            "domContentLoadedMs": 466.6,
+            "loadEventEndMs": 466.8,
             "transferBytes": 862
           }
         },
         "runs": [
           {
-            "moduleStartMs": 136.7,
-            "firstFrameMs": 622.2,
-            "firstFramePresentedMs": 629,
+            "moduleStartMs": 152.2,
+            "firstFrameMs": 595.4,
+            "firstFramePresentedMs": 602,
             "navigation": {
-              "responseEndMs": 6.3,
-              "domInteractiveMs": 124,
-              "domContentLoadedMs": 351.2,
-              "loadEventEndMs": 351.4,
+              "responseEndMs": 2.8,
+              "domInteractiveMs": 140.8,
+              "domContentLoadedMs": 308.6,
+              "loadEventEndMs": 308.8,
               "transferBytes": 862
             }
           },
           {
-            "moduleStartMs": 284.7,
-            "firstFrameMs": 663.2,
-            "firstFramePresentedMs": 668.1,
+            "moduleStartMs": 28.5,
+            "firstFrameMs": 818.6,
+            "firstFramePresentedMs": 824.2,
+            "navigation": {
+              "responseEndMs": 4.3,
+              "domInteractiveMs": 13.5,
+              "domContentLoadedMs": 637.5,
+              "loadEventEndMs": 637.7,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 34.8,
+            "firstFrameMs": 638.3,
+            "firstFramePresentedMs": 643,
+            "navigation": {
+              "responseEndMs": 4,
+              "domInteractiveMs": 18.6,
+              "domContentLoadedMs": 461.3,
+              "loadEventEndMs": 461.5,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 34.6,
+            "firstFrameMs": 638.3,
+            "firstFramePresentedMs": 643.8,
+            "navigation": {
+              "responseEndMs": 4.4,
+              "domInteractiveMs": 17.9,
+              "domContentLoadedMs": 466.6,
+              "loadEventEndMs": 466.8,
+              "transferBytes": 862
+            }
+          },
+          {
+            "moduleStartMs": 34.4,
+            "firstFrameMs": 664.4,
+            "firstFramePresentedMs": 669.2,
             "navigation": {
               "responseEndMs": 4.2,
-              "domInteractiveMs": 268.6,
-              "domContentLoadedMs": 476.4,
-              "loadEventEndMs": 476.6,
-              "transferBytes": 862
-            }
-          },
-          {
-            "moduleStartMs": 35.1,
-            "firstFrameMs": 664.7,
-            "firstFramePresentedMs": 670.6,
-            "navigation": {
-              "responseEndMs": 4.7,
-              "domInteractiveMs": 18,
-              "domContentLoadedMs": 484.1,
-              "loadEventEndMs": 484.4,
+              "domInteractiveMs": 16.6,
+              "domContentLoadedMs": 472.4,
+              "loadEventEndMs": 472.6,
               "transferBytes": 862
             }
           }
@@ -409,48 +541,78 @@
             "objects": 1
           },
           "frames": {
-            "frames": 120,
-            "mean": 5.541,
-            "p50": 1.2,
-            "p95": 5.9,
-            "p99": 7.2,
-            "min": 0.5,
-            "max": 420.9,
-            "fps": 180.478,
-            "cpuMean": 1.862,
-            "cpuP95": 5.5,
-            "drawCalls": 121,
-            "drawCallsMax": 121,
-            "frameworkDrawCalls": 121,
-            "runs": 1,
+            "frames": 300,
+            "mean": 3.843,
+            "p50": 0.7,
+            "p95": 5.2,
+            "p99": 94.8,
+            "min": 0.4,
+            "max": 261.7,
+            "fps": 260.213,
+            "cpuMean": 3.705,
+            "cpuP95": 5,
+            "drawCalls": 121.533,
+            "drawCallsMax": 123,
+            "frameworkDrawCalls": 121.533,
+            "runs": 3,
             "meanRange": [
-              5.541,
-              5.541
+              3.165,
+              4.983
             ]
           },
           "runs": [
             {
-              "frames": 120,
-              "mean": 5.541,
-              "p50": 1.2,
-              "p95": 5.9,
-              "p99": 7.2,
+              "frames": 300,
+              "mean": 3.843,
+              "p50": 0.7,
+              "p95": 5.2,
+              "p99": 94.8,
+              "min": 0.4,
+              "max": 261.7,
+              "fps": 260.213,
+              "cpuMean": 3.705,
+              "cpuP95": 5,
+              "drawCalls": 121.533,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 121.533
+            },
+            {
+              "frames": 300,
+              "mean": 3.165,
+              "p50": 0.6,
+              "p95": 1.1,
+              "p99": 2.5,
+              "min": 0.4,
+              "max": 271.1,
+              "fps": 315.922,
+              "cpuMean": 3.056,
+              "cpuP95": 0.9,
+              "drawCalls": 121.483,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 121.483
+            },
+            {
+              "frames": 300,
+              "mean": 4.983,
+              "p50": 4.7,
+              "p95": 6.3,
+              "p99": 87.6,
               "min": 0.5,
-              "max": 420.9,
-              "fps": 180.478,
-              "cpuMean": 1.862,
-              "cpuP95": 5.5,
-              "drawCalls": 121,
-              "drawCallsMax": 121,
-              "frameworkDrawCalls": 121
+              "max": 93.3,
+              "fps": 200.682,
+              "cpuMean": 4.819,
+              "cpuP95": 6.1,
+              "drawCalls": 121.583,
+              "drawCallsMax": 123,
+              "frameworkDrawCalls": 121.583
             }
           ],
           "heap": {
-            "usedSize": 5626784,
-            "totalSize": 6553600,
+            "usedSize": 5655068,
+            "totalSize": 6815744,
             "performanceMemory": {
-              "usedJSHeapSize": 9141029,
-              "totalJSHeapSize": 9917681
+              "usedJSHeapSize": 9158379,
+              "totalJSHeapSize": 9971067
             }
           },
           "setupDrawCalls": 81
@@ -461,14 +623,14 @@
       "framework": "pixijs",
       "mode": "2d",
       "built": true,
-      "quick": true,
-      "measuredAt": "2026-11-15T20:36:32.169Z",
+      "quick": false,
+      "measuredAt": "2026-11-15T21:30:20.417Z",
       "version": "8.23.0",
       "bundle": {
         "js": {
           "files": [
-            "assets/2d-CtWfwivD.js",
-            "assets/scene-CouF7zsa.js",
+            "assets/2d-C_flimNT.js",
+            "assets/scene-CGGl4xmo.js",
             "assets/CanvasPool-C0KDo9zs.js",
             "assets/lib-DGvviLPV.js",
             "assets/init-nM4v_D0G.js",
@@ -477,9 +639,9 @@
             "assets/CanvasRenderer-VdIU49Rq.js",
             "assets/getTextureBatchBindGroup-aLbagKvE.js"
           ],
-          "raw": 384125,
-          "gzip": 121480,
-          "brotli": 107554
+          "raw": 384156,
+          "gzip": 121620,
+          "brotli": 107661
         },
         "css": {
           "files": [],
@@ -497,53 +659,77 @@
         ]
       },
       "startup": {
-        "loads": 3,
+        "loads": 5,
         "median": {
-          "moduleStartMs": 94,
-          "firstFrameMs": 508.7,
-          "firstFramePresentedMs": 511.5,
+          "moduleStartMs": 52.2,
+          "firstFrameMs": 439.8,
+          "firstFramePresentedMs": 442.7,
           "navigation": {
-            "responseEndMs": 5.2,
-            "domInteractiveMs": 24,
-            "domContentLoadedMs": 331.6,
-            "loadEventEndMs": 331.7,
+            "responseEndMs": 4.9,
+            "domInteractiveMs": 18.4,
+            "domContentLoadedMs": 262,
+            "loadEventEndMs": 262.1,
             "transferBytes": 1434
           }
         },
         "runs": [
           {
-            "moduleStartMs": 94,
-            "firstFrameMs": 687.5,
-            "firstFramePresentedMs": 691.2,
+            "moduleStartMs": 316.3,
+            "firstFrameMs": 773.8,
+            "firstFramePresentedMs": 776.4,
             "navigation": {
-              "responseEndMs": 5.2,
-              "domInteractiveMs": 24,
-              "domContentLoadedMs": 415,
-              "loadEventEndMs": 415.1,
+              "responseEndMs": 4.1,
+              "domInteractiveMs": 253,
+              "domContentLoadedMs": 513.9,
+              "loadEventEndMs": 513.9,
               "transferBytes": 1434
             }
           },
           {
-            "moduleStartMs": 192.5,
-            "firstFrameMs": 508.7,
-            "firstFramePresentedMs": 511.5,
-            "navigation": {
-              "responseEndMs": 5.3,
-              "domInteractiveMs": 164.7,
-              "domContentLoadedMs": 331.6,
-              "loadEventEndMs": 331.7,
-              "transferBytes": 1434
-            }
-          },
-          {
-            "moduleStartMs": 47.8,
-            "firstFrameMs": 432.5,
-            "firstFramePresentedMs": 435.5,
+            "moduleStartMs": 388.3,
+            "firstFrameMs": 584.8,
+            "firstFramePresentedMs": 588.2,
             "navigation": {
               "responseEndMs": 4.8,
-              "domInteractiveMs": 17.5,
-              "domContentLoadedMs": 263.4,
-              "loadEventEndMs": 263.5,
+              "domInteractiveMs": 173.6,
+              "domContentLoadedMs": 399,
+              "loadEventEndMs": 399.2,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 52.2,
+            "firstFrameMs": 426.4,
+            "firstFramePresentedMs": 428.9,
+            "navigation": {
+              "responseEndMs": 5.3,
+              "domInteractiveMs": 18,
+              "domContentLoadedMs": 255.5,
+              "loadEventEndMs": 255.7,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 47,
+            "firstFrameMs": 439.8,
+            "firstFramePresentedMs": 442.7,
+            "navigation": {
+              "responseEndMs": 4.9,
+              "domInteractiveMs": 18.4,
+              "domContentLoadedMs": 262,
+              "loadEventEndMs": 262.1,
+              "transferBytes": 1434
+            }
+          },
+          {
+            "moduleStartMs": 46.7,
+            "firstFrameMs": 423.7,
+            "firstFramePresentedMs": 426.2,
+            "navigation": {
+              "responseEndMs": 5,
+              "domInteractiveMs": 17.6,
+              "domContentLoadedMs": 258.6,
+              "loadEventEndMs": 258.6,
               "transferBytes": 1434
             }
           }
@@ -574,48 +760,78 @@
             "objects": 1
           },
           "frames": {
-            "frames": 120,
-            "mean": 1.613,
-            "p50": 1.4,
-            "p95": 1.8,
-            "p99": 3,
-            "min": 0.2,
-            "max": 51.8,
-            "fps": 620.155,
-            "cpuMean": 1.472,
-            "cpuP95": 1.6,
+            "frames": 300,
+            "mean": 2.214,
+            "p50": 1.2,
+            "p95": 2.4,
+            "p99": 3.7,
+            "min": 0.1,
+            "max": 261.5,
+            "fps": 451.603,
+            "cpuMean": 1.216,
+            "cpuP95": 2,
             "drawCalls": 59,
             "drawCallsMax": 59,
             "frameworkDrawCalls": null,
-            "runs": 1,
+            "runs": 3,
             "meanRange": [
-              1.613,
-              1.613
+              1.349,
+              2.399
             ]
           },
           "runs": [
             {
-              "frames": 120,
-              "mean": 1.613,
+              "frames": 300,
+              "mean": 2.214,
+              "p50": 1.2,
+              "p95": 2.4,
+              "p99": 3.7,
+              "min": 0.1,
+              "max": 261.5,
+              "fps": 451.603,
+              "cpuMean": 1.216,
+              "cpuP95": 2,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 2.399,
               "p50": 1.4,
-              "p95": 1.8,
-              "p99": 3,
-              "min": 0.2,
-              "max": 51.8,
-              "fps": 620.155,
-              "cpuMean": 1.472,
-              "cpuP95": 1.6,
+              "p95": 2.5,
+              "p99": 3.7,
+              "min": 0.1,
+              "max": 257.9,
+              "fps": 416.898,
+              "cpuMean": 1.396,
+              "cpuP95": 1.9,
+              "drawCalls": 59,
+              "drawCallsMax": 59,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 1.349,
+              "p50": 1.2,
+              "p95": 2.5,
+              "p99": 4.3,
+              "min": 0.1,
+              "max": 49.3,
+              "fps": 741.473,
+              "cpuMean": 1.222,
+              "cpuP95": 1.8,
               "drawCalls": 59,
               "drawCallsMax": 59,
               "frameworkDrawCalls": null
             }
           ],
           "heap": {
-            "usedSize": 13954160,
-            "totalSize": 15310848,
+            "usedSize": 14082964,
+            "totalSize": 14786560,
             "performanceMemory": {
-              "usedJSHeapSize": 16068016,
-              "totalJSHeapSize": 17404060
+              "usedJSHeapSize": 16192023,
+              "totalJSHeapSize": 16740539
             }
           },
           "setupDrawCalls": 0
@@ -626,14 +842,14 @@
       "framework": "pixijs",
       "mode": "3d",
       "built": true,
-      "quick": true,
-      "measuredAt": "2026-11-15T20:36:36.509Z",
+      "quick": false,
+      "measuredAt": "2026-11-15T21:30:29.010Z",
       "version": "pixi.js 8.23.0 + @pixi/3d 0.1.0",
       "bundle": {
         "js": {
           "files": [
-            "assets/3d-2hrlUcr-.js",
-            "assets/scene-CouF7zsa.js",
+            "assets/3d-CzAfvbI0.js",
+            "assets/scene-CGGl4xmo.js",
             "assets/CanvasPool-C0KDo9zs.js",
             "assets/lib-DGvviLPV.js",
             "assets/init-nM4v_D0G.js",
@@ -649,9 +865,9 @@
             "assets/EventSystem-CSN4A2SJ.js",
             "assets/CanvasRenderer-VdIU49Rq.js"
           ],
-          "raw": 932022,
-          "gzip": 281724,
-          "brotli": 245689
+          "raw": 941700,
+          "gzip": 285066,
+          "brotli": 248660
         },
         "css": {
           "files": [],
@@ -672,53 +888,77 @@
         ]
       },
       "startup": {
-        "loads": 3,
+        "loads": 5,
         "median": {
-          "moduleStartMs": 105.2,
-          "firstFrameMs": 418.7,
-          "firstFramePresentedMs": 422,
+          "moduleStartMs": 83.3,
+          "firstFrameMs": 442.2,
+          "firstFramePresentedMs": 445.5,
           "navigation": {
-            "responseEndMs": 3.4,
-            "domInteractiveMs": 49,
-            "domContentLoadedMs": 222.4,
-            "loadEventEndMs": 222.5,
+            "responseEndMs": 3.5,
+            "domInteractiveMs": 48.2,
+            "domContentLoadedMs": 265.2,
+            "loadEventEndMs": 265.3,
             "transferBytes": 2020
           }
         },
         "runs": [
           {
-            "moduleStartMs": 73.6,
-            "firstFrameMs": 508.2,
-            "firstFramePresentedMs": 512.2,
+            "moduleStartMs": 77.8,
+            "firstFrameMs": 485.8,
+            "firstFramePresentedMs": 490.5,
             "navigation": {
-              "responseEndMs": 7,
-              "domInteractiveMs": 22.3,
-              "domContentLoadedMs": 222.4,
-              "loadEventEndMs": 222.5,
+              "responseEndMs": 4,
+              "domInteractiveMs": 23,
+              "domContentLoadedMs": 229,
+              "loadEventEndMs": 229.2,
               "transferBytes": 2020
             }
           },
           {
-            "moduleStartMs": 172.4,
-            "firstFrameMs": 407,
-            "firstFramePresentedMs": 410.4,
+            "moduleStartMs": 209.1,
+            "firstFrameMs": 485.5,
+            "firstFramePresentedMs": 489.1,
             "navigation": {
-              "responseEndMs": 3.4,
-              "domInteractiveMs": 140.3,
-              "domContentLoadedMs": 221.3,
-              "loadEventEndMs": 221.5,
+              "responseEndMs": 3.2,
+              "domInteractiveMs": 175.8,
+              "domContentLoadedMs": 306.9,
+              "loadEventEndMs": 307.1,
               "transferBytes": 2020
             }
           },
           {
-            "moduleStartMs": 105.2,
-            "firstFrameMs": 418.7,
-            "firstFramePresentedMs": 422,
+            "moduleStartMs": 101.4,
+            "firstFrameMs": 438.8,
+            "firstFramePresentedMs": 442.5,
             "navigation": {
-              "responseEndMs": 2.7,
-              "domInteractiveMs": 49,
-              "domContentLoadedMs": 236.2,
-              "loadEventEndMs": 236.2,
+              "responseEndMs": 3.6,
+              "domInteractiveMs": 70.8,
+              "domContentLoadedMs": 265.2,
+              "loadEventEndMs": 265.3,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 51.7,
+            "firstFrameMs": 442.2,
+            "firstFramePresentedMs": 445.5,
+            "navigation": {
+              "responseEndMs": 3.5,
+              "domInteractiveMs": 15.4,
+              "domContentLoadedMs": 266,
+              "loadEventEndMs": 266.1,
+              "transferBytes": 2020
+            }
+          },
+          {
+            "moduleStartMs": 83.3,
+            "firstFrameMs": 422.2,
+            "firstFramePresentedMs": 425.3,
+            "navigation": {
+              "responseEndMs": 2.9,
+              "domInteractiveMs": 48.2,
+              "domContentLoadedMs": 248.2,
+              "loadEventEndMs": 248.3,
               "transferBytes": 2020
             }
           }
@@ -753,48 +993,78 @@
             "objects": 1
           },
           "frames": {
-            "frames": 120,
-            "mean": 1.603,
-            "p50": 1.2,
-            "p95": 2.6,
-            "p99": 3.1,
-            "min": 0.2,
-            "max": 62.4,
-            "fps": 623.701,
-            "cpuMean": 1.507,
-            "cpuP95": 2.4,
-            "drawCalls": 56,
-            "drawCallsMax": 56,
+            "frames": 300,
+            "mean": 2.016,
+            "p50": 0.3,
+            "p95": 2.2,
+            "p99": 3.6,
+            "min": 0.1,
+            "max": 205.8,
+            "fps": 496.032,
+            "cpuMean": 1.219,
+            "cpuP95": 2.1,
+            "drawCalls": 51,
+            "drawCallsMax": 51,
             "frameworkDrawCalls": null,
-            "runs": 1,
+            "runs": 3,
             "meanRange": [
-              1.603,
-              1.603
+              1.947,
+              2.087
             ]
           },
           "runs": [
             {
-              "frames": 120,
-              "mean": 1.603,
-              "p50": 1.2,
-              "p95": 2.6,
-              "p99": 3.1,
-              "min": 0.2,
-              "max": 62.4,
-              "fps": 623.701,
-              "cpuMean": 1.507,
-              "cpuP95": 2.4,
-              "drawCalls": 56,
-              "drawCallsMax": 56,
+              "frames": 300,
+              "mean": 2.016,
+              "p50": 0.3,
+              "p95": 2.2,
+              "p99": 3.6,
+              "min": 0.1,
+              "max": 205.8,
+              "fps": 496.032,
+              "cpuMean": 1.219,
+              "cpuP95": 2.1,
+              "drawCalls": 51,
+              "drawCallsMax": 51,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 1.947,
+              "p50": 0.4,
+              "p95": 2.2,
+              "p99": 3.8,
+              "min": 0.1,
+              "max": 165.9,
+              "fps": 513.699,
+              "cpuMean": 1.833,
+              "cpuP95": 2.1,
+              "drawCalls": 51,
+              "drawCallsMax": 51,
+              "frameworkDrawCalls": null
+            },
+            {
+              "frames": 300,
+              "mean": 2.087,
+              "p50": 0.4,
+              "p95": 2.2,
+              "p99": 5.6,
+              "min": 0.1,
+              "max": 201.4,
+              "fps": 479.233,
+              "cpuMean": 1.308,
+              "cpuP95": 2,
+              "drawCalls": 51,
+              "drawCallsMax": 51,
               "frameworkDrawCalls": null
             }
           ],
           "heap": {
-            "usedSize": 7476936,
+            "usedSize": 7583972,
             "totalSize": 8650752,
             "performanceMemory": {
-              "usedJSHeapSize": 14088085,
-              "totalJSHeapSize": 14806149
+              "usedJSHeapSize": 14193437,
+              "totalJSHeapSize": 14955417
             }
           },
           "setupDrawCalls": 0
@@ -845,5 +1115,5 @@
     }
   },
   "gpuSync": false,
-  "updatedAt": "2026-11-15T20:36:39.525Z"
+  "updatedAt": "2026-11-15T21:30:36.244Z"
 }
