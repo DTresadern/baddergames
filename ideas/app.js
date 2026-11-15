@@ -679,11 +679,10 @@ function initApp() {
     pointers.delete(ev.pointerId);
     try { canvas.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
 
-    if (pointers.size < 2) pinch = null;
+    pinch = pointers.size >= 2 ? pinchState() : null;
     if (drag && drag.pointerId === ev.pointerId) endDrag(!cancelled);
     if (pointers.size === 0) {
       canvas.classList.remove('panning');
-      drag = null;
       if (!cancelled && ev.pointerType === 'mouse') updateHover(p.x, p.y);
       else setHover(-1);
     } else if (pointers.size === 1) {
