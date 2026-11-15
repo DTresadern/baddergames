@@ -44,7 +44,12 @@ if (a[0] === "thread" && a[1] === "start") {
 const t = s.threads[a[2]];
 if (!t) { console.error("Thread " + a[2] + " is no longer available."); process.exit(1); }
 if (a[1] === "send") { t.messages.push(a[3] === "-" ? stdin() : a[3]); save(); console.log("{}"); process.exit(0); }
-if (a[1] === "show") { console.log(JSON.stringify({ thread: { threadId: a[2], title: t.title, settled: t.settled, archived: t.archived, status: "idle" }, messages: [] })); process.exit(0); }
+if (a[1] === "show") {
+  const thread = { threadId: a[2], title: t.title, settled: t.settled, archived: t.archived, status: t.status || "idle", activeRunId: t.activeRunId || null,
+    pendingRequestCount: t.pendingRequestCount || 0, latestRunId: t.latestRunId || "run:1", worktreePath: t.worktreePath || null };
+  console.log(JSON.stringify({ thread, messages: t.last ? [{ role: "assistant", runId: t.lastRunId || thread.latestRunId, text: t.last }] : [] }));
+  process.exit(0);
+}
 process.exit(2);
 `);
 const fakeGh = path.join(tmp, "fake-gh.mjs");
@@ -58,6 +63,7 @@ const save = () => fs.writeFileSync(file, JSON.stringify(s, null, 2));
 const [x, y] = a;
 if (process.env.FAKE_GH_FAIL) { console.error("error connecting to api.github.com"); process.exit(1); }
 if (x === "pr" && y === "list") { console.log(JSON.stringify(s.prs.filter((p) => p.state === "MERGED"))); process.exit(0); }
+if (x === "pr" && y === "merge") { const p = s.prs.find((p) => String(p.number) === a[2]); p.state = "MERGED"; p.mergedAt = new Date().toISOString(); p.mergedBy = "mm"; save(); process.exit(0); }
 if (x === "pr" && y === "view") { const p = s.prs.find((p) => String(p.number) === a[2]); if (!p) process.exit(1); console.log(JSON.stringify(p)); process.exit(0); }
 if (x === "label" && y === "create") process.exit(0);
 if (x === "issue" && y === "create") {
@@ -342,6 +348,123 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   const { nsFromPath } = await import("./core.mjs");
   const ctx = { checkout: "/r", config: { namespaces: { "dev.b": ".", "dev.b.games": "games", "dev.b.ab": "games/ab" } } };
   check("T21 a folder inside a nested root resolves to the nested namespace", nsFromPath(ctx, "/r/games/ab/src") === "dev.b.ab" && nsFromPath(ctx, "/r/games/x") === "dev.b.games", "");
+}
+
+// T22 lanes record themselves, and mm reads their reports
+{
+  const at = "2026-12-02T10:00:00Z";
+  mm(["lane", "new", "sync", "--ns", "dev.baddergames.technophage", "--title", "Sync probe", "--goal-file", goal], { at });
+  let s = fakeState(); s.threads["mcp:lane-sync"] = { title: "dev.baddergames.technophage · sync", messages: [], settled: false, archived: false, status: "running", activeRunId: "run:1", latestRunId: "run:1" }; saveFake(s);
+  let r = mm(["lane", "attach", "sync", "--json"], { cwd: wt, at, extra: { MM_THREAD_ID: "mcp:lane-sync" } });
+  check("T22a a lane attaches its own thread from its worktree", r.json?.threadId === "mcp:lane-sync", r.out + r.err);
+  const lane = () => mm(["lane", "list", "--json"], { at }).json.find((l) => l.name === "sync");
+  check("T22b a running lane thread is recorded as running", lane().state === "running", JSON.stringify(lane()));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", activeRunId: null, latestRunId: "run:2", last: "HELD: https://github.com/o/r/pull/31 — reviews done, checks green, waiting for approval\n\ndetails" }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:10:00Z" });
+  mm(["lane", "list"], { at: "2026-12-02T10:11:00Z" });
+  const held = lane();
+  check("T22c a HELD report is recorded with its pull request, once", held.state === "held" && held.pr === 31 && lines("2026-12-02").filter((l) => JSON.parse(l).kind === "held" && JSON.parse(l).lane === "sync").length === 1, JSON.stringify(held));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "waiting", latestRunId: "run:3", pendingRequestCount: 1 }); saveFake(s);
+  check("T22d a question from the lane is recorded as waiting", (mm(["lane", "list"], { at: "2026-12-02T10:20:00Z" }), lane().state === "waiting"), JSON.stringify(lane()));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", latestRunId: "run:4", pendingRequestCount: 0, last: "Done, I think." }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:30:00Z" });
+  check("T22e a final message without a status line is flagged", lane().history.at(-1).note?.includes("without a status line"), JSON.stringify(lane().history.at(-1)));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { latestRunId: "run:5", last: "HELD: https://github.com/o/r/pull/31 ready" }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:40:00Z" });
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "running", activeRunId: "run:6", latestRunId: "run:6" }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:45:00Z" });
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "interrupted", activeRunId: null, latestRunId: "run:6", lastRunId: "run:5" }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:50:00Z" });
+  check("T22f a run interrupted after a HELD report does not fall back to held", lane().state === "blocked" && /interrupted/.test(lane().history.at(-1).note), JSON.stringify(lane().history.slice(-2)));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", latestRunId: "run:7", lastRunId: "run:6", last: "HELD: https://github.com/o/r/pull/31 ready" }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:52:00Z" });
+  check("T22g a report from an earlier run is not taken as the latest run's report", lane().state === "waiting" && /without a status line/.test(lane().history.at(-1).note), JSON.stringify(lane().history.at(-1)));
+  let st = mm(["status", "--json"], { at: "2026-12-02T10:53:00Z" });
+  check("T22h changes found by other commands wait for mm status, then clear", st.json?.laneChanges?.some((c) => /sync: blocked/.test(c.note)) && mm(["status", "--json"], { at: "2026-12-02T10:54:00Z" }).json.laneChanges.length === 0, JSON.stringify(st.json?.laneChanges));
+  const heldEvents = () => lines("2026-12-02").filter((l) => JSON.parse(l).kind === "held" && JSON.parse(l).lane === "sync").length;
+  const before = heldEvents();
+  const dailyMsgs = () => threadsTitled("daily update · 2026-12-02")[0]?.[1].messages.length;
+  const msgsBefore = dailyMsgs();
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { latestRunId: "run:8", lastRunId: null, last: "HELD: https://github.com/o/r/pull/31 ready" }); saveFake(s);
+  mm(["task", "find"], { at: "2026-12-02T10:55:00Z" });
+  mm(["task", "find"], { at: "2026-12-02T10:56:00Z" });
+  check("T22i a command that fails after a sync does not repeat the sync's events", heldEvents() === before + 1 && dailyMsgs() === msgsBefore + 1 && lane().state === "held", `${before}→${heldEvents()}, messages ${msgsBefore}→${dailyMsgs()}`);
+  mm(["lane", "new", "words", "--ns", "dev.baddergames", "--title", "Report words", "--goal-file", goal], { at: "2026-12-02T11:00:00Z" });
+  mm(["lane", "set", "words", "--thread-id", "mcp:lane-words"], { at: "2026-12-02T11:00:00Z" });
+  const word = (n, text) => { const x = fakeState(); x.threads["mcp:lane-words"] = { title: "w", messages: [], settled: false, archived: false, status: "completed", latestRunId: `run:${n}`, last: text }; saveFake(x); mm(["lane", "list"], { at: "2026-12-02T11:0" + n + ":00Z" }); return mm(["lane", "list", "--json"], { at: "2026-12-02T11:0" + n + ":30Z" }).json.find((l) => l.name === "words"); };
+  check("T22j BLOCKED is recorded as blocked", word(1, "BLOCKED: needs a stronger model — the netcode is subtle").state === "blocked", "");
+  const req = word(2, "REQUEST-LANE: add a lobby API — the menu needs it");
+  check("T22k REQUEST-LANE records the request and waits", req.state === "waiting" && lines("2026-12-02").some((l) => JSON.parse(l).kind === "request-lane" && /lobby API/.test(JSON.parse(l).what)), JSON.stringify(req.history.at(-1)));
+  check("T22l CLOSED closes the lane", word(3, "CLOSED: already done upstream").state === "closed", "");
+}
+
+// T23 merging only under the rule
+{
+  const at = "2026-12-02T11:20:00Z";
+  const s = fakeState();
+  s.prs.push({ number: 31, state: "OPEN", mergeStateStatus: "CLEAN", headRefName: "technophage/other", headRefOid: "abc1234", baseRefName: "main", url: "https://github.com/o/r/pull/31", statusCheckRollup: [{ name: "checks", status: "COMPLETED", conclusion: "SUCCESS" }] });
+  saveFake(s);
+  let r = mm(["lane", "merge", "sync"], { at });
+  check("T23f a pull request from another branch is never merged", r.code === 1 && /not the lane's branch technophage\/sync/.test(r.err), r.err);
+  let s1 = fakeState(); Object.assign(s1.prs.find((p) => p.number === 31), { headRefName: "technophage/sync", statusCheckRollup: [{ name: "a", conclusion: "SKIPPED" }, { name: "b", conclusion: "NEUTRAL" }] }); saveFake(s1);
+  r = mm(["lane", "merge", "sync"], { at });
+  check("T23g only skipped checks is not enough", r.code === 1 && /no check ran and passed/.test(r.err), r.err);
+  s1 = fakeState(); s1.prs.find((p) => p.number === 31).statusCheckRollup = [{ name: "checks", status: "COMPLETED", conclusion: "FAILURE" }]; saveFake(s1);
+  r = mm(["lane", "merge", "sync"], { at });
+  check("T23a a failing check blocks the merge", r.code === 1 && /checks not passed: checks: FAILURE/.test(r.err) && fakeState().prs.find((p) => p.number === 31).state === "OPEN", r.err);
+  let s2 = fakeState(); s2.prs.find((p) => p.number === 31).statusCheckRollup = []; saveFake(s2);
+  r = mm(["lane", "merge", "sync"], { at });
+  check("T23b a pull request with no checks is not merged", r.code === 1 && /no check ran and passed/.test(r.err), r.err);
+  s2 = fakeState(); Object.assign(s2.prs.find((p) => p.number === 31), { statusCheckRollup: [{ name: "checks", status: "COMPLETED", conclusion: "SUCCESS" }], mergeStateStatus: "BEHIND" }); saveFake(s2);
+  r = mm(["lane", "merge", "sync"], { at });
+  check("T23c a pull request behind main is not merged", r.code === 1 && /BEHIND/.test(r.err), r.err);
+  s2 = fakeState(); s2.prs.find((p) => p.number === 31).mergeStateStatus = "CLEAN"; saveFake(s2);
+  r = mm(["lane", "merge", "sync", "--json"], { at });
+  check("T23d a clean, passing, held pull request is merged and the lane closed", r.code === 0 && fakeState().prs.find((p) => p.number === 31).mergedBy === "mm" && mm(["lane", "list", "--json"], { at }).json.find((l) => l.name === "sync").state === "merged", r.out + r.err);
+  r = mm(["lane", "merge", "net"], { at });
+  check("T23e a lane that is not held cannot be merged", r.code === 1 && /not held/.test(r.err), r.err);
+}
+
+// T25 merge with a real worktree: refusals, then cleanup that deletes only what main contains
+{
+  const at = "2026-12-03T10:00:00Z";
+  mm(["lane", "new", "real", "--ns", "dev.baddergames", "--title", "Real worktree", "--goal-file", goal], { at });
+  const wtReal = path.join(tmp, "wt-real");
+  sh("git", ["worktree", "add", "-q", "-b", "t3/real-slug", wtReal, "main"], main);
+  sh("git", ["branch", "-m", "baddergames/real"], wtReal);
+  fs.writeFileSync(path.join(wtReal, "real.txt"), "one\n");
+  sh("git", ["add", "real.txt"], wtReal); sh("git", ["commit", "-qm", "real one"], wtReal); sh("git", ["push", "-q", "-u", "origin", "baddergames/real"], wtReal);
+  const head = () => sh("git", ["rev-parse", "HEAD"], wtReal);
+  const s = fakeState();
+  s.threads["mcp:lane-real"] = { title: "real", messages: [], settled: false, archived: false, status: "completed", latestRunId: "run:1", worktreePath: wtReal, last: "HELD: https://github.com/o/r/pull/40 ready" };
+  s.prs.push({ number: 40, state: "OPEN", mergeStateStatus: "CLEAN", headRefName: "baddergames/real", headRefOid: head(), baseRefName: "main", url: "https://github.com/o/r/pull/40", statusCheckRollup: [{ name: "checks", conclusion: "SUCCESS" }] });
+  saveFake(s);
+  mm(["lane", "set", "real", "--thread-id", "mcp:lane-real"], { at });
+  fs.writeFileSync(path.join(wtReal, "real.txt"), "uncommitted\n");
+  let r = mm(["lane", "merge", "real"], { at });
+  check("T25a uncommitted changes in the lane's worktree block the merge", r.code === 1 && /uncommitted changes/.test(r.err), r.err);
+  sh("git", ["commit", "-qam", "real two"], wtReal);
+  r = mm(["lane", "merge", "real"], { at });
+  check("T25b commits that are not in the pull request block the merge", r.code === 1 && /not in the pull request/.test(r.err), r.err);
+  sh("git", ["push", "-q"], wtReal);
+  const s2 = fakeState(); s2.prs.find((p) => p.number === 40).headRefOid = head(); saveFake(s2);
+  sh("git", ["push", "-q", "origin", "baddergames/real:main"], wtReal);
+  r = mm(["lane", "merge", "real", "--json"], { at });
+  const c = r.json?.cleanup || {};
+  check("T25c the merge goes through and every cleanup step reports what happened", r.code === 0 && c.worktree?.startsWith("removed") && c.remoteBranch === "deleted baddergames/real" && c.mainCheckout === "updated" && c.localBranches?.[0] === "baddergames/real: deleted", r.out + r.err);
+  check("T25d the worktree, the local branch and the remote branch are gone", !fs.existsSync(wtReal) && spawnSync("git", ["rev-parse", "--verify", "-q", "refs/heads/baddergames/real"], { cwd: main }).status !== 0 && !sh("git", ["ls-remote", "--heads", "origin", "baddergames/real"], main), "");
+}
+
+// T24 new sub-project
+{
+  const r = mm(["ns", "add", "technowizard"], { cwd: wt });
+  const cfg = JSON.parse(read(path.join(wt, ".mastermind", "config.json")));
+  const agents = read(path.join(wt, "technowizard", "AGENTS.md"));
+  check("T24a ns add registers the namespace and writes its agent files", r.code === 0 && cfg.namespaces["dev.baddergames.technowizard"] === "technowizard" && /Namespace: `dev.baddergames.technowizard`/.test(agents) && read(path.join(wt, "technowizard", "CLAUDE.md")) === "@AGENTS.md\n", r.out + r.err);
+  const w = mm(["whoami", "--json"], { cwd: path.join(wt, "technowizard") });
+  check("T24b the new folder resolves to its namespace", w.json?.namespace === "dev.baddergames.technowizard", w.out + w.err);
+  const again = mm(["ns", "add", "technowizard"], { cwd: wt });
+  check("T24c an existing namespace is refused", again.code === 1 && /already exists/.test(again.err), again.err);
 }
 
 const failed = results.filter((r) => !r.ok);
