@@ -3,8 +3,11 @@
 # mastermind state, the devlog and sub-project folders stay out of the site.
 name: Deploy to GitHub Pages
 
-# Manual only: running it replaces the whole live site.
+# Deploys on every push to main, and can be started by hand. Each deploy
+# replaces the whole live site.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
