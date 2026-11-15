@@ -156,7 +156,7 @@ export const writeLedger = (ctx, ledger) => writeJson(ledgerPath(ctx), ledger);
 const t3bin = () => process.env.MM_T3 || "t3";
 const ghbin = () => process.env.MM_GH || "gh";
 
-export function t3(args, input) { return run(t3bin(), args, { input }); }
+export function t3(args, input, timeoutMs) { return run(t3bin(), args, { input, timeoutMs }); }
 export function t3Available() { return t3(["--version"]).code === 0; }
 
 // "gone" only when T3 answers that the thread does not exist; any other failure (no t3, server down) is "unknown".

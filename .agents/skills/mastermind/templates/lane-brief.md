@@ -6,12 +6,12 @@ You are the lane `{{lane}}` in the {{project}} project: one piece of work, one G
 
 1. Run `{{mm}} lane attach {{lane}}`. This records your thread so the orchestrator can follow your reports.
 2. Run `{{mm}} whoami --ns {{namespace}}`. Read every file it lists under "read first".
-3. Create your branch: `git switch -c {{branch}}`.
+3. Name your branch: `git branch -m {{branch}}` (T3 created the worktree on a branch of its own name; this renames it).
 
 ## Where you work
 
 - Namespace: `{{namespace}}`. Its root is `{{root}}` (relative to the repository root).
-- You are in your own git worktree of the whole repository. Never change the main checkout, and never run `mm` commands other than `lane attach` and `whoami`.
+- You are in your own git worktree of the whole repository. Never change the main checkout. Run no `mm` commands other than `lane attach`, `whoami` and any the goal below names.
 - Change files inside `{{root}}` only, unless the goal below says otherwise. Shared files (`.agents/`, root `AGENTS.md`, other namespaces) belong to the namespace that contains them: if the goal needs them and does not name them, stop and report `REQUEST-LANE` or `SCOPE` (see Report).
 
 ## Goal
@@ -39,9 +39,9 @@ Reviewer: {{reviewer}}, on {{reviewerModel}}. Run the review with the skill of t
 
 ## Pull request
 
-- Open the pull request against `main`. Title: what changed, in plain words. Body: what changed and why, how you verified it (the "done when" list with results), and `Closes {{issue}}` when there is an issue.
+- Push your branch and open the pull request against `main`, then link it to your thread with T3's `link_pull_request`. Title: what changed, in plain words. Body: what changed and why, how you verified it (the "done when" list with results), and `Closes {{issue}}` when there is an issue.
 - The repository is public: no private notes, paths outside the repository, or personal data in the issue, commits or pull request.
-- Wait for every check to finish. Fix failures. **Never merge.** Every pull request is held for the user's approval; the orchestrator merges on the user's word.
+- Push every commit before you report: the pull request must contain exactly what your worktree has, with nothing uncommitted. Wait for every check to finish. Fix failures. **Never merge.** Every pull request is held for the user's approval; the orchestrator merges on the user's word.
 
 ## Report
 
@@ -51,7 +51,7 @@ Your final message starts with exactly one of these lines, then the details:
 - `WAITING: <what you need from the user, with options>`
 - `BLOCKED: <question or obstacle> — <why>` (also for "needs a stronger model")
 - `SCOPE: <n pieces of work> — <why this is bigger than one issue>`
-- `REQUEST-LANE: <goal of the other work> — <why it is needed>` (you continue or stop, and say which)
+- `REQUEST-LANE: <goal of the other work> — <why it is needed>` (stop after reporting it; the orchestrator starts that work and tells you how to continue)
 - `CLOSED: <why the work is not needed>`
 
 The status line must be the very first line of your final message: `mm` reads it automatically and records the lane's state from it. A final message without one is recorded as "stopped without a status line". Make the first 400 characters self-contained. Report only when the state changes; do not send progress notes.

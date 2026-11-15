@@ -14,7 +14,7 @@ import {
   taskNew, taskStart,
 } from "./work.mjs";
 
-const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and ns list first closes past devlog days
+const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and ns first closes past devlog days
 and reads every open lane's thread, recording what it reports (HELD, WAITING, BLOCKED, …).
 
   mm whoami [--ns <namespace>] [--json]      namespace, root, files to read, orchestrators, current time
@@ -98,7 +98,7 @@ function whoami(ctx, opt) {
   };
 }
 
-function status(ctx, ledger, roll, synced) {
+function status(ctx, ledger, roll) {
   const lanes = laneList(ledger, { open: true });
   const by = (s) => lanes.filter((l) => s.includes(l.state)).map((l) => `${l.name} [${l.ns}] ${l.title}${l.issue ? ` #${l.issue}` : ""}${l.pr ? ` PR #${l.pr}` : ""}`);
   const today = dayKey(now(), ctx.config.timezone);
@@ -115,7 +115,7 @@ function status(ctx, ledger, roll, synced) {
   }
   return {
     now: localStamp(now(), ctx.config.timezone),
-    closedDays: roll.closed, finaliseSent: roll.finaliseSent, laneChanges: synced,
+    closedDays: roll.closed, finaliseSent: roll.finaliseSent, laneChanges: ledger.pendingChanges || [],
     waitingForUser: { approval: by(["held"]), answer: by(["waiting"]), blocked: by(["blocked"]) },
     running: by(["started", "running"]),
     completedToday: done,
@@ -157,11 +157,12 @@ function main(argv) {
   try {
     const ledger = readLedger(ctx);
     const roll = rollover(ctx, ledger);
-    const synced = syncLanes(ctx, ledger);
+    syncLanes(ctx, ledger);
+    writeLedger(ctx, ledger);
     let result;
     switch (cmd) {
       case "rollover": result = roll; break;
-      case "status": result = status(ctx, ledger, roll, synced); break;
+      case "status": result = status(ctx, ledger, roll); ledger.pendingChanges = []; break;
       case "claim": {
         const ns = pos[0] || whoami(ctx, {}).namespace;
         result = { namespace: ns, ...claim(ctx, ledger, ns, { threadId: opt.threadId || currentThreadId(), force: !!opt.force }) };

@@ -194,19 +194,26 @@ export function laneAttach(ctx, ledger, name, threadId = currentThreadId()) {
 
 const REPORT = /^\s*(HELD|WAITING|BLOCKED|SCOPE|REQUEST-LANE|CLOSED):\s*(.*)/;
 const REPORT_STATE = { HELD: "held", WAITING: "waiting", BLOCKED: "blocked", SCOPE: "blocked", "REQUEST-LANE": "waiting", CLOSED: "closed" };
-const BUSY = new Set(["running", "starting", "preparing"]);
+const BUSY = new Set(["preparing", "queued", "starting", "running"]);
+const STOPPED = new Set(["interrupted", "failed", "cancelled", "rolled_back"]);
+const PR_URL = /https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)/;
+const SYNC_BUDGET_MS = 20000;
 
 // Read every open lane's thread and record what it reports, so the ledger does not depend on the orchestrator
-// remembering. Each run of a lane thread is read once; an unreachable T3 changes nothing.
+// remembering. A thread is read again only when its latest run, its status or its pending questions change.
+// Only the latest run's own final message counts as its report. An unreachable T3 changes nothing.
+// Changes wait in ledger.pendingChanges until `mm status` reports them.
 export function syncLanes(ctx, ledger) {
   const notes = [];
+  const deadline = Date.now() + SYNC_BUDGET_MS;
   for (const lane of laneList(ledger, { open: true })) {
     if (!lane.threadId) continue;
-    const r = t3(["thread", "show", lane.threadId, "--json", "--messages", "3"]);
+    if (Date.now() > deadline) { notes.push("lane sync stopped early because T3 is slow; the other lanes are read on the next run"); break; }
+    const r = t3(["thread", "show", lane.threadId, "--json", "--messages", "5"], undefined, 10000);
     if (r.code) continue;
     const { thread, messages = [] } = JSON.parse(r.out);
-    const busy = Boolean(thread.activeRunId) || BUSY.has(thread.status);
-    const pending = thread.pendingRequestCount > 0;
+    const pending = thread.pendingRequestCount > 0 || thread.status === "waiting";
+    const busy = !pending && (Boolean(thread.activeRunId) || BUSY.has(thread.status));
     const marker = `${thread.latestRunId}|${pending}|${busy}|${thread.status}`;
     if (marker === lane.syncMarker) continue;
     lane.syncMarker = marker;
@@ -218,49 +225,80 @@ export function syncLanes(ctx, ledger) {
     };
     if (pending) { set("waiting", "the lane asked a question"); continue; }
     if (busy) { set("running", "the lane is working again"); continue; }
-    if (thread.status === "failed") { set("blocked", "the lane's run failed; read its thread"); continue; }
-    const last = [...messages].reverse().find((m) => m.role !== "user")?.text || "";
+    if (STOPPED.has(thread.status)) { set("blocked", `the lane's run ended as ${thread.status}; read its thread`); continue; }
+    const last = [...messages].reverse().find((m) => m.role !== "user" && m.runId === thread.latestRunId)?.text || "";
     const m = last.match(REPORT);
     if (!m) { set("waiting", "the lane stopped without a status line; read its thread"); continue; }
     const [, word, rest] = m;
     const detail = rest.trim().slice(0, 300);
-    const pr = Number(rest.match(/\/pull\/(\d+)/)?.[1]) || undefined;
-    if (word === "REQUEST-LANE") laneUpdate(ctx, ledger, lane.name, "request-lane", { note: detail });
-    if (word === "CLOSED") { laneUpdate(ctx, ledger, lane.name, "closed", { note: `closed: ${detail}` }); notes.push(`${lane.name}: closed`); continue; }
+    const pr = Number(rest.match(PR_URL)?.[1]) || undefined;
+    if (word === "REQUEST-LANE") { laneUpdate(ctx, ledger, lane.name, "request-lane", { note: detail }); notes.push(`${lane.name}: requests another lane: ${detail}`); }
+    if (word === "CLOSED") { laneUpdate(ctx, ledger, lane.name, "closed", { note: `closed: ${detail}` }); notes.push(`${lane.name}: closed: ${detail}`); continue; }
     set(REPORT_STATE[word], `${word}: ${detail}`, pr ? { pr } : {});
   }
+  ledger.pendingChanges = [...(ledger.pendingChanges || []), ...notes.map((note) => ({ at: now().toISOString(), note }))];
   return notes;
 }
 
-const CHECK_OK = new Set(["SUCCESS", "SKIPPED", "NEUTRAL"]);
+const CHECK_PASSED = new Set(["SUCCESS", "SKIPPED", "NEUTRAL"]);
+const checkResult = (c) => c.conclusion || c.state || c.status;
 
-// The only way a lane's pull request is merged: open, mergeable, every check finished and passed.
+// The only way a lane's pull request is merged. It must be the lane's own branch into the default branch, open,
+// CLEAN, with at least one check passed and none failed or pending, and at the commit the lane's worktree is at.
 export function laneMerge(ctx, ledger, name) {
   const lane = ledger.lanes[name] || fail(`no lane "${name}"`);
   if (lane.state !== "held") fail(`lane "${name}" is ${lane.state}, not held for approval`);
   if (!lane.pr) fail(`lane "${name}" has no pull request recorded`);
-  const pr = ghJson(ctx, ["pr", "view", String(lane.pr), "--json", "state,mergeStateStatus,statusCheckRollup,headRefName,url"]);
+  const base = ctx.config.defaultBranch || "main";
+  const pr = ghJson(ctx, ["pr", "view", String(lane.pr), "--json", "state,mergeStateStatus,statusCheckRollup,headRefName,headRefOid,baseRefName,url"]);
   const checks = pr.statusCheckRollup || [];
-  const bad = checks.filter((c) => !CHECK_OK.has(c.conclusion || c.state)).map((c) => `${c.name || c.context}: ${c.conclusion || c.state || c.status}`);
+  const bad = checks.filter((c) => !CHECK_PASSED.has(checkResult(c))).map((c) => `${c.name || c.context}: ${checkResult(c)}`);
+  const info = lane.threadId ? threadInfo(lane.threadId) : { state: "gone", thread: null };
+  const wt = info.thread?.worktreePath && fs.existsSync(info.thread.worktreePath) ? info.thread.worktreePath : null;
+  const wtHead = wt ? git(["rev-parse", "HEAD"], wt).out : null;
   const problems = [
-    pr.state !== "OPEN" && `the pull request is ${pr.state}`,
+    pr.headRefName !== lane.branch && `pull request #${lane.pr} is from branch ${pr.headRefName}, not the lane's branch ${lane.branch}`,
+    pr.baseRefName !== base && `it targets ${pr.baseRefName}, not ${base}`,
+    pr.state !== "OPEN" && `it is ${pr.state}`,
     pr.mergeStateStatus !== "CLEAN" && `GitHub reports it as ${pr.mergeStateStatus}, not CLEAN`,
-    !checks.length && "no checks ran on it",
+    !checks.some((c) => checkResult(c) === "SUCCESS") && "no check ran and passed on it",
     bad.length && `checks not passed: ${bad.join(", ")}`,
+    wtHead && wtHead !== pr.headRefOid && `the lane's worktree is at ${wtHead.slice(0, 7)} but the pull request is at ${pr.headRefOid?.slice(0, 7)}: the lane has commits that are not in the pull request`,
+    wt && git(["status", "--porcelain"], wt).out && "the lane's worktree has uncommitted changes",
   ].filter(Boolean);
   if (problems.length) fail(`not merged: ${problems.join("; ")}`);
-  const merged = gh(ctx, ["pr", "merge", String(lane.pr), "--merge"]);
+  const merged = gh(ctx, ["pr", "merge", String(lane.pr), "--merge", "--match-head-commit", pr.headRefOid]);
   if (merged.code) fail(`gh pr merge failed: ${merged.err || merged.out}`);
   laneUpdate(ctx, ledger, name, "merged", { note: `${lane.title} (PR #${lane.pr} merged)` });
-  const cleanup = [];
-  if (pr.headRefName && git(["push", "-q", "origin", "--delete", pr.headRefName], ctx.main).code) cleanup.push(`remote branch ${pr.headRefName} not deleted`);
-  const wt = lane.threadId ? threadInfo(lane.threadId).thread?.worktreePath : null;
-  if (wt && fs.existsSync(wt)) {
-    if (git(["status", "--porcelain"], wt).out) cleanup.push(`worktree ${wt} has uncommitted changes; left in place`);
-    else if (git(["worktree", "remove", wt], ctx.main).code) cleanup.push(`worktree ${wt} not removed`);
-    else if (pr.headRefName) git(["branch", "-D", pr.headRefName], ctx.main);
+  return { lane: name, merged: pr.url, cleanup: cleanupLane(ctx, pr.headRefName, info, wt) };
+}
+
+// Each step reports what actually happened. A branch is deleted only when origin's default branch contains it.
+function cleanupLane(ctx, headRef, info, wt) {
+  const base = ctx.config.defaultBranch || "main";
+  const steps = {};
+  const fetched = git(["fetch", "-q", "origin", base], ctx.main);
+  steps.fetch = fetched.code ? `failed: ${fetched.err}` : "done";
+  const onBase = git(["rev-parse", "--abbrev-ref", "HEAD"], ctx.main).out === base;
+  const dirty = git(["status", "--porcelain", "--untracked-files=no"], ctx.main).out;
+  if (!onBase || dirty) steps.mainCheckout = `not updated: ${!onBase ? `not on ${base}` : "it has uncommitted changes"}`;
+  else { const pulled = git(["merge", "-q", "--ff-only", `origin/${base}`], ctx.main); steps.mainCheckout = pulled.code ? `not updated: ${pulled.err}` : "updated"; }
+  const remote = git(["push", "-q", "origin", "--delete", headRef], ctx.main);
+  steps.remoteBranch = remote.code ? `not deleted: ${remote.err}` : `deleted ${headRef}`;
+  if (wt) {
+    const removed = git(["worktree", "remove", wt], ctx.main);
+    steps.worktree = removed.code ? `not removed: ${removed.err}` : `removed ${wt}`;
+  } else {
+    steps.worktree = info.state === "unknown" ? "not removed: T3 not reachable, so its path is not known" : "none found";
   }
-  return { lane: name, merged: pr.url, cleanup: cleanup.length ? cleanup : "worktree and branches removed" };
+  const branches = [...new Set([headRef, info.thread?.branch].filter(Boolean))];
+  steps.localBranches = branches.map((b) => {
+    if (git(["rev-parse", "--verify", "-q", `refs/heads/${b}`], ctx.main).code) return `${b}: not present`;
+    if (git(["merge-base", "--is-ancestor", b, `origin/${base}`], ctx.main).code) return `${b}: kept, it has commits that are not in ${base}`;
+    const d = git(["branch", "-D", b], ctx.main);
+    return d.code ? `${b}: not deleted: ${d.err}` : `${b}: deleted`;
+  });
+  return steps;
 }
 
 const SEGMENT = /^[a-z][a-z0-9-]{0,31}$/;
