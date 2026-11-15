@@ -1,6 +1,12 @@
 {
   "ideas": [
     {
+      "id": "technophage",
+      "title": "Technophage",
+      "description": "An online co-op side-scrolling shooter in a collapsing technological dystopia, fighting down from a rain-slick megacity through its industrial underbelly into caverns where alien life and machinery have fused.",
+      "tags": ["co-op", "multiplayer", "shooter", "pixel-art", "retro", "horror"]
+    },
+    {
       "id": "procedural-levels",
       "title": "Procedural levels",
       "description": "Build each level from hand-made room chunks stitched together by a seeded generator. Every run feels fresh, but the pieces stay hand-tuned so pacing never turns to mush.",
