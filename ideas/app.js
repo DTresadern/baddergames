@@ -339,7 +339,8 @@ function initApp() {
     }
     fileFallback.hidden = true;
     setGraph(buildGraph(result.ideas));
-    let msg = result.ideas.length + ' ideas, ' + graph.edges.length + ' connections.';
+    const count = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
+    let msg = count(result.ideas.length, 'idea') + ', ' + count(graph.edges.length, 'connection') + '.';
     if (result.skipped > 0) msg += ' Skipped ' + result.skipped + ' invalid or duplicate entries.';
     if (result.ideas.length === 0) msg = 'No ideas found in ' + sourceName + '.';
     setStatus(msg, false);
