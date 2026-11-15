@@ -273,9 +273,15 @@ export function syncLanes(ctx, ledger) {
         if (lane.state !== "running") continue;
         if (!working) { set("waiting", `the lane ended its turn without a status line and has been quiet for ${quietMinutes(ctx)} minutes; read its thread`); continue; }
         const count = lane.reminders?.count || 0;
-        if (count >= REMINDER_LIMIT) {
+        if (thread.archived || thread.settled) {
           delete lane.reminders;
-          set("waiting", `the lane still reports WORKING after ${count} reminders from mm, with nothing else run in between; read its thread`);
+          set("waiting", `the lane reported WORKING and nothing has run for ${quietMinutes(ctx)} minutes, but its thread is ${thread.archived ? "archived" : "settled"}, so mm sent no reminder; close the lane or wake its thread`);
+          continue;
+        }
+        if (count >= REMINDER_LIMIT) {
+          const checked = lane.reminders.runCount != null && thread.runCount != null;
+          delete lane.reminders;
+          set("waiting", `the lane still reports WORKING after ${count} reminders from mm${checked ? ", with nothing else run in between" : ""}; read its thread`);
           continue;
         }
         const r = t3(["thread", "send", lane.threadId, "-"], reminderText(ctx, lane, since), 10000);

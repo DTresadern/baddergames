@@ -596,6 +596,8 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   l = lane("wk", "10:15:30");
   const st2 = mm(["status", "--json"], { at: at("10:15:40") });
   check("T26c after the quiet period the idle WORKING lane gets one reminder and stays running", sent("mcp:lane-wk").length === 1 && /mm reminder \(1 of 3\).*WORKING/.test(sent("mcp:lane-wk")[0]) && l.state === "running" && st2.json.laneChanges.some((c) => /wk: .*reminder 1 of 3/.test(c.note)), JSON.stringify(st2.json.laneChanges));
+  const st3 = mm(["status", "--json"], { at: at("10:16:00") });
+  check("T26c2 a lane just sent a reminder stays listed for a re-check", st3.json?.quietLanes?.some((q) => q.lane === "wk" && q.reminders === 1 && q.recheckAt === "2026-12-04T10:31:30.000Z"), JSON.stringify(st3.json?.quietLanes));
   lane("wk", "10:40:00");
   check("T26d no second reminder while no new run has started", sent("mcp:lane-wk").length === 1, String(sent("mcp:lane-wk").length));
   let t = 2;
@@ -615,6 +617,29 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T26h any other status line clears the reminders", l.state === "held" && !l.reminders && !l.quietSince, JSON.stringify(l));
   thread("mcp:lane-wk3", { ...idle(1), sendFails: true }); lane("wk3", "13:00:00"); l = lane("wk3", "13:15:30");
   check("T26i if the reminder cannot be sent, the lane is reported as waiting", l.state === "waiting" && /could not send it a reminder/.test(l.history.at(-1).note), JSON.stringify(l.history.at(-1)));
+  for (const name of ["wk4", "wk5", "wk6"]) {
+    mm(["lane", "new", name, "--ns", "dev.baddergames.technophage", "--title", `Working ${name}`, "--goal-file", goal, "--skip-git-check"], { at: at("13:00:00"), extra: { MM_THREAD_ID: "mcp:orch-start" } });
+    mm(["lane", "set", name, "--thread-id", `mcp:lane-${name}`], { at: at("13:00:00") });
+  }
+  thread("mcp:lane-wk4", idle(1)); lane("wk4", "13:01:00");
+  mm(["lane", "update", "wk4", "held", "--pr", "91", "--note", "set by hand"], { at: at("13:02:00") });
+  l = lane("wk4", "13:16:30");
+  check("T26l a WORKING lane set to held by hand gets no reminder and stays held", l.state === "held" && sent("mcp:lane-wk4").length === 0, JSON.stringify(l.history.slice(-2)));
+  thread("mcp:lane-wk5", { ...idle(1), archived: true }); lane("wk5", "13:01:00"); l = lane("wk5", "13:16:30");
+  check("T26m an archived WORKING lane gets no reminder and is reported as waiting", l.state === "waiting" && /archived/.test(l.history.at(-1).note) && sent("mcp:lane-wk5").length === 0, JSON.stringify(l.history.at(-1)));
+  thread("mcp:lane-wk6", { ...idle(1), runCount: undefined }); lane("wk6", "13:01:00");
+  for (const [n, a, b, c] of [[2, "13:17:00", "13:18:00", "13:33:30"], [3, "13:34:00", "13:35:00", "13:50:30"], [4, "13:51:00", "13:52:00", "14:07:30"]]) {
+    if (n === 2) lane("wk6", "13:16:30");
+    thread("mcp:lane-wk6", { ...busy(n), runCount: undefined }); lane("wk6", a);
+    thread("mcp:lane-wk6", { ...idle(n), runCount: undefined }); lane("wk6", b); lane("wk6", c);
+  }
+  l = mm(["lane", "list", "--json"], { at: at("14:08:00") }).json.find((x) => x.name === "wk6");
+  check("T26n without a run count, the waiting note does not claim nothing else ran", l.state === "waiting" && /after 3 reminders/.test(l.history.at(-1).note) && !/nothing else run/.test(l.history.at(-1).note), JSON.stringify(l.history.at(-1)));
+  thread("mcp:orch-start", { status: "completed" });
+  for (let o; (o = mm(["owner", "dev.baddergames.technophage", "--json"], { at: at("14:09:00") }).json);) { const x = fakeState(); x.threads[o.threadId].settled = true; saveFake(x); }
+  const startBefore = sent("mcp:orch-start").length;
+  const r0 = mm(["lane", "notify", "wk4", "fallback notice", "--json"], { cwd: wt, at: at("14:10:00"), extra: { MM_THREAD_ID: "mcp:lane-wk4" } });
+  check("T26o with no live orchestrator for the namespace, notify goes to the thread that started the lane", r0.json?.sentTo === "mcp:orch-start" && sent("mcp:orch-start").length === startBefore + 1 && /fallback notice/.test(sent("mcp:orch-start").at(-1)), r0.out + r0.err);
   thread("mcp:hub", { status: "completed" });
   mm(["claim", "--force", "dev.baddergames"], { extra: { MM_THREAD_ID: "mcp:hub" }, at: at("13:20:00") });
   const hubBefore = sent("mcp:hub").length;

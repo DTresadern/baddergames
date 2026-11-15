@@ -122,9 +122,10 @@ function status(ctx, ledger, roll) {
     closedDays: roll.closed, finaliseSent: roll.finaliseSent, laneChanges: ledger.pendingChanges || [],
     waitingForUser: { approval: by(["held"]), answer: by(["waiting"]), blocked: by(["blocked"]) },
     running: by(["started", "running"]),
-    quietLanes: laneList(ledger, { open: true }).filter((l) => l.quietSince).map((l) => ({
-      lane: l.name, quietSince: l.quietSince, reminders: l.reminders?.count || 0,
-      recheckAt: new Date(new Date(l.quietSince).getTime() + (ctx.config.laneQuietMinutes ?? 15) * 60000 + 60000).toISOString(),
+    // A lane that was just sent a reminder stays listed, so the orchestrator still schedules a check.
+    quietLanes: laneList(ledger, { open: true }).filter((l) => l.quietSince || l.reminders).map((l) => ({
+      lane: l.name, quietSince: l.quietSince || null, reminders: l.reminders?.count || 0,
+      recheckAt: new Date(new Date(l.quietSince || l.reminders.at).getTime() + (ctx.config.laneQuietMinutes ?? 15) * 60000 + 60000).toISOString(),
     })),
     completedToday: done,
     devlog: devlogSummaryLine(ctx, ledger),
