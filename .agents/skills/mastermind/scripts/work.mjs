@@ -2,7 +2,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-  currentThreadId, fail, fillTemplate, gh, ghJson, git, now, nsInfo, nsShort, threadState, writeText,
+  currentThreadId, fail, fillTemplate, gh, ghJson, git, now, nsInfo, nsShort, readJson, t3, threadInfo, threadState,
+  writeJson, writeText,
 } from "./core.mjs";
 import { LANE_STATES, recordEvent } from "./devlog.mjs";
 
@@ -180,6 +181,113 @@ export function reconcile(ctx, ledger) {
     }
   }
   return notes;
+}
+
+// A lane records its own thread as its first step, so the ledger has it even if the orchestrator did not.
+export function laneAttach(ctx, ledger, name, threadId = currentThreadId()) {
+  const lane = ledger.lanes[name] || fail(`no lane "${name}"`);
+  if (!threadId) fail("no thread id: run inside T3 or pass --thread-id");
+  if (lane.threadId && lane.threadId !== threadId) fail(`lane "${name}" is attached to thread ${lane.threadId}, not ${threadId}`);
+  lane.threadId = threadId;
+  return lane;
+}
+
+const REPORT = /^\s*(HELD|WAITING|BLOCKED|SCOPE|REQUEST-LANE|CLOSED):\s*(.*)/;
+const REPORT_STATE = { HELD: "held", WAITING: "waiting", BLOCKED: "blocked", SCOPE: "blocked", "REQUEST-LANE": "waiting", CLOSED: "closed" };
+const BUSY = new Set(["running", "starting", "preparing"]);
+
+// Read every open lane's thread and record what it reports, so the ledger does not depend on the orchestrator
+// remembering. Each run of a lane thread is read once; an unreachable T3 changes nothing.
+export function syncLanes(ctx, ledger) {
+  const notes = [];
+  for (const lane of laneList(ledger, { open: true })) {
+    if (!lane.threadId) continue;
+    const r = t3(["thread", "show", lane.threadId, "--json", "--messages", "3"]);
+    if (r.code) continue;
+    const { thread, messages = [] } = JSON.parse(r.out);
+    const busy = Boolean(thread.activeRunId) || BUSY.has(thread.status);
+    const pending = thread.pendingRequestCount > 0;
+    const marker = `${thread.latestRunId}|${pending}|${busy}|${thread.status}`;
+    if (marker === lane.syncMarker) continue;
+    lane.syncMarker = marker;
+    const set = (state, note, extra = {}) => {
+      if (state === lane.state && (!extra.pr || extra.pr === lane.pr) && note === lane.history.at(-1)?.note) return;
+      if (lane.state === "started" && state === "running") { lane.state = "running"; lane.history.push({ at: now().toISOString(), state }); return; }
+      laneUpdate(ctx, ledger, lane.name, state, { note, ...extra });
+      notes.push(`${lane.name}: ${state}${note ? ` (${note})` : ""}`);
+    };
+    if (pending) { set("waiting", "the lane asked a question"); continue; }
+    if (busy) { set("running", "the lane is working again"); continue; }
+    if (thread.status === "failed") { set("blocked", "the lane's run failed; read its thread"); continue; }
+    const last = [...messages].reverse().find((m) => m.role !== "user")?.text || "";
+    const m = last.match(REPORT);
+    if (!m) { set("waiting", "the lane stopped without a status line; read its thread"); continue; }
+    const [, word, rest] = m;
+    const detail = rest.trim().slice(0, 300);
+    const pr = Number(rest.match(/\/pull\/(\d+)/)?.[1]) || undefined;
+    if (word === "REQUEST-LANE") laneUpdate(ctx, ledger, lane.name, "request-lane", { note: detail });
+    if (word === "CLOSED") { laneUpdate(ctx, ledger, lane.name, "closed", { note: `closed: ${detail}` }); notes.push(`${lane.name}: closed`); continue; }
+    set(REPORT_STATE[word], `${word}: ${detail}`, pr ? { pr } : {});
+  }
+  return notes;
+}
+
+const CHECK_OK = new Set(["SUCCESS", "SKIPPED", "NEUTRAL"]);
+
+// The only way a lane's pull request is merged: open, mergeable, every check finished and passed.
+export function laneMerge(ctx, ledger, name) {
+  const lane = ledger.lanes[name] || fail(`no lane "${name}"`);
+  if (lane.state !== "held") fail(`lane "${name}" is ${lane.state}, not held for approval`);
+  if (!lane.pr) fail(`lane "${name}" has no pull request recorded`);
+  const pr = ghJson(ctx, ["pr", "view", String(lane.pr), "--json", "state,mergeStateStatus,statusCheckRollup,headRefName,url"]);
+  const checks = pr.statusCheckRollup || [];
+  const bad = checks.filter((c) => !CHECK_OK.has(c.conclusion || c.state)).map((c) => `${c.name || c.context}: ${c.conclusion || c.state || c.status}`);
+  const problems = [
+    pr.state !== "OPEN" && `the pull request is ${pr.state}`,
+    pr.mergeStateStatus !== "CLEAN" && `GitHub reports it as ${pr.mergeStateStatus}, not CLEAN`,
+    !checks.length && "no checks ran on it",
+    bad.length && `checks not passed: ${bad.join(", ")}`,
+  ].filter(Boolean);
+  if (problems.length) fail(`not merged: ${problems.join("; ")}`);
+  const merged = gh(ctx, ["pr", "merge", String(lane.pr), "--merge"]);
+  if (merged.code) fail(`gh pr merge failed: ${merged.err || merged.out}`);
+  laneUpdate(ctx, ledger, name, "merged", { note: `${lane.title} (PR #${lane.pr} merged)` });
+  const cleanup = [];
+  if (pr.headRefName && git(["push", "-q", "origin", "--delete", pr.headRefName], ctx.main).code) cleanup.push(`remote branch ${pr.headRefName} not deleted`);
+  const wt = lane.threadId ? threadInfo(lane.threadId).thread?.worktreePath : null;
+  if (wt && fs.existsSync(wt)) {
+    if (git(["status", "--porcelain"], wt).out) cleanup.push(`worktree ${wt} has uncommitted changes; left in place`);
+    else if (git(["worktree", "remove", wt], ctx.main).code) cleanup.push(`worktree ${wt} not removed`);
+    else if (pr.headRefName) git(["branch", "-D", pr.headRefName], ctx.main);
+  }
+  return { lane: name, merged: pr.url, cleanup: cleanup.length ? cleanup : "worktree and branches removed" };
+}
+
+const SEGMENT = /^[a-z][a-z0-9-]{0,31}$/;
+
+// Register a sub-project folder as a namespace and give it its agent files. Run in a lane: it changes tracked files.
+export function nsAdd(ctx, folder) {
+  const segments = folder.replace(/\/+$/, "").split("/");
+  if (!segments.every((x) => SEGMENT.test(x))) fail("each folder name must match [a-z][a-z0-9-]{0,31}");
+  const name = `${ctx.config.project}.${segments.join(".")}`;
+  const configPath = path.join(ctx.checkout, ".mastermind", "config.json");
+  const config = readJson(configPath);
+  if (config.namespaces[name]) fail(`${name} already exists`);
+  config.namespaces[name] = segments.join("/");
+  writeJson(configPath, config);
+  const root = path.join(ctx.checkout, ...segments);
+  const up = "../".repeat(segments.length);
+  const created = [];
+  for (const [file, text] of [
+    ["AGENTS.md", fillTemplate("subproject-agents.md", { name: segments.at(-1), namespace: name, project: ctx.config.project, root: segments.join("/"), up })],
+    ["CLAUDE.md", "@AGENTS.md\n"],
+  ]) {
+    const p = path.join(root, file);
+    if (fs.existsSync(p) && fs.readFileSync(p, "utf8").trim()) continue;
+    writeText(p, text);
+    created.push(path.relative(ctx.checkout, p));
+  }
+  return { namespace: name, root: segments.join("/"), created, config: path.relative(ctx.checkout, configPath) };
 }
 
 

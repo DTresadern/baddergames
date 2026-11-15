@@ -9,11 +9,13 @@ import {
 } from "./core.mjs";
 import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setSummary } from "./devlog.mjs";
 import {
-  claim, gitPreflight, issueNew, laneList, laneNew, laneSet, laneUpdate, owner, reconcile, release, taskFind, taskList,
+  claim, gitPreflight, issueNew, laneAttach, laneList, laneMerge, laneNew, laneSet, laneUpdate, nsAdd, owner, reconcile,
+  release, syncLanes, taskFind, taskList,
   taskNew, taskStart,
 } from "./work.mjs";
 
-const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and ns first closes past devlog days.
+const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and ns list first closes past devlog days
+and reads every open lane's thread, recording what it reports (HELD, WAITING, BLOCKED, …).
 
   mm whoami [--ns <namespace>] [--json]      namespace, root, files to read, orchestrators, current time
   mm status [--json]                         rollover, lanes by state, what waits on the user, warnings
@@ -26,6 +28,9 @@ const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and 
   mm lane set <name> [--thread-id <id>] [--task-id <id>] [--issue <n>] [--pr <n>]
   mm lane update <name> <running|held|waiting|blocked|merged|closed|request-lane> [--note "<text>"] [--why "<text>"] [--pr <n>]
   mm lane list [--open] [--json]
+  mm lane attach <name>                     run by the lane itself as its first step: records its thread
+  mm lane merge <name>                      on the user's word only: merges the held pull request if it is open,
+                                            CLEAN and every check passed; then removes the lane's branch and worktree
 
   mm issue new <ns> "<title>" [--body-file <f>]   GitHub issue with the ns:<name> label
   mm task new <ns> "<title>" [--body-file <f>]    local backlog task
@@ -41,6 +46,7 @@ const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and 
   mm owner <namespace>                            the running orchestrator responsible for a namespace
   mm preflight                                    the git checks a new lane must pass
   mm ns list
+  mm ns add <folder>                              new sub-project namespace + its AGENTS.md/CLAUDE.md (run in a lane)
   mm selftest`;
 
 const FLAGS = new Set(["force", "json", "open", "skipGitCheck"]);
@@ -92,7 +98,7 @@ function whoami(ctx, opt) {
   };
 }
 
-function status(ctx, ledger, roll) {
+function status(ctx, ledger, roll, synced) {
   const lanes = laneList(ledger, { open: true });
   const by = (s) => lanes.filter((l) => s.includes(l.state)).map((l) => `${l.name} [${l.ns}] ${l.title}${l.issue ? ` #${l.issue}` : ""}${l.pr ? ` PR #${l.pr}` : ""}`);
   const today = dayKey(now(), ctx.config.timezone);
@@ -109,7 +115,7 @@ function status(ctx, ledger, roll) {
   }
   return {
     now: localStamp(now(), ctx.config.timezone),
-    closedDays: roll.closed, finaliseSent: roll.finaliseSent,
+    closedDays: roll.closed, finaliseSent: roll.finaliseSent, laneChanges: synced,
     waitingForUser: { approval: by(["held"]), answer: by(["waiting"]), blocked: by(["blocked"]) },
     running: by(["started", "running"]),
     completedToday: done,
@@ -141,19 +147,21 @@ function main(argv) {
       `now         ${w.now}`, `mm          ${w.mm}`,
     ].join("\n"));
   }
+  if (cmd === "ns" && sub === "list") return out(namespaces(ctx).reverse().map((n) => `${n.name}  →  ${n.root || "."}`).join("\n"));
   if (cmd === "ns") {
-    if (sub !== "list") fail("usage: mm ns list");
-    return out(namespaces(ctx).reverse().map((n) => `${n.name}  →  ${n.root || "."}`).join("\n"));
+    if (sub !== "add" || !pos[0]) fail("usage: mm ns list | mm ns add <folder>");
+    return out(nsAdd(ctx, pos[0]), true);
   }
 
   const unlock = lock(ctx.stateDir);
   try {
     const ledger = readLedger(ctx);
     const roll = rollover(ctx, ledger);
+    const synced = syncLanes(ctx, ledger);
     let result;
     switch (cmd) {
       case "rollover": result = roll; break;
-      case "status": result = status(ctx, ledger, roll); break;
+      case "status": result = status(ctx, ledger, roll, synced); break;
       case "claim": {
         const ns = pos[0] || whoami(ctx, {}).namespace;
         result = { namespace: ns, ...claim(ctx, ledger, ns, { threadId: opt.threadId || currentThreadId(), force: !!opt.force }) };
@@ -176,10 +184,14 @@ function main(argv) {
           result = laneSet(ctx, ledger, pos[0], { threadId: opt.threadId, taskId: opt.taskId, issue: num(opt.issue), pr: num(opt.pr) });
         } else if (sub === "update") {
           result = laneUpdate(ctx, ledger, pos[0], pos[1], { note: opt.note, why: opt.why, pr: num(opt.pr) });
+        } else if (sub === "attach") {
+          result = laneAttach(ctx, ledger, pos[0], opt.threadId || currentThreadId());
+        } else if (sub === "merge") {
+          result = laneMerge(ctx, ledger, pos[0]);
         } else if (sub === "list") {
           const lanes = laneList(ledger, { open: !!opt.open });
           result = opt.json ? lanes : lanes.map((l) => `${l.name.padEnd(20)} ${l.state.padEnd(8)} ${l.ns}  ${l.title}${l.issue ? ` #${l.issue}` : ""}${l.pr ? ` PR #${l.pr}` : ""}`).join("\n") || "no lanes";
-        } else fail("usage: mm lane new|set|update|list");
+        } else fail("usage: mm lane new|set|update|list|attach|merge");
         break;
       case "issue":
         if (sub !== "new") fail("usage: mm issue new <ns> \"<title>\" [--body-file <f>]");

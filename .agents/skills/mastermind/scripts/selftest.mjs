@@ -44,7 +44,12 @@ if (a[0] === "thread" && a[1] === "start") {
 const t = s.threads[a[2]];
 if (!t) { console.error("Thread " + a[2] + " is no longer available."); process.exit(1); }
 if (a[1] === "send") { t.messages.push(a[3] === "-" ? stdin() : a[3]); save(); console.log("{}"); process.exit(0); }
-if (a[1] === "show") { console.log(JSON.stringify({ thread: { threadId: a[2], title: t.title, settled: t.settled, archived: t.archived, status: "idle" }, messages: [] })); process.exit(0); }
+if (a[1] === "show") {
+  const thread = { threadId: a[2], title: t.title, settled: t.settled, archived: t.archived, status: t.status || "idle", activeRunId: t.activeRunId || null,
+    pendingRequestCount: t.pendingRequestCount || 0, latestRunId: t.latestRunId || "run:1", worktreePath: t.worktreePath || null };
+  console.log(JSON.stringify({ thread, messages: t.last ? [{ role: "assistant", runId: thread.latestRunId, text: t.last }] : [] }));
+  process.exit(0);
+}
 process.exit(2);
 `);
 const fakeGh = path.join(tmp, "fake-gh.mjs");
@@ -58,6 +63,7 @@ const save = () => fs.writeFileSync(file, JSON.stringify(s, null, 2));
 const [x, y] = a;
 if (process.env.FAKE_GH_FAIL) { console.error("error connecting to api.github.com"); process.exit(1); }
 if (x === "pr" && y === "list") { console.log(JSON.stringify(s.prs.filter((p) => p.state === "MERGED"))); process.exit(0); }
+if (x === "pr" && y === "merge") { const p = s.prs.find((p) => String(p.number) === a[2]); p.state = "MERGED"; p.mergedAt = new Date().toISOString(); p.mergedBy = "mm"; save(); process.exit(0); }
 if (x === "pr" && y === "view") { const p = s.prs.find((p) => String(p.number) === a[2]); if (!p) process.exit(1); console.log(JSON.stringify(p)); process.exit(0); }
 if (x === "label" && y === "create") process.exit(0);
 if (x === "issue" && y === "create") {
@@ -342,6 +348,62 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   const { nsFromPath } = await import("./core.mjs");
   const ctx = { checkout: "/r", config: { namespaces: { "dev.b": ".", "dev.b.games": "games", "dev.b.ab": "games/ab" } } };
   check("T21 a folder inside a nested root resolves to the nested namespace", nsFromPath(ctx, "/r/games/ab/src") === "dev.b.ab" && nsFromPath(ctx, "/r/games/x") === "dev.b.games", "");
+}
+
+// T22 lanes record themselves, and mm reads their reports
+{
+  const at = "2026-12-02T10:00:00Z";
+  mm(["lane", "new", "sync", "--ns", "dev.baddergames.technophage", "--title", "Sync probe", "--goal-file", goal], { at });
+  let s = fakeState(); s.threads["mcp:lane-sync"] = { title: "dev.baddergames.technophage · sync", messages: [], settled: false, archived: false, status: "running", activeRunId: "run:1", latestRunId: "run:1" }; saveFake(s);
+  let r = mm(["lane", "attach", "sync", "--json"], { cwd: wt, at, extra: { MM_THREAD_ID: "mcp:lane-sync" } });
+  check("T22a a lane attaches its own thread from its worktree", r.json?.threadId === "mcp:lane-sync", r.out + r.err);
+  const lane = () => mm(["lane", "list", "--json"], { at }).json.find((l) => l.name === "sync");
+  check("T22b a running lane thread is recorded as running", lane().state === "running", JSON.stringify(lane()));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", activeRunId: null, latestRunId: "run:2", last: "HELD: https://github.com/o/r/pull/31 — reviews done, checks green, waiting for approval\n\ndetails" }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:10:00Z" });
+  mm(["lane", "list"], { at: "2026-12-02T10:11:00Z" });
+  const held = lane();
+  check("T22c a HELD report is recorded with its pull request, once", held.state === "held" && held.pr === 31 && lines("2026-12-02").filter((l) => JSON.parse(l).kind === "held" && JSON.parse(l).lane === "sync").length === 1, JSON.stringify(held));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "waiting", latestRunId: "run:3", pendingRequestCount: 1 }); saveFake(s);
+  check("T22d a question from the lane is recorded as waiting", (mm(["lane", "list"], { at: "2026-12-02T10:20:00Z" }), lane().state === "waiting"), JSON.stringify(lane()));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { status: "completed", latestRunId: "run:4", pendingRequestCount: 0, last: "Done, I think." }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:30:00Z" });
+  check("T22e a final message without a status line is flagged", lane().history.at(-1).note?.includes("without a status line"), JSON.stringify(lane().history.at(-1)));
+  s = fakeState(); Object.assign(s.threads["mcp:lane-sync"], { latestRunId: "run:5", last: "HELD: PR https://github.com/o/r/pull/31 ready" }); saveFake(s);
+  mm(["lane", "list"], { at: "2026-12-02T10:40:00Z" });
+}
+
+// T23 merging only under the rule
+{
+  const at = "2026-12-02T11:00:00Z";
+  const s = fakeState();
+  s.prs.push({ number: 31, state: "OPEN", mergeStateStatus: "CLEAN", headRefName: "technophage/sync", url: "https://github.com/o/r/pull/31", statusCheckRollup: [{ name: "checks", status: "COMPLETED", conclusion: "FAILURE" }] });
+  saveFake(s);
+  let r = mm(["lane", "merge", "sync"], { at });
+  check("T23a a failing check blocks the merge", r.code === 1 && /checks not passed: checks: FAILURE/.test(r.err) && fakeState().prs.find((p) => p.number === 31).state === "OPEN", r.err);
+  let s2 = fakeState(); s2.prs.find((p) => p.number === 31).statusCheckRollup = []; saveFake(s2);
+  r = mm(["lane", "merge", "sync"], { at });
+  check("T23b a pull request with no checks is not merged", r.code === 1 && /no checks ran/.test(r.err), r.err);
+  s2 = fakeState(); Object.assign(s2.prs.find((p) => p.number === 31), { statusCheckRollup: [{ name: "checks", status: "COMPLETED", conclusion: "SUCCESS" }], mergeStateStatus: "BEHIND" }); saveFake(s2);
+  r = mm(["lane", "merge", "sync"], { at });
+  check("T23c a pull request behind main is not merged", r.code === 1 && /BEHIND/.test(r.err), r.err);
+  s2 = fakeState(); s2.prs.find((p) => p.number === 31).mergeStateStatus = "CLEAN"; saveFake(s2);
+  r = mm(["lane", "merge", "sync", "--json"], { at });
+  check("T23d a clean, passing, held pull request is merged and the lane closed", r.code === 0 && fakeState().prs.find((p) => p.number === 31).mergedBy === "mm" && mm(["lane", "list", "--json"], { at }).json.find((l) => l.name === "sync").state === "merged", r.out + r.err);
+  r = mm(["lane", "merge", "net"], { at });
+  check("T23e a lane that is not held cannot be merged", r.code === 1 && /not held/.test(r.err), r.err);
+}
+
+// T24 new sub-project
+{
+  const r = mm(["ns", "add", "technowizard"], { cwd: wt });
+  const cfg = JSON.parse(read(path.join(wt, ".mastermind", "config.json")));
+  const agents = read(path.join(wt, "technowizard", "AGENTS.md"));
+  check("T24a ns add registers the namespace and writes its agent files", r.code === 0 && cfg.namespaces["dev.baddergames.technowizard"] === "technowizard" && /Namespace: `dev.baddergames.technowizard`/.test(agents) && read(path.join(wt, "technowizard", "CLAUDE.md")) === "@AGENTS.md\n", r.out + r.err);
+  const w = mm(["whoami", "--json"], { cwd: path.join(wt, "technowizard") });
+  check("T24b the new folder resolves to its namespace", w.json?.namespace === "dev.baddergames.technowizard", w.out + w.err);
+  const again = mm(["ns", "add", "technowizard"], { cwd: wt });
+  check("T24c an existing namespace is refused", again.code === 1 && /already exists/.test(again.err), again.err);
 }
 
 const failed = results.filter((r) => !r.ok);
