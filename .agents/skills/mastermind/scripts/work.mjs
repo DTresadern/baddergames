@@ -301,7 +301,8 @@ export function laneCleanup(ctx, ledger, name) {
 const laneWorktreeRoot = (ctx) => path.resolve((ctx.config.laneWorktreeRoot || "~/.t3/worktrees").replace(/^~(?=\/|$)/, os.homedir()));
 
 // Only a linked git worktree inside T3's worktree folder is a lane worktree. The main checkout never is.
-function laneWorktreeProblem(ctx, wt) {
+function laneWorktreeProblem(ctx, wt, headRef) {
+  if (!path.isAbsolute(wt)) return "its path is not absolute";
   const real = fs.realpathSync(wt);
   const root = laneWorktreeRoot(ctx);
   if (real === fs.realpathSync(ctx.main)) return "it is the main checkout";
@@ -309,6 +310,11 @@ function laneWorktreeProblem(ctx, wt) {
   const gitDir = git(["rev-parse", "--path-format=absolute", "--git-dir"], wt).out;
   const commonDir = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], wt).out;
   if (!gitDir || gitDir === commonDir) return "it is not a linked git worktree";
+  const registered = git(["worktree", "list", "--porcelain"], ctx.main).out.split("\n")
+    .filter((l) => l.startsWith("worktree ")).map((l) => { try { return fs.realpathSync(l.slice(9)); } catch { return null; } });
+  if (!registered.includes(real)) return "it is not a worktree of this repository";
+  const branch = git(["rev-parse", "--abbrev-ref", "HEAD"], wt).out;
+  if (branch !== headRef) return `it is on branch ${branch}, not the lane's branch ${headRef}`;
   return null;
 }
 
@@ -324,7 +330,7 @@ function cleanupLane(ctx, headRef, info, wt) {
   const onBase = git(["rev-parse", "--abbrev-ref", "HEAD"], ctx.main).out === base;
   const dirty = git(["status", "--porcelain", "--untracked-files=no"], ctx.main).out;
   if (!onBase || dirty) steps.mainCheckout = `not updated: ${!onBase ? `not on ${base}` : "it has uncommitted changes"}`;
-  else { const pulled = git(["merge", "-q", "--ff-only", `origin/${base}`], ctx.main); steps.mainCheckout = pulled.code ? `not updated: ${pulled.err}` : "updated"; }
+  else { const pulled = git(["merge", "-q", "--ff-only", "--no-overwrite-ignore", `origin/${base}`], ctx.main); steps.mainCheckout = pulled.code ? `not updated: ${pulled.err}` : "updated"; }
   const remoteRef = `refs/heads/${headRef}`;
   const remoteSha = git(["ls-remote", "origin", remoteRef], ctx.main).out.split("\n").map((l) => l.split("\t")).find(([, ref]) => ref === remoteRef)?.[0];
   if (remoteSha) git(["fetch", "-q", "origin", headRef], ctx.main);
@@ -332,7 +338,7 @@ function cleanupLane(ctx, headRef, info, wt) {
   else if (git(["merge-base", "--is-ancestor", remoteSha, `origin/${base}`], ctx.main).code) steps.remoteBranch = `${headRef}: kept, it has commits that are not in ${base}`;
   else { const remote = git(["push", "-q", `--force-with-lease=${remoteRef}:${remoteSha}`, "origin", "--delete", headRef], ctx.main); steps.remoteBranch = remote.code ? `not deleted: ${remote.err}` : `deleted ${headRef}`; }
   if (wt) {
-    const notLane = laneWorktreeProblem(ctx, wt);
+    const notLane = laneWorktreeProblem(ctx, wt, headRef);
     const head = git(["rev-parse", "HEAD"], wt).out;
     const changes = git(["status", "--porcelain"], wt).out;
     const ignored = git(["status", "--porcelain", "--ignored"], wt).out.split("\n").filter((l) => l.startsWith("!! ")).map((l) => l.slice(3));
@@ -340,7 +346,7 @@ function cleanupLane(ctx, headRef, info, wt) {
     else if (git(["merge-base", "--is-ancestor", head, `origin/${base}`], ctx.main).code) steps.worktree = `kept ${wt}: its commit ${head.slice(0, 7)} is not in ${base}`;
     else if (changes) steps.worktree = `kept ${wt}: it has uncommitted changes or new files (${changes.split("\n").map((l) => l.slice(3)).slice(0, 5).join(", ")})`;
     else {
-      const removed = git(["worktree", "remove", "--force", wt], ctx.main);
+      const removed = git(["worktree", "remove", "--force", fs.realpathSync(wt)], ctx.main);
       steps.worktree = removed.code ? `not removed: ${removed.err}`
         : `removed ${wt}${ignored.length ? `; its ignored files went with it: ${ignored.slice(0, 10).join(", ")}${ignored.length > 10 ? ` and ${ignored.length - 10} more` : ""}` : ""}`;
     }
@@ -363,6 +369,7 @@ const SEGMENT = /^[a-z][a-z0-9-]{0,31}$/;
 
 // Register a sub-project folder as a namespace and give it its agent files. Run in a lane: it changes tracked files.
 export function nsAdd(ctx, folder) {
+  if (!ctx.isWorktree) fail("mm ns add changes tracked files: run it in a lane's worktree, not the main checkout");
   const segments = folder.replace(/\/+$/, "").split("/");
   if (!segments.every((x) => SEGMENT.test(x))) fail("each folder name must match [a-z][a-z0-9-]{0,31}");
   const name = `${ctx.config.project}.${segments.join(".")}`;
@@ -455,7 +462,10 @@ export function issueNew(ctx, ns, title, body) {
 
 // Pair a task with an issue. After this the issue is the only description; the file keeps a link.
 export function taskStart(ctx, id, { issue } = {}) {
-  const file = path.join(ctx.tasksDir, `${id}.md`);
+  const [ns, slug, ...rest] = String(id).split("/");
+  if (rest.length || !/^[a-z0-9-]+$/.test(slug || "")) fail(`task id must be <namespace>/<slug>, not "${id}"`);
+  nsInfo(ctx, ns);
+  const file = path.join(ctx.tasksDir, ns, `${slug}.md`);
   if (!fs.existsSync(file)) fail(`no task ${id} (${file})`);
   const t = parseTask(file);
   if (t.fields.issue) fail(`task ${id} is already paired with issue ${t.fields.issue}`);

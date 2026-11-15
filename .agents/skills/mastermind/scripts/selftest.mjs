@@ -534,10 +534,32 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T25l a worktree outside the lane worktree folder is kept", r.code === 0 && /not inside the lane worktree folder/.test(r.json.cleanup.worktree) && fs.existsSync(outside), r.out + r.err);
   sh("git", ["worktree", "remove", "--force", outside], main); fs.rmSync(outside, { recursive: true, force: true });
   const wtNew = path.join(tmp, "wt-newfile");
-  sh("git", ["worktree", "add", "-q", "-b", "baddergames/newfile", wtNew, "main"], main);
+  sh("git", ["worktree", "add", "-q", "-b", "baddergames/guardnew", wtNew, "main"], main);
   fs.writeFileSync(path.join(wtNew, "draft.txt"), "not committed\n");
   r = guard("guardnew", wtNew);
   check("T25m a lane worktree with a new, not ignored file is kept", r.code === 0 && /new files \(draft\.txt\)/.test(r.json.cleanup.worktree) && fs.existsSync(path.join(wtNew, "draft.txt")), r.out + r.err);
+  const nightly = path.join(tmp, "wt-nightly");
+  sh("git", ["worktree", "add", "-q", "-b", "t3/nightly-like", nightly, "main"], main);
+  r = guard("guardother", nightly);
+  check("T25n a worktree on another branch (another thread's) is kept", r.code === 0 && /on branch t3\/nightly-like, not the lane's branch/.test(r.json.cleanup.worktree) && fs.existsSync(nightly), r.out + r.err);
+  r = guard("guardrel", "wt-nightly");
+  check("T25o a relative worktree path is refused", r.code === 0 && /(not absolute|none found)/.test(r.json.cleanup.worktree) && fs.existsSync(nightly), r.out + r.err);
+  mm(["lane", "new", "ign", "--ns", "dev.baddergames", "--title", "Ignored overwrite", "--goal-file", goal], { at });
+  const wtIgn = path.join(tmp, "wt-ign");
+  sh("git", ["worktree", "add", "-q", "-b", "baddergames/ign", wtIgn, "main"], main);
+  fs.mkdirSync(path.join(wtIgn, "devlog"), { recursive: true });
+  fs.writeFileSync(path.join(wtIgn, "devlog", "keep-me.txt"), "tracked by the lane\n");
+  sh("git", ["add", "-f", "devlog/keep-me.txt"], wtIgn); sh("git", ["commit", "-qm", "force-add"], wtIgn); sh("git", ["push", "-q", "-u", "origin", "baddergames/ign"], wtIgn);
+  sh("git", ["push", "-q", "origin", "baddergames/ign:main"], wtIgn);
+  const xi = fakeState(); xi.threads["mcp:lane-ign"] = { title: "ign", messages: [], settled: false, archived: false, status: "completed", latestRunId: "run:1", worktreePath: wtIgn }; saveFake(xi);
+  mm(["lane", "set", "ign", "--thread-id", "mcp:lane-ign"], { at });
+  mm(["lane", "update", "ign", "merged", "--note", "merged"], { at });
+  r = mm(["lane", "cleanup", "ign", "--json"], { at });
+  check("T25p updating main never overwrites an ignored file in the main checkout", r.code === 0 && /not updated/.test(r.json.cleanup.mainCheckout) && read(path.join(main, "devlog", "keep-me.txt")).startsWith("ignored file"), r.out + r.err);
+  r = mm(["task", "start", "../../AGENTS"], { at });
+  check("T25q a task id that leaves the tasks folder is refused", r.code === 1 && /task id must be/.test(r.err) && read(path.join(main, "AGENTS.md")) === "# root\n", r.err);
+  r = mm(["ns", "add", "newgame"], { cwd: main });
+  check("T25r ns add refuses to run in the main checkout", r.code === 1 && /not the main checkout/.test(r.err) && !fs.existsSync(path.join(main, "newgame")), r.err);
 }
 
 // T24 new sub-project
