@@ -11,7 +11,8 @@ export const TEMPLATES_DIR = path.join(SKILL_DIR, "templates");
 export class MmError extends Error {}
 export const fail = (message) => { throw new MmError(message); };
 
-export function run(cmd, args, { cwd, input, timeoutMs = 120000 } = {}) {
+// Each external call is bounded well below the lock wait, so one slow call cannot starve other mm runs.
+export function run(cmd, args, { cwd, input, timeoutMs = 30000 } = {}) {
   const r = spawnSync(cmd, args, { cwd, input, encoding: "utf8", timeout: timeoutMs });
   return {
     code: r.error ? 127 : r.status ?? 1,
@@ -22,7 +23,6 @@ export function run(cmd, args, { cwd, input, timeoutMs = 120000 } = {}) {
 
 export const git = (args, cwd) => run("git", args, { cwd });
 
-// ---------- locations ----------
 
 export function locate(cwd = process.cwd()) {
   const top = git(["rev-parse", "--show-toplevel"], cwd);
@@ -64,7 +64,6 @@ function loadConfig(checkout, main) {
   fail(`no .mastermind/config.json in ${checkout} or ${main}`);
 }
 
-// ---------- clock (MM_NOW overrides it for tests) ----------
 
 export const now = () => (process.env.MM_NOW ? new Date(process.env.MM_NOW) : new Date());
 
@@ -75,10 +74,9 @@ function fmt(tz, opts) {
   return fmtCache.get(key);
 }
 function parts(date, tz) {
-  const p = Object.fromEntries(fmt(tz, {
+  return Object.fromEntries(fmt(tz, {
     year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   }).formatToParts(date).map((x) => [x.type, x.value]));
-  return p;
 }
 export function dayKey(date, tz) {
   const p = parts(new Date(date), tz);
@@ -106,7 +104,6 @@ export function localStamp(date, tz) {
   return `${dayKey(date, tz)} ${clock(date, tz)} (${tz})`;
 }
 
-// ---------- files ----------
 
 export function readJson(p, fallback) {
   try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch (e) {
@@ -128,7 +125,7 @@ const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
 export function lock(stateDir) {
   const dir = path.join(stateDir, ".lock");
   fs.mkdirSync(stateDir, { recursive: true });
-  const deadline = Date.now() + 30000;
+  const deadline = Date.now() + 120000;
   for (;;) {
     try {
       fs.mkdirSync(dir);
@@ -150,13 +147,11 @@ export function lock(stateDir) {
   }
 }
 
-// ---------- ledger ----------
 
 export const ledgerPath = (ctx) => path.join(ctx.stateDir, "ledger.json");
 export const readLedger = (ctx) => ({ claims: {}, lanes: {}, dailyThreads: {}, ...readJson(ledgerPath(ctx), {}) });
 export const writeLedger = (ctx, ledger) => writeJson(ledgerPath(ctx), ledger);
 
-// ---------- T3 and GitHub ----------
 
 const t3bin = () => process.env.MM_T3 || "t3";
 const ghbin = () => process.env.MM_GH || "gh";
@@ -164,21 +159,19 @@ const ghbin = () => process.env.MM_GH || "gh";
 export function t3(args, input) { return run(t3bin(), args, { input }); }
 export function t3Available() { return t3(["--version"]).code === 0; }
 
-// "live" | "settled" | "archived" | "gone" | "unknown" (t3 not available)
-export function threadState(id) {
-  if (!id) return "gone";
-  const r = t3(["thread", "show", id, "--json"]);
-  if (r.code === 0) {
-    const t = JSON.parse(r.out).thread || {};
-    if (t.archived) return "archived";
-    if (t.settled) return "settled";
-    return "live";
-  }
-  return t3Available() ? "gone" : "unknown";
-}
+// "gone" only when T3 answers that the thread does not exist; any other failure (no t3, server down) is "unknown".
 export function threadInfo(id) {
   const r = t3(["thread", "show", id, "--json"]);
-  return r.code === 0 ? JSON.parse(r.out).thread : null;
+  if (r.code === 0) return { state: "found", thread: JSON.parse(r.out).thread || {} };
+  return { state: /no longer available|was not found/i.test(`${r.err}\n${r.out}`) ? "gone" : "unknown", thread: null };
+}
+
+// "live" | "settled" | "archived" | "gone" | "unknown"
+export function threadState(id) {
+  if (!id) return "gone";
+  const { state, thread } = threadInfo(id);
+  if (state !== "found") return state;
+  return thread.archived ? "archived" : thread.settled ? "settled" : "live";
 }
 export function currentThreadId() { return process.env.MM_THREAD_ID || process.env.T3CODE_THREAD_ID || null; }
 
@@ -189,7 +182,6 @@ export function ghJson(ctx, args) {
   return r.out ? JSON.parse(r.out) : null;
 }
 
-// ---------- namespaces ----------
 
 export function namespaces(ctx) {
   return Object.entries(ctx.config.namespaces)
@@ -212,11 +204,10 @@ export function nsFromTitle(ctx, title) {
 export function nsFromPath(ctx, absPath) {
   const rel = path.relative(ctx.checkout, absPath);
   if (rel.startsWith("..")) return null;
-  const hit = namespaces(ctx).find((n) => n.root === "" || rel === n.root || rel.startsWith(n.root + path.sep));
+  const hit = namespaces(ctx).sort((a, b) => b.root.length - a.root.length).find((n) => n.root === "" || rel === n.root || rel.startsWith(n.root + path.sep));
   return hit ? hit.name : null;
 }
 
-// ---------- templates ----------
 
 export function fillTemplate(name, vars) {
   const text = fs.readFileSync(path.join(TEMPLATES_DIR, name), "utf8");

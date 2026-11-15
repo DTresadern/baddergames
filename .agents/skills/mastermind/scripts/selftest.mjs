@@ -20,7 +20,6 @@ const sh = (cmd, args, cwd) => {
   return r.stdout.trim();
 };
 
-// ---------- fakes ----------
 const stateFile = path.join(tmp, "fake-state.json");
 const fakeState = () => JSON.parse(fs.readFileSync(stateFile, "utf8"));
 const saveFake = (s) => fs.writeFileSync(stateFile, JSON.stringify(s, null, 2));
@@ -36,6 +35,7 @@ const save = () => fs.writeFileSync(file, JSON.stringify(s, null, 2));
 const stdin = () => { try { return fs.readFileSync(0, "utf8"); } catch { return ""; } };
 const flag = (n) => { const i = a.indexOf(n); return i < 0 ? undefined : a[i + 1]; };
 if (a[0] === "--version") { console.log("t3 fake"); process.exit(0); }
+if (process.env.FAKE_T3_DOWN) { console.error("No running T3 Code server uses this home."); process.exit(1); }
 if (a[0] === "thread" && a[1] === "start") {
   const id = "mcp:fake-" + s.next++;
   s.threads[id] = { title: flag("--title"), provider: flag("--provider"), model: flag("--model"), messages: [a[3] === "-" ? stdin() : a[3]], settled: false, archived: false };
@@ -56,6 +56,7 @@ const a = process.argv.slice(2);
 const flag = (n) => { const i = a.indexOf(n); return i < 0 ? undefined : a[i + 1]; };
 const save = () => fs.writeFileSync(file, JSON.stringify(s, null, 2));
 const [x, y] = a;
+if (process.env.FAKE_GH_FAIL) { console.error("error connecting to api.github.com"); process.exit(1); }
 if (x === "pr" && y === "list") { console.log(JSON.stringify(s.prs.filter((p) => p.state === "MERGED"))); process.exit(0); }
 if (x === "pr" && y === "view") { const p = s.prs.find((p) => String(p.number) === a[2]); if (!p) process.exit(1); console.log(JSON.stringify(p)); process.exit(0); }
 if (x === "label" && y === "create") process.exit(0);
@@ -71,7 +72,6 @@ process.exit(2);
 fs.chmodSync(fakeT3, 0o755);
 fs.chmodSync(fakeGh, 0o755);
 
-// ---------- repository ----------
 const remote = path.join(tmp, "remote.git");
 const main = path.join(tmp, "main");
 const other = path.join(tmp, "other");
@@ -113,7 +113,6 @@ const threadsTitled = (s) => Object.entries(fakeState().threads).filter(([, t]) 
 const goal = path.join(tmp, "goal.md");
 fs.writeFileSync(goal, "Make the boss less punishing.\n");
 
-// ---------- tests ----------
 // T1 namespace resolution
 {
   let r = mm(["whoami", "--json"]);
@@ -169,13 +168,14 @@ fs.writeFileSync(goal, "Make the boss less punishing.\n");
 // T5 a week away: closed days, empty days, and merged pull requests found by the sweep
 {
   const s = fakeState();
-  s.prs.push({ number: 7, title: "Tune the swarm", url: "https://github.com/o/r/pull/7", state: "MERGED", mergedAt: "2026-11-20T12:00:00Z", labels: [{ name: "ns:technophage" }] });
+  s.prs.push({ number: 7, title: "Tune the swarm", url: "https://github.com/o/r/pull/7", state: "MERGED", mergedAt: "2026-11-20T12:00:00Z", headRefName: "technophage/7-swarm" });
   saveFake(s);
   const r = mm(["status", "--json"], { at: "2026-11-25T09:00:00Z" });
   check("T5a the first command after a week closes the old days", r.json?.closedDays?.includes("2026-11-18") && r.json.closedDays.includes("2026-11-20"), r.out + r.err);
   check("T5b days with no events get no page", !fs.existsSync(devlog("2026-11-19.html")) && !fs.existsSync(devlog("2026-11-21.html")), "");
   check("T5c a pull request merged on a day with no events is recorded on that day", /#7 Tune the swarm/.test(read(devlog("2026-11-20.html"))), "");
   check("T5d a day without a Daily Update thread is marked summary missing", JSON.parse(read(devlog("data/2026-11-20.json")) || "{}").summaryMissing === true, read(devlog("data/2026-11-20.json")));
+  check("T5f a swept pull request is filed under the namespace of its branch", lines("2026-11-20").some((l) => JSON.parse(l).key === "pr:7" && JSON.parse(l).ns === "dev.baddergames.technophage"), lines("2026-11-20").join("\n"));
   check("T5e the index links every day, newest first", (() => { const i = read(devlog("index.html")); return i.indexOf("2026-11-20.html") < i.indexOf("2026-11-16.html") && i.includes("2026-11-18.html"); })(), "");
 }
 
@@ -278,6 +278,70 @@ fs.writeFileSync(goal, "Make the boss less punishing.\n");
   const r = mm(["devlog", "summary", "2026-11-17", "--file", f], { at: "2026-11-25T17:00:00Z" });
   const page = read(devlog("2026-11-17.html"));
   check("T14 a summary is saved and shown on the day's page and the index", r.code === 0 && page.includes("<strong>finished</strong>") && page.includes("badge final\">final<") && read(devlog("index.html")).includes("<strong>finished</strong>"), r.err);
+}
+
+// T15 a T3 server that is down is not a missing thread
+{
+  const s = fakeState();
+  s.threads["mcp:C"] = { title: "dev.baddergames", messages: [], settled: false, archived: false };
+  saveFake(s);
+  let r = mm(["claim", "dev.baddergames"], { extra: { MM_THREAD_ID: "mcp:C", FAKE_T3_DOWN: "1" }, at: "2026-11-25T18:00:00Z" });
+  check("T15a with the T3 server down, another thread cannot take a claim", r.code === 1 && /not reachable/.test(r.err), r.out + r.err);
+  mm(["devlog", "event", "note", "server-down day"], { at: "2026-11-27T10:00:00Z" });
+  r = mm(["rollover", "--json"], { at: "2026-11-28T09:00:00Z", extra: { FAKE_T3_DOWN: "1" } });
+  const meta = JSON.parse(read(devlog("data/2026-11-27.json")) || "{}");
+  check("T15b with the T3 server down, the day closes but the summary is not given up", r.json?.closed?.includes("2026-11-27") && !meta.summaryMissing && !meta.finaliseSentAt, JSON.stringify(meta));
+  r = mm(["rollover", "--json"], { at: "2026-11-28T09:30:00Z" });
+  check("T15c once T3 is back, the finalise message is sent", r.json?.finaliseSent?.includes("2026-11-27"), r.out + r.err);
+}
+
+// T16 a failed GitHub sweep leaves the days open
+{
+  mm(["devlog", "event", "note", "sweep day"], { at: "2026-11-29T10:00:00Z" });
+  const s = fakeState(); s.prs.push({ number: 30, title: "Late sweep", url: "https://github.com/o/r/pull/30", state: "MERGED", mergedAt: "2026-11-29T12:00:00Z", headRefName: "baddergames/30-x" }); saveFake(s);
+  let r = mm(["rollover", "--json"], { at: "2026-11-30T09:00:00Z", extra: { FAKE_GH_FAIL: "1" } });
+  check("T16a when the sweep fails, nothing is closed and a warning is given", r.json?.closed?.length === 0 && r.json.warnings.some((w) => /stay open/.test(w)) && !JSON.parse(read(devlog("data/2026-11-29.json")) || "{}").final, r.out);
+  r = mm(["rollover", "--json"], { at: "2026-11-30T09:10:00Z" });
+  check("T16b the next run closes the day and records the pull request", r.json?.closed?.includes("2026-11-29") && lines("2026-11-29").some((l) => l.includes('"pr:30"')), r.out);
+}
+
+// T17 options
+{
+  const s = fakeState(); s.threads["mcp:D"] = { title: "x", messages: [], settled: false, archived: false }; saveFake(s);
+  let r = mm(["claim", "--force", "dev.baddergames.technophage", "--json"], { extra: { MM_THREAD_ID: "mcp:D" }, at: "2026-11-30T10:00:00Z" });
+  check("T17a --force before the namespace claims that namespace", r.json?.namespace === "dev.baddergames.technophage", r.out + r.err);
+  r = mm(["lane", "list", "--bogus"], { at: "2026-11-30T10:00:00Z" });
+  check("T17b an unknown option is refused", r.code === 1 && /unknown option --bogus/.test(r.err), r.err);
+  r = mm(["lane", "set", "net", "--pr"], { at: "2026-11-30T10:00:00Z" });
+  check("T17c an option without its value is refused", r.code === 1 && /--pr needs a value/.test(r.err), r.err);
+}
+
+// T18 day pages link to the next day once it exists
+check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html")).includes('href="2026-11-17.html"'), "");
+
+// T19 lane states only through mm lane
+{
+  const r = mm(["devlog", "event", "started", "Ghost work"], { at: "2026-11-30T10:00:00Z" });
+  check("T19 devlog event refuses lane states", r.code === 1 && /mm lane update/.test(r.err), r.err);
+}
+
+// T20 a merge recorded after its day closed
+{
+  mm(["lane", "new", "late", "--ns", "dev.baddergames", "--title", "Late merge", "--goal-file", goal], { at: "2026-12-01T18:00:00Z" });
+  mm(["lane", "set", "late", "--pr", "21"], { at: "2026-12-01T18:05:00Z" });
+  const s = fakeState(); s.prs.push({ number: 21, state: "MERGED", mergedAt: "2026-12-01T23:58:00Z", closedAt: null }); saveFake(s);
+  mm(["status"], { at: "2026-12-02T00:30:00Z" });
+  const page = read(devlog("2026-12-01.html"));
+  check("T20a the closed day's page shows the real merge time", /18:00–23:58 · completed \(merged\)/.test(page) && /late event was added/.test(page), "");
+  const t = threadsTitled("daily update · 2026-12-01")[0]?.[1];
+  check("T20b that day's Daily Update thread is told about the late event", t?.messages.some((m) => /recorded late/.test(m)), JSON.stringify(t?.messages.slice(-1)));
+}
+
+// T21 nested sub-project folders resolve to the deepest root
+{
+  const { nsFromPath } = await import("./core.mjs");
+  const ctx = { checkout: "/r", config: { namespaces: { "dev.b": ".", "dev.b.games": "games", "dev.b.ab": "games/ab" } } };
+  check("T21 a folder inside a nested root resolves to the nested namespace", nsFromPath(ctx, "/r/games/ab/src") === "dev.b.ab" && nsFromPath(ctx, "/r/games/x") === "dev.b.games", "");
 }
 
 const failed = results.filter((r) => !r.ok);

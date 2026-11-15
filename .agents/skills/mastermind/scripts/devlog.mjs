@@ -3,12 +3,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
-  addDays, clock, dayKey, fail, fillTemplate, ghJson, git, longDate, now, nsShort, readJson,
+  addDays, clock, dayKey, fail, fillTemplate, gh, git, longDate, now, nsShort, readJson,
   t3, t3Available, threadState, weekday, writeJson, writeText,
 } from "./core.mjs";
 
 export const LANE_STATES = ["started", "running", "held", "waiting", "blocked", "merged", "closed"];
-export const EVENT_KINDS = [...LANE_STATES, "request-lane", "decision", "finding", "show", "note"];
+// Kinds an orchestrator records directly. Lane states are recorded only through `mm lane`.
+export const NOTE_KINDS = ["decision", "finding", "show", "note"];
 const COMPLETE = new Set(["merged", "closed"]);
 const SWEEP_KINDS = new Set(["pr-merged", "commit"]);
 const STATE_LABEL = {
@@ -21,6 +22,7 @@ const eventsFile = (ctx, day) => path.join(dataDir(ctx), `${day}.jsonl`);
 const metaFile = (ctx, day) => path.join(dataDir(ctx), `${day}.json`);
 const rolloverFile = (ctx) => path.join(dataDir(ctx), "rollover.json");
 const tzOf = (ctx) => ctx.config.timezone;
+const today = (ctx) => dayKey(now(), tzOf(ctx));
 
 export function days(ctx) {
   if (!fs.existsSync(dataDir(ctx))) return [];
@@ -35,29 +37,56 @@ export function readEvents(ctx, day) {
 export const readMeta = (ctx, day) => readJson(metaFile(ctx, day), { final: false });
 const writeMeta = (ctx, day, meta) => writeJson(metaFile(ctx, day), meta);
 
+// Returns the event's day and whether this created the day's file.
 function appendEvent(ctx, ev) {
   const day = dayKey(ev.at, tzOf(ctx));
+  const created = !fs.existsSync(eventsFile(ctx, day));
   fs.mkdirSync(dataDir(ctx), { recursive: true });
   fs.appendFileSync(eventsFile(ctx, day), JSON.stringify(ev) + "\n");
-  return day;
+  return { day, created };
 }
 
-// ---------- Daily Update thread ----------
+// All events read once: the day list, events per day, and every lane's start, end and state history.
+function snapshot(ctx) {
+  const all = days(ctx);
+  const events = Object.fromEntries(all.map((d) => [d, readEvents(ctx, d)]));
+  const lanes = new Map();
+  for (const d of all) {
+    for (const ev of events[d]) {
+      if (!ev.lane || !LANE_STATES.includes(ev.kind)) continue;
+      const lane = lanes.get(ev.lane) || { name: ev.lane, ns: ev.ns, title: ev.lane, links: [], history: [] };
+      if (ev.kind === "started" && !lane.start) Object.assign(lane, { start: ev.at, title: ev.what, links: ev.links || [], ns: ev.ns });
+      if (COMPLETE.has(ev.kind) && !lane.end) Object.assign(lane, { end: ev.at, endKind: ev.kind });
+      lane.history.push(ev);
+      lanes.set(ev.lane, lane);
+    }
+  }
+  for (const lane of lanes.values()) lane.history.sort((a, b) => a.at.localeCompare(b.at));
+  return { days: all, events, lanes: [...lanes.values()].filter((l) => l.start) };
+}
+
+function renderAll(ctx, which) {
+  const snap = snapshot(ctx);
+  for (const d of snap.days.filter(which)) renderDay(ctx, d, snap);
+  renderIndex(ctx, snap);
+}
 
 function dailyTitle(ctx, day) { return `${ctx.config.project} · daily update · ${day}`; }
 
-function eventMessage(ctx, ev, day) {
+function eventMessage(ctx, ev, day, closed) {
   const lines = [
     `[devlog event · ${day} ${clock(ev.at, tzOf(ctx))}] ${nsShort(ctx, ev.ns)} · ${ev.kind}${ev.lane ? ` · lane ${ev.lane}` : ""}`,
     `What: ${ev.what}`,
   ];
   if (ev.why) lines.push(`Why it matters: ${ev.why}`);
   if (ev.links?.length) lines.push(`Links: ${ev.links.join(" · ")}`);
-  lines.push("", `The event is already saved. Update the summary for ${day} if this changes the story of the day (see your brief).`);
+  lines.push("", closed
+    ? `${day} is already closed; this event was recorded late. Correct the final summary for ${day} if it changes the story.`
+    : `The event is already saved. Update the summary for ${day} if this changes the story of the day (see your brief).`);
   return lines.join("\n");
 }
 
-// Returns { id, created, state }. Creates today's thread only when none exists or the old one is archived or gone.
+// Returns { id, created, state }. Creates the day's thread only when none exists or the old one is archived or gone.
 function ensureDailyThread(ctx, ledger, day, firstMessage) {
   const existing = ledger.dailyThreads[day];
   if (existing) {
@@ -79,98 +108,109 @@ function ensureDailyThread(ctx, ledger, day, firstMessage) {
 
 function sendToThread(id, text) { return t3(["thread", "send", id, "-"], text).code === 0; }
 
-// Save one event, rebuild its day's page and the index, and pass it to that day's Daily Update thread.
+// Save one event, rebuild the affected pages, and pass it to its day's Daily Update thread.
+// Today's events create today's thread if needed. A late event for a closed day goes to that day's thread, if it still exists.
 export function recordEvent(ctx, ledger, ev, { notify = true } = {}) {
   if (!ev.at) ev.at = now().toISOString();
-  const day = appendEvent(ctx, ev);
-  renderDay(ctx, day);
-  renderIndex(ctx);
+  const { day, created } = appendEvent(ctx, ev);
+  const isToday = day === today(ctx);
+  const late = day < today(ctx);
+  const meta = readMeta(ctx, day);
+  if (late && meta.final) writeMeta(ctx, day, { ...meta, amendedAt: now().toISOString() });
+  // A late event can change "carried over" lines on later pages; a new day file changes its neighbours' links.
+  const all = days(ctx);
+  const i = all.indexOf(day);
+  renderAll(ctx, (d) => (late && d >= day) || d === day || (created && (d === all[i - 1] || d === all[i + 1])));
   let thread = null;
-  const isToday = day === dayKey(now(), tzOf(ctx));
-  if (notify && isToday && !SWEEP_KINDS.has(ev.kind)) {
-    const message = eventMessage(ctx, ev, day);
-    thread = ensureDailyThread(ctx, ledger, day, message);
-    if (thread.id && !thread.created) thread.sent = sendToThread(thread.id, message);
+  if (notify && !SWEEP_KINDS.has(ev.kind)) {
+    const message = eventMessage(ctx, ev, day, late && meta.final);
+    if (isToday) {
+      thread = ensureDailyThread(ctx, ledger, day, message);
+      if (thread.id && !thread.created) thread.sent = sendToThread(thread.id, message);
+    } else if (ledger.dailyThreads[day] && ["live", "settled"].includes(threadState(ledger.dailyThreads[day]))) {
+      thread = { id: ledger.dailyThreads[day], created: false, sent: sendToThread(ledger.dailyThreads[day], message) };
+    }
   }
   return { day, thread };
 }
 
-// ---------- closing days ----------
-
+// Merged pull requests and first-parent commits on the default branch, by local day, for [start, end].
+// ok is false when either source could not be read, so the caller does not close those days.
 function sweep(ctx, start, end) {
   const tz = tzOf(ctx);
   const byDay = {};
+  const warnings = [];
   const add = (ev) => {
     const day = dayKey(ev.at, tz);
     if (day >= start && day <= end) (byDay[day] ||= []).push(ev);
   };
-  const warnings = [];
   const shortToNs = Object.fromEntries(Object.keys(ctx.config.namespaces).map((n) => [nsShort(ctx, n), n]));
-  try {
-    const prs = ghJson(ctx, ["pr", "list", "--state", "merged", "--search", `merged:>=${addDays(start, -1)}`,
-      "--json", "number,title,url,mergedAt,labels", "--limit", "300"]) || [];
-    for (const pr of prs) {
-      const label = (pr.labels || []).map((l) => l.name).find((n) => n.startsWith("ns:"));
-      add({
-        at: pr.mergedAt, kind: "pr-merged", ns: shortToNs[label?.slice(3)] || ctx.config.project,
-        what: `#${pr.number} ${pr.title}`, links: [pr.url], key: `pr:${pr.number}`, source: "sweep",
-      });
-    }
-  } catch (e) { warnings.push(`pull request sweep skipped: ${e.message}`); }
+  const prs = gh(ctx, ["pr", "list", "--state", "merged", "--search", `merged:>=${addDays(start, -1)}`,
+    "--json", "number,title,url,mergedAt,headRefName", "--limit", "300"]);
+  if (prs.code) warnings.push(`GitHub sweep failed: ${prs.err || prs.out}`);
+  for (const pr of prs.code ? [] : JSON.parse(prs.out || "[]")) {
+    add({
+      at: pr.mergedAt, kind: "pr-merged", ns: shortToNs[(pr.headRefName || "").split("/")[0]] || ctx.config.project,
+      what: `#${pr.number} ${pr.title}`, links: [pr.url], key: `pr:${pr.number}`, source: "sweep",
+    });
+  }
   const branch = ctx.config.defaultBranch || "main";
-  git(["fetch", "-q", "origin", branch], ctx.main);
-  const ref = git(["rev-parse", "--verify", "-q", `origin/${branch}`], ctx.main).code === 0 ? `origin/${branch}` : branch;
-  const log = git(["log", "--first-parent", `--since=${addDays(start, -1)}T00:00:00Z`, "--format=%H%x1f%cI%x1f%s", ref], ctx.main);
-  if (log.code) warnings.push(`commit sweep skipped: ${log.err}`);
-  for (const line of log.code ? [] : log.out.split("\n").filter(Boolean)) {
+  const fetched = git(["fetch", "-q", "origin", branch], ctx.main);
+  if (fetched.code) warnings.push(`git fetch failed: ${fetched.err}`);
+  const log = fetched.code ? null
+    : git(["log", "--first-parent", `--since=${addDays(start, -1)}T00:00:00Z`, "--format=%H%x1f%cI%x1f%s", `origin/${branch}`], ctx.main);
+  if (log?.code) warnings.push(`git log failed: ${log.err}`);
+  for (const line of log && !log.code ? log.out.split("\n").filter(Boolean) : []) {
     const [hash, at, subject] = line.split("\x1f");
     if (/^Merge pull request #\d+/.test(subject)) continue;
     add({ at: new Date(at).toISOString(), kind: "commit", ns: ctx.config.project, what: subject, links: [hash.slice(0, 7)], key: `commit:${hash}`, source: "sweep" });
   }
-  return { byDay, warnings };
+  return { byDay, warnings, ok: warnings.length === 0 };
 }
 
 // Close every past day that is not final. Safe to run any number of times.
 export function rollover(ctx, ledger) {
-  const tz = tzOf(ctx);
-  const today = dayKey(now(), tz);
-  const yesterday = addDays(today, -1);
+  const day0 = today(ctx);
+  const yesterday = addDays(day0, -1);
   const state = readJson(rolloverFile(ctx), {});
-  const open = days(ctx).filter((d) => d < today && !readMeta(ctx, d).final);
+  const open = days(ctx).filter((d) => d < day0 && !readMeta(ctx, d).final);
   let start = state.lastDay ? addDays(state.lastDay, 1) : yesterday;
   if (open.length && open[0] < start) start = open[0];
-  const result = { today, closed: [], finaliseSent: [], warnings: [] };
+  const result = { today: day0, closed: [], finaliseSent: [], warnings: [] };
 
   if (start <= yesterday) {
-    const { byDay, warnings } = sweep(ctx, start, yesterday);
+    const { byDay, warnings, ok } = sweep(ctx, start, yesterday);
     result.warnings.push(...warnings);
-    for (const [day, evs] of Object.entries(byDay)) {
-      const known = new Set(readEvents(ctx, day).map((e) => e.key).filter(Boolean));
+    if (!ok) {
+      result.warnings.push(`devlog days from ${start} to ${yesterday} stay open until the sweep works; nothing was closed`);
+      return result;
+    }
+    for (const [d, evs] of Object.entries(byDay)) {
+      const known = new Set(readEvents(ctx, d).map((e) => e.key).filter(Boolean));
       for (const ev of evs) if (!known.has(ev.key)) { appendEvent(ctx, ev); known.add(ev.key); }
     }
   }
-  for (const day of days(ctx).filter((d) => d < today && !readMeta(ctx, d).final)) {
-    writeMeta(ctx, day, { ...readMeta(ctx, day), final: true, finalisedAt: now().toISOString() });
-    result.closed.push(day);
+  for (const d of days(ctx).filter((x) => x < day0 && !readMeta(ctx, x).final)) {
+    writeMeta(ctx, d, { ...readMeta(ctx, d), final: true, finalisedAt: now().toISOString() });
+    result.closed.push(d);
   }
-  // Ask each closed day's thread for its final summary, once. Retried later if T3 was not reachable.
-  for (const day of days(ctx).filter((d) => d < today)) {
-    const meta = readMeta(ctx, day);
+  // Ask each closed day's thread for its final summary, once. Retried on a later run if T3 was not reachable.
+  for (const d of days(ctx).filter((x) => x < day0)) {
+    const meta = readMeta(ctx, d);
     if (!meta.final || meta.summary || meta.finaliseSentAt || meta.summaryMissing) continue;
-    const id = ledger.dailyThreads[day];
+    const id = ledger.dailyThreads[d];
     const st = threadState(id);
-    if (st === "unknown") continue;
-    if ((st === "live" || st === "settled") && sendToThread(id, fillTemplate("finalise-message.md", { day, mm: ctx.mmPath }))) {
+    if (st === "unknown") { result.warnings.push(`T3 not reachable: finalise for ${d} will be sent later`); continue; }
+    if ((st === "live" || st === "settled") && sendToThread(id, fillTemplate("finalise-message.md", { day: d, mm: ctx.mmPath }))) {
       meta.finaliseSentAt = now().toISOString();
-      result.finaliseSent.push(day);
+      result.finaliseSent.push(d);
     } else {
       meta.summaryMissing = true;
     }
-    writeMeta(ctx, day, meta);
+    writeMeta(ctx, d, meta);
   }
-  for (const day of result.closed) renderDay(ctx, day);
-  if (start <= yesterday || result.closed.length) writeJson(rolloverFile(ctx), { lastDay: yesterday, at: now().toISOString() });
-  if (result.closed.length || result.finaliseSent.length) renderIndex(ctx);
+  if (start <= yesterday) writeJson(rolloverFile(ctx), { lastDay: yesterday, at: now().toISOString() });
+  if (result.closed.length || result.finaliseSent.length) renderAll(ctx, () => true);
   return result;
 }
 
@@ -178,28 +218,10 @@ export function setSummary(ctx, day, text) {
   if (!fs.existsSync(eventsFile(ctx, day))) fail(`no devlog events for ${day}`);
   const meta = readMeta(ctx, day);
   writeMeta(ctx, day, { ...meta, summary: text.trim(), summaryAt: now().toISOString(), summaryMissing: false });
-  renderDay(ctx, day);
-  renderIndex(ctx);
+  renderAll(ctx, (d) => d === day);
 }
 
-// ---------- pages ----------
-
-// Every lane's start, end and state history, from all events.
-function lanes(ctx) {
-  const map = new Map();
-  for (const day of days(ctx)) {
-    for (const ev of readEvents(ctx, day)) {
-      if (!ev.lane || !LANE_STATES.includes(ev.kind)) continue;
-      const lane = map.get(ev.lane) || { name: ev.lane, ns: ev.ns, title: ev.lane, links: [], history: [] };
-      if (ev.kind === "started" && !lane.start) { lane.start = ev.at; lane.title = ev.what; lane.links = ev.links || []; lane.ns = ev.ns; }
-      if (COMPLETE.has(ev.kind) && !lane.end) { lane.end = ev.at; lane.endKind = ev.kind; }
-      lane.history.push(ev);
-      map.set(ev.lane, lane);
-    }
-  }
-  for (const lane of map.values()) lane.history.sort((a, b) => a.at.localeCompare(b.at));
-  return [...map.values()].filter((l) => l.start);
-}
+export function renderPages(ctx, day) { renderAll(ctx, (d) => !day || d === day); }
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 function inline(s) {
@@ -225,10 +247,10 @@ function laneLine(ctx, lane, day, final) {
   const last = [...lane.history].reverse().find((h) => dayKey(h.at, tz) <= day);
   const state = STATE_LABEL[last?.kind] || "running";
   const since = `${weekday(sDay)} ${sDay.slice(5)} ${clock(lane.start, tz)}`;
-  if (sDay === day && eDay === day) return { tag: "completed", text: `${clock(lane.start, tz)}–${clock(lane.end, tz)} · completed (${STATE_LABEL[lane.endKind]})` };
-  if (sDay === day) return { tag: "started", text: `started ${clock(lane.start, tz)} → ${final ? "ongoing at end of day" : "ongoing"} (${state})` };
-  if (eDay === day) return { tag: "completed", text: `ongoing since ${since} → completed ${clock(lane.end, tz)} (${STATE_LABEL[lane.endKind]})` };
-  return { tag: "carried", text: `carried over · ongoing since ${since} (${state}${final ? " at end of day" : ""})` };
+  if (sDay === day && eDay === day) return `${clock(lane.start, tz)}–${clock(lane.end, tz)} · completed (${STATE_LABEL[lane.endKind]})`;
+  if (sDay === day) return `started ${clock(lane.start, tz)} → ${final ? "ongoing at end of day" : "ongoing"} (${state})`;
+  if (eDay === day) return `ongoing since ${since} → completed ${clock(lane.end, tz)} (${STATE_LABEL[lane.endKind]})`;
+  return `carried over · ongoing since ${since} (${state}${final ? " at end of day" : ""})`;
 }
 
 const STYLE = `
@@ -256,22 +278,23 @@ function statusBadge(meta) {
   return `<span class="badge final">final · ${meta.summaryMissing ? "summary missing" : "summary being written"}</span>`;
 }
 
-export function renderDay(ctx, day) {
+function renderDay(ctx, day, snap) {
   const tz = tzOf(ctx);
   const meta = readMeta(ctx, day);
-  const evs = readEvents(ctx, day);
-  const work = lanes(ctx)
+  const evs = snap.events[day] || [];
+  const work = snap.lanes
     .filter((l) => dayKey(l.start, tz) <= day && (!l.end || dayKey(l.end, tz) >= day))
-    .map((l) => ({ lane: l, ...laneLine(ctx, l, day, meta.final) }));
+    .map((lane) => ({ lane, text: laneLine(ctx, lane, day, meta.final) }));
   const timeline = evs.filter((e) => !SWEEP_KINDS.has(e.kind));
   const swept = evs.filter((e) => SWEEP_KINDS.has(e.kind));
-  const prev = days(ctx).filter((d) => d < day).pop();
-  const next = days(ctx).find((d) => d > day);
+  const i = snap.days.indexOf(day);
+  const prev = snap.days[i - 1];
+  const next = snap.days[i + 1];
 
   const parts = [
     `<p class="meta"><a href="index.html">Devlog</a>${prev ? ` · <a href="${prev}.html">← ${prev}</a>` : ""}${next ? ` · <a href="${next}.html">${next} →</a>` : ""}</p>`,
     `<h1>${esc(longDate(day))}${statusBadge(meta)}</h1>`,
-    `<p class="meta">${esc(ctx.config.project)} · times in ${esc(tz)}</p>`,
+    `<p class="meta">${esc(ctx.config.project)} · times in ${esc(tz)}${meta.amendedAt ? " · a late event was added after the day closed" : ""}</p>`,
     "<h2>Summary</h2>",
     meta.summary ? `<div class="card">${markdown(meta.summary)}</div>`
       : `<p class="meta">${meta.final && meta.summaryMissing ? "No summary was written for this day." : "The summary is written during the day and finished after midnight."}</p>`,
@@ -292,16 +315,15 @@ export function renderDay(ctx, day) {
   writeText(path.join(ctx.devlogDir, `${day}.html`), page(`Devlog ${day}`, parts.join("\n")));
 }
 
-export function renderIndex(ctx) {
+function renderIndex(ctx, snap) {
   const tz = tzOf(ctx);
-  const all = days(ctx).reverse();
-  const items = all.map((day) => {
+  const items = [...snap.days].reverse().map((day) => {
     const meta = readMeta(ctx, day);
-    const evs = readEvents(ctx, day);
-    const completed = lanes(ctx).filter((l) => l.end && dayKey(l.end, tz) === day).length;
+    const count = (snap.events[day] || []).length;
+    const completed = snap.lanes.filter((l) => l.end && dayKey(l.end, tz) === day).length;
     const first = meta.summary ? markdown(meta.summary.split(/\n\s*\n/)[0]) : `<p class="meta">${meta.final && meta.summaryMissing ? "No summary." : "Summary not written yet."}</p>`;
     return `<div class="card day"><h3><a href="${day}.html">${esc(longDate(day))}</a>${statusBadge(meta)}</h3>${first}` +
-      `<p class="meta">${evs.length} event${evs.length === 1 ? "" : "s"} · ${completed} completed</p></div>`;
+      `<p class="meta">${count} event${count === 1 ? "" : "s"} · ${completed} completed</p></div>`;
   });
   const body = [`<h1>Devlog</h1>`, `<p class="meta">${esc(ctx.config.project)} · one page per day · times in ${esc(tz)}</p>`,
     items.length ? items.join("\n") : '<p class="meta">No days yet.</p>'];
@@ -309,8 +331,6 @@ export function renderIndex(ctx) {
 }
 
 export function devlogSummaryLine(ctx, ledger) {
-  const today = dayKey(now(), tzOf(ctx));
-  const evs = readEvents(ctx, today);
-  const id = ledger.dailyThreads[today];
-  return { today, events: evs.length, thread: id || null, page: path.join(ctx.devlogDir, `${today}.html`) };
+  const d = today(ctx);
+  return { today: d, events: readEvents(ctx, d).length, thread: ledger.dailyThreads[d] || null, page: path.join(ctx.devlogDir, `${d}.html`) };
 }

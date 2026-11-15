@@ -7,7 +7,7 @@ import {
   MmError, SCRIPTS_DIR, currentThreadId, dayKey, fail, git, localStamp, locate, lock, namespaces, now, nsFromPath,
   nsFromTitle, nsInfo, readLedger, threadInfo, threadState, writeLedger,
 } from "./core.mjs";
-import { EVENT_KINDS, devlogSummaryLine, recordEvent, renderDay, renderIndex, rollover, setSummary } from "./devlog.mjs";
+import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setSummary } from "./devlog.mjs";
 import {
   claim, gitPreflight, issueNew, laneList, laneNew, laneSet, laneUpdate, owner, reconcile, release, taskFind, taskList,
   taskNew, taskStart,
@@ -31,14 +31,21 @@ const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and 
   mm task new <ns> "<title>" [--body-file <f>]    local backlog task
   mm task list [<ns>] | mm task find <words…> | mm task start <ns>/<slug> [--issue <n>]
 
-  mm devlog event <${EVENT_KINDS.join("|")}> "<what>" [--ns <ns>] [--why "<text>"] [--links a,b] [--lane <name>]
+  mm devlog event <${NOTE_KINDS.join("|")}> "<what>" [--ns <ns>] [--why "<text>"] [--links a,b]
+                                                  (lane states are recorded with mm lane update)
   mm devlog summary <YYYY-MM-DD|today> (--file <f> | "<text>")
   mm devlog render [<YYYY-MM-DD>]
   mm devlog thread <YYYY-MM-DD> <thread-id>       record a Daily Update thread made by hand
   mm rollover                                     close past days now
 
+  mm owner <namespace>                            the running orchestrator responsible for a namespace
+  mm preflight                                    the git checks a new lane must pass
   mm ns list
   mm selftest`;
+
+const FLAGS = new Set(["force", "json", "open", "skipGitCheck"]);
+const VALUES = new Set(["ns", "title", "issue", "class", "classReason", "needs", "provider", "reviewer", "goalFile", "why",
+  "threadId", "taskId", "pr", "note", "bodyFile", "links", "file"]);
 
 function parse(argv) {
   const pos = [];
@@ -47,9 +54,12 @@ function parse(argv) {
     const a = argv[i];
     if (!a.startsWith("--")) { pos.push(a); continue; }
     const key = a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    if (FLAGS.has(key)) { opt[key] = true; continue; }
+    if (!VALUES.has(key)) fail(`unknown option ${a}. Run mm help.`);
     const next = argv[i + 1];
-    if (next === undefined || next.startsWith("--")) opt[key] = true;
-    else { opt[key] = next; i++; }
+    if (next === undefined || next.startsWith("--")) fail(`${a} needs a value`);
+    opt[key] = next;
+    i++;
   }
   return { pos, opt };
 }
@@ -61,7 +71,7 @@ const day = (ctx, v) => (!v || v === "today" ? dayKey(now(), ctx.config.timezone
 
 function whoami(ctx, opt) {
   const threadId = currentThreadId();
-  const thread = threadId ? threadInfo(threadId) : null;
+  const thread = threadId ? threadInfo(threadId).thread : null;
   let ns = null;
   let source = null;
   if (opt.ns) { ns = nsInfo(ctx, opt.ns).name; source = "--ns"; }
@@ -185,9 +195,9 @@ function main(argv) {
       case "devlog":
         if (sub === "event") {
           const kind = pos[0];
-          if (!EVENT_KINDS.includes(kind)) fail(`kind must be one of: ${EVENT_KINDS.join(", ")}`);
+          if (!NOTE_KINDS.includes(kind)) fail(`kind must be one of: ${NOTE_KINDS.join(", ")}. Lane states are recorded with mm lane update.`);
           const ns = opt.ns ? nsInfo(ctx, opt.ns).name : whoami(ctx, {}).namespace;
-          const r = recordEvent(ctx, ledger, { kind, ns, what: pos[1] || fail("give the event text"), why: opt.why || undefined, links: list(opt.links), lane: opt.lane || undefined });
+          const r = recordEvent(ctx, ledger, { kind, ns, what: pos[1] || fail("give the event text"), why: opt.why || undefined, links: list(opt.links) });
           result = { saved: r.day, dailyThread: r.thread };
         } else if (sub === "summary") {
           const d = day(ctx, pos[0]);
@@ -195,8 +205,7 @@ function main(argv) {
           result = { day: d, summary: "saved", page: path.join(ctx.devlogDir, `${d}.html`) };
         } else if (sub === "render") {
           const d = day(ctx, pos[0]);
-          renderDay(ctx, d);
-          renderIndex(ctx);
+          renderPages(ctx, d);
           result = { page: path.join(ctx.devlogDir, `${d}.html`), index: path.join(ctx.devlogDir, "index.html") };
         } else if (sub === "thread") {
           ledger.dailyThreads[day(ctx, pos[0])] = pos[1] || fail("give the thread id");

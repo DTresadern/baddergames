@@ -9,7 +9,6 @@ import { LANE_STATES, recordEvent } from "./devlog.mjs";
 const LANE_NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const OPEN = (l) => !["merged", "closed"].includes(l.state);
 
-// ---------- claims ----------
 
 export function claim(ctx, ledger, ns, { threadId = currentThreadId(), force = false } = {}) {
   nsInfo(ctx, ns);
@@ -43,7 +42,6 @@ export function owner(ctx, ledger, ns) {
   return null;
 }
 
-// ---------- git preconditions for a new lane ----------
 
 export function gitPreflight(ctx) {
   const branch = ctx.config.defaultBranch || "main";
@@ -63,7 +61,6 @@ export function gitPreflight(ctx) {
   return problems;
 }
 
-// ---------- lanes ----------
 
 function providerFor(ctx, needs, requested) {
   const providers = ctx.config.models.lane;
@@ -185,7 +182,6 @@ export function reconcile(ctx, ledger) {
   return notes;
 }
 
-// ---------- tasks ----------
 
 const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "task";
 
