@@ -11,7 +11,7 @@
 //   2d.html?rain=4000&lights=8&objects=1&seed=1&t=12   (t freezes time for screenshots)
 
 import { installBench } from '@fw-eval/shared/bench-hook.js';
-import { Application, Container, RenderLayer, VERSION, isWebGLSupported, getTestContext } from 'pixi.js';
+import { Application, Container, RenderLayer, VERSION } from 'pixi.js';
 import { buildScene, cameraX, parallaxOffset } from '@fw-eval/shared/scene.js';
 import { createCtx } from './stage.js';
 import { createSky, createMist } from './layers/sky.js';
@@ -30,14 +30,6 @@ import { createDrips } from './layers/drips.js';
 import { createRain } from './layers/rain.js';
 
 const WIDTH = 1800, HEIGHT = 600; // canvas pixels, 3:1, resolution 1
-
-// PixiJS creates two throwaway WebGL1 contexts besides the renderer's: a support probe
-// that it then loses (utils/browser/isWebGLSupported) and a cached 1x1 test context for
-// shader limits (getTestContext). The bench hook reports GPU info from the FIRST context
-// it sees, so create both (each is cached by PixiJS) before installing the hook: the hook
-// then sees only the real WebGL2 renderer context.
-isWebGLSupported();
-getTestContext();
 
 // PixiJS 8.23 has no public per-frame draw-call counter (no renderer stat for it in the
 // package source), so getFrameworkDrawCalls is not passed; the hook's own WebGL

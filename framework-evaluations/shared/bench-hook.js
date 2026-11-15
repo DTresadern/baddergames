@@ -19,6 +19,12 @@
 // The runner (bench/run.js) then reads `window.__bench`:
 //   ready, framework, mode, version, stress, seed, t, startup, gl,
 //   sample(nFrames) -> Promise<FrameStats>, heap()
+//
+// GPU sync (`?sync=1`, which the runner always sets): after each frame the hook reads one
+// pixel back from the renderer's context. readPixels waits until the GPU has finished the
+// frame, so each frame's time includes its GPU work. Without it, an uncapped headless page
+// queues frames and then blocks in bursts, so per-frame percentiles describe the queue,
+// not the frame. The readback costs the same small, fixed amount in every build.
 
 import { parseStress } from './stress.js';
 
@@ -127,7 +133,12 @@ export function installBench({ framework, mode, version, getFrameworkDrawCalls }
     wrapPrototypes();
     installed = true;
   }
-  const params = parseStress(new URLSearchParams(location.search));
+  const search = new URLSearchParams(location.search);
+  const params = parseStress(search);
+  const gpuSync = search.get('sync') === '1';
+  const syncPixel = new Uint8Array(4);
+  /** @type {WebGLRenderingContext | WebGL2RenderingContext | null} */
+  let syncGl = null;
 
   // ring buffers, one entry per frame
   const interval = new Float64Array(RING); // ms between successive frameBegin calls (rAF interval)
@@ -191,10 +202,17 @@ export function installBench({ framework, mode, version, getFrameworkDrawCalls }
 
   function frameEnd() {
     inFrame = false;
+    const submitted = performance.now(); // JS + GL submit, before any GPU wait
+    if (gpuSync) {
+      // readPixels from whatever framebuffer the framework left bound (the canvas after
+      // a normal render); no GL state is changed, so framework state caches stay valid
+      syncGl ??= rendererContext();
+      syncGl?.readPixels(0, 0, 1, 1, syncGl.RGBA, syncGl.UNSIGNED_BYTE, syncPixel);
+    }
     const j = frameIndex % RING;
     // the first frame has no previous frame: count its interval as its CPU time
     if (frameIndex === 0) interval[j] = performance.now() - beginAt;
-    cpu[j] = performance.now() - beginAt;
+    cpu[j] = submitted - beginAt;
     draws[j] = drawCount;
     fwDraws[j] = getFrameworkDrawCalls ? getFrameworkDrawCalls() : 0;
     frameIndex++;
@@ -224,9 +242,20 @@ export function installBench({ framework, mode, version, getFrameworkDrawCalls }
     });
   }
 
-  /** GPU/driver strings from the first WebGL context the page created. */
+  /**
+   * GPU/driver strings from the renderer's WebGL context. Frameworks may create
+   * throwaway probe contexts first (PixiJS creates a support probe it then loses and a
+   * 1x1 test context), so take the last live context whose canvas is in the page,
+   * falling back to the last live one.
+   */
+  function rendererContext() {
+    const live = contexts.filter((c) => !c.isContextLost());
+    const onPage = live.filter((c) => c.canvas instanceof HTMLCanvasElement && c.canvas.isConnected);
+    return onPage.at(-1) ?? live.at(-1) ?? null;
+  }
+
   function glInfo() {
-    const gl = contexts[0];
+    const gl = rendererContext();
     if (!gl) return null;
     const dbg = gl.getExtension('WEBGL_debug_renderer_info');
     return {
@@ -236,6 +265,7 @@ export function installBench({ framework, mode, version, getFrameworkDrawCalls }
       renderer: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
       antialias: gl.getContextAttributes()?.antialias ?? null,
       drawingBuffer: [gl.drawingBufferWidth, gl.drawingBufferHeight],
+      gpuSync,
     };
   }
 

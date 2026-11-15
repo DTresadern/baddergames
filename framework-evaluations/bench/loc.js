@@ -47,9 +47,39 @@ export function countLines(text) {
   return { code, comment, blank };
 }
 
+// Framework packages whose API names are counted (a proxy for "framework concepts").
+const FRAMEWORK_PKG = /^(three|pixi\.js|@pixi\/3d)(\/|$)/;
+
+/**
+ * Distinct framework API names a set of files uses: every name imported with
+ * `import { A, B as C } from '<framework>'`, plus every `NS.Name` for a namespace
+ * import `import * as NS from '<framework>'` (this includes `NS.Name` in JSDoc types, such as
+ * `THREE.IUniform`). A proxy only: it counts names, not how hard each one is.
+ * @param {string[]} files
+ */
+export function frameworkApi(files) {
+  /** @type {Set<string>} */
+  const names = new Set();
+  for (const f of files) {
+    const text = readFileSync(f, 'utf8');
+    for (const m of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*'([^']+)'/g)) {
+      if (!FRAMEWORK_PKG.test(m[2])) continue;
+      for (const part of m[1].split(',')) {
+        const name = part.trim().split(/\s+as\s+/)[0];
+        if (name) names.add(name);
+      }
+    }
+    for (const m of text.matchAll(/import\s*\*\s*as\s+(\w+)\s+from\s*'([^']+)'/g)) {
+      if (!FRAMEWORK_PKG.test(m[2])) continue;
+      for (const u of text.matchAll(new RegExp(`\\b${m[1]}\\.(\\w+)`, 'g'))) names.add(u[1]);
+    }
+  }
+  return [...names].sort();
+}
+
 /** @param {string[]} files */
 function sum(files) {
-  const total = { files: files.length, code: 0, comment: 0, blank: 0 };
+  const total = { files: files.length, code: 0, comment: 0, blank: 0, apiNames: frameworkApi(files).length };
   for (const f of files) {
     const c = countLines(readFileSync(f, 'utf8'));
     total.code += c.code; total.comment += c.comment; total.blank += c.blank;
@@ -74,7 +104,7 @@ export function countLoc() {
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const loc = countLoc();
-  console.log('| part | files | code lines | comment lines | blank lines |');
-  console.log('|---|---:|---:|---:|---:|');
-  for (const [k, v] of Object.entries(loc)) console.log(`| ${k} | ${v.files} | ${v.code} | ${v.comment} | ${v.blank} |`);
+  console.log('| part | files | code lines | comment lines | blank lines | framework API names |');
+  console.log('|---|---:|---:|---:|---:|---:|');
+  for (const [k, v] of Object.entries(loc)) console.log(`| ${k} | ${v.files} | ${v.code} | ${v.comment} | ${v.blank} | ${v.apiNames} |`);
 }

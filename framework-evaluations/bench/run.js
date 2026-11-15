@@ -33,7 +33,10 @@ const SCREENSHOT_T = 12;
 /** Every build the evaluation knows about. */
 const BUILDS = [
   { id: 'threejs-2d', framework: 'threejs', mode: '2d' },
-  { id: 'threejs-3d', framework: 'threejs', mode: '3d' },
+  // bloom off: PixiJS 3D uses no post-processing, so this is the like-for-like 3D pair
+  { id: 'threejs-3d', framework: 'threejs', mode: '3d', query: '&bloom=0' },
+  // the same build with its UnrealBloomPass on, to show what post-processing costs
+  { id: 'threejs-3d-bloom', framework: 'threejs', mode: '3d', query: '&bloom=1' },
   { id: 'pixijs-2d', framework: 'pixijs', mode: '2d' },
   { id: 'pixijs-3d', framework: 'pixijs', mode: '3d' },
 ];
@@ -67,9 +70,15 @@ const opts = {
   screenshots: has('--screenshots'),
   build: !has('--no-build'),
   headed: has('--headed'),
+  // --no-sync: no GPU readback per frame; writes results-nosync.json (means only are meaningful)
+  sync: !has('--no-sync'),
   only: valueOf('--only')?.split(',').map((s) => s.trim()).filter(Boolean) ?? null,
 };
-const FRAMES = opts.quick ? { warmup: 30, sample: 120, startupLoads: 3 } : { warmup: 60, sample: 300, startupLoads: 5 };
+const FRAMES = opts.quick ? { warmup: 30, sample: 120, startupLoads: 3, repeats: 1 } : { warmup: 60, sample: 300, startupLoads: 5, repeats: 3 };
+// every benchmarked page gets sync=1: the hook waits for the GPU after each frame (see
+// shared/bench-hook.js), so frame times include GPU work instead of queueing bursts
+const SYNC = opts.sync ? '&sync=1' : '';
+const RESULTS_FILE = opts.sync ? 'results.json' : 'results-nosync.json';
 
 const selected = BUILDS.filter((b) => !opts.only || opts.only.includes(b.id));
 if (!selected.length) fail(`--only matched no build. Known: ${BUILDS.map((b) => b.id).join(', ')}`);
@@ -183,7 +192,7 @@ try {
     }
     const base = `http://127.0.0.1:${PORT}/${b.framework}/${page}`;
     if (opts.screenshots) {
-      await screenshot(b, `${base}?${stressQuery(BASE)}&seed=1&t=${SCREENSHOT_T}`);
+      await screenshot(b, `${base}?${stressQuery(BASE)}&seed=1&t=${SCREENSHOT_T}${b.query ?? ''}`);
       continue;
     }
     log(`${b.id}: bundle ${kb(bundle.js.raw)} min, ${kb(bundle.js.gzip)} gzip`);
@@ -194,7 +203,7 @@ try {
     const runs = [];
     for (let i = 0; i < FRAMES.startupLoads; i++) {
       await s.goto('about:blank');
-      await s.goto(`${base}?${stressQuery(BASE)}&seed=1`);
+      await s.goto(`${base}?${stressQuery(BASE)}&seed=1${SYNC}${b.query ?? ''}`);
       await waitReady(b.id);
       runs.push(await s.evaluate('window.__bench.startup'));
     }
@@ -204,10 +213,17 @@ try {
     const levels = opts.quick ? [{ id: 'base', stress: { ...BASE } }] : stressLevels();
     for (const level of levels) {
       await s.goto('about:blank');
-      await s.goto(`${base}?${stressQuery(level.stress)}&seed=1`);
-      await waitReady(b.id);
-      await s.evaluate(`window.__bench.sample(${FRAMES.warmup}).then(() => true)`);
-      const frames = await s.evaluate(`window.__bench.sample(${FRAMES.sample})`);
+      // FRAMES.repeats fresh loads per level; the level's figures are the median of the runs
+      const runs = [];
+      for (let r = 0; r < FRAMES.repeats; r++) {
+        if (r) await s.goto('about:blank');
+        await s.goto(`${base}?${stressQuery(level.stress)}&seed=1${SYNC}${b.query ?? ''}`);
+        await waitReady(b.id);
+        await s.evaluate(`window.__bench.sample(${FRAMES.warmup}).then(() => true)`);
+        runs.push(await s.evaluate(`window.__bench.sample(${FRAMES.sample})`));
+      }
+      /** @type {Record<string, any>} */
+      const frames = { ...medianOf(runs), frameworkDrawCalls: runs[0].frameworkDrawCalls === null ? null : medianOf(runs).frameworkDrawCalls, runs: runs.length, meanRange: [Math.min(...runs.map((f) => f.mean)), Math.max(...runs.map((f) => f.mean))] };
       await s.send('HeapProfiler.collectGarbage');
       const heap = await s.send('Runtime.getHeapUsage');
       const perfMemory = await s.evaluate('window.__bench.heap()');
@@ -216,7 +232,7 @@ try {
       entry.gl = info.gl;
       entry.info = info.info;
       entry.levels[level.id] = {
-        stress: info.stress, frames,
+        stress: info.stress, frames, runs,
         heap: { usedSize: heap.usedSize, totalSize: heap.totalSize, performanceMemory: perfMemory },
         setupDrawCalls: info.setupDrawCalls,
       };
@@ -231,11 +247,12 @@ try {
 
   if (!opts.screenshots) {
     results.env = env;
+    results.gpuSync = opts.sync;
     results.updatedAt = new Date().toISOString();
     mkdirSync(join(RESULTS_DIR, 'raw'), { recursive: true });
-    writeFileSync(join(RESULTS_DIR, 'results.json'), JSON.stringify(results, null, 2) + '\n');
+    writeFileSync(join(RESULTS_DIR, RESULTS_FILE), JSON.stringify(results, null, 2) + '\n');
     writeFileSync(join(RESULTS_DIR, 'raw', `${raw.startedAt.replace(/[:.]/g, '-')}.json`), JSON.stringify({ ...raw, env }, null, 2) + '\n');
-    log('wrote bench/results/results.json');
+    log(`wrote bench/results/${RESULTS_FILE}`);
   }
 } catch (e) {
   console.error(e);
@@ -260,13 +277,13 @@ async function waitReady(id) {
   }
 }
 
-/** @param {{ id: string, framework: string, mode: string }} b @param {string} url */
+/** @param {{ id: string, framework: string, mode: string, query?: string }} b @param {string} url */
 async function screenshot(b, url) {
   await s.goto(url);
   await waitReady(b.id);
   await s.evaluate('window.__bench.sample(10).then(() => true)');
   mkdirSync(SHOTS_DIR, { recursive: true });
-  const path = join(SHOTS_DIR, `${b.framework}-${b.mode}.png`);
+  const path = join(SHOTS_DIR, `${b.id}.png`);
   await s.screenshot({ path });
   log(`${b.id}: screenshot ${path.slice(ROOT.length + 1)}`);
 }
@@ -301,7 +318,7 @@ async function environment() {
 }
 
 function loadResults() {
-  const p = join(RESULTS_DIR, 'results.json');
+  const p = join(RESULTS_DIR, RESULTS_FILE);
   if (existsSync(p)) {
     try { return JSON.parse(readFileSync(p, 'utf8')); } catch { /* start fresh */ }
   }

@@ -52,10 +52,23 @@ console.log('## Frame time per stress level (ms; lower is better)\n');
 const rows = [];
 for (const [id, b] of builds) {
   for (const [level, l] of Object.entries(/** @type {Record<string, any>} */ (b.levels ?? {}))) {
-    rows.push([id, level, l.frames.mean, l.frames.p95, l.frames.p99, l.frames.fps, l.frames.cpuMean, l.frames.drawCalls, l.frames.frameworkDrawCalls, kb(l.heap.usedSize)]);
+    rows.push([id, level, l.frames.mean, l.frames.meanRange ? `${l.frames.meanRange[0]}–${l.frames.meanRange[1]}` : '-', l.frames.p95, l.frames.p99, l.frames.fps, l.frames.cpuMean, l.frames.drawCalls, l.frames.frameworkDrawCalls, kb(l.heap.usedSize)]);
   }
 }
-table(['build', 'level', 'mean', 'p95', 'p99', 'fps', 'JS+submit mean', 'draw calls (hook)', 'draw calls (framework)', 'JS heap kB after GC'], rows);
+table(['build', 'level', 'mean', 'mean range (runs)', 'p95', 'p99', 'fps', 'JS+submit mean', 'draw calls (hook)', 'draw calls (framework)', 'JS heap kB after GC'], rows);
+
+// readback cost: the same builds measured without sync=1 (npm run bench -- --no-sync --quick)
+const noSyncPath = join(import.meta.dirname, 'results', 'results-nosync.json');
+if (existsSync(noSyncPath)) {
+  const noSync = JSON.parse(readFileSync(noSyncPath, 'utf8'));
+  console.log('## Size of the readback cost (base level, mean ms)\n');
+  console.log('Without `sync=1` frames overlap and queue, so only the mean is shown and it is not a per-frame time.\n');
+  table(['build', 'mean with sync=1', 'mean without sync', 'difference'],
+    builds.map(([id, b]) => {
+      const a = b.levels?.base?.frames?.mean, n = noSync.builds?.[id]?.levels?.base?.frames?.mean;
+      return [id, a ?? null, n ?? null, typeof a === 'number' && typeof n === 'number' ? Math.round((a - n) * 1000) / 1000 : null];
+    }));
+}
 
 console.log('## Lines of code (non-blank, non-comment)\n');
 table(['part', 'files', 'code', 'comments'], Object.entries(countLoc()).map(([k, v]) => [k, v.files, v.code, v.comment]));
