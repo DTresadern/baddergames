@@ -38,6 +38,16 @@ table(['item', 'value'], [
   ['updated', results.updatedAt],
 ]);
 
+// --levels keeps older levels: flag any measured in another session than the build's latest run
+const stale = builds.flatMap(([id, b]) => Object.entries(/** @type {Record<string, any>} */ (b.levels ?? {}))
+  .filter(([, l]) => l.measuredAt && (l.measuredAt < b.measuredAt || l.bundleGzip !== b.bundle?.js?.gzip))
+  .map(([level, l]) => `${id} ${level} (measured ${l.measuredAt})`));
+if (stale.length) {
+  console.log('> [!WARNING]\n> Measured in an earlier session or on a different bundle than the rest of the build; the Environment table describes the latest run only:');
+  for (const line of stale) console.log(`> - ${line}`);
+  console.log();
+}
+
 console.log('## Bundle size (JS the page loads)\n');
 table(['build', 'version', 'minified kB', 'gzip -9 kB', 'brotli kB'],
   builds.map(([id, b]) => [id, b.version, kb(b.bundle.js.raw), kb(b.bundle.js.gzip), kb(b.bundle.js.brotli)]));

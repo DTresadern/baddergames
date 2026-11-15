@@ -14,6 +14,8 @@
 // Layer contract (every module in layers/ follows it; the PixiJS 3D build uses the same):
 //   export function createX(scene, ctx?) -> { parts: Part[], update?(t), info? }
 //   Part = THREE.Object3D; ctx only for layers that need it
+// Exceptions, both in layers/sky.js: createSkyBackground returns the scene background
+// texture, and createMist returns an Overlay that main.js adds to the camera.
 // main.js adds every part to the scene graph once (the mist's to the camera: it is a screen
 // overlay); nothing is shifted per frame for parallax. `info` goes to the bench hook.
 

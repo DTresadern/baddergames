@@ -152,7 +152,7 @@ with a message if it is unset.
 3. Full run: `npm run bench` # builds, then every build × every stress level, 3 repeats (about 7 minutes here)
 4. Readback cost run: `npm run bench -- --no-build --no-sync --levels base` # base level only, same frame counts and repeats as the full run; writes `bench/results/results-nosync.json` (about 1 minute)
 5. Screenshots: `npm run screenshots`
-6. Tables: `npm run report` # prints every table in this section from the results files
+6. Tables: `npm run report` # prints every table in this section from the results files; it also warns if some levels were measured in an earlier session (after `--levels`)
 7. Lines of code: `npm run loc`
 
 Check after a run: `npm run report` prints an Environment table. `GPU` must name the real
@@ -174,7 +174,7 @@ only), `--no-build` (reuse `dist/`), `--quick` (base level only, one repeat, few
 | Node.js | 26.3.1 |
 | resolution | 1800×600 canvas, device pixel ratio 1, WebGL2 in every build. Antialias on in the canvas, except three.js 3D with bloom, which turns canvas antialias off and renders into a 4-sample multisampled target instead |
 | Chromium flags | `--ignore-gpu-blocklist --enable-gpu --disable-gpu-vsync --disable-frame-rate-limit --disable-renderer-backgrounding --disable-background-timer-throttling --force-device-scale-factor=1 --window-size=1800,600` |
-| recorded | 2026-11-15 (UTC+0), machine idle: full run 21:22:54–21:29:49, run without readback 21:29:49–21:30:36. A later code-review change moved the three.js 3D sky and mist out of the layer list without changing what is drawn; it made the three.js 3D bundle 0.1 kB smaller (minified), and was not re-measured |
+| recorded | 2026-11-15 (UTC+0), machine idle: full run 21:22:54–21:29:49, run without readback 21:29:49–21:30:36. A later code-review change moved the three.js 3D sky and mist out of the layer list without changing what is drawn; it changed the three.js 3D bundle by −26 bytes minified and −7 bytes gzip, and the PixiJS 3D bundle by +2 bytes (measured with `npm run build`); performance was not re-measured |
 
 Flags: without `--ignore-gpu-blocklist --enable-gpu`, headless Chromium on this machine
 used SwiftShader (software WebGL). Without `--disable-gpu-vsync --disable-frame-rate-limit`,
@@ -327,8 +327,8 @@ Measured:
   gzip), because it is pixi.js plus @pixi/3d.
 
 Not explained (causes not investigated, so none is claimed): why the three.js 2D build
-spends more CPU per frame than PixiJS 2D, why three.js 3D rain cost barely grows with the drop count, and why the PixiJS 2D heap is
-larger. Possible causes include the two builds' different batching (98 against 59 draw
+spends more CPU per frame than PixiJS 2D, why three.js 3D rain cost barely grows with the
+drop count, and why the PixiJS 2D heap is larger. Possible causes include the two builds' different batching (98 against 59 draw
 calls), per-object work in each framework's render loop, and how each framework stores built
 shape geometry in JS memory.
 
@@ -417,10 +417,10 @@ how hard each one is.
 |---|---:|---:|---:|---:|
 | three.js 2D | 20 | 1275 | 343 | 26 |
 | PixiJS 2D | 20 | 1274 | 390 | 13 |
-| three.js 3D | 20 | 1493 | 414 | 67 |
+| three.js 3D | 20 | 1491 | 415 | 67 |
 | PixiJS 3D | 20 | 1253 | 390 | 30 |
 | shared (all builds) | 5 | 819 | 394 | 0 |
-| bench | 3 | 412 | 109 | 0 |
+| bench | 3 | 421 | 112 | 0 |
 
 The two 2D builds are the same size because they mirror each other module for module;
 the PixiJS one needs fewer framework names.
@@ -551,7 +551,9 @@ it leaves beta.
 - Time helpers (pure functions of t): `trainX`, `droneState`, `smokeParticle`, `dripState`,
   `rainDropAt`, `cameraX`, `lampFlicker`, `redBlink`. Rain per-drop data: `rainAttributes`.
   Shared helpers: `pointInPolygon`, `isFlickering`.
-- Layers: every module in `layers/` exports `createX(scene, ctx?)`. 2D builds return
+- Layers: every module in `layers/` exports `createX(scene, ctx?)`, except the 3D builds'
+  mist, an overlay `{ parts, update?(t) }` drawn after the scene, and the three.js 3D sky,
+  `createSkyBackground(scene)`, which returns the scene's background texture. 2D builds return
   `{ parts: [{ object, depth }], update?(t) }` and `main.js` applies parallax per part.
   3D builds return `{ parts, update?(t), info? }`, where a part is a three.js `Object3D` or
   a @pixi/3d `Container3D`. Each `stage.js` documents its build's contract.
