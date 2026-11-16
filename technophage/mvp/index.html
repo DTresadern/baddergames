@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Technophage</title>
+<meta name="description" content="Online co-op side-scrolling shooter set in a collapsing technological dystopia.">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23050608'/%3E%3Cpath d='M3 4h10v2H9v7H7V6H3z' fill='%23ffb347'/%3E%3C/svg%3E">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="menu" class="overlay">
+  <div class="panel">
+    <div class="portraits"><img src="assets/sprites/hunter_p1_portrait.png" alt=""><img src="assets/sprites/hunter_p2_portrait.png" alt=""></div>
+    <h1>TECHNOPHAGE</h1>
+    <p class="tag">Two hunters. One megacity. Descend until it stops being a city.</p>
+    <label class="field">CALLSIGN <input id="name" maxlength="12" autocomplete="off" spellcheck="false"></label>
+    <div class="row settings">
+      <label class="field">CONTROLS <select class="opt-scheme"><option value="kbm">Keyboard + mouse</option><option value="mouse">Mouse / touchpad only</option></select></label>
+      <label class="field check"><input type="checkbox" class="opt-toggle"> Click toggles firing</label>
+    </div>
+    <div id="buttons" class="hidden">
+      <div class="row">
+        <button id="btn-host" class="primary">HOST ONLINE CO-OP</button>
+        <span class="join"><input id="code" maxlength="6" placeholder="ROOM CODE" autocomplete="off" spellcheck="false"><button id="btn-join" class="primary">JOIN</button></span>
+      </div>
+      <div class="row">
+        <button id="btn-solo">SOLO</button>
+        <button id="btn-local">LOCAL CO-OP (GAMEPAD)</button>
+        <button id="btn-controls">CONTROLS</button>
+      </div>
+    </div>
+    <div id="status"></div>
+    <div id="controls" class="hidden">
+      <table>
+        <tr><th></th><th>Keyboard + mouse</th><th>Mouse / touchpad only</th><th>Gamepad</th></tr>
+        <tr><td>Move</td><td>A / D</td><td>Point well left or right of the hunter</td><td>Left stick</td></tr>
+        <tr><td>Stand and aim</td><td>Release A / D</td><td>Point near the hunter</td><td>Release stick</td></tr>
+        <tr><td>Jump</td><td>W / Space</td><td>Right click (two-finger tap); hold for height</td><td>A</td></tr>
+        <tr><td>Climb ladder</td><td>W / S</td><td>Point straight up or down</td><td>Stick up / down</td></tr>
+        <tr><td>Drop through catwalk</td><td>S + Space</td><td>Point straight down + right click</td><td>Down + A</td></tr>
+        <tr><td>Aim</td><td>Mouse</td><td>Cursor</td><td>Right stick</td></tr>
+        <tr><td>Fire</td><td>Hold left mouse</td><td>Hold left click, or click once with "Click toggles firing"</td><td>RT</td></tr>
+        <tr><td>Disc charge (grenade)</td><td>Right mouse / G</td><td>Middle click, forward side button, or G</td><td>LT</td></tr>
+        <tr><td>Dash</td><td>Shift</td><td>Back side button, or Shift</td><td>B</td></tr>
+        <tr><td>Switch weapon</td><td>1–4 / wheel / E</td><td>Scroll (two-finger swipe)</td><td>LB / RB</td></tr>
+        <tr><td>Pause</td><td>Esc / P</td><td>Esc / P</td><td>Start</td></tr>
+      </table>
+      <p>Co-op: stand next to a downed partner to revive them. Both hunters must board the exit lift to descend.</p>
+    </div>
+    <p id="version" class="version"></p>
+    <p class="small">Online play connects the two browsers directly (WebRTC via PeerJS). Your IP address is visible to your partner and to the PeerJS signalling server.</p>
+  </div>
+</div>
+
+<div id="lobby" class="overlay hidden">
+  <div class="panel small-panel">
+    <h2>LOBBY</h2>
+    <p class="small">ROOM CODE</p>
+    <div class="lobby-code" id="lobby-code"></div>
+    <div class="row"><button id="btn-copy">COPY INVITE LINK</button></div>
+    <ul id="lobby-players"></ul>
+    <p id="lobby-note" class="small"></p>
+    <div class="row">
+      <button id="btn-start" class="primary">START</button>
+      <button id="btn-ready" class="primary hidden">READY</button>
+      <button id="btn-leave">LEAVE</button>
+    </div>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="panel small-panel">
+    <h2>PAUSED</h2>
+    <p id="pause-code"></p>
+    <p id="pause-note" class="small"></p>
+    <label class="field">VOLUME <input id="volume" type="range" min="0" max="1" step="0.05"></label>
+    <label class="field">CONTROLS <select class="opt-scheme"><option value="kbm">Keyboard + mouse</option><option value="mouse">Mouse / touchpad only</option></select></label>
+    <label class="field check"><input type="checkbox" class="opt-toggle"> Click toggles firing</label>
+    <div class="row"><button id="btn-resume" class="primary">RESUME</button><button id="btn-quit">QUIT TO MENU</button></div>
+  </div>
+</div>
+
+<div id="interlude" class="overlay hidden">
+  <div class="panel small-panel">
+    <h2 id="il-title"></h2>
+    <p id="il-sub"></p>
+    <div id="il-rows"></div>
+  </div>
+</div>
+
+<script src="peer-config.js"></script>
+<script src="vendor/peerjs-1.5.5.min.js"></script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
