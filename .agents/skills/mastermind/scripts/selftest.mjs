@@ -86,7 +86,7 @@ sh("git", ["init", "-q", "--bare", "-b", "main", remote]);
 sh("git", ["clone", "-q", remote, main]);
 for (const [k, v] of [["user.email", "t@example.com"], ["user.name", "t"]]) sh("git", ["config", k, v], main);
 fs.mkdirSync(path.join(main, ".mastermind"));
-fs.writeFileSync(path.join(main, ".mastermind", "config.json"), JSON.stringify({ ...JSON.parse(fs.readFileSync(REPO_CONFIG, "utf8")), laneWorktreeRoot: tmp }, null, 2) + "\n");
+fs.writeFileSync(path.join(main, ".mastermind", "config.json"), JSON.stringify({ ...JSON.parse(fs.readFileSync(REPO_CONFIG, "utf8")), namespaces: { "dev.baddergames": ".", "dev.baddergames.technophage": "technophage" }, laneWorktreeRoot: tmp }, null, 2) + "\n");
 fs.mkdirSync(path.join(main, "technophage"));
 fs.writeFileSync(path.join(main, "technophage", "AGENTS.md"), "# technophage\n");
 fs.writeFileSync(path.join(main, "AGENTS.md"), "# root\n");
