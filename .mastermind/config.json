@@ -5,7 +5,7 @@
   "devlogDir": "devlog",
   "namespaces": {
     "dev.baddergames": ".",
-    "dev.baddergames.technophage": "technophage"
+    "dev.baddergames.berserker7": "berserker7"
   },
   "defaultProvider": "claude",
   "capabilities": {
