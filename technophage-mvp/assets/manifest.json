@@ -1,0 +1,229 @@
+{
+ "sprites": {
+  "hunter_p1_upper": {
+   "src": "assets/sprites/hunter_p1_upper.png",
+   "w": 75,
+   "h": 84
+  },
+  "hunter_p1_lower": {
+   "src": "assets/sprites/hunter_p1_lower.png",
+   "w": 75,
+   "h": 84
+  },
+  "hunter_p1_full": {
+   "src": "assets/sprites/hunter_p1_full.png",
+   "w": 75,
+   "h": 84
+  },
+  "hunter_p1_portrait": {
+   "src": "assets/sprites/hunter_p1_portrait.png",
+   "w": 306,
+   "h": 360
+  },
+  "hunter_p2_upper": {
+   "src": "assets/sprites/hunter_p2_upper.png",
+   "w": 75,
+   "h": 84
+  },
+  "hunter_p2_lower": {
+   "src": "assets/sprites/hunter_p2_lower.png",
+   "w": 75,
+   "h": 84
+  },
+  "hunter_p2_full": {
+   "src": "assets/sprites/hunter_p2_full.png",
+   "w": 75,
+   "h": 84
+  },
+  "hunter_p2_portrait": {
+   "src": "assets/sprites/hunter_p2_portrait.png",
+   "w": 306,
+   "h": 360
+  },
+  "stalker": {
+   "src": "assets/sprites/stalker.png",
+   "w": 104,
+   "h": 60
+  },
+  "stalker_boss": {
+   "src": "assets/sprites/stalker_boss.png",
+   "w": 208,
+   "h": 121
+  },
+  "burster": {
+   "src": "assets/sprites/burster.png",
+   "w": 174,
+   "h": 112
+  },
+  "burster_boss": {
+   "src": "assets/sprites/burster_boss.png",
+   "w": 348,
+   "h": 224
+  },
+  "mould": {
+   "src": "assets/sprites/mould.png",
+   "w": 96,
+   "h": 46
+  },
+  "swarm": {
+   "src": "assets/sprites/swarm.png",
+   "w": 72,
+   "h": 59
+  },
+  "insectoid": {
+   "src": "assets/sprites/insectoid.png",
+   "w": 120,
+   "h": 78
+  },
+  "insectoid_boss": {
+   "src": "assets/sprites/insectoid_boss.png",
+   "w": 240,
+   "h": 155
+  },
+  "rat": {
+   "src": "assets/sprites/rat.png",
+   "w": 60,
+   "h": 32
+  },
+  "worm": {
+   "src": "assets/sprites/worm.png",
+   "w": 132,
+   "h": 69
+  },
+  "worm_boss": {
+   "src": "assets/sprites/worm_boss.png",
+   "w": 264,
+   "h": 138
+  },
+  "enforcer": {
+   "src": "assets/sprites/enforcer.png",
+   "w": 57,
+   "h": 80
+  },
+  "mech": {
+   "src": "assets/sprites/mech.png",
+   "w": 154,
+   "h": 132
+  },
+  "mech_boss": {
+   "src": "assets/sprites/mech_boss.png",
+   "w": 309,
+   "h": 264
+  },
+  "drone": {
+   "src": "assets/sprites/drone.png",
+   "w": 88,
+   "h": 54
+  },
+  "drone_boss": {
+   "src": "assets/sprites/drone_boss.png",
+   "w": 176,
+   "h": 108
+  },
+  "crate": {
+   "src": "assets/sprites/crate.png",
+   "w": 60,
+   "h": 25
+  },
+  "door": {
+   "src": "assets/sprites/door.png",
+   "w": 160,
+   "h": 79
+  },
+  "growth": {
+   "src": "assets/sprites/growth.png",
+   "w": 120,
+   "h": 96
+  },
+  "w_coil": {
+   "src": "assets/sprites/w_coil.png",
+   "w": 62,
+   "h": 19
+  },
+  "w_incin": {
+   "src": "assets/sprites/w_incin.png",
+   "w": 60,
+   "h": 19
+  },
+  "w_plasma": {
+   "src": "assets/sprites/w_plasma.png",
+   "w": 50,
+   "h": 22
+  },
+  "w_coil_hand": {
+   "src": "assets/sprites/w_coil_hand.png",
+   "w": 54,
+   "h": 16
+  },
+  "w_incin_hand": {
+   "src": "assets/sprites/w_incin_hand.png",
+   "w": 52,
+   "h": 16
+  },
+  "w_plasma_hand": {
+   "src": "assets/sprites/w_plasma_hand.png",
+   "w": 44,
+   "h": 20
+  }
+ },
+ "bg": {
+  "upper": {
+   "src": "assets/bg/upper.jpg",
+   "w": 1407,
+   "h": 600
+  },
+  "upper_alt": {
+   "src": "assets/bg/upper_alt.jpg",
+   "w": 1800,
+   "h": 600
+  },
+  "lower": {
+   "src": "assets/bg/lower.jpg",
+   "w": 1800,
+   "h": 600
+  },
+  "underbelly": {
+   "src": "assets/bg/underbelly.jpg",
+   "w": 1200,
+   "h": 600
+  },
+  "caverns": {
+   "src": "assets/bg/caverns.jpg",
+   "w": 1407,
+   "h": 600
+  },
+  "caverns_alt": {
+   "src": "assets/bg/caverns_alt.jpg",
+   "w": 1800,
+   "h": 600
+  },
+  "depths": {
+   "src": "assets/bg/depths.jpg",
+   "w": 1200,
+   "h": 600
+  }
+ },
+ "hunter": {
+  "frameW": 75,
+  "frameH": 84,
+  "pivot": [
+   33.6,
+   32.1
+  ],
+  "muzzle": [
+   73.2,
+   31.9
+  ],
+  "feetY": 84,
+  "bodyCenterX": 32.9,
+  "rifleBox": [
+   21.7,
+   25.8,
+   73.2,
+   37.0
+  ]
+ },
+ "facing": {
+  "stalker": -1
+ }
+}
