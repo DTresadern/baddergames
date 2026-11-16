@@ -1,6 +1,6 @@
-# technophage
+# Berserker 7
 
-Sub-project of dev.baddergames. Namespace: `dev.baddergames.technophage`. Root: `technophage/` (this folder).
+Sub-project of dev.baddergames. Namespace: `dev.baddergames.berserker7`. Root: `berserker7/` (this folder).
 
 ## Where things are
 
