@@ -1,5 +1,6 @@
-# Publishes the landing page (index.html), the idea cloud (ideas/) and the
-# Technophage MVP game files (technophage-mvp/) to GitHub Pages.
+# Publishes the landing page (index.html), the idea cloud (ideas/), the
+# Technophage MVP game files (technophage-mvp/) and the Berserker 7 feature
+# tracker (berserker7/tracker/) to GitHub Pages.
 # Nothing else in the repo is published: archived material, agent config,
 # mastermind state, the devlog and sub-project folders stay out of the site.
 name: Deploy to GitHub Pages
@@ -44,10 +45,19 @@ jobs:
             echo "::error::technophage-mvp/index.html not found: the Technophage MVP has not been committed yet"
             exit 1
           fi
-          mkdir -p _site/ideas _site/technophage-mvp
+          if [ ! -f berserker7/tracker/index.html ]; then
+            echo "::error::berserker7/tracker/index.html not found: the Berserker 7 feature tracker has not been committed yet"
+            exit 1
+          fi
+          if [ ! -f berserker7/tracker/tracker.json ]; then
+            echo "::error::berserker7/tracker/tracker.json not found: the Berserker 7 feature tracker has not been committed yet"
+            exit 1
+          fi
+          mkdir -p _site/ideas _site/technophage-mvp _site/berserker7/tracker
           cp index.html _site/
           cp -r ideas/. _site/ideas/
           cp -r technophage-mvp/. _site/technophage-mvp/
+          cp berserker7/tracker/index.html berserker7/tracker/tracker.json _site/berserker7/tracker/
           # the game fetches version.json (relative to its page) to show the build
           printf '{"commit":"%s","built":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > _site/technophage-mvp/version.json
           # list what upload-pages-artifact publishes: it skips hidden files
