@@ -11,4 +11,4 @@ Placeholder. Shared instructions for all coding agents (Claude Code, Codex, othe
 - `.mastermind/config.json` - namespaces (sub-projects and their folders), time zone and orchestration models
 - `.agents/skills/mastermind/` - the orchestrator skill and its `mm` script (`mm help`)
 - `devlog/` - the local daily devlog, written by `mm` (gitignored)
-- one folder per sub-project, for example `technophage/`, each with its own `AGENTS.md`
+- one folder per sub-project, for example `berserker7/`, each with its own `AGENTS.md`

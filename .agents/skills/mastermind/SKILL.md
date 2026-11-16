@@ -1,6 +1,6 @@
 ---
 name: mastermind
-description: "Use when acting as the orchestrator (mastermind) for this repository: a thread whose title is a namespace such as dev.baddergames or dev.baddergames.technophage, or when the user asks to start, plan, track, approve or merge work as lanes, asks what is in flight or waiting, or wants a sub-project orchestrator. Lanes and Daily Update threads get their own briefs from this skill's templates."
+description: "Use when acting as the orchestrator (mastermind) for this repository: a thread whose title is a namespace such as dev.baddergames or dev.baddergames.berserker7, or when the user asks to start, plan, track, approve or merge work as lanes, asks what is in flight or waiting, or wants a sub-project orchestrator. Lanes and Daily Update threads get their own briefs from this skill's templates."
 ---
 
 # Mastermind: the orchestrator
