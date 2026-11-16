@@ -1,6 +1,8 @@
-# Publishes the landing page (index.html) and the idea cloud (ideas/) to GitHub Pages.
-# Nothing else in the repo is published: archived material, agent config,
-# mastermind state, the devlog and sub-project folders stay out of the site.
+# Publishes the landing page (index.html), the idea cloud (ideas/) and the
+# Technophage MVP game files (technophage/mvp/) to GitHub Pages.
+# Nothing else is published: nothing else under technophage/, archived material,
+# agent config, mastermind state, the devlog and other sub-project folders stay
+# out of the site.
 name: Deploy to GitHub Pages
 
 # Deploys on every push to main, and can be started by hand. Each deploy
@@ -30,7 +32,7 @@ jobs:
           node-version: 22
 
       - name: Check JavaScript syntax
-        run: git ls-files -z 'ideas/*.js' | xargs -0 -r -n1 node --check
+        run: git ls-files -z 'ideas/*.js' 'technophage/mvp/*.js' | xargs -0 -r -n1 node --check
 
       - name: Assemble site
         run: |
@@ -39,9 +41,16 @@ jobs:
             echo "::error::ideas/index.html not found: the idea cloud has not been committed yet"
             exit 1
           fi
-          mkdir -p _site/ideas
+          if [ ! -f technophage/mvp/index.html ]; then
+            echo "::error::technophage/mvp/index.html not found: the Technophage MVP has not been committed yet"
+            exit 1
+          fi
+          mkdir -p _site/ideas _site/technophage/mvp
           cp index.html _site/
           cp -r ideas/. _site/ideas/
+          cp -r technophage/mvp/. _site/technophage/mvp/
+          # the game fetches version.json (relative to its page) to show the build
+          printf '{"commit":"%s","built":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > _site/technophage/mvp/version.json
           # list what upload-pages-artifact publishes: it skips hidden files
           # and follows symlinks
           find -L _site \( -name '.*' -prune \) -o -type f -print | sort
