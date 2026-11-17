@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 
-// "<short sha> · <UTC time>" when built by CI (GITHUB_SHA set), "dev" otherwise.
 function buildLabel() {
   const sha = process.env.GITHUB_SHA;
   if (!sha) return 'dev';
@@ -10,6 +9,9 @@ function buildLabel() {
 
 export default defineConfig({
   base: './',
+  build: {
+    chunkSizeWarningLimit: 600,
+  },
   define: {
     __BUILD_LABEL__: JSON.stringify(buildLabel()),
   },

@@ -78,7 +78,7 @@ jobs:
           cp -r technophage-mvp/. _site/technophage-mvp/
           cp -r berserker7/game/dist/. _site/berserker7/
           cp berserker7/tracker/index.html berserker7/tracker/tracker.json _site/berserker7/tracker/
-          # the game fetches version.json (relative to its page) to show the build
+          # the Technophage MVP fetches version.json (relative to its page) to show the build
           printf '{"commit":"%s","built":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > _site/technophage-mvp/version.json
           # list what upload-pages-artifact publishes: it skips hidden files
           # and follows symlinks

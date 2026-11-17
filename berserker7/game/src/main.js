@@ -6,9 +6,8 @@ import {
   Scene,
   WebGLRenderer,
 } from 'three';
-import { showVersion } from './version.js';
 
-showVersion(document.getElementById('version'));
+document.getElementById('version').textContent = __BUILD_LABEL__;
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -22,7 +21,6 @@ scene.add(cube);
 
 const camera = new PerspectiveCamera(50, 1, 0.1, 100);
 camera.position.set(0, 0, 3);
-camera.lookAt(0, 0, 0);
 
 function resize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
