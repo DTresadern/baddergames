@@ -195,7 +195,7 @@
       "category": "Characters",
       "title": "Four playable Hunter designs",
       "detail": "The character study has four Hunter designs: hunter1 (masked, cable head tendrils, industrial combat armour, large rifle), hunter2 (lean, sinewy, elongated predatory armoured head, digitigrade legs), hunter3 (compact, stocky, bare alien face; tendrils added and face made less reptilian at the user's request) and hunter4 (low, forward-leaning, swept-back carapace and powered exosuit).",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Character study"
       ],
@@ -505,7 +505,7 @@
       "category": "Enemies",
       "title": "Authored encounters; introduce one enemy type at a time",
       "detail": "MVP encounters were a random mix (humans, drones and aliens in the first five seconds). Author encounters per section and introduce enemy types deliberately.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano",
         "MVP retro"
@@ -536,7 +536,7 @@
       "category": "Enemies",
       "title": "Don't spawn enemies where they cannot stand",
       "detail": "In the MVP, worms came out of floating platforms and giant mechs stood on them. Place enemies by size class on floor wide enough for them.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano",
         "MVP retro"
@@ -567,7 +567,7 @@
       "category": "Enemies",
       "title": "Don't leave any spawner uncapped",
       "detail": "An MVP boss summoned 112 rats in one run. Every spawner needs a cap.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "MVP retro"
       ],
@@ -589,7 +589,7 @@
       "category": "Bosses",
       "title": "Don't make every boss the same",
       "detail": "In the MVP every boss shot projectiles and moved left and right. Each boss needs its own mechanics.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy",
         "Deano",
@@ -925,7 +925,7 @@
       "category": "Levels",
       "title": "Proper vertical sections",
       "detail": "Whole sections that go up and down, built properly, not with floating platforms. Retro: shafts and multi-screen vertical rooms.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano",
         "MVP retro"
@@ -1041,7 +1041,7 @@
       "category": "Levels",
       "title": "Side routes through doors",
       "detail": "Enter a door to appear \"inside\", adding depth and exploration.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
@@ -1609,7 +1609,7 @@
       "category": "Weapons",
       "title": "Unarmed melee: punches and headbutts",
       "detail": "At the start of level 1 the Hunters are unarmed and fight with punches and headbutts.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Level ideas"
       ],
@@ -1629,7 +1629,7 @@
       "category": "Weapons",
       "title": "Faster, punchier player shots",
       "detail": "Player projectiles should be faster and feel more powerful. Retro: impact effects, recoil and hit-stop.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano",
         "MVP retro"
@@ -1656,7 +1656,7 @@
       "category": "Weapons",
       "title": "Rocket launcher",
       "detail": "Add a rocket launcher (\"check that in there\" is most likely \"chuck that in there\").",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy"
       ],
@@ -1964,7 +1964,7 @@
       "category": "Weapons",
       "title": "Deployable turret",
       "detail": "A turret players can pick up and drop.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
@@ -2112,7 +2112,7 @@
       "category": "Progression",
       "title": "Upgrade in the lift between levels",
       "detail": "Between levels the players ride a lift down, shown as a visible descent scene, and pick an upgrade from a modal (a shop). Upgrades last for the campaign session. References: Raptor: Call of the Shadows; Andy's examples are a longer health bar and faster fire.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy",
         "Deano"
@@ -2483,7 +2483,7 @@
       "category": "Controls and movement",
       "title": "Number keys for weapons",
       "detail": "Bind weapons to keys 1 to 4 or more for quick switching (the MVP already did this).",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy",
         "Deano"
@@ -2510,7 +2510,7 @@
       "category": "Controls and movement",
       "title": "Radial weapon menu, revolver-style, possibly the default",
       "detail": "A radial weapon menu like Alien Soldier's, expanded beyond four slots, that turns like a revolver cylinder with a strong click sound. Andy wants it as the default; Deano will experiment and may make it the default.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy",
         "Deano"
@@ -2575,7 +2575,7 @@
       "category": "Controls and movement",
       "title": "One clear secondary-fire button in every control mode",
       "detail": "Andy could not use the right-click grenade launcher; in the MVP its button differed between control modes. Use one clear secondary-fire button everywhere and show its ammo on the HUD.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy",
         "MVP retro"
@@ -2628,7 +2628,7 @@
       "category": "HUD and UI",
       "title": "A better HUD with clearly labelled weapons",
       "detail": "The MVP HUD was poor; weapons need to be clearer, with numbered labels.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
@@ -2658,7 +2658,7 @@
       "category": "HUD and UI",
       "title": "Character selection in the lobby",
       "detail": "Players choose their character in the lobby or menu, as classic games do.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
@@ -2684,7 +2684,7 @@
       "category": "HUD and UI",
       "title": "Better loading, menu and transition screens",
       "detail": "Improve the loading, menu and transition screens.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
@@ -2706,7 +2706,7 @@
       "category": "HUD and UI",
       "title": "Highlight pickups and crates; crates react when shot",
       "detail": "Players could not tell what crates were. Add a glint or pulsing light to pickups and crates, and make crates visibly react when shot, as in Contra.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy",
         "Deano"
@@ -3203,7 +3203,7 @@
       "category": "Audio",
       "title": "Don't play a repeating sound the player cannot explain",
       "detail": "An MVP sound repeated (\"nink nink nink\") without matching anything visible; it may have been the low-health heartbeat. Tie every repeating sound to visible state and add a low-health HUD indicator.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy",
         "MVP retro"
@@ -3230,7 +3230,7 @@
       "category": "Audio",
       "title": "Don't ship a sound nobody has listened to",
       "detail": "Two MVP sounds got worse because they were picked from measurements, unheard. A person listens before a sound ships, and the old one stays until the new one is approved. Proposals: loudness-normalised library, an audition page with A/B, and a mix pass.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "MVP retro"
       ],
@@ -4275,7 +4275,7 @@
       "category": "Levels and editor",
       "title": "Level events: triggers, named targets, delays",
       "detail": "An events system for buttons, proximity and touch triggers, built from small named logic entities wired to targets (trigger, delay, earthquake). Triggers run on the host only, fire on either player, and their firing goes into the snapshot.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano",
         "Impact research"
@@ -4302,7 +4302,7 @@
       "category": "Levels and editor",
       "title": "Level teleporters",
       "detail": "Teleporters for side routes, entering doors to inside areas, or moving to another point in the level.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
