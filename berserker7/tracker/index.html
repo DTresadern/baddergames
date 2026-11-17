@@ -97,6 +97,7 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 .filters button { cursor: pointer; }
 .filters .search { grid-column: span 2; }
 @media (max-width: 520px) { .filters .search { grid-column: 1 / -1; } }
+.hint { margin: 8px 0 0; font-size: .8rem; color: var(--muted); }
 .shown { margin: 8px 0 0; font-size: .85rem; color: var(--muted); }
 
 /* sections */
@@ -199,9 +200,10 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
         <label>Status<select id="fStatus"><option value="">All statuses</option></select></label>
         <label>Kind<select id="fKind"><option value="">All kinds</option><option value="feature">Feature</option><option value="advisory">Don't (advisory)</option></select></label>
         <label>Category<select id="fCat"><option value="">All categories</option></select></label>
-        <label class="search">Search<input id="fText" type="search" placeholder="id, title, detail, author, quote, ref"></label>
+        <label class="search">Search<input id="fText" type="search" placeholder="e.g. T-019, T-020 or jump, ladder" aria-describedby="fTextHint"></label>
         <label>&nbsp;<button id="fReset" type="button">Reset filters</button></label>
       </div>
+      <p class="hint" id="fTextHint">Separate terms with commas; an item is shown if any term appears anywhere in it (id, title, detail, notes, status, kind, category, authors, sources, refs).</p>
       <p class="shown" id="shown"></p>
     </div>
 
@@ -334,6 +336,10 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
     return parts.join(" \n ").toLowerCase();
   }
 
+  function matchesAny(text, terms) {
+    return terms.some(function (t) { return text.indexOf(t) !== -1; });
+  }
+
   function renderRefs(refs) {
     var div = el("div", "refs", "Cross-references: ");
     var tracker = refs.filter(function (r) { return /^[DT]-\d+$/.test(r); });
@@ -422,7 +428,8 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
   function render() {
     var f = {
       list: $("fList").value, status: $("fStatus").value, kind: $("fKind").value,
-      cat: $("fCat").value, text: $("fText").value.trim().toLowerCase()
+      cat: $("fCat").value,
+      terms: $("fText").value.toLowerCase().split(",").map(function (t) { return t.trim(); }).filter(function (t) { return t; })
     };
     var root = $("lists");
     root.textContent = "";
@@ -436,7 +443,7 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
           (!f.status || it.status === f.status) &&
           (!f.kind || it.kind === f.kind) &&
           (!f.cat || it.category === f.cat) &&
-          (!f.text || haystack(it).indexOf(f.text) !== -1);
+          (!f.terms.length || matchesAny(haystack(it), f.terms));
       });
       var total = data.items.filter(function (it) { return it.list === l[0]; }).length;
       sec.appendChild(el("h2", null, l[1] + " (" + items.length + " of " + total + ")"));
