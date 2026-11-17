@@ -291,7 +291,7 @@
       "category": "Characters",
       "title": "Silent, non-communicative characters",
       "detail": "Characters do not speak, like Abe or a helmeted Halo soldier; players have to work out what to do without being told.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy"
       ],
@@ -2970,7 +2970,7 @@
       "category": "Animation and effects",
       "title": "Death animations for everyone; enemies leave corpses",
       "detail": "Every player and enemy needs a death animation; enemies leave a corpse.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Andy",
         "Deano"
@@ -3837,7 +3837,7 @@
       "category": "Simulation",
       "title": "Fixed-step deterministic simulation",
       "detail": "Keep the MVP's fixed 60 Hz step with an accumulator, deterministic where possible, so both peers agree and recorded inputs replay a bug exactly.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "MVP retro",
         "Impact research",
@@ -3871,7 +3871,7 @@
       "category": "Simulation",
       "title": "Don't use a variable time step",
       "detail": "Impact's tick is wall-clock delta; it is not deterministic and entity collision depends on frame rate.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research",
         "Fix Your Timestep (Glenn Fiedler)"
@@ -3899,7 +3899,7 @@
       "category": "Simulation",
       "title": "Don't use Math.random() in gameplay code",
       "detail": "It breaks deterministic replay and identical results on both peers. Use a seeded RNG in the simulation (the MVP had one); render-only effects may use an unseeded RNG.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -3919,7 +3919,7 @@
       "category": "Simulation",
       "title": "Don't read global input or a single global player inside entities",
       "detail": "Impact entities read one global input and target one global player. Co-op needs input passed in per player and enemies that choose a target among players.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -4045,7 +4045,7 @@
       "category": "Simulation",
       "title": "Fixed set of reusable primitives",
       "detail": "Build levels and features from a fixed collection of reusable primitives.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
@@ -4191,7 +4191,7 @@
       "category": "Collision and physics",
       "title": "Don't copy Impact's entity push solver",
       "detail": "Its author calls it a mess; results depend on processing order and positions are rounded. Copy the type masks, not the solver.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -4324,7 +4324,7 @@
       "category": "Levels and editor",
       "title": "Level editor or hint editor",
       "detail": "An editor, not necessarily full-featured, for a person to block out, annotate or give feedback to an agent. Options: LDtk or Tiled with typed entities and auto-tiling, or an in-game three.js editor that runs the real entity classes (shows true 2.5D result, costs more).",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano",
         "MVP retro",
@@ -4356,7 +4356,7 @@
       "category": "Levels and editor",
       "title": "Editor metadata on entity definitions",
       "detail": "Each entity definition declares its editor appearance (hidden, resizable, coloured box) next to its gameplay defaults, so trigger zones, hazard areas and camera bounds are visible while editing.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -4609,7 +4609,7 @@
       "category": "Simulation",
       "title": "Input as named actions; one input frame per player per tick",
       "detail": "Bind keys to named actions read as held, pressed or released. Build one input frame per player per simulation tick (actions plus aim angle); that frame goes over the network and into replays. Compute pressed edges per tick, not per render frame.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -5278,7 +5278,7 @@
       "category": "Code",
       "title": "Don't build a custom module loader or class system",
       "detail": "Use native ES modules and classes; Impact's system deep-copies every property on construction and hides allocation costs.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -5298,7 +5298,7 @@
       "category": "Code",
       "title": "Don't extend built-in prototypes",
       "detail": "Global side effects can conflict with libraries such as three.js and PeerJS. Use plain helper functions.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -5318,7 +5318,7 @@
       "category": "Code",
       "title": "Don't look up entity classes by global name",
       "detail": "Fragile and pollutes the global scope. Use an explicit registry from type id to definition, which also lists entities for the editor and for checking level files.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
