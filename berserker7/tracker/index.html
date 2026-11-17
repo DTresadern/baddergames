@@ -21,6 +21,8 @@
   --rej-bg: #fbe7e5;
   --acc: #1f5fbf;
   --acc-bg: #e4eefc;
+  --ong: #6a3fa3;
+  --ong-bg: #f1eafb;
   --warn: #8a5a00;
   --warn-bg: #fff6e0;
   --warn-line: #e0a526;
@@ -42,6 +44,8 @@
     --rej-bg: #3a1d1b;
     --acc: #7fb0f5;
     --acc-bg: #172a45;
+    --ong: #c4a2f2;
+    --ong-bg: #2b2140;
     --warn: #f0c36a;
     --warn-bg: #2e2715;
     --warn-line: #b8861d;
@@ -119,6 +123,8 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 .mark-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .m-accepted rect { fill: var(--acc-bg); stroke: var(--acc); stroke-width: 2.5; }
 .m-accepted path { fill: var(--acc); stroke: none; }
+.m-ongoing rect { fill: var(--ong-bg); stroke: var(--ong); stroke-width: 2.5; }
+.m-ongoing path { fill: none; stroke: var(--ong); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .m-implemented rect { fill: var(--done); stroke: var(--done); }
 .m-implemented path { stroke: #fff; stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .m-rejected rect { fill: var(--rej); stroke: var(--rej); }
@@ -132,6 +138,7 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 .badge { font-size: .72rem; font-weight: 600; letter-spacing: .02em; border-radius: 999px; padding: 1px 8px; border: 1px solid currentColor; white-space: nowrap; }
 .st-open { color: var(--open); }
 .st-accepted { color: var(--acc); background: var(--acc-bg); }
+.st-ongoing { color: var(--ong); background: var(--ong-bg); }
 .st-implemented { color: var(--done); background: var(--done-bg); }
 .st-rejected { color: var(--rej); background: var(--rej-bg); }
 .dont { color: var(--warn); border-color: var(--warn-line); background: var(--panel); }
@@ -229,7 +236,7 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
 (function () {
   "use strict";
   var LISTS = [["technical", "Technical"], ["design", "Design"]];
-  var MARK_PATHS = { open: null, accepted: "M7.5 5.5l6 4.5-6 4.5z", implemented: "M5.5 10.5l3 3 6-7", rejected: "M6 6l8 8M14 6l-8 8" };
+  var MARK_PATHS = { open: null, accepted: "M7.5 5.5l6 4.5-6 4.5z", ongoing: "M14.2 8.2A4.5 4.5 0 1 0 14.5 11M14.5 5.2v3.3h-3.3", implemented: "M5.5 10.5l3 3 6-7", rejected: "M6 6l8 8M14 6l-8 8" };
   var STORE = "berserker7-tracker-filters";
   var data = null;
   var loaded = {};
@@ -301,7 +308,7 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
     t.textContent = "";
     var statuses = data.statuses;
     var thead = el("thead"), hr = el("tr");
-    var SHORT = { open: "Open", accepted: "Acc.", implemented: "Done", rejected: "Rej." };
+    var SHORT = { open: "Open", accepted: "Acc.", ongoing: "Ong.", implemented: "Done", rejected: "Rej." };
     var heads = [["List", "List"]].concat(statuses.map(function (s) { return [cap(s), SHORT[s] || cap(s)]; }),
       [["Features", "Feat."], ["Don'ts", "Don't"], ["Total", "All"]]);
     heads.forEach(function (h) {
@@ -357,7 +364,7 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
   }
 
   function nextStatus(it) {
-    if (loaded[it.id] === "implemented") return null;
+    if (loaded[it.id] === "implemented" || loaded[it.id] === "ongoing") return null;
     var at = CYCLE.indexOf(it.status);
     for (var k = 1; k < CYCLE.length; k++) {
       var cand = CYCLE[(at + k) % CYCLE.length];
