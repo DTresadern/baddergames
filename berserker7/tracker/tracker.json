@@ -5,12 +5,14 @@
   "statuses": [
     "open",
     "accepted",
+    "ongoing",
     "implemented",
     "rejected"
   ],
   "statusMeanings": {
     "open": "Raised, not yet decided.",
     "accepted": "Accepted as worth considering or to work on.",
+    "ongoing": "In place and still applies as work continues: a rule being followed, a pattern, or a partial implementation.",
     "implemented": "Built.",
     "rejected": "Decided against."
   },
@@ -3410,7 +3412,7 @@
       "category": "Engine and rendering",
       "title": "Renderer: three.js",
       "detail": "Decided: three.js (latest), chosen by the project owner for looks, performance and familiarity. The renderer trial the retro asked for was done in framework-evaluations.",
-      "status": "accepted",
+      "status": "implemented",
       "authors": [
         "Decision",
         "Deano"
@@ -3428,7 +3430,7 @@
       "refs": [
         "TF-097"
       ],
-      "notes": ""
+      "notes": "2026-11-17: implemented in PR #43 (project skeleton): the game uses three.js 0.187.0."
     },
     {
       "id": "T-002",
@@ -3817,7 +3819,7 @@
       "category": "Engine and rendering",
       "title": "Don't port Canvas 2D workarounds",
       "detail": "Impact's Canvas 2D workarounds (data-URL chunks, per-pixel scaling, vendor prefixes, user-agent sniffing) are specific to old browsers and not relevant to three.js.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -3828,7 +3830,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-17: the project skeleton (PR #43) is built on three.js with no Canvas 2D code ported; this applies to all further work."
     },
     {
       "id": "T-019",
@@ -5257,7 +5259,7 @@
       "category": "Code",
       "title": "Pure functions, functional and modular build",
       "detail": "Keep functions pure and the build as functional as possible while modular.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Deano"
       ],
@@ -5270,7 +5272,7 @@
       "refs": [
         "TF-100"
       ],
-      "notes": ""
+      "notes": "2026-11-17: the project skeleton (PR #43) starts with small ES modules; this applies to all further work."
     },
     {
       "id": "T-081",
@@ -5279,7 +5281,7 @@
       "category": "Code",
       "title": "Don't build a custom module loader or class system",
       "detail": "Use native ES modules and classes; Impact's system deep-copies every property on construction and hides allocation costs.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -5290,7 +5292,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-17: the project skeleton (PR #43) uses native ES modules bundled by Vite, with no custom loader or class system; this applies to all further work."
     },
     {
       "id": "T-082",
@@ -5299,7 +5301,7 @@
       "category": "Code",
       "title": "Don't extend built-in prototypes",
       "detail": "Global side effects can conflict with libraries such as three.js and PeerJS. Use plain helper functions.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -5310,7 +5312,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-17: the project skeleton (PR #43) extends no built-in prototypes; this applies to all further work."
     },
     {
       "id": "T-083",
@@ -5339,7 +5341,7 @@
       "category": "Build and deploy",
       "title": "Bundle with Vite or esbuild",
       "detail": "Use Vite or esbuild for dependency-ordered bundling and minification.",
-      "status": "accepted",
+      "status": "implemented",
       "authors": [
         "Impact research"
       ],
@@ -5350,7 +5352,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-17: implemented in PR #43 (project skeleton): the game is bundled with Vite 8.3.8."
     },
     {
       "id": "T-085",
@@ -5359,7 +5361,7 @@
       "category": "Build and deploy",
       "title": "Deploy workflow with a visible version stamp",
       "detail": "Carry over the Pages workflow that writes a version stamp, and show the version label so every player's build is known.",
-      "status": "accepted",
+      "status": "implemented",
       "authors": [
         "MVP retro"
       ],
@@ -5376,7 +5378,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": ""
+      "notes": "2026-11-17: implemented in PR #43 (project skeleton): a GitHub Pages deploy workflow publishes the game with a version label showing the short commit and UTC build time."
     },
     {
       "id": "T-086",
