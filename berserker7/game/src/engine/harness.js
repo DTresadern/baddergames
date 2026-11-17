@@ -3,7 +3,7 @@
 // Each frame(frameSeconds):
 //   1. tick: run the clock's steps; each step ticks every scene allowed to tick, in layer order.
 //   2. draw: clear, draw every scene allowed to draw in layer order, then the fade.
-//   3. apply the queued scene changes in request order; activate scenes whose load finished.
+//   3. end failed loads; apply the queued scene changes in request order; activate scenes whose load finished.
 //   4. advance the fade; swap the main scene when it reaches its midpoint.
 // Requests made at any time (including from scene hooks) only take effect in step 3
 // (or 4 for the fade swap), never mid-frame.
@@ -145,8 +145,8 @@ export function createHarness({
         leaveLayer(record, req.mode);
         break;
       case 'preload':
-        if (record.life === 'loading') record.unloadWhenLoaded = false;
-        else if (record.life === 'unloaded') startLoad(record);
+        record.unloadWhenLoaded = false;
+        if (record.life === 'unloaded') startLoad(record);
         break;
       case 'setPlayMode':
         harness.playMode = req.mode;
@@ -239,15 +239,22 @@ export function createHarness({
     setLife(record, 'unloaded');
   }
 
-  // Ends finished loads: a failed load leaves its layer and goes back to 'unloaded'
-  // (a later request retries it; a saved snapshot is kept); a successful one becomes active if it has a layer.
-  function finishLoads() {
+  // Runs before the queue, so a request sent after a load failed retries it. A failed
+  // load leaves its layer and goes back to 'unloaded'; a saved snapshot is kept.
+  function endFailedLoads() {
     for (const record of records.values()) {
       if (record.life === 'loading' && record.error !== null) {
         removeFromLayer(record);
         record.unloadWhenLoaded = false;
         setLife(record, 'unloaded');
-      } else if (record.life === 'ready' && record.unloadWhenLoaded) {
+      }
+    }
+  }
+
+  // Runs after the queue, so its requests can still cancel a pending unload.
+  function finishLoads() {
+    for (const record of records.values()) {
+      if (record.life === 'ready' && record.unloadWhenLoaded) {
         record.unloadWhenLoaded = false;
         callHook(record, 'unload');
         setLife(record, 'unloaded');
@@ -297,6 +304,7 @@ export function createHarness({
     if (harness.transition) drawTransition(transitionAlpha(harness.transition));
 
     // 3. queued changes, in request order; requests made while applying wait for the next frame
+    endFailedLoads();
     for (const req of queue.splice(0)) apply(req);
     finishLoads();
 

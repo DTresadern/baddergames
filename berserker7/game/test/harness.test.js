@@ -394,3 +394,36 @@ test('a preload request keeps a scene left mid-load loaded', async () => {
   harness.frame(0);
   assert.equal(record.life, 'ready');
 });
+
+test('a request sent right after a load fails retries it', async () => {
+  let fail = true;
+  const load = () => {
+    if (fail) throw new Error('load failed');
+  };
+  const { harness } = harnessWith([['a', {}, { load }]]);
+  harness.setMain('a');
+  harness.frame(0);
+  const record = harness.records.get('a');
+  await assert.rejects(record.loaded, /load failed/);
+  fail = false;
+  harness.setMain('a');
+  await settle(harness);
+  assert.equal(record.life, 'active');
+  assert.equal(harness.layers.main, 'a');
+});
+
+test('a preload sent after a left scene finished loading keeps it loaded', async () => {
+  const pending = deferred();
+  const { harness, log } = harnessWith([['s', { leave: 'unload' }, { load: () => pending.promise }]]);
+  harness.setMain('s');
+  harness.frame(0);
+  harness.leave('s');
+  harness.frame(0);
+  const record = harness.records.get('s');
+  pending.resolve();
+  await record.loaded;
+  harness.preload('s');
+  harness.frame(0);
+  assert.equal(record.life, 'ready');
+  assert.ok(!log.includes('s.unload'));
+});

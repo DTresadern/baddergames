@@ -33,7 +33,7 @@ CI (`.github/workflows/checks.yml`) runs `node --check` on every tracked `.js` f
 
 - Fixed 60 Hz step with an accumulator (`clock.js`). Each frame's time is capped at 0.25 s and at most 8 steps run per frame, so a slow frame slows the game down. No interpolation: each frame draws the current state.
 - Layers, drawn in this order: `background` (list), `main` (one scene), `overlays` (list, last on top).
-- Each `frame(seconds)` in `harness.js`: 1. tick the allowed scenes once per step, in layer order; 2. clear, draw the allowed scenes in layer order, then the fade; 3. apply queued requests in request order, and activate scenes whose load finished; 4. advance the fade and swap the main scene at its midpoint.
+- Each `frame(seconds)` in `harness.js`: 1. tick the allowed scenes once per step, in layer order; 2. clear, draw the allowed scenes in layer order, then the fade; 3. end failed loads, apply queued requests in request order, and activate scenes whose load finished; 4. advance the fade and swap the main scene at its midpoint.
 - Requests (`setMain`, `openOverlay`, `closeOverlay`, `addBackground`, `leave`, `preload`, `setPlayMode`) are always queued. Nothing changes mid-frame, including requests from scene hooks.
 - Play modes: `local` and `online`. In `online`, overlays never pause the main scene.
 - While the main scene loads, the loading scene is drawn in its place. A fade with nothing to show stays black at its midpoint until the scene is ready.
