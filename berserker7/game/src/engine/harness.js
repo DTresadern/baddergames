@@ -12,7 +12,6 @@
 
 import { createAssetCache } from './asset-cache.js';
 import { advanceClock, clampFrame, createClock } from './clock.js';
-import { createResourceList } from './resources.js';
 import { callHook, createRecord, drawOrder, isLeaveMode, setLife, shouldDraw, shouldTick } from './scene.js';
 import { advanceTransition, createTransition, markSwapped, swapDue, transitionAlpha, transitionDone } from './transition.js';
 
@@ -70,8 +69,6 @@ export function createHarness({
   function register(id, scene) {
     if (records.has(id)) throw new Error(`harness: scene '${id}' is already registered`);
     const record = createRecord(id, scene);
-    record.resources = createResourceList();
-    record.acquired = [];
     record.context = {
       renderer,
       track: (obj) => record.resources.track(obj),

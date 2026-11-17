@@ -1,3 +1,5 @@
+import { createResourceList } from './resources.js';
+
 // Scene records, lifecycle, settings, and the pure decisions the harness makes
 // each frame (which scenes are covered, which tick, which draw).
 
@@ -54,6 +56,9 @@ export function createRecord(id, scene) {
     saved: null, // state kept by a snapshot leave
     loaded: null, // promise of the running or last load
     error: null, // the error a failed load() threw
+    resources: createResourceList(), // what the scene passed to context.track(); freed by the harness
+    acquired: [], // keys the scene acquired through context.acquire(); released by the harness
+    context: null, // { track, acquire, renderer }, passed to load(); set by the harness
     unloadWhenLoaded: false, // left by unload or snapshot while its load was running
     left: null, // how the scene last left its layer: 'suspend' | 'unload' | 'snapshot'
     leftState: null, // debug: JSON of the state when it left by suspend or snapshot

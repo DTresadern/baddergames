@@ -22,7 +22,7 @@ export function tickSlow(state, inputs, dt) {
 
 export function createSlow() {
   let scene, camera, torus;
-  const debug = { failNextLoad: false, texturesAtFailure: null };
+  const debug = { failNextLoad: false };
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'unload' },
     debug,
@@ -34,8 +34,7 @@ export function createSlow() {
       if (debug.failNextLoad) {
         debug.failNextLoad = false;
         renderer.initTexture(track(createCheckerTexture()));
-        debug.texturesAtFailure = renderer.info.memory.textures;
-        throw new Error('slow: simulated load failure');
+        throw new Error(`slow: simulated load failure (GPU textures at failure: ${renderer.info.memory.textures})`);
       }
       torus = new Mesh(geometry, material);
       scene = new Scene();
