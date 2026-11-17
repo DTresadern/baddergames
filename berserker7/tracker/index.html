@@ -49,7 +49,7 @@
   }
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-bottom: 6rem; }
 body {
   margin: 0;
   background: var(--bg);
@@ -179,7 +179,7 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
 <body>
 <div class="wrap">
   <h1>Berserker 7 Tracker</h1>
-  <p class="sub" id="sub">Technical and design feature lists. Status changes here are not saved: use Copy state and send the list.</p>
+  <p class="sub"><span id="sub">Technical and design feature lists.</span> Status changes here are not saved: use Copy state and send the list.</p>
 
   <div class="panel loader" id="loader" hidden>
     <p id="loadMsg"></p>
@@ -354,7 +354,6 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
   function nextStatus(it) {
     if (loaded[it.id] === "implemented") return null;
     var at = CYCLE.indexOf(it.status);
-    if (at === -1) return null;
     for (var k = 1; k < CYCLE.length; k++) {
       var cand = CYCLE[(at + k) % CYCLE.length];
       if (data.statuses.indexOf(cand) !== -1) return cand;
@@ -473,6 +472,9 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
       var d = row.querySelector("details");
       if (d && d.open) openIds[row.id] = true;
     });
+    var order = [].map.call(document.querySelectorAll("#lists .row"), function (row) { return row.id; });
+    clearTimeout(copiedTimer);
+    copiedTimer = null;
     it.status = next;
     renderCounts();
     render();
@@ -480,18 +482,20 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
       if (openIds[row.id]) row.querySelector("details").open = true;
     });
     var row = document.getElementById(it.id);
-    var msg = it.id + " set to " + cap(next) + ".";
     if (row) {
-      var b = row.querySelector(".mark-btn");
-      if (b) b.focus();
-    } else {
-      msg = it.id + " set to " + cap(next) + "; hidden by the status filter.";
+      row.querySelector(".mark-btn").focus();
+      announce(it.id + " set to " + cap(next) + ".");
+      return;
     }
-    announce(msg);
+    var target = order.slice(order.indexOf(it.id) + 1).reduce(function (found, id) {
+      var r = document.getElementById(id);
+      return found || (r && r.querySelector(".mark-btn"));
+    }, null);
+    (target || ($("copyBtn").disabled ? $("fStatus") : $("copyBtn"))).focus();
+    announce(it.id + " set to " + cap(next) + "; hidden by the filters.");
   }
 
-  function copyText() {
-    var ch = changedItems();
+  function copyText(ch) {
     var lines = [(data.project || "Tracker") + " tracker: " + ch.length + " status change" + (ch.length === 1 ? "" : "s")];
     ch.forEach(function (it) {
       lines.push(it.id + ": " + loaded[it.id] + " \u2192 " + it.status + " (" + it.title + ")");
@@ -520,9 +524,10 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
   }
 
   function copyState() {
-    var n = changedItems().length;
+    var ch = changedItems();
+    var n = ch.length;
     if (!n) return;
-    var text = copyText();
+    var text = copyText(ch);
     if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(function () {
         clearTimeout(copiedTimer);
@@ -558,7 +563,7 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
     $("loader").hidden = true;
     $("app").hidden = false;
     $("copybar").hidden = false;
-    $("sub").textContent = (json.project || "Tracker") + " · " + json.items.length + " items · updated " + (json.updated || "unknown") + ". Status changes here are not saved: use Copy state and send the list.";
+    $("sub").textContent = (json.project || "Tracker") + " · " + json.items.length + " items · updated " + (json.updated || "unknown") + ".";
     var saved = loadFilters();
     setOptions($("fStatus"), json.statuses.map(function (s) { return [s, cap(s)]; }), saved.status);
     selectIfOption($("fList"), saved.list);
