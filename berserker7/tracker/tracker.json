@@ -3791,8 +3791,8 @@
       "kind": "feature",
       "category": "Engine and rendering",
       "title": "Scenes with a common interface; transitions",
-      "detail": "Menu, lobby, game, intermission and credits as scene objects with one run interface, swapped at the end of a frame, with support for transitions between them.",
-      "status": "accepted",
+      "detail": "Scenes are plain objects with load, enter, tick, draw, suspend, resume, exit and unload hooks and a checked lifecycle (unloaded, loading, ready, active, suspended), arranged in background, main and overlay layers. Scene changes are queued and applied at the end of a frame, in request order. Each scene sets whether it ticks (always, when uncovered, never), whether it draws when covered, and how it leaves (suspend, unload, or snapshot of its plain-data state). The main scene can change with a fade, and a loading scene is shown in its place while it loads.",
+      "status": "implemented",
       "authors": [
         "Deano",
         "Impact research"
@@ -3810,7 +3810,7 @@
       "refs": [
         "TF-105"
       ],
-      "notes": ""
+      "notes": "2026-11-17: implemented in PR #PRNUM (game harness and scenes): layers, queued scene changes, lifecycle hooks, per-scene tick/draw/leave settings, fade transition with a loading scene, shown with test scenes and a debug panel on the game page."
     },
     {
       "id": "T-018",
@@ -3839,7 +3839,7 @@
       "category": "Simulation",
       "title": "Fixed-step deterministic simulation",
       "detail": "Keep the MVP's fixed 60 Hz step with an accumulator, deterministic where possible, so both peers agree and recorded inputs replay a bug exactly.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "MVP retro",
         "Impact research",
@@ -3864,7 +3864,7 @@
         "T-089",
         "T-090"
       ],
-      "notes": ""
+      "notes": "2026-11-17: the harness (PR #PRNUM) runs a fixed 60 Hz step with an accumulator; this applies to all further work."
     },
     {
       "id": "T-020",
@@ -3873,7 +3873,7 @@
       "category": "Simulation",
       "title": "Don't use a variable time step",
       "detail": "Impact's tick is wall-clock delta; it is not deterministic and entity collision depends on frame rate.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Impact research",
         "Fix Your Timestep (Glenn Fiedler)"
@@ -3892,7 +3892,7 @@
         "TF-110",
         "T-090"
       ],
-      "notes": ""
+      "notes": "2026-11-17: the harness (PR #PRNUM) runs a fixed 60 Hz step with an accumulator; this applies to all further work."
     },
     {
       "id": "T-021",
@@ -5498,7 +5498,7 @@
         "T-019",
         "T-005"
       ],
-      "notes": ""
+      "notes": "2026-11-17: deferred; the harness (PR #PRNUM) draws the current state each frame with no interpolation."
     },
     {
       "id": "T-090",
@@ -5507,7 +5507,7 @@
       "category": "Simulation",
       "title": "Cap frame time or steps per frame",
       "detail": "Clamp each frame's elapsed time (the article uses 0.25 s) or cap the number of simulation steps per frame, so one slow frame cannot make the loop fall further behind every frame (the \"spiral of death\"). Under heavy load the game slows down instead.",
-      "status": "open",
+      "status": "implemented",
       "authors": [
         "Fix Your Timestep (Glenn Fiedler)"
       ],
@@ -5529,7 +5529,7 @@
         "T-019",
         "T-020"
       ],
-      "notes": ""
+      "notes": "2026-11-17: implemented in PR #PRNUM: frame time capped at 0.25 s and at most 8 steps per frame; a slow frame slows the game down."
     },
     {
       "id": "T-091",
