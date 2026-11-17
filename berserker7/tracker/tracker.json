@@ -4918,7 +4918,7 @@
       "category": "Audio",
       "title": "Sound effects as data in one audio file",
       "detail": "Load one audio file of sound effects once and play sections of it; each sound is a data entry (start, end, one-shot or loop). Music is a separate item, T-091.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
@@ -4942,7 +4942,7 @@
       "category": "Audio",
       "title": "Web Audio for effects, streamed music, unlock on first input",
       "detail": "Decode each effect once and play many times with Web Audio; stream music; unlock audio on the first input. Check current Safari codec support before choosing formats.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -4965,7 +4965,7 @@
       "category": "Audio",
       "title": "Don't add HTML5 Audio channel pools",
       "detail": "Impact's HTML5 Audio pools are a fallback for browsers without Web Audio; not needed now.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -5233,15 +5233,15 @@
       "kind": "feature",
       "category": "Code",
       "title": "Shared library of reusable code",
-      "detail": "Keep code DRY (\"try\" in the note is most likely \"DRY\") and maintain a shared library of reusable code.",
-      "status": "open",
+      "detail": "Keep code DRY (don't repeat yourself) and maintain a shared library of reusable code.",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
       "sources": [
         {
           "file": "berserker7/feedback/mvp/deano/part1.md",
-          "quote": "keep code try, maintain a shared library of reusable code"
+          "quote": "keep code DRY, maintain a shared library of reusable code"
         }
       ],
       "refs": [
@@ -5256,7 +5256,7 @@
       "category": "Code",
       "title": "Pure functions, functional and modular build",
       "detail": "Keep functions pure and the build as functional as possible while modular.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano"
       ],
@@ -5338,7 +5338,7 @@
       "category": "Build and deploy",
       "title": "Bundle with Vite or esbuild",
       "detail": "Use Vite or esbuild for dependency-ordered bundling and minification.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -5358,7 +5358,7 @@
       "category": "Build and deploy",
       "title": "Deploy workflow with a visible version stamp",
       "detail": "Carry over the Pages workflow that writes a version stamp, and show the version label so every player's build is known.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "MVP retro"
       ],
@@ -5535,7 +5535,7 @@
       "category": "Audio",
       "title": "Music in the best supported format, with song sections",
       "detail": "Play music in the most efficient format the browser supports: Ogg preferred, MP3 as the fallback, chosen by a support check at run time. A song can define named sections (for example intro, loop, transition) so sections can loop and the music can change dynamically. Specifics to be decided.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Project owner"
       ],
