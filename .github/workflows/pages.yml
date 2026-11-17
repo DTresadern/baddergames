@@ -1,5 +1,6 @@
 # Publishes the landing page (index.html), the idea cloud (ideas/), the
-# Technophage MVP game files (technophage-mvp/) and the Berserker 7 feature
+# Technophage MVP game files (technophage-mvp/), the Berserker 7 game
+# (berserker7/, built from berserker7/game/) and the Berserker 7 feature
 # tracker (berserker7/tracker/) to GitHub Pages.
 # Nothing else in the repo is published: archived material, agent config,
 # mastermind state, the devlog and sub-project folders stay out of the site.
@@ -30,9 +31,19 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: berserker7/game/package-lock.json
 
       - name: Check JavaScript syntax
         run: git ls-files -z 'ideas/*.js' 'technophage-mvp/*.js' | xargs -0 -r -n1 node --check
+
+      - name: Install game dependencies
+        run: npm ci
+        working-directory: berserker7/game
+
+      - name: Build game
+        run: npm run build
+        working-directory: berserker7/game
 
       - name: Assemble site
         run: |
@@ -53,10 +64,19 @@ jobs:
             echo "::error::berserker7/tracker/tracker.json not found: the Berserker 7 feature tracker has not been committed yet"
             exit 1
           fi
+          if [ ! -f berserker7/game/dist/index.html ]; then
+            echo "::error::berserker7/game/dist/index.html not found: the Berserker 7 game build produced no output"
+            exit 1
+          fi
+          if [ -e berserker7/game/dist/tracker ]; then
+            echo "::error::berserker7/game/dist/tracker exists: the game must not publish a tracker/ folder, it would collide with the feature tracker"
+            exit 1
+          fi
           mkdir -p _site/ideas _site/technophage-mvp _site/berserker7/tracker
           cp index.html _site/
           cp -r ideas/. _site/ideas/
           cp -r technophage-mvp/. _site/technophage-mvp/
+          cp -r berserker7/game/dist/. _site/berserker7/
           cp berserker7/tracker/index.html berserker7/tracker/tracker.json _site/berserker7/tracker/
           # the game fetches version.json (relative to its page) to show the build
           printf '{"commit":"%s","built":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > _site/technophage-mvp/version.json
