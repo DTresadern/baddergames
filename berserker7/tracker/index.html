@@ -107,12 +107,16 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 
 /* rows */
 .items { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
-.row { display: grid; grid-template-columns: 26px 1fr; gap: 0 10px; padding: 9px 12px 9px 10px; border-top: 1px solid var(--line); border-left: 4px solid transparent; }
+.row { display: grid; grid-template-columns: 28px 1fr; gap: 0 8px; padding: 9px 12px 9px 10px; border-top: 1px solid var(--line); border-left: 4px solid transparent; }
 .row:first-child { border-top: 0; }
 .row.advisory { background: var(--warn-bg); border-left-color: var(--warn-line); }
-.marker { width: 20px; height: 20px; margin-top: 1px; }
+.marker { width: 20px; height: 20px; margin-top: 1px; display: block; }
 .marker { flex: none; }
 .marker rect { fill: none; stroke: var(--open); stroke-width: 2; }
+.mark-btn { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin: -3px 0 0 -4px; padding: 2px; border-radius: 4px; cursor: pointer; }
+.mark-btn .marker { margin-top: 0; }
+.mark-btn:hover { background: var(--code-bg); }
+.mark-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .m-accepted rect { fill: var(--acc-bg); stroke: var(--acc); stroke-width: 2.5; }
 .m-accepted path { fill: var(--acc); stroke: none; }
 .m-implemented rect { fill: var(--done); stroke: var(--done); }
@@ -133,6 +137,8 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
 .dont { color: var(--warn); border-color: var(--warn-line); background: var(--panel); }
 .dont::before { content: "\26A0\FE0E  "; }
 .feat { color: var(--muted); border-color: var(--line); }
+.was { color: var(--accent); border: 1px dashed var(--accent); background: transparent; }
+.row.changed { box-shadow: inset 0 0 0 1px var(--accent); }
 .authors { font-size: .8rem; color: var(--muted); }
 .detail { grid-column: 2; margin: 3px 0 0; font-size: .88rem; color: var(--text); overflow-wrap: anywhere; }
 details { grid-column: 2; margin-top: 4px; font-size: .84rem; }
@@ -147,6 +153,22 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
 .refs a { color: var(--accent); }
 .notes { color: var(--text); }
 
+/* copy bar */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+.copybar { position: sticky; bottom: 0; z-index: 5; background: var(--panel); border-top: 1px solid var(--line); box-shadow: 0 -2px 8px rgba(0,0,0,.12); padding: 8px 16px; }
+.copybar-in { max-width: 1100px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.copybar-msg { font-size: .88rem; color: var(--muted); min-width: 0; flex: 1 1 200px; }
+.copybar.dirty .copybar-msg { color: var(--text); }
+.copybar button { font: inherit; font-size: .9rem; font-weight: 600; color: var(--panel); background: var(--accent); border: 1px solid var(--accent); border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+.copybar button:focus-visible, dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.copybar button:disabled { background: transparent; color: var(--muted); border-color: var(--line); cursor: not-allowed; opacity: .7; }
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; width: min(640px, calc(100vw - 32px)); max-width: min(640px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(0,0,0,.5); }
+dialog h2 { font-size: 1rem; margin: 0 0 8px; }
+dialog textarea { display: block; width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; }
+dialog .hint { margin: 8px 0; font-size: .85rem; color: var(--muted); }
+dialog button { font: inherit; font-size: .9rem; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+
 /* load error */
 .loader { border-color: var(--rej); }
 .loader p { margin: 0 0 10px; }
@@ -157,7 +179,7 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
 <body>
 <div class="wrap">
   <h1>Berserker 7 Tracker</h1>
-  <p class="sub" id="sub">Technical and design feature lists. Read-only: amend <code>tracker.json</code>.</p>
+  <p class="sub" id="sub">Technical and design feature lists. Status changes here are not saved: use Copy state and send the list.</p>
 
   <div class="panel loader" id="loader" hidden>
     <p id="loadMsg"></p>
@@ -188,6 +210,20 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
   </div>
 </div>
 
+<div class="copybar" id="copybar" hidden>
+  <div class="copybar-in">
+    <span class="copybar-msg" id="copyMsg">No changes</span>
+    <button type="button" id="copyBtn" disabled>Copy state (0)</button>
+  </div>
+</div>
+<div class="sr-only" id="live" role="status" aria-live="polite"></div>
+<dialog id="copyDlg" aria-labelledby="copyDlgH">
+  <h2 id="copyDlgH">Copy these status changes</h2>
+  <textarea id="copyTxt" readonly rows="8"></textarea>
+  <p class="hint">Press Ctrl+C (⌘C on Mac) to copy.</p>
+  <button type="button" id="copyClose">Close</button>
+</dialog>
+
 <script>
 (function () {
   "use strict";
@@ -195,6 +231,9 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
   var MARK_PATHS = { open: null, accepted: "M7.5 5.5l6 4.5-6 4.5z", implemented: "M5.5 10.5l3 3 6-7", rejected: "M6 6l8 8M14 6l-8 8" };
   var STORE = "berserker7-tracker-filters";
   var data = null;
+  var loaded = {};
+  var CYCLE = ["open", "accepted", "rejected"];
+  var copiedTimer = null;
   var $ = function (id) { return document.getElementById(id); };
 
   function el(tag, cls, text) {
@@ -312,15 +351,49 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
     return div;
   }
 
+  function nextStatus(it) {
+    if (loaded[it.id] === "implemented") return null;
+    var at = CYCLE.indexOf(it.status);
+    if (at === -1) return null;
+    for (var k = 1; k < CYCLE.length; k++) {
+      var cand = CYCLE[(at + k) % CYCLE.length];
+      if (data.statuses.indexOf(cand) !== -1) return cand;
+    }
+    return null;
+  }
+
+  function changedItems() {
+    return data.items.filter(function (it) { return it.status !== loaded[it.id]; });
+  }
+
+  function announce(msg) {
+    var live = $("live");
+    live.textContent = "";
+    setTimeout(function () { live.textContent = msg; }, 30);
+  }
+
   function renderItem(it) {
-    var li = el("li", "row " + it.status + (it.kind === "advisory" ? " advisory" : ""));
+    var changed = it.status !== loaded[it.id];
+    var li = el("li", "row " + it.status + (it.kind === "advisory" ? " advisory" : "") + (changed ? " changed" : ""));
     li.id = it.id;
-    li.appendChild(marker(it.status));
+    var next = nextStatus(it);
+    if (next) {
+      var btn = el("button", "mark-btn");
+      btn.type = "button";
+      btn.setAttribute("aria-label", it.id + " " + it.title + ": " + cap(it.status) + ". Set to " + cap(next));
+      btn.title = "Set to " + cap(next);
+      btn.appendChild(marker(it.status));
+      btn.addEventListener("click", function () { cycle(it, next); });
+      li.appendChild(btn);
+    } else {
+      li.appendChild(marker(it.status));
+    }
     var head = el("div", "head");
     head.appendChild(el("span", "id", it.id));
     head.appendChild(el("span", "title", it.title));
     var badges = el("span", "badges");
     badges.appendChild(el("span", "badge st-" + it.status, cap(it.status)));
+    if (changed) badges.appendChild(el("span", "badge was", "was " + cap(loaded[it.id])));
     badges.appendChild(it.kind === "advisory" ? el("span", "badge dont", "Don't") : el("span", "badge feat", "Feature"));
     head.appendChild(badges);
     head.appendChild(el("span", "authors", (it.authors || []).join(", ")));
@@ -390,7 +463,74 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
       root.appendChild(sec);
     });
     $("shown").textContent = "Showing " + shown + " of " + data.items.length + " items.";
+    updateBar();
     saveFilters();
+  }
+
+  function cycle(it, next) {
+    var openIds = {};
+    [].forEach.call(document.querySelectorAll("#lists .row"), function (row) {
+      var d = row.querySelector("details");
+      if (d && d.open) openIds[row.id] = true;
+    });
+    it.status = next;
+    renderCounts();
+    render();
+    [].forEach.call(document.querySelectorAll("#lists .row"), function (row) {
+      if (openIds[row.id]) row.querySelector("details").open = true;
+    });
+    var row = document.getElementById(it.id);
+    var msg = it.id + " set to " + cap(next) + ".";
+    if (row) {
+      var b = row.querySelector(".mark-btn");
+      if (b) b.focus();
+    } else {
+      msg = it.id + " set to " + cap(next) + "; hidden by the status filter.";
+    }
+    announce(msg);
+  }
+
+  function copyText() {
+    var ch = changedItems();
+    var lines = [(data.project || "Tracker") + " tracker: " + ch.length + " status change" + (ch.length === 1 ? "" : "s")];
+    ch.forEach(function (it) {
+      lines.push(it.id + ": " + loaded[it.id] + " \u2192 " + it.status + " (" + it.title + ")");
+    });
+    return lines.join("\n");
+  }
+
+  function updateBar() {
+    var n = changedItems().length;
+    var btn = $("copyBtn");
+    $("copybar").className = "copybar" + (n ? " dirty" : "");
+    $("copyMsg").textContent = n ? n + " changed \u00b7 not saved until copied and sent" : "No changes";
+    btn.disabled = n === 0;
+    if (!copiedTimer) btn.textContent = "Copy state (" + n + ")";
+  }
+
+  function showFallback(text) {
+    var dlg = $("copyDlg"), ta = $("copyTxt");
+    ta.value = text;
+    ta.rows = Math.min(14, text.split("\n").length + 1);
+    if (!dlg.open) dlg.showModal();
+    ta.focus();
+    ta.select();
+  }
+
+  function copyState() {
+    var n = changedItems().length;
+    if (!n) return;
+    var text = copyText();
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () {
+        clearTimeout(copiedTimer);
+        $("copyBtn").textContent = "Copied";
+        copiedTimer = setTimeout(function () { copiedTimer = null; updateBar(); }, 1500);
+        announce("Copied " + n + " status change" + (n === 1 ? "" : "s") + ".");
+      }, function () { showFallback(text); });
+    } else {
+      showFallback(text);
+    }
   }
 
   function start(json) {
@@ -411,9 +551,12 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
       if (!ok) throw new Error("item " + (n + 1) + " (" + ((it && it.id) || "no id") + ") has a missing or invalid id, title, list, status or category.");
     });
     data = json;
+    loaded = {};
+    json.items.forEach(function (it) { loaded[it.id] = it.status; });
     $("loader").hidden = true;
     $("app").hidden = false;
-    $("sub").textContent = (json.project || "Tracker") + " · " + json.items.length + " items · updated " + (json.updated || "unknown") + ". Read-only: amend tracker.json.";
+    $("copybar").hidden = false;
+    $("sub").textContent = (json.project || "Tracker") + " · " + json.items.length + " items · updated " + (json.updated || "unknown") + ". Status changes here are not saved: use Copy state and send the list.";
     var saved = loadFilters();
     setOptions($("fStatus"), json.statuses.map(function (s) { return [s, cap(s)]; }), saved.status);
     selectIfOption($("fList"), saved.list);
@@ -448,6 +591,11 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
     $("loader").hidden = false;
   }
 
+  $("copyBtn").addEventListener("click", copyState);
+  $("copyClose").addEventListener("click", function () { $("copyDlg").close(); });
+  window.addEventListener("beforeunload", function (e) {
+    if (data && changedItems().length) { e.preventDefault(); e.returnValue = ""; }
+  });
   $("fList").addEventListener("change", function () {
     setOptions($("fCat"), categories($("fList").value), $("fCat").value);
     render();
