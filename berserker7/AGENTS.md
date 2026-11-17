@@ -12,7 +12,7 @@ Sub-project of dev.baddergames. Namespace: `dev.baddergames.berserker7`. Root: `
 
 ## This sub-project
 
-Berserker 7 is a browser game built with three.js and Vite. It is the successor to the Technophage MVP.
+Berserker 7 is a browser game built with three.js and Vite. Its features are planned in the feature tracker.
 
 - `game/` - game code. Published at `/berserker7/`.
 - `tracker/` - feature tracker. Published at `/berserker7/tracker/`.
