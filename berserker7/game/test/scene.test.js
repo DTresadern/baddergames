@@ -22,7 +22,6 @@ test('illegal lifecycle changes throw', () => {
     ['unloaded', 'active'],
     ['unloaded', 'ready'],
     ['loading', 'active'],
-    ['loading', 'unloaded'],
     ['ready', 'suspended'],
     ['active', 'ready'],
     ['active', 'loading'],

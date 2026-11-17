@@ -103,7 +103,7 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
 
   function leaveOrReturn(mode) {
     if (left?.mode === mode) {
-      harness.bring(left.id);
+      harness.setMain(left.id);
       left = null;
     } else if (!left && harness.layers.main !== null) {
       left = { id: harness.layers.main, mode, frame: harness.frames };

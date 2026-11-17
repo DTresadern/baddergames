@@ -101,7 +101,7 @@ test('suspend keeps the state; resume continues with the same state and tick cou
   assert.equal(harness.records.get('a').state, kept);
   assert.equal(kept.ticks, 11);
 
-  harness.bring('a');
+  harness.setMain('a');
   harness.frame(STEP);
   assert.equal(harness.records.get('a').life, 'active');
   assert.equal(harness.records.get('a').state, kept);
@@ -124,7 +124,7 @@ test('unload drops the state; coming back loads and enters fresh with the same p
   assert.equal(record.saved, null);
   assert.deepEqual(log.slice(-2), ['a.exit', 'a.unload']);
 
-  harness.bring('a');
+  harness.setMain('a');
   await settle(harness);
   assert.equal(record.life, 'active');
   assert.deepEqual(record.state, { ticks: 0, params: { level: 3 } });
@@ -152,7 +152,7 @@ test('snapshot keeps a copy of the state, unloads, and restores the identical st
   assert.deepStrictEqual(record.saved, live);
   assert.deepEqual(log.slice(-2), ['b.exit', 'b.unload']);
 
-  harness.bring('b');
+  harness.setMain('b');
   await settle(harness);
   assert.equal(record.life, 'active');
   assert.equal(record.saved, null);
@@ -296,4 +296,60 @@ test('a frame records its steps; a long frame is capped at 8 steps', async () =>
   assert.equal(harness.lastSteps, 8);
   assert.deepEqual(harness.lastLongFrame, { frameSeconds: 1.2, steps: 8 });
   assert.equal(ticksOf(harness, 'a'), before + 8);
+});
+
+test('a failed load leaves its layer, returns to unloaded, and a later request retries it', async () => {
+  let fail = true;
+  const load = () => {
+    if (fail) throw new Error('load failed');
+  };
+  const { harness } = harnessWith([['a', {}, { load }]]);
+  harness.setMain('a');
+  harness.frame(0);
+  const record = harness.records.get('a');
+  await assert.rejects(record.loaded, /load failed/);
+  harness.frame(0);
+  assert.equal(record.life, 'unloaded');
+  assert.equal(harness.layers.main, null);
+  fail = false;
+  harness.setMain('a');
+  await settle(harness);
+  assert.equal(record.life, 'active');
+  assert.equal(record.error, null);
+});
+
+test('a scene left by unload while loading is unloaded when its load ends', async () => {
+  const pending = deferred();
+  const { harness, log } = harnessWith([
+    ['a', {}],
+    ['slow', { leave: 'unload' }, { load: () => pending.promise }],
+  ]);
+  harness.setMain('a');
+  await settle(harness);
+  harness.setMain('slow');
+  harness.frame(0);
+  harness.setMain('a');
+  harness.frame(0);
+  const record = harness.records.get('slow');
+  assert.equal(record.life, 'loading');
+  pending.resolve();
+  await record.loaded;
+  harness.frame(0);
+  assert.equal(record.life, 'unloaded');
+  assert.ok(log.includes('slow.unload'));
+});
+
+test('leaving by unload discards a saved snapshot', async () => {
+  const { harness } = harnessWith([['b', { leave: 'snapshot' }]]);
+  harness.setMain('b', { params: 'old' });
+  await settle(harness);
+  harness.leave('b');
+  harness.frame(0);
+  assert.notEqual(harness.records.get('b').saved, null);
+  harness.leave('b', 'unload');
+  harness.frame(0);
+  assert.equal(harness.records.get('b').saved, null);
+  harness.setMain('b', { params: 'new' });
+  await settle(harness);
+  assert.equal(harness.records.get('b').state.params, 'new');
 });

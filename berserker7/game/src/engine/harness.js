@@ -49,7 +49,6 @@ export function createHarness({
     frame,
     // Requests (queued, applied at the end of a frame):
     setMain,
-    bring,
     openOverlay,
     closeOverlay,
     addBackground,
@@ -83,11 +82,6 @@ export function createHarness({
   // params it was last entered with are used. `fade` is the fade duration in seconds.
   function setMain(id, { params, fade = 0 } = {}) {
     request('setMain', { id, params, fade });
-  }
-
-  // Returns a left scene to the main slot; the current main scene leaves per its own setting.
-  function bring(id, { fade = 0 } = {}) {
-    request('setMain', { id, params: undefined, fade });
   }
 
   function openOverlay(id) {
@@ -173,6 +167,7 @@ export function createHarness({
   function place(record, layer, params) {
     if (record.layer !== null) throw new Error(`harness: scene '${record.id}' is already in the ${record.layer} layer`);
     record.layer = layer;
+    record.unloadWhenLoaded = false;
     if (params !== undefined) record.params = params;
     if (record.life === 'unloaded') startLoad(record);
     else if (record.life === 'ready' || record.life === 'suspended') activate(record);
@@ -180,6 +175,7 @@ export function createHarness({
 
   function startLoad(record) {
     setLife(record, 'loading');
+    record.error = null;
     record.loaded = Promise.resolve()
       .then(() => callHook(record, 'load'))
       .then(
@@ -208,7 +204,8 @@ export function createHarness({
     setLife(record, 'active');
   }
 
-  // A scene left while still loading finishes loading and waits in 'ready'.
+  // A scene left while still loading finishes its load first: by `suspend` it then
+  // waits in 'ready'; by `unload` or `snapshot` it is unloaded as soon as the load ends.
   function leaveLayer(record, mode = record.settings.leave) {
     if (record.layer === 'main') layers.main = null;
     if (record.layer === 'background') layers.background.splice(layers.background.indexOf(record.id), 1);
@@ -224,21 +221,34 @@ export function createHarness({
       }
       return;
     }
+    if (mode === 'unload') record.saved = null;
+    if (life === 'loading') record.unloadWhenLoaded = true;
     if (life === 'unloaded' || life === 'loading') return;
     if (mode === 'snapshot' && record.state !== null) {
       record.saved = structuredClone(record.state);
       record.leftState = JSON.stringify(record.state);
     }
-    if (mode === 'unload') record.saved = null;
     if (life === 'active' || life === 'suspended') callHook(record, 'exit');
     callHook(record, 'unload');
     record.state = null;
     setLife(record, 'unloaded');
   }
 
-  function activateLoaded() {
+  // Ends finished loads: a failed load leaves its layer and goes back to 'unloaded'
+  // (a later request retries it); a successful one becomes active if it has a layer.
+  function finishLoads() {
     for (const record of records.values()) {
-      if (record.life === 'ready' && (record.layer !== null || record.id === harness.loadingScene)) activate(record);
+      if (record.life === 'loading' && record.error !== null) {
+        if (record.layer !== null) leaveLayer(record, 'unload');
+        record.unloadWhenLoaded = false;
+        setLife(record, 'unloaded');
+      } else if (record.life === 'ready' && record.unloadWhenLoaded) {
+        record.unloadWhenLoaded = false;
+        callHook(record, 'unload');
+        setLife(record, 'unloaded');
+      } else if (record.life === 'ready' && (record.layer !== null || record.id === harness.loadingScene)) {
+        activate(record);
+      }
     }
   }
 
@@ -283,7 +293,7 @@ export function createHarness({
 
     // 3. queued changes, in request order; requests made while applying wait for the next frame
     for (const req of queue.splice(0)) apply(req);
-    activateLoaded();
+    finishLoads();
 
     // 4. fade
     if (harness.transition) {

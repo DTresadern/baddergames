@@ -1,10 +1,11 @@
 // Scene records, lifecycle, settings, and the pure decisions the harness makes
 // each frame (which scenes are covered, which tick, which draw).
 
-// unloaded -> loading -> ready -> active <-> suspended; any loaded state -> unloaded.
+// unloaded -> loading -> ready -> active <-> suspended; any loaded state -> unloaded;
+// a failed load: loading -> unloaded.
 const NEXT_LIFE = {
   unloaded: ['loading'],
-  loading: ['ready'],
+  loading: ['ready', 'unloaded'],
   ready: ['active', 'unloaded'],
   active: ['suspended', 'unloaded'],
   suspended: ['active', 'unloaded'],
@@ -53,6 +54,7 @@ export function createRecord(id, scene) {
     saved: null, // state kept by a snapshot leave
     loaded: null, // promise of the running or last load
     error: null, // the error a failed load() threw
+    unloadWhenLoaded: false, // left by unload or snapshot while its load was running
     left: null, // how the scene last left its layer: 'suspend' | 'unload' | 'snapshot'
     leftState: null, // debug: JSON of the state when it left by suspend or snapshot
     returnedState: null, // debug: JSON of the state when it came back from suspend or snapshot
