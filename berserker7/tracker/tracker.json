@@ -5036,7 +5036,7 @@
       "kind": "feature",
       "category": "Debug and testing",
       "title": "Debug overlay and frame-time graph",
-      "detail": "Show hitboxes, the collision grid, entity IDs, network round trip, snapshot size and frame time, plus a rolling frame-time graph with network event marks (snapshot received, correction applied).",
+      "detail": "Show hitboxes, the collision grid, entity IDs, network round trip, snapshot size, frame time and the draw-call count (renderer.info.render.calls), plus a rolling frame-time graph with network event marks (snapshot received, correction applied).",
       "status": "open",
       "authors": [
         "MVP retro",
@@ -5053,9 +5053,10 @@
         }
       ],
       "refs": [
-        "TF-111"
+        "TF-111",
+        "T-094"
       ],
-      "notes": ""
+      "notes": "2026-11-17, project owner: added the draw-call count (renderer.info.render.calls) from the three.js rendering research, to check the effect of batching (T-094)."
     },
     {
       "id": "T-072",
@@ -5545,6 +5546,361 @@
         "T-067"
       ],
       "notes": "2026-11-17, project owner: split from T-066 (general audio). Music should be in the most efficient supported format (Ogg preferred, with MP3 and Ogg support checks), and songs need a way to define sections for looping sections, dynamic music and transitions; specifics to be decided."
+    },
+    {
+      "id": "T-092",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Engine and rendering",
+      "title": "Don't render at full device pixel ratio with antialiasing on",
+      "detail": "Rendering at the full device pixel ratio costs 4× the pixels at a ratio of 2 and 9× at 3, and canvas antialiasing (MSAA) cost grows with pixels × samples. Cap the pixel ratio at 2 or lower it when frame time goes over budget, and at a ratio of 2 or more test with antialiasing off.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "2× DPR = 4× pixels, 3× DPR = 9× pixels"
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "At DPR ≥ 2, test with AA off."
+        }
+      ],
+      "refs": [
+        "T-003",
+        "T-005"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-093",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Skip per-frame matrix updates for static objects",
+      "detail": "By default three.js recomputes every object's matrices every frame, whether or not it moved. Turn off automatic matrix updates on static objects and on the scene, and update a static object's matrix once after each edit.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "**every object's world matrix is recomputed every frame**, whether or not it moved."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "set `matrixAutoUpdate = false` on **every ancestor, including `scene`**, so the forced update stops coming down the tree."
+        }
+      ],
+      "refs": [
+        "T-008"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-094",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Share materials; InstancedMesh for repeated props, BatchedMesh for varied props",
+      "detail": "three.js draws each mesh separately and batches nothing automatically, and every cloned material adds uniforms to upload. Share material instances, use InstancedMesh for repeated props and BatchedMesh for varied props that share a material; an InstancedMesh is culled as one bounding sphere that is not recomputed when instances move, so recompute it after moving instances or they can be wrongly culled.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Share one material instance between meshes; `material.clone()` creates another set of uniforms to upload."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Repeated props → `InstancedMesh`."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Varied static props with the same material → `BatchedMesh`."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "After moving instances, call `computeBoundingSphere()`, or instances outside the old sphere can be wrongly culled."
+        }
+      ],
+      "refs": [
+        "T-007",
+        "T-008",
+        "T-015"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-095",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Engine and rendering",
+      "title": "Don't make textures or atlases larger than 4096 px",
+      "detail": "Only about 76% of Android devices report support for 8192 px textures, and an uncompressed 8192 px texture with mipmaps takes about 341 MiB. Keep atlases and single textures at 4096 px or smaller, and read the device's maximum texture size at start-up to serve a larger tier only where it is supported.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-r186-optimisation.html",
+          "quote": "atlases and single textures ≤ 4096"
+        },
+        {
+          "file": "docs/threejs-r186-optimisation.html",
+          "quote": "8192² ≈ 341 MiB"
+        }
+      ],
+      "refs": [
+        "T-007"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-096",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Consider texture arrays for repeating level textures",
+      "detail": "Objects with different textures can share one material, and so one draw call, only through an atlas or a texture array, and atlases need padding and shader work for repeating tiles. For repeating level textures of similar size, consider a texture array; built-in three.js materials cannot read texture arrays, so the material shader needs a patch.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-r186-optimisation.html",
+          "quote": "For 20 tiled materials at similar resolution, use the texture array."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "**Built-in three.js materials don't sample texture arrays.**"
+        }
+      ],
+      "refs": [
+        "T-007",
+        "T-008"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-097",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Engine and rendering",
+      "title": "Don't add, remove or hide lights during play",
+      "detail": "three.js compiles the number of lights into its shaders, so adding, removing or hiding a light makes shaders recompile and the game stutter. Create a fixed pool of lights at load and switch lights off with intensity 0; a light switched off this way is still shaded on every pixel, so also stop its shadow updates and keep its shadow setting unchanged.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Create every light you'll ever need up front."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Disable them with `intensity = 0`, not `visible = false` or `remove()`."
+        }
+      ],
+      "refs": [
+        "D-106",
+        "T-098"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-098",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Warm up shaders at load with compileAsync",
+      "detail": "The first draw with a new shader compiles it and can stall that frame. Call the renderer's compileAsync once at load with the scene and its lights in their final setup; this removes the first-frame stall but does not prevent compiles caused by later light-count changes (T-097).",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Run `compileAsync` once."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "It removes the first-frame stall. It does not stop a later light-count change from triggering new compiles."
+        }
+      ],
+      "refs": [
+        "T-097"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-099",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Re-render shadow maps only when a light or caster moves",
+      "detail": "By default three.js re-renders every shadow map every frame, even when nothing moved. Turn off automatic shadow updates and request a shadow update only when the light or a shadow caster in its range moves.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-r186-optimisation.html",
+          "quote": "By default every shadow re-renders every frame, even when nothing moved."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "You set `needsUpdate` yourself when a caster or the light moves."
+        }
+      ],
+      "refs": [
+        "D-106"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-100",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Engine and rendering",
+      "title": "Don't use shadow-casting point lights where a spot light will do",
+      "detail": "A shadow-casting point light renders its shadow map as 6 cube faces, walking the whole scene once per face, every frame. Use spot lights where a cone is enough, and keep shadow casters few and shadow maps small.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "three.js still traverses the **whole scene graph** once per face, including non-casters"
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Use spot lights where a cone is enough. Keep shadow casters few and shadow maps small."
+        }
+      ],
+      "refs": [
+        "D-106"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-101",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Engine and rendering",
+      "title": "Don't use MeshPhysicalMaterial or transmission",
+      "detail": "MeshPhysicalMaterial adds extra shading terms, and transmission adds one extra render of all opaque objects every frame. Use MeshStandardMaterial or simpler unless clearcoat, sheen, transmission or iridescence is needed.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "`transmission > 0` adds one extra pass of all opaque objects per frame into a 4×-MSAA target, plus mipmap generation."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Use `MeshStandardMaterial` unless you need clearcoat, sheen, transmission or iridescence."
+        }
+      ],
+      "refs": [
+        "T-003"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-102",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Bake static lighting in an external tool if wanted; three.js has no baker",
+      "detail": "three.js can use a baked lightmap but has no built-in lightmap baker. If static lighting is baked, bake it in Blender or another tool and export the textures; for lights that stay real-time, bake only their indirect light, or their light is counted twice.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "**No built-in baker.** Bake in Blender or another tool and export the textures."
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Bake the lightmap *without* the direct contribution of those lights, or it gets counted twice."
+        }
+      ],
+      "refs": [
+        "D-106"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-103",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Engine and rendering",
+      "title": "Don't fork three.js before a benchmark shows the need",
+      "detail": "A fork changes three.js files that change often, so every upstream release needs a rebase, and no benchmark has measured the gains yet. Apply the optimisations that need no fork first (render settings, static matrix flags, manual shadow updates, a fixed light pool, shared materials, instancing and batching), and fork only where a benchmark shows they are not enough.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-r186-optimisation.html",
+          "quote": "Render settings, flags for static matrices, manual shadow updates, fixed light pool, material sharing, instancing/batching"
+        },
+        {
+          "file": "docs/threejs-r186-optimisation.html",
+          "quote": "Every fork phase touches files that change often upstream."
+        },
+        {
+          "file": "docs/BENCHMARKS.md",
+          "quote": "how much CPU time does three.js's default per-frame matrix update cost, and how much do the alternatives save?"
+        }
+      ],
+      "refs": [
+        "T-001"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-104",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Decide WebGLRenderer or WebGPURenderer",
+      "detail": "WebGPURenderer falls back to WebGL 2 if it fails at start-up but not if the device is lost later, and its WebGL backend is a second, newer code path, which is why the research fork plan chose WebGLRenderer. WebGPURenderer offers lighting that does not recompile shaders when the light count changes, but needs node materials; the game has not decided which renderer to use.",
+      "status": "open",
+      "authors": [
+        "three.js rendering research"
+      ],
+      "sources": [
+        {
+          "file": "docs/threejs-r186-optimisation.html",
+          "quote": "the WebGL backend is a second, newer code path"
+        },
+        {
+          "file": "docs/threejs-vs-engine-optimisation.md",
+          "quote": "Requires node materials (TSL)."
+        }
+      ],
+      "refs": [
+        "T-001"
+      ],
+      "notes": ""
     }
   ]
 }
