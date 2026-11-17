@@ -353,3 +353,44 @@ test('leaving by unload discards a saved snapshot', async () => {
   await settle(harness);
   assert.equal(harness.records.get('b').state.params, 'new');
 });
+
+test('a failed reload keeps the saved snapshot for the retry', async () => {
+  let fail = false;
+  const load = () => {
+    if (fail) throw new Error('load failed');
+  };
+  const { harness } = harnessWith([['a', { leave: 'snapshot' }, { load }]]);
+  harness.setMain('a');
+  await settle(harness, STEP * 5);
+  const ticks = ticksOf(harness, 'a');
+  assert.ok(ticks > 0);
+  harness.leave('a');
+  harness.frame(0);
+  fail = true;
+  harness.setMain('a');
+  harness.frame(0);
+  const record = harness.records.get('a');
+  await assert.rejects(record.loaded, /load failed/);
+  harness.frame(0);
+  assert.equal(record.life, 'unloaded');
+  assert.notEqual(record.saved, null);
+  fail = false;
+  harness.setMain('a');
+  await settle(harness);
+  assert.equal(ticksOf(harness, 'a'), ticks);
+});
+
+test('a preload request keeps a scene left mid-load loaded', async () => {
+  const pending = deferred();
+  const { harness } = harnessWith([['s', { leave: 'unload' }, { load: () => pending.promise }]]);
+  harness.setMain('s');
+  harness.frame(0);
+  harness.leave('s');
+  harness.preload('s');
+  harness.frame(0);
+  const record = harness.records.get('s');
+  pending.resolve();
+  await record.loaded;
+  harness.frame(0);
+  assert.equal(record.life, 'ready');
+});

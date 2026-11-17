@@ -129,9 +129,7 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
     'slow-frame'() {
       // Block the main thread, so the next frame's real frame time is large.
       const end = performance.now() + SLOW_FRAME_MS;
-      while (performance.now() < end) {
-        // busy wait
-      }
+      while (performance.now() < end);
     },
     'slow-scene'() {
       harness.setMain('slow', { fade: FADE });

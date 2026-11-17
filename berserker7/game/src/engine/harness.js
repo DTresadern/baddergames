@@ -145,7 +145,8 @@ export function createHarness({
         leaveLayer(record, req.mode);
         break;
       case 'preload':
-        if (record.life === 'unloaded') startLoad(record);
+        if (record.life === 'loading') record.unloadWhenLoaded = false;
+        else if (record.life === 'unloaded') startLoad(record);
         break;
       case 'setPlayMode':
         harness.playMode = req.mode;
@@ -204,13 +205,17 @@ export function createHarness({
     setLife(record, 'active');
   }
 
-  // A scene left while still loading finishes its load first: by `suspend` it then
-  // waits in 'ready'; by `unload` or `snapshot` it is unloaded as soon as the load ends.
-  function leaveLayer(record, mode = record.settings.leave) {
+  function removeFromLayer(record) {
     if (record.layer === 'main') layers.main = null;
     if (record.layer === 'background') layers.background.splice(layers.background.indexOf(record.id), 1);
     if (record.layer === 'overlay') layers.overlays.splice(layers.overlays.indexOf(record.id), 1);
     record.layer = null;
+  }
+
+  // A scene left while still loading finishes its load first: by `suspend` it then
+  // waits in 'ready'; by `unload` or `snapshot` it is unloaded as soon as the load ends.
+  function leaveLayer(record, mode = record.settings.leave) {
+    removeFromLayer(record);
     record.left = mode;
     const { life } = record;
     if (mode === 'suspend') {
@@ -235,11 +240,11 @@ export function createHarness({
   }
 
   // Ends finished loads: a failed load leaves its layer and goes back to 'unloaded'
-  // (a later request retries it); a successful one becomes active if it has a layer.
+  // (a later request retries it; a saved snapshot is kept); a successful one becomes active if it has a layer.
   function finishLoads() {
     for (const record of records.values()) {
       if (record.life === 'loading' && record.error !== null) {
-        if (record.layer !== null) leaveLayer(record, 'unload');
+        removeFromLayer(record);
         record.unloadWhenLoaded = false;
         setLife(record, 'unloaded');
       } else if (record.life === 'ready' && record.unloadWhenLoaded) {
