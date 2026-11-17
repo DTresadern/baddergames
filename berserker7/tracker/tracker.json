@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "Berserker 7",
-  "updated": "2026-11-16",
+  "updated": "2026-11-17",
   "statuses": [
     "open",
     "accepted",
@@ -4916,8 +4916,8 @@
       "list": "technical",
       "kind": "feature",
       "category": "Audio",
-      "title": "Sounds as data in one audio file",
-      "detail": "Load one audio file once and play sections of it; each sound is a data entry (start, end, one-shot or loop).",
+      "title": "Sound effects as data in one audio file",
+      "detail": "Load one audio file of sound effects once and play sections of it; each sound is a data entry (start, end, one-shot or loop). Music is a separate item, T-091.",
       "status": "open",
       "authors": [
         "Deano"
@@ -4929,9 +4929,11 @@
         }
       ],
       "refs": [
-        "TF-092"
+        "TF-092",
+        "T-067",
+        "T-091"
       ],
-      "notes": ""
+      "notes": "2026-11-17, project owner: split this item in two; this one covers general audio (sound effects) and T-091 covers music."
     },
     {
       "id": "T-067",
@@ -4950,7 +4952,10 @@
           "quote": "Web Audio for all effects (decode once, many plays), streamed music, a first-input unlock."
         }
       ],
-      "refs": [],
+      "refs": [
+        "T-066",
+        "T-091"
+      ],
       "notes": ""
     },
     {
@@ -5522,6 +5527,24 @@
         "T-020"
       ],
       "notes": ""
+    },
+    {
+      "id": "T-091",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Audio",
+      "title": "Music in the best supported format, with song sections",
+      "detail": "Play music in the most efficient format the browser supports: Ogg preferred, MP3 as the fallback, chosen by a support check at run time. A song can define named sections (for example intro, loop, transition) so sections can loop and the music can change dynamically. Specifics to be decided.",
+      "status": "open",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-066",
+        "T-067"
+      ],
+      "notes": "2026-11-17, project owner: split from T-066 (general audio). Music should be in the most efficient supported format (Ogg preferred, with MP3 and Ogg support checks), and songs need a way to define sections for looping sections, dynamic music and transitions; specifics to be decided."
     }
   ]
 }
