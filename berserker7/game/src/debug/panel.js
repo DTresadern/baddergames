@@ -1,0 +1,211 @@
+// DOM debug panel for the harness test scenes. Buttons send harness requests;
+// the text refreshes a few times per second, not every frame.
+//
+// Stable hooks for browser scripts:
+//   #b7-debug, #b7-debug-toggle, #b7-debug-body
+//   button[data-action="..."]           see ACTIONS below
+//   [data-value="..."]                  frame-ms, work-ms, steps, long-frame, play-mode,
+//                                       layers, transition, geometries, textures, assets
+//   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
+
+const ACTIONS = [
+  ['switch-ab', 'Switch A / B (fade)'],
+  ['pause', 'Open pause'],
+  ['suspend', 'Suspend main'],
+  ['unload', 'Unload main'],
+  ['snapshot', 'Snapshot-leave main'],
+  ['play-mode', 'Play mode: go online'],
+  ['slow-frame', 'Simulate slow frame (1 s)'],
+  ['slow-scene', 'Switch to slow scene'],
+  ['fail-slow', 'Fail slow scene\'s next load'],
+];
+
+const VALUES = [
+  ['frame-ms', 'frame time'],
+  ['work-ms', 'harness work'],
+  ['steps', 'steps last frame'],
+  ['long-frame', 'last long frame'],
+  ['play-mode', 'play mode'],
+  ['layers', 'layers'],
+  ['transition', 'fade'],
+  ['geometries', 'GPU geometries'],
+  ['textures', 'GPU textures'],
+  ['assets', 'shared assets'],
+];
+
+const FIELDS = ['layer', 'life', 'settings', 'ticks', 'left', 'back', 'error'];
+const SLOW_FRAME_MS = 1000;
+const REFRESH_MS = 250;
+const FADE = 0.6;
+
+const STYLE = `
+#b7-debug { position: fixed; top: 8px; right: 8px; z-index: 2; width: min(360px, calc(100vw - 16px));
+  max-height: 55vh; overflow: auto; box-sizing: border-box; font: 11px/1.35 monospace; color: #ddd;
+  background: rgba(10, 12, 18, 0.85); border: 1px solid #444; border-radius: 4px; }
+#b7-debug-toggle { position: sticky; top: 0; width: 100%; padding: 4px 6px; font: inherit; color: inherit;
+  text-align: left; background: #222838; border: 0; cursor: pointer; }
+#b7-debug-body { padding: 6px; }
+#b7-debug .b7-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 6px; }
+#b7-debug .b7-actions button { padding: 4px; font: inherit; color: #eee; background: #333b50;
+  border: 1px solid #556; border-radius: 3px; cursor: pointer; }
+#b7-debug .b7-actions button:disabled { opacity: 0.4; cursor: default; }
+#b7-debug dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 8px; margin: 0 0 6px; }
+#b7-debug dt { color: #999; }
+#b7-debug dd { margin: 0; overflow-wrap: anywhere; }
+#b7-debug .b7-scenes > div { padding: 3px 0; border-top: 1px solid #333; overflow-wrap: anywhere; }
+#b7-debug .b7-dim { color: #999; }
+`;
+
+// Short hash of a state's JSON, to compare states at a glance.
+function hash(text) {
+  if (text === null) return '—';
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+  return h.toString(16).padStart(8, '0');
+}
+
+export function mountPanel({ harness, renderer, assets, parent = document.body }) {
+  const style = document.createElement('style');
+  style.textContent = STYLE;
+  document.head.append(style);
+
+  const root = document.createElement('section');
+  root.id = 'b7-debug';
+  const ids = [...harness.records.keys()];
+  root.innerHTML = `
+    <button id="b7-debug-toggle" type="button" aria-expanded="true">Debug ▾</button>
+    <div id="b7-debug-body">
+      <div class="b7-actions">
+        ${ACTIONS.map(([action, label]) => `<button type="button" data-action="${action}">${label}</button>`).join('')}
+      </div>
+      <dl>${VALUES.map(([key, label]) => `<dt>${label}</dt><dd data-value="${key}"></dd>`).join('')}</dl>
+      <div class="b7-scenes">${ids
+        .map(
+          (id) => `<div data-scene="${id}">
+            <b>${id}</b> <span data-field="layer"></span> · <span data-field="life"></span> · ticks <span data-field="ticks"></span><br>
+            <span class="b7-dim">tick/drawCovered/leave</span> <span data-field="settings"></span><br>
+            <span class="b7-dim">state left</span> <span data-field="left"></span>
+            <span class="b7-dim">back</span> <span data-field="back"></span><br>
+            <span class="b7-dim">last load error</span> <span data-field="error"></span>
+          </div>`,
+        )
+        .join('')}</div>
+    </div>`;
+  parent.append(root);
+
+  const toggle = root.querySelector('#b7-debug-toggle');
+  const body = root.querySelector('#b7-debug-body');
+  const button = (action) => root.querySelector(`[data-action="${action}"]`);
+  const setValue = (key, text) => {
+    root.querySelector(`[data-value="${key}"]`).textContent = text;
+  };
+
+  // The main scene a leave button removed: { id, mode, frame }.
+  let left = null;
+
+  function leaveOrReturn(mode) {
+    if (left?.mode === mode) {
+      harness.setMain(left.id);
+      left = null;
+    } else if (!left && harness.layers.main !== null) {
+      left = { id: harness.layers.main, mode, frame: harness.frames };
+      harness.leave(left.id, mode);
+    }
+  }
+
+  const handlers = {
+    'switch-ab'() {
+      const current = harness.transition?.to ?? harness.layers.main;
+      harness.setMain(current === 'sceneA' ? 'sceneB' : 'sceneA', { fade: FADE });
+    },
+    pause() {
+      if (harness.layers.overlays.includes('pause')) harness.closeOverlay('pause');
+      else harness.openOverlay('pause');
+    },
+    suspend: () => leaveOrReturn('suspend'),
+    unload: () => leaveOrReturn('unload'),
+    snapshot: () => leaveOrReturn('snapshot'),
+    'play-mode'() {
+      harness.setPlayMode(harness.playMode === 'local' ? 'online' : 'local');
+    },
+    'slow-frame'() {
+      // Block the main thread, so the next frame's real frame time is large.
+      const end = performance.now() + SLOW_FRAME_MS;
+      while (performance.now() < end);
+    },
+    'slow-scene'() {
+      harness.setMain('slow', { fade: FADE });
+    },
+    'fail-slow'() {
+      const { debug } = harness.records.get('slow').scene;
+      debug.failNextLoad = !debug.failNextLoad;
+    },
+  };
+
+  for (const [action] of ACTIONS) button(action).addEventListener('click', () => {
+    handlers[action]();
+    refresh();
+  });
+
+  toggle.addEventListener('click', () => {
+    const open = body.hidden;
+    body.hidden = !open;
+    toggle.textContent = open ? 'Debug ▾' : 'Debug ▸';
+    toggle.setAttribute('aria-expanded', String(open));
+  });
+
+  function refreshButtons() {
+    // Forget a left scene that has since been put back by other means (requests apply a frame later).
+    if (left && harness.frames > left.frame + 1 && harness.records.get(left.id).layer !== null) left = null;
+    for (const mode of ['suspend', 'unload', 'snapshot']) {
+      const b = button(mode);
+      const verb = { suspend: 'Suspend', unload: 'Unload', snapshot: 'Snapshot-leave' }[mode];
+      const back = { suspend: 'Resume', unload: 'Reload', snapshot: 'Return' }[mode];
+      b.textContent = left?.mode === mode ? `${back} ${left.id}` : `${verb} main`;
+      b.disabled = left ? left.mode !== mode : harness.layers.main === null;
+    }
+    button('pause').textContent = harness.layers.overlays.includes('pause') ? 'Close pause' : 'Open pause';
+    button('fail-slow').textContent = harness.records.get('slow').scene.debug.failNextLoad
+      ? 'Slow scene\'s next load fails: on'
+      : 'Fail slow scene\'s next load';
+    button('play-mode').textContent = harness.playMode === 'local' ? 'Play mode: go online' : 'Play mode: go local';
+  }
+
+  function refresh() {
+    refreshButtons();
+    const { layers, lastLongFrame: long, transition: tr } = harness;
+    setValue('frame-ms', `${(harness.lastFrameSeconds * 1000).toFixed(1)} ms`);
+    setValue('work-ms', `${harness.lastWorkMs.toFixed(2)} ms`);
+    setValue('steps', `${harness.lastSteps} (cap ${harness.clock.maxSteps})`);
+    setValue('long-frame', long ? `${(long.frameSeconds * 1000).toFixed(0)} ms → ${long.steps} steps` : '—');
+    setValue('play-mode', harness.playMode);
+    setValue(
+      'layers',
+      `bg [${layers.background.join(', ')}] · main ${layers.main ?? '—'}` +
+        `${harness.standIn ? ` (showing ${harness.standIn})` : ''} · overlays [${layers.overlays.join(', ')}]`,
+    );
+    setValue('transition', tr ? `to ${tr.to}, ${(tr.t / tr.duration * 100).toFixed(0)}%` : '—');
+    setValue('geometries', String(renderer.info.memory.geometries));
+    setValue('textures', String(renderer.info.memory.textures));
+    setValue('assets', assets.keys().map((key) => `${key} ×${assets.count(key)}`).join(', ') || 'none');
+
+    for (const record of harness.records.values()) {
+      const row = root.querySelector(`[data-scene="${record.id}"]`);
+      const { tick, drawCovered, leave } = record.settings;
+      const text = {
+        layer: harness.standIn === record.id ? 'main (stand-in)' : record.layer ?? '—',
+        life: record.life,
+        settings: `${tick} / ${drawCovered ? 'yes' : 'no'} / ${leave}`,
+        ticks: record.state?.ticks ?? '—',
+        left: hash(record.leftState),
+        back: hash(record.returnedState),
+        error: record.error?.message ?? '—',
+      };
+      for (const field of FIELDS) row.querySelector(`[data-field="${field}"]`).textContent = String(text[field]);
+    }
+  }
+
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+  return root;
+}

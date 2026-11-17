@@ -31,6 +31,10 @@ jobs:
         run: npm ci
         working-directory: berserker7/game
 
+      - name: Test game
+        run: npm test
+        working-directory: berserker7/game
+
       - name: Build game
         run: npm run build
         working-directory: berserker7/game

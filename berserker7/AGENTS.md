@@ -21,9 +21,32 @@ Commands, run from `berserker7/game/`:
 
 - install: `npm ci`
 - run: `npm run dev` (serves at the URL Vite prints; the version label shows `dev`)
+- test: `npm test` (Node's built-in test runner, files in `test/`, no browser)
 - build: `npm run build` (output in `dist/`, not committed)
 - check the build: `npm run preview` (serves `dist/`)
 
 The version label (bottom-left) shows the short commit and UTC build time when built by CI (from `GITHUB_SHA`), and `dev` otherwise.
 
-CI (`.github/workflows/checks.yml`) runs `node --check` on every tracked `.js` file, JSON parse checks, and `npm ci && npm run build` in `berserker7/game/`.
+CI (`.github/workflows/checks.yml`) runs `node --check` on every tracked `.js` file, JSON parse checks, and `npm ci`, `npm test` and `npm run build` in `berserker7/game/`.
+
+## Game harness (`game/src/engine/`)
+
+- Fixed 60 Hz step with an accumulator (`clock.js`). Each frame's time is capped at 0.25 s and at most 8 steps run per frame, so a slow frame slows the game down. No interpolation: each frame draws the current state.
+- Layers, drawn in this order: `background` (list), `main` (one scene), `overlays` (list, last on top).
+- Each `frame(seconds)` in `harness.js`: 1. tick the allowed scenes once per step, in layer order; 2. clear, draw the allowed scenes in layer order, then the fade; 3. end failed loads, apply queued requests in request order, and activate scenes whose load finished; 4. advance the fade and swap the main scene at its midpoint.
+- Requests (`setMain`, `openOverlay`, `closeOverlay`, `addBackground`, `leave`, `preload`, `setPlayMode`) are always queued. Nothing changes mid-frame, including requests from scene hooks.
+- Play modes: `local` and `online`. In `online`, overlays never pause the main scene.
+- While the main scene loads, the loading scene is drawn in its place. A fade with nothing to show stays black at its midpoint until the scene is ready.
+
+## Scene contract (`game/src/scenes/`)
+
+- A scene is a plain object from a factory function: `{ settings, load, enter, tick, draw, suspend, resume, exit, unload }`. Missing hooks are no-ops; hook errors are not caught.
+- Hooks: `load(context)` async (build three.js objects; `context` has `track`, `acquire` and `renderer`, and the scene keeps it for later hooks if it needs it), `enter(params) -> state`, `tick(state, inputs, dt) -> state`, `draw(state, view)` (`view` has `renderer`, `width`, `height`), `suspend()`, `resume()`, `exit()`, `unload()` (optional: only for clean-up beyond tracked resources and acquired assets).
+- Lifecycle: `unloaded -> loading -> ready -> active <-> suspended`; any loaded state `-> unloaded`; a failed load goes back to `unloaded` and leaves its layer, keeping any saved snapshot (a later request retries it). Illegal changes throw. Only `active` scenes tick and draw.
+- Settings: `tick` (`always`, `uncovered`, `never`), `drawCovered` (true or false), `leave` (`suspend`, `unload`, `snapshot`).
+- Leave modes: `suspend` keeps state and three.js objects; `unload` drops both and re-enters fresh; `snapshot` keeps a `structuredClone` of the state, unloads, and on return loads and restores that state, then calls `resume()`. A scene left by `unload` or `snapshot` while its load runs is unloaded when the load ends.
+- State is one plain object (numbers, strings, booleans, arrays, plain objects). `tick` changes only the state; `draw` makes the three.js objects match it. No `Math.random` in a simulation.
+- The harness owns each scene's resources. A scene passes every geometry, material, texture and render target it creates to `context.track(obj)`, and gets shared assets with `context.acquire(key, create)` (the harness's asset cache, `asset-cache.js`, counts users and disposes an asset when its last user releases it). After a failed load, and on every unload (including a snapshot leave), the harness disposes everything the scene tracked and releases everything it acquired, however far `load()` got, even when `unload()` throws or is missing. `unload()` must not dispose tracked resources or release acquired assets itself. No GPU objects created per frame.
+- Lookups from state entities to three.js objects use a `WeakMap`, so they do not keep old state alive.
+
+The game page shows a debug panel (`game/src/debug/panel.js`) with buttons for each harness behaviour. `window.__b7` exposes the harness, renderer and asset cache for debug checks only; it is not a game API. The panel's "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure. The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; nothing else reads them.
