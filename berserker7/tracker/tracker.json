@@ -3410,7 +3410,7 @@
       "category": "Engine and rendering",
       "title": "Renderer: three.js",
       "detail": "Decided: three.js (latest), chosen by the project owner for looks, performance and familiarity. The renderer trial the retro asked for was done in framework-evaluations.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Decision",
         "Deano"
@@ -3763,7 +3763,7 @@
       "category": "Engine and rendering",
       "title": "Don't zero gravity on resting gibs while keeping their velocity",
       "detail": "MVP gibs bounced, came to rest, then floated upwards: gravity was set to 0 at rest while a small upward velocity remained.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano",
         "MVP retro"
@@ -3790,7 +3790,7 @@
       "category": "Engine and rendering",
       "title": "Scenes with a common interface; transitions",
       "detail": "Menu, lobby, game, intermission and credits as scene objects with one run interface, swapped at the end of a frame, with support for transitions between them.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Deano",
         "Impact research"
@@ -3817,7 +3817,7 @@
       "category": "Engine and rendering",
       "title": "Don't port Canvas 2D workarounds",
       "detail": "Impact's Canvas 2D workarounds (data-URL chunks, per-pixel scaling, vendor prefixes, user-agent sniffing) are specific to old browsers and not relevant to three.js.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -4255,7 +4255,7 @@
       "category": "Levels and editor",
       "title": "Don't save levels as executable code",
       "detail": "Impact's editor saves levels as JavaScript modules. Loading a level should not run code; use plain JSON.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -4376,7 +4376,7 @@
       "category": "Levels and editor",
       "title": "Never deploy an editor save endpoint like Weltmeister's",
       "detail": "Weltmeister's PHP save endpoint writes any .js path under the file root. high_impact's editor saves through the browser's File System Access API instead.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Impact research"
       ],
@@ -5007,7 +5007,7 @@
       "category": "Debug and testing",
       "title": "Don't let a test switch off what it tests",
       "detail": "MVP co-op tests made players invulnerable and the bot teleported past obstacles, so real bugs got through. Every hazard needs an \"enter and leave\" test.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "MVP retro"
       ],
