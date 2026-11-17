@@ -6,7 +6,6 @@
 // step), so it is exact and repeatable.
 
 import { Group, Mesh, MeshBasicMaterial, OrthographicCamera, Scene, SphereGeometry } from 'three';
-import { createResourceList } from '../engine/resources.js';
 import { CHECKER, createCheckerTexture, fitOrtho, syncMeshes } from './shared.js';
 
 const COLORS = [0xe8615a, 0xf2c14e, 0x6cc4a1, 0x5aa9e6, 0xb48ee0];
@@ -47,15 +46,14 @@ export function tickSceneB(state) {
   return state;
 }
 
-export function createSceneB({ assets }) {
-  let resources, scene, camera, group, geometry, materials, meshOf;
+export function createSceneB() {
+  let scene, camera, group, geometry, materials, meshOf;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'snapshot' },
-    async load() {
-      resources = createResourceList();
-      const map = assets.acquire(CHECKER, createCheckerTexture);
-      geometry = resources.track(new SphereGeometry(0.16, 20, 12));
-      materials = COLORS.map((color) => resources.track(new MeshBasicMaterial({ color, map })));
+    async load({ track, acquire }) {
+      const map = acquire(CHECKER, createCheckerTexture);
+      geometry = track(new SphereGeometry(0.16, 20, 12));
+      materials = COLORS.map((color) => track(new MeshBasicMaterial({ color, map })));
       scene = new Scene();
       group = new Group();
       scene.add(group);
@@ -74,11 +72,6 @@ export function createSceneB({ assets }) {
         mesh.rotation.z = -ball.x / 300;
       }
       view.renderer.render(scene, camera);
-    },
-    unload() {
-      resources.disposeAll();
-      assets.release(CHECKER);
-      resources = scene = camera = group = geometry = materials = meshOf = null;
     },
   };
 }

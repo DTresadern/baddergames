@@ -6,7 +6,7 @@
 //   button[data-action="..."]           see ACTIONS below
 //   [data-value="..."]                  frame-ms, work-ms, steps, long-frame, play-mode,
 //                                       layers, transition, geometries, textures, assets
-//   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back
+//   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
 
 const ACTIONS = [
   ['switch-ab', 'Switch A / B (fade)'],
@@ -17,6 +17,7 @@ const ACTIONS = [
   ['play-mode', 'Play mode: go online'],
   ['slow-frame', 'Simulate slow frame (1 s)'],
   ['slow-scene', 'Switch to slow scene'],
+  ['fail-slow', 'Fail slow scene\'s next load'],
 ];
 
 const VALUES = [
@@ -32,7 +33,7 @@ const VALUES = [
   ['assets', 'shared assets'],
 ];
 
-const FIELDS = ['layer', 'life', 'settings', 'ticks', 'left', 'back'];
+const FIELDS = ['layer', 'life', 'settings', 'ticks', 'left', 'back', 'error'];
 const SLOW_FRAME_MS = 1000;
 const REFRESH_MS = 250;
 const FADE = 0.6;
@@ -84,7 +85,8 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
             <b>${id}</b> <span data-field="layer"></span> · <span data-field="life"></span> · ticks <span data-field="ticks"></span><br>
             <span class="b7-dim">tick/drawCovered/leave</span> <span data-field="settings"></span><br>
             <span class="b7-dim">state left</span> <span data-field="left"></span>
-            <span class="b7-dim">back</span> <span data-field="back"></span>
+            <span class="b7-dim">back</span> <span data-field="back"></span><br>
+            <span class="b7-dim">last load error</span> <span data-field="error"></span>
           </div>`,
         )
         .join('')}</div>
@@ -134,6 +136,10 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
     'slow-scene'() {
       harness.setMain('slow', { fade: FADE });
     },
+    'fail-slow'() {
+      const { debug } = harness.records.get('slow').scene;
+      debug.failNextLoad = !debug.failNextLoad;
+    },
   };
 
   for (const [action] of ACTIONS) button(action).addEventListener('click', () => {
@@ -159,6 +165,9 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
       b.disabled = left ? left.mode !== mode : harness.layers.main === null;
     }
     button('pause').textContent = harness.layers.overlays.includes('pause') ? 'Close pause' : 'Open pause';
+    button('fail-slow').textContent = harness.records.get('slow').scene.debug.failNextLoad
+      ? 'Slow scene\'s next load fails: on'
+      : 'Fail slow scene\'s next load';
     button('play-mode').textContent = harness.playMode === 'local' ? 'Play mode: go online' : 'Play mode: go local';
   }
 
@@ -190,6 +199,7 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
         ticks: record.state?.ticks ?? '—',
         left: hash(record.leftState),
         back: hash(record.returnedState),
+        error: record.error?.message ?? '—',
       };
       for (const field of FIELDS) row.querySelector(`[data-field="${field}"]`).textContent = String(text[field]);
     }

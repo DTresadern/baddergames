@@ -1,7 +1,7 @@
-// A scene's list of three.js objects that hold GPU memory: geometries,
-// materials, textures, render targets. Garbage collection never frees GPU
-// memory, so a scene tracks each such object here and disposes the list when it
-// unloads.
+// A list of three.js objects that hold GPU memory: geometries, materials,
+// textures, render targets. Garbage collection never frees GPU memory, so the
+// harness keeps one list per scene and disposes it when the scene unloads or its
+// load fails.
 
 export function createResourceList() {
   let items = [];

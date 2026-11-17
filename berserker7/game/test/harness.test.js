@@ -427,3 +427,89 @@ test('a preload sent after a left scene finished loading keeps it loaded', async
   assert.equal(record.life, 'ready');
   assert.ok(!log.includes('s.unload'));
 });
+
+// A fake GPU object that counts its dispose() calls.
+function fakeResource() {
+  return {
+    disposed: 0,
+    dispose() {
+      this.disposed += 1;
+    },
+  };
+}
+
+test('a failed load frees what it tracked and acquired; a retry loads cleanly', async () => {
+  let fail = true;
+  const made = [];
+  const shared = fakeResource();
+  const load = ({ track, acquire }) => {
+    acquire('shared', () => shared);
+    made.push(track(fakeResource()), track(fakeResource()));
+    if (fail) throw new Error('load failed');
+  };
+  const { harness } = harnessWith([['a', {}, { load }]]);
+  harness.assets.acquire('shared', () => shared); // another user keeps it alive
+  harness.setMain('a');
+  harness.frame(0);
+  const record = harness.records.get('a');
+  await assert.rejects(record.loaded, /load failed/);
+  harness.frame(0);
+  assert.equal(record.life, 'unloaded');
+  assert.deepEqual(made.map((r) => r.disposed), [1, 1]);
+  assert.equal(harness.assets.count('shared'), 1);
+  assert.equal(shared.disposed, 0);
+
+  fail = false;
+  harness.setMain('a');
+  await settle(harness);
+  assert.equal(record.life, 'active');
+  assert.equal(harness.assets.count('shared'), 2);
+  assert.deepEqual(made.slice(2).map((r) => r.disposed), [0, 0]);
+  assert.equal(record.resources.count(), 2);
+});
+
+test('a throwing unload() hook does not stop the harness freeing tracked resources and assets', async () => {
+  const resource = fakeResource();
+  const shared = fakeResource();
+  const hooks = {
+    load: ({ track, acquire }) => {
+      track(resource);
+      acquire('shared', () => shared);
+    },
+    unload: () => {
+      throw new Error('unload failed');
+    },
+  };
+  const { harness } = harnessWith([['a', { leave: 'unload' }, hooks]]);
+  harness.setMain('a');
+  await settle(harness);
+  harness.leave('a');
+  assert.throws(() => harness.frame(0), /unload failed/);
+  assert.equal(harness.records.get('a').life, 'unloaded');
+  assert.equal(resource.disposed, 1);
+  assert.equal(shared.disposed, 1);
+  assert.equal(harness.assets.count('shared'), 0);
+});
+
+test('without an unload() hook, a snapshot leave still frees tracked resources and assets', async () => {
+  const resource = fakeResource();
+  const shared = fakeResource();
+  const hooks = {
+    load: ({ track, acquire }) => {
+      track(resource);
+      acquire('shared', () => shared);
+    },
+    unload: undefined,
+  };
+  const { harness } = harnessWith([['a', { leave: 'snapshot' }, hooks]]);
+  harness.setMain('a');
+  await settle(harness, STEP);
+  harness.leave('a');
+  harness.frame(0);
+  const record = harness.records.get('a');
+  assert.equal(record.life, 'unloaded');
+  assert.notEqual(record.saved, null);
+  assert.equal(resource.disposed, 1);
+  assert.equal(shared.disposed, 1);
+  assert.equal(harness.assets.count('shared'), 0);
+});

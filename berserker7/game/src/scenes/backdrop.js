@@ -2,7 +2,6 @@
 // always, so it keeps moving through pause and scene switches.
 
 import { CircleGeometry, Group, Mesh, MeshBasicMaterial, OrthographicCamera, Scene } from 'three';
-import { createResourceList } from '../engine/resources.js';
 import { fitOrtho, syncMeshes } from './shared.js';
 
 const COLORS = [0x2f6f9f, 0x7a3f8f, 0x2f8f6f];
@@ -30,14 +29,13 @@ export function tickBackdrop(state, inputs, dt) {
 }
 
 export function createBackdrop() {
-  let resources, scene, camera, group, geometry, materials, meshOf;
+  let scene, camera, group, geometry, materials, meshOf;
   return {
     settings: { tick: 'always', drawCovered: true, leave: 'suspend' },
-    async load() {
-      resources = createResourceList();
-      geometry = resources.track(new CircleGeometry(1, 48));
+    async load({ track }) {
+      geometry = track(new CircleGeometry(1, 48));
       materials = COLORS.map((color) =>
-        resources.track(new MeshBasicMaterial({ color, transparent: true, opacity: 0.35, depthWrite: false })),
+        track(new MeshBasicMaterial({ color, transparent: true, opacity: 0.35, depthWrite: false })),
       );
       scene = new Scene();
       group = new Group();
@@ -56,10 +54,6 @@ export function createBackdrop() {
         mesh.scale.setScalar(shape.r);
       }
       view.renderer.render(scene, camera);
-    },
-    unload() {
-      resources.disposeAll();
-      resources = scene = camera = group = geometry = materials = meshOf = null;
     },
   };
 }

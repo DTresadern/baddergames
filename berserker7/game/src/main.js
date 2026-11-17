@@ -1,6 +1,5 @@
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene, WebGLRenderer } from 'three';
 import { mountPanel } from './debug/panel.js';
-import { createAssetCache } from './engine/asset-cache.js';
 import { createHarness } from './engine/harness.js';
 import { createBackdrop } from './scenes/backdrop.js';
 import { createLoading } from './scenes/loading.js';
@@ -29,11 +28,11 @@ function drawTransition(alpha) {
   renderer.render(fadeScene, fadeCamera);
 }
 
-const assets = createAssetCache();
 const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading' });
+const { assets } = harness;
 harness.register('backdrop', createBackdrop());
-harness.register('sceneA', createSceneA({ assets }));
-harness.register('sceneB', createSceneB({ assets }));
+harness.register('sceneA', createSceneA());
+harness.register('sceneB', createSceneB());
 harness.register('pause', createPause());
 harness.register('slow', createSlow());
 harness.register('loading', createLoading());

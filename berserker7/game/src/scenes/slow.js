@@ -1,9 +1,12 @@
 // Slow (main layer): load() takes about 2 s, so switching to it shows the
-// loading scene first. Leaves by unloading.
+// loading scene first. Leaves by unloading. Uses the shared checker texture.
+//
+// Debug: set `debug.failNextLoad` and its next load() throws after acquiring the
+// shared texture and tracking resources, one of them already uploaded to the GPU,
+// so the panel can show the harness freeing a failed load.
 
-import { Mesh, MeshNormalMaterial, PerspectiveCamera, Scene, TorusGeometry } from 'three';
-import { createResourceList } from '../engine/resources.js';
-import { fitPerspective, wait } from './shared.js';
+import { MeshBasicMaterial, Mesh, PerspectiveCamera, Scene, TorusGeometry } from 'three';
+import { CHECKER, createCheckerTexture, fitPerspective, wait } from './shared.js';
 
 export const SLOW_LOAD_MS = 2000;
 
@@ -18,14 +21,22 @@ export function tickSlow(state, inputs, dt) {
 }
 
 export function createSlow() {
-  let resources, scene, camera, torus;
+  let scene, camera, torus;
+  const debug = { failNextLoad: false, texturesAtFailure: null };
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'unload' },
-    async load() {
+    debug,
+    async load({ track, acquire, renderer }) {
       await wait(SLOW_LOAD_MS);
-      resources = createResourceList();
-      const geometry = resources.track(new TorusGeometry(0.8, 0.28, 20, 64));
-      const material = resources.track(new MeshNormalMaterial());
+      const map = acquire(CHECKER, createCheckerTexture);
+      const geometry = track(new TorusGeometry(0.8, 0.28, 20, 64));
+      const material = track(new MeshBasicMaterial({ color: 0xd8c0ff, map }));
+      if (debug.failNextLoad) {
+        debug.failNextLoad = false;
+        renderer.initTexture(track(createCheckerTexture()));
+        debug.texturesAtFailure = renderer.info.memory.textures;
+        throw new Error('slow: simulated load failure');
+      }
       torus = new Mesh(geometry, material);
       scene = new Scene();
       scene.add(torus);
@@ -38,10 +49,6 @@ export function createSlow() {
       fitPerspective(camera, view, 4);
       torus.rotation.set(state.angle, state.angle * 1.5, 0);
       view.renderer.render(scene, camera);
-    },
-    unload() {
-      resources.disposeAll();
-      resources = scene = camera = torus = null;
     },
   };
 }

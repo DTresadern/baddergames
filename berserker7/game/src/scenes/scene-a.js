@@ -2,7 +2,6 @@
 // Uses the shared checker texture.
 
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene } from 'three';
-import { createResourceList } from '../engine/resources.js';
 import { CHECKER, createCheckerTexture, fitPerspective, syncMeshes } from './shared.js';
 
 const COLORS = [0xe8615a, 0xf2c14e, 0x6cc4a1, 0x5aa9e6, 0xb48ee0, 0xf29e6d];
@@ -27,15 +26,14 @@ export function tickSceneA(state, inputs, dt) {
   return state;
 }
 
-export function createSceneA({ assets }) {
-  let resources, scene, camera, group, geometry, materials, meshOf;
+export function createSceneA() {
+  let scene, camera, group, geometry, materials, meshOf;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
-    async load() {
-      resources = createResourceList();
-      const map = assets.acquire(CHECKER, createCheckerTexture);
-      geometry = resources.track(new BoxGeometry(0.5, 0.5, 0.5));
-      materials = COLORS.map((color) => resources.track(new MeshBasicMaterial({ color, map })));
+    async load({ track, acquire }) {
+      const map = acquire(CHECKER, createCheckerTexture);
+      geometry = track(new BoxGeometry(0.5, 0.5, 0.5));
+      materials = COLORS.map((color) => track(new MeshBasicMaterial({ color, map })));
       scene = new Scene();
       group = new Group();
       scene.add(group);
@@ -55,11 +53,6 @@ export function createSceneA({ assets }) {
         mesh.rotation.set(box.angle * 2, box.angle * 3, 0);
       }
       view.renderer.render(scene, camera);
-    },
-    unload() {
-      resources.disposeAll();
-      assets.release(CHECKER);
-      resources = scene = camera = group = geometry = materials = meshOf = null;
     },
   };
 }

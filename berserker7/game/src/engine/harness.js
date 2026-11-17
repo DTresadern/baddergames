@@ -10,7 +10,9 @@
 //
 // No three.js import here: tests pass a fake renderer ({ clear(), clearDepth() }) and fake scenes.
 
+import { createAssetCache } from './asset-cache.js';
 import { advanceClock, clampFrame, createClock } from './clock.js';
+import { createResourceList } from './resources.js';
 import { callHook, createRecord, drawOrder, isLeaveMode, setLife, shouldDraw, shouldTick } from './scene.js';
 import { advanceTransition, createTransition, markSwapped, swapDue, transitionAlpha, transitionDone } from './transition.js';
 
@@ -19,6 +21,7 @@ const PLAY_MODES = ['local', 'online'];
 
 export function createHarness({
   renderer,
+  assets = createAssetCache(),
   playMode = 'local',
   clock = createClock(),
   drawTransition = () => {},
@@ -31,6 +34,7 @@ export function createHarness({
   const view = { renderer, width: 1, height: 1 };
 
   const harness = {
+    assets,
     clock,
     records,
     layers,
@@ -65,7 +69,40 @@ export function createHarness({
 
   function register(id, scene) {
     if (records.has(id)) throw new Error(`harness: scene '${id}' is already registered`);
-    records.set(id, createRecord(id, scene));
+    const record = createRecord(id, scene);
+    record.resources = createResourceList();
+    record.acquired = [];
+    record.context = {
+      renderer,
+      track: (obj) => record.resources.track(obj),
+      acquire(key, create) {
+        const asset = assets.acquire(key, create);
+        record.acquired.push(key);
+        return asset;
+      },
+    };
+    records.set(id, record);
+  }
+
+  // Disposes everything the scene tracked and releases every asset it acquired,
+  // however far its load() got.
+  function freeOwned(record) {
+    try {
+      record.resources.disposeAll();
+    } finally {
+      for (const key of record.acquired.splice(0).reverse()) assets.release(key);
+    }
+  }
+
+  // Frees the scene's tracked resources and assets even when its unload() hook throws.
+  function unloadRecord(record) {
+    try {
+      callHook(record, 'unload');
+    } finally {
+      freeOwned(record);
+      record.state = null;
+      setLife(record, 'unloaded');
+    }
   }
 
   function setSize(width, height) {
@@ -178,7 +215,7 @@ export function createHarness({
     setLife(record, 'loading');
     record.error = null;
     record.loaded = Promise.resolve()
-      .then(() => callHook(record, 'load'))
+      .then(() => callHook(record, 'load', record.context))
       .then(
         () => setLife(record, 'ready'),
         (error) => {
@@ -234,19 +271,19 @@ export function createHarness({
       record.leftState = JSON.stringify(record.state);
     }
     if (life === 'active' || life === 'suspended') callHook(record, 'exit');
-    callHook(record, 'unload');
-    record.state = null;
-    setLife(record, 'unloaded');
+    unloadRecord(record);
   }
 
   // Runs before the queue, so a request sent after a load failed retries it. A failed
-  // load leaves its layer and goes back to 'unloaded'; a saved snapshot is kept.
+  // load leaves its layer, its tracked resources and assets are freed, and it goes
+  // back to 'unloaded'; a saved snapshot is kept.
   function endFailedLoads() {
     for (const record of records.values()) {
       if (record.life === 'loading' && record.error !== null) {
         removeFromLayer(record);
         record.unloadWhenLoaded = false;
         setLife(record, 'unloaded');
+        freeOwned(record);
       }
     }
   }
@@ -256,8 +293,7 @@ export function createHarness({
     for (const record of records.values()) {
       if (record.life === 'ready' && record.unloadWhenLoaded) {
         record.unloadWhenLoaded = false;
-        callHook(record, 'unload');
-        setLife(record, 'unloaded');
+        unloadRecord(record);
       } else if (record.life === 'ready' && (record.layer !== null || record.id === harness.loadingScene)) {
         activate(record);
       }
