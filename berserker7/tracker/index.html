@@ -165,7 +165,7 @@ summary { cursor: pointer; color: var(--accent); width: fit-content; }
 dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; width: min(640px, calc(100vw - 32px)); max-width: min(640px, calc(100vw - 32px)); }
 dialog::backdrop { background: rgba(0,0,0,.5); }
 dialog h2 { font-size: 1rem; margin: 0 0 8px; }
-dialog textarea { display: block; width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; }
+dialog textarea { display: block; width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; white-space: pre; overflow-x: auto; }
 dialog .hint { margin: 8px 0; font-size: .85rem; color: var(--muted); }
 dialog button { font: inherit; font-size: .9rem; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 14px; cursor: pointer; }
 
@@ -219,7 +219,7 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
 <div class="sr-only" id="live" role="status" aria-live="polite"></div>
 <dialog id="copyDlg" aria-labelledby="copyDlgH">
   <h2 id="copyDlgH">Copy these status changes</h2>
-  <textarea id="copyTxt" readonly rows="8"></textarea>
+  <textarea id="copyTxt" readonly rows="8" wrap="off"></textarea>
   <p class="hint">Press Ctrl+C (⌘C on Mac) to copy.</p>
   <button type="button" id="copyClose">Close</button>
 </dialog>
@@ -515,6 +515,8 @@ dialog button { font: inherit; font-size: .9rem; color: var(--text); background:
     if (!dlg.open) dlg.showModal();
     ta.focus();
     ta.select();
+    ta.scrollLeft = 0;
+    ta.scrollTop = 0;
   }
 
   function copyState() {
