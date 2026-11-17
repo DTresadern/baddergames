@@ -1,0 +1,5527 @@
+{
+  "schema": 1,
+  "project": "Berserker 7",
+  "updated": "2026-11-16",
+  "statuses": [
+    "open",
+    "accepted",
+    "implemented",
+    "rejected"
+  ],
+  "statusMeanings": {
+    "open": "Raised, not yet decided.",
+    "accepted": "Accepted as worth considering or to work on.",
+    "implemented": "Built.",
+    "rejected": "Decided against."
+  },
+  "items": [
+    {
+      "id": "D-001",
+      "list": "design",
+      "kind": "feature",
+      "category": "Story and tone",
+      "title": "Gritty, grim realism",
+      "detail": "Aim for a grim, gritty tone in the line of Another World, Abe's Oddysee and Splatterhouse, not a wacky, high-octane retro party game.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/02__signal-2026-11-15-13-24-07-796.txt",
+          "quote": "Take the game in the direction of like gritty realism"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/02__signal-2026-11-15-13-24-07-796.txt",
+          "quote": "I wouldn't go making it all retro um high octane uh wild party game"
+        }
+      ],
+      "refs": [
+        "TF-070"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-002",
+      "list": "design",
+      "kind": "feature",
+      "category": "Story and tone",
+      "title": "Constant power-up spam for a high-octane feel",
+      "detail": "Rejected: filling the game with frequent power-ups (as in Glyphblade) would make it wacky and high-octane; Andy says not to take the game in that direction.",
+      "status": "rejected",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/02__signal-2026-11-15-13-24-07-796.txt",
+          "quote": "power-ups like I put in um glyph blade like power up power"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/02__signal-2026-11-15-13-24-07-796.txt",
+          "quote": "don't take the game in that direction"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/21__signal-2026-11-15-13-41-04-874.txt",
+          "quote": "I think that would be kind of cool, like if you, like, to not make it silly, like vampire"
+        }
+      ],
+      "refs": [
+        "TF-070"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-003",
+      "list": "design",
+      "kind": "feature",
+      "category": "Story and tone",
+      "title": "Plot: a parasitic organism is taking over the city",
+      "detail": "An alien parasite that bonds with organic life and machinery is spreading under the city; its origin (bioweapon or invader) is a matter of conspiracy theory. Most people think it is a myth; the military and authorities cover up surface outbreaks and steal the biological material. Answers Deano's request to flesh out the story.",
+      "status": "open",
+      "authors": [
+        "Level ideas",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "the city is being taken over by a parasitic alien organism that is able to assimilate and bond with organic life as well as machinery"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "military and some authorities seem to be aware of whats going on but keep it under wraps"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "some fleshing out of story/plot"
+        }
+      ],
+      "refs": [
+        "TF-072"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-004",
+      "list": "design",
+      "kind": "feature",
+      "category": "Story and tone",
+      "title": "The player is a Hunter, an extraterrestrial",
+      "detail": "The players are alien Hunters whose home world was ravaged by the parasite. They crashed on Earth and were captured; humans think they are the invaders. Their crew is small and time is short; they must fight through the city and into the depths to destroy the parasite.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "you, the player, are an extraterrestrial"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "you are a Hunter."
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "your ship had at least 20 crew initially, who knows how many remain now"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-005",
+      "list": "design",
+      "kind": "feature",
+      "category": "Story and tone",
+      "title": "Three factions: Hunters, humans and the parasite",
+      "detail": "Humans are as hostile to the Hunters as the parasite is, giving three factions in the fight. Deano asked for more than two factions for creative dynamics.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "more than two factions for creative dynamics, the player, the human enemies, and the alien enemies"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "three factions caught up in the chaos, only you really trying to stop it"
+        }
+      ],
+      "refs": [
+        "TF-023"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-006",
+      "list": "design",
+      "kind": "feature",
+      "category": "Story and tone",
+      "title": "Level progression tells a story",
+      "detail": "The order of levels and encounters should build a story and change as players go deeper; MVP progression was awkward. Retro: plan what the player meets in the first 30 seconds, the first minute, the midpoint and before the boss.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "level progression is awkward, it needs to tell a story"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "graduated level progression"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "what the player meets in the first 30 seconds, first minute, midpoint, before the boss."
+        }
+      ],
+      "refs": [
+        "TF-071"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-007",
+      "list": "design",
+      "kind": "feature",
+      "category": "Characters",
+      "title": "Four playable Hunter designs",
+      "detail": "The character study has four Hunter designs: hunter1 (masked, cable head tendrils, industrial combat armour, large rifle), hunter2 (lean, sinewy, elongated predatory armoured head, digitigrade legs), hunter3 (compact, stocky, bare alien face; tendrils added and face made less reptilian at the user's request) and hunter4 (low, forward-leaning, swept-back carapace and powered exosuit).",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1/00-hunter1-sprite_02.png.generated.json",
+          "quote": "Keep the same powerful non-human anatomy, masked head, sweeping cable tendrils, practical industrial combat armour, large rifle held in both hands"
+        },
+        {
+          "file": "berserker7/design/characterstudy/01-hunter2/01-hunter2-sprite_01.png.generated.json",
+          "quote": "a lean, sinewy non-human alien hunter with an elongated predatory armoured head"
+        },
+        {
+          "file": "berserker7/design/characterstudy/02-hunter3/02-hunter3-sprite_05.png.generated.json",
+          "quote": "Make its face less dinosaur/reptile-like, more distinctly alien and predatory"
+        },
+        {
+          "file": "berserker7/design/characterstudy/03-hunter4/03-hunter4-sprite_01.png.generated.json",
+          "quote": "The character wears heavy armor and a powered exosuit"
+        },
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1-sprite.png",
+          "quote": "",
+          "shows": "hunter1: masked alien hunter with cable head tendrils, heavy armour and a large rifle, right-facing"
+        },
+        {
+          "file": "berserker7/design/characterstudy/03-hunter4-sprite.png",
+          "quote": "",
+          "shows": "hunter4: low, forward-leaning hunter with a long snout and swept-back shell, in a rainy street"
+        }
+      ],
+      "refs": [
+        "TF-094"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-008",
+      "list": "design",
+      "kind": "feature",
+      "category": "Characters",
+      "title": "Hunter visual rules",
+      "detail": "All Hunters share cable-like head tendrils, non-human predatory anatomy, practical industrial armour and a large two-handed gun, shown in a clear right-facing side-view silhouette. Variants change equipment and finish, not species.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/02-hunter3/02-hunter3-sprite_05.png.generated.json",
+          "quote": "Image 2 is a reference ONLY for the alien hunters' signature cable-like head tendrils."
+        },
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1/00-hunter1-sprite_02.png.generated.json",
+          "quote": "This is a distinct design variation of the same hunter, not a new species."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-009",
+      "list": "design",
+      "kind": "feature",
+      "category": "Characters",
+      "title": "Hunter equipment",
+      "detail": "Each Hunter has armour with optic camo, a shoulder mount for a personal defensive weapon, strong arms for big guns, combat boots, a helmet with advanced targeting and a utility pack for passive enhancements.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "you have armour with optic camo"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "a shoulder mount that can fit a personal defensive weapons"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "a utility pack for passive enhancements"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-010",
+      "list": "design",
+      "kind": "feature",
+      "category": "Characters",
+      "title": "Silent, non-communicative characters",
+      "detail": "Characters do not speak, like Abe or a helmeted Halo soldier; players have to work out what to do without being told.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/05__signal-2026-11-15-13-28-49-068.txt",
+          "quote": "sewn shut, and I like the idea these characters are like non-communicative helmet on Halo style."
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/05__signal-2026-11-15-13-28-49-068.txt",
+          "quote": "You can't just tell someone what to do, it's too easy."
+        }
+      ],
+      "refs": [
+        "TF-062"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-011",
+      "list": "design",
+      "kind": "feature",
+      "category": "Enemies",
+      "title": "Human enemy roster",
+      "detail": "Character study humans: lab security, security, riot security (large riot shield), maintenance security, maintenance heavy security, maintenance elite, elite security, elite sniper, military soldier, military heavy soldier, supersoldier (cyan energy weapon) and augmented enforcer (cybernetic arm). Level ideas place lab staff and security with pistols in the lab, elite crew in the maintenance shaft, and cops and military on the streets.",
+      "status": "open",
+      "authors": [
+        "Character study",
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/13-lab_security/13-lab_security-sprite_01.png.generated.json",
+          "quote": "Preserve the pale lab security look and scarf."
+        },
+        {
+          "file": "berserker7/design/characterstudy/22-riot_security/22-riot_security-sprite_01.png.generated.json",
+          "quote": "The shield is the dominant recognizable shape"
+        },
+        {
+          "file": "berserker7/design/characterstudy/10-elite_sniper/10-elite_sniper-sprite_01.png.generated.json",
+          "quote": "Low-profile red armored marksman"
+        },
+        {
+          "file": "berserker7/design/characterstudy/14-maint_elite/14-maint_elite-sprite_01.png.generated.json",
+          "quote": "Hunched heavily equipped human maintenance elite"
+        },
+        {
+          "file": "berserker7/design/characterstudy/20-military_heavy_soldier/20-military_heavy_soldier-sprite_01.png.generated.json",
+          "quote": "Heavily built military trooper"
+        },
+        {
+          "file": "berserker7/design/characterstudy/24-supersoldier/24-supersoldier-sprite_01.png.generated.json",
+          "quote": "Athletic human supersoldier"
+        },
+        {
+          "file": "berserker7/design/characterstudy/32-augmented_enforcer/32-augmented_enforcer-sprite_01.png.generated.json",
+          "quote": "Preserve the human silhouette and augmented arm."
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "low powered human enemies, mostly lab and security with pistols"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "the city streets are swarming with cops and military now that they know of your escape"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-012",
+      "list": "design",
+      "kind": "feature",
+      "category": "Enemies",
+      "title": "Machine enemy roster: drones, mechs and turrets",
+      "detail": "Character study machines: a bulky gunship drone, a small patrol drone with a downward searchlight, a twin-fan security drone with a gripper, three humanoid combat mechs (two lean and fast, one bulky and hunched), and a bulky industrial bipedal mech with a multi-barrel gun. Level ideas add stationary turrets, a basic security bot and a gunship.",
+      "status": "open",
+      "authors": [
+        "Character study",
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/07-drone1/07-drone1-sprite_01.png.generated.json",
+          "quote": "industrial security gunship drone"
+        },
+        {
+          "file": "berserker7/design/characterstudy/08-drone2/08-drone2-sprite_01.png.generated.json",
+          "quote": "a conspicuous downward warm amber searchlight"
+        },
+        {
+          "file": "berserker7/design/characterstudy/34-security_drone/34-security_drone-sprite_01.png.generated.json",
+          "quote": "two large side-mounted circular ducted fans"
+        },
+        {
+          "file": "berserker7/design/characterstudy/17-mech1/17-mech1-sprite_01.png.generated.json",
+          "quote": "Lean, fast, humanoid combat machine in a low running gait"
+        },
+        {
+          "file": "berserker7/design/characterstudy/33-industrial_mech/33-industrial_mech-sprite_01.png.generated.json",
+          "quote": "A bulky industrial bipedal security mech"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "its a short walkway but has stationary turrets and a few drones and security"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-013",
+      "list": "design",
+      "kind": "feature",
+      "category": "Enemies",
+      "title": "Parasite and mutant enemy roster",
+      "detail": "Character study organisms: bio mimic (low, sprawling tentacled mass), bio spawner (wall-rooted maw), wall burster, sentient mould, nano swarm (mechanical shards around a glowing core), xenophage stalker (fast red quadruped), insectoid bug, cave scorpion, fungus-covered insectoid mutant, techno rat and sewer worm. Level ideas place giant mutant rats in the lower industrial complex.",
+      "status": "open",
+      "authors": [
+        "Character study",
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/05-bio_mimic/05-bio_mimic-sprite_01.png.generated.json",
+          "quote": "A low, sprawling, wet-looking dark crimson and black alien mimic creature"
+        },
+        {
+          "file": "berserker7/design/characterstudy/06-bio_spawner/06-bio_spawner-sprite_01.png.generated.json",
+          "quote": "A wall-rooted red fleshy alien growth"
+        },
+        {
+          "file": "berserker7/design/characterstudy/26-wall_burster/26-wall_burster-sprite_01.png.generated.json",
+          "quote": "A muscular crimson alien beast bursting out through a torn industrial steel wall"
+        },
+        {
+          "file": "berserker7/design/characterstudy/11-insectoid_bug/11-insectoid_bug-sprite_01.png.generated.json",
+          "quote": "A large low long-bodied insectoid beast"
+        },
+        {
+          "file": "berserker7/design/characterstudy/29-insectoid_mutant/29-insectoid_mutant-sprite_01.png.generated.json",
+          "quote": "glowing orange mushroom-like fungal growths across its back"
+        },
+        {
+          "file": "berserker7/design/characterstudy/27-sentient_mould/27-sentient_mould-sprite_01.png.generated.json",
+          "quote": "A sprawling olive-green and ochre sentient fungal colony"
+        },
+        {
+          "file": "berserker7/design/characterstudy/28-nano_swarm/28-nano_swarm-sprite_01.png.generated.json",
+          "quote": "A flying biomechanical nano-swarm"
+        },
+        {
+          "file": "berserker7/design/characterstudy/25-xenophage_stalker/25-xenophage_stalker-sprite_01.png.generated.json",
+          "quote": "Preserve the source's skeletal, fast predator silhouette"
+        },
+        {
+          "file": "berserker7/design/characterstudy/12-insectoid_scorpion/12-insectoid_scorpion-sprite_01.png.generated.json",
+          "quote": "A dark cave-dwelling scorpion-like alien"
+        },
+        {
+          "file": "berserker7/design/characterstudy/30-techno_rat/30-techno_rat-sprite_01.png.generated.json",
+          "quote": "Preserve the recognizable rat anatomy and organic-mechanical mixture."
+        },
+        {
+          "file": "berserker7/design/characterstudy/31-sewer_worm/31-sewer_worm-sprite_01.png.generated.json",
+          "quote": "Preserve its tubular worm silhouette and circular mouth."
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "here you encounter giant mutant rats, partially from the pollution and waste"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-014",
+      "list": "design",
+      "kind": "feature",
+      "category": "Enemies",
+      "title": "Wall-rooted organisms that cannot move",
+      "detail": "The bio spawner and the wall burster are rooted in architecture. The wall burster was revised to have no limbs at all: it is a sessile mass fused into a wall, with only its head and a short neck protruding. The first wall-burster study had legs; the revision supersedes it.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/26-wall_burster/26-wall_burster-sprite_05.png.generated.json",
+          "quote": "It cannot walk or detach."
+        },
+        {
+          "file": "berserker7/design/characterstudy/06-bio_spawner/06-bio_spawner-sprite_01.png.generated.json",
+          "quote": "Preserve the forward-projecting gaping maw and wall-rooted organic mass"
+        },
+        {
+          "file": "berserker7/design/characterstudy/26-wall_burster-sprite.png",
+          "quote": "",
+          "shows": "original wall burster: a red beast with legs and claws breaking out of a steel wall"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-015",
+      "list": "design",
+      "kind": "feature",
+      "category": "Enemies",
+      "title": "Authored encounters; introduce one enemy type at a time",
+      "detail": "MVP encounters were a random mix (humans, drones and aliens in the first five seconds). Author encounters per section and introduce enemy types deliberately.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "enemy encounters need to be more modulated and intentional, right now its a chaotic mix of anything and everything all at once"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "in the first 5 seconds there are dudes, drones, and aliens"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Author encounters per section, not per random pool."
+        }
+      ],
+      "refs": [
+        "TF-022"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-016",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Enemies",
+      "title": "Don't spawn enemies where they cannot stand",
+      "detail": "In the MVP, worms came out of floating platforms and giant mechs stood on them. Place enemies by size class on floor wide enough for them.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "worms appear out of floating platforms"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "giant mechs stand on floating platforms"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Size class needs floor width and ground."
+        }
+      ],
+      "refs": [
+        "TF-021"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-017",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Enemies",
+      "title": "Don't leave any spawner uncapped",
+      "detail": "An MVP boss summoned 112 rats in one run. Every spawner needs a cap.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Every spawner needs a cap."
+        }
+      ],
+      "refs": [
+        "TF-025"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-018",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Bosses",
+      "title": "Don't make every boss the same",
+      "detail": "In the MVP every boss shot projectiles and moved left and right. Each boss needs its own mechanics.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "Every boss is the same."
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "every boss is the same, shoot projectiles and move left and right"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/23__signal-2026-11-15-13-43-29-654.txt",
+          "quote": "the bosses need to do different things, they need to have different mechanics"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "every boss shoots projectiles and moves left and right"
+        }
+      ],
+      "refs": [
+        "TF-016"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-019",
+      "list": "design",
+      "kind": "feature",
+      "category": "Bosses",
+      "title": "Twin bosses",
+      "detail": "A boss fight against two bosses at once.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "there's twin bosses"
+        }
+      ],
+      "refs": [
+        "TF-016"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-020",
+      "list": "design",
+      "kind": "feature",
+      "category": "Bosses",
+      "title": "A boss that does not reveal itself straight away",
+      "detail": "A boss that stays hidden at first.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "there's a boss that doesn't"
+        }
+      ],
+      "refs": [
+        "TF-016"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-021",
+      "list": "design",
+      "kind": "feature",
+      "category": "Bosses",
+      "title": "Boss phases",
+      "detail": "Bosses change behaviour across phases, for example after a part falls off.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "or a boss with with phases"
+        },
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "part and a piece falls off, then he does something different"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/23__signal-2026-11-15-13-43-29-654.txt",
+          "quote": "there needs to be phases"
+        }
+      ],
+      "refs": [
+        "TF-017"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-022",
+      "list": "design",
+      "kind": "feature",
+      "category": "Bosses",
+      "title": "Breakable boss and enemy parts",
+      "detail": "Shoot parts off a boss or enemy and its behaviour changes, as with Metal Gear Rex: blow off a gun arm, or a leg so it hops.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/23__signal-2026-11-15-13-43-29-654.txt",
+          "quote": "ideally you want to be able to blow off a piece of an enemy, like remember Metal Gear Solid with Metal Gear Rex"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/23__signal-2026-11-15-13-43-29-654.txt",
+          "quote": "maybe blow off the leg and then it hops"
+        }
+      ],
+      "refs": [
+        "TF-018"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-023",
+      "list": "design",
+      "kind": "feature",
+      "category": "Bosses",
+      "title": "Rage phase",
+      "detail": "A boss rage phase, as in WoW raids: either do not touch the boss while it is angry, or it becomes a glass cannon to burst down. Combined idea: stick seismic charges on the boss, then shoot them when the rage phase starts. The transcript's \"range mechanic\" is most likely \"rage mechanic\".",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/19__signal-2026-11-15-13-39-19-771.txt",
+          "quote": "Don't you call like a rage mechanic when the boss is angry"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/19__signal-2026-11-15-13-39-19-771.txt",
+          "quote": "Or there's certain rage mechanics where he's weak when he's angry, but it's like glass cannon"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/19__signal-2026-11-15-13-39-19-771.txt",
+          "quote": "Shoot the seismics instead of shooting him"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/23__signal-2026-11-15-13-43-29-654.txt",
+          "quote": "range mechanic that I was talking about"
+        }
+      ],
+      "refs": [
+        "TF-019"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-024",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Bosses",
+      "title": "Don't lock bosses in cramped, identical rooms behind a barrier",
+      "detail": "MVP boss rooms were small, identical and sealed by a \"magic barrier\". Give each boss a unique arena with space to move, geometry that matters and a scripted entry.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "you get to the room and a magic barrier locks you in, its cramped, there nowhere to go, every room is the same"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/23__signal-2026-11-15-13-43-29-654.txt",
+          "quote": "the boss battles are in too much of an enclosed space"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/23__signal-2026-11-15-13-43-29-654.txt",
+          "quote": "you need space to move around"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "a unique arena per boss with geometry that matters, a scripted entry instead of a barrier"
+        }
+      ],
+      "refs": [
+        "TF-020"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-025",
+      "list": "design",
+      "kind": "feature",
+      "category": "Bosses",
+      "title": "Bio megaboss: a giant biomechanical hive organism",
+      "detail": "A monumental dragon-like hive creature of bone, wet red tissue and embedded industrial machinery, with cyan-glowing sacs. The name marks it as a boss; its fight is not described.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/04-bio_megaboss/04-bio_megaboss-sprite_01.png.generated.json",
+          "quote": "A gigantic biomechanical dragon-like hive organism"
+        },
+        {
+          "file": "berserker7/design/characterstudy/04-bio_megaboss-sprite.png",
+          "quote": "",
+          "shows": "huge red skeletal creature fused with industrial metal, cyan sacs at the rear"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-026",
+      "list": "design",
+      "kind": "feature",
+      "category": "Bosses",
+      "title": "Head of security boss",
+      "detail": "Level 1 ends on the streets with a fight against the head of security, the \"cyberpsycho\".",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "head honcho cyberpsycho (head of security)"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-027",
+      "list": "design",
+      "kind": "feature",
+      "category": "Bosses",
+      "title": "One huge room with one huge boss",
+      "detail": "Andy's example of a memorable deep level: a single huge room with a single huge boss, glimpsed on the map before arriving.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "it's like a one huge room with one huge boss"
+        }
+      ],
+      "refs": [
+        "TF-015"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-028",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Levels",
+      "title": "Don't build corridor levels that run right into a boss room",
+      "detail": "Every MVP level was the same: move right, then get trapped in a boss room. No corridor simulator, no straight-line levels.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "Every level's the same."
+        },
+        {
+          "file": "berserker7/feedback/mvp/andy/01__signal-2026-11-14-22-11-14-801.txt",
+          "quote": "no corridor simulator, no straight line mechanic"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "lack of interest or variation in levels, its just move right and get trapped in a boss room"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Generator chains chunks left to right, ending in an arena."
+        }
+      ],
+      "refs": [
+        "TF-002"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-029",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Platforms of alternating height, some destructible",
+      "detail": "Andy's level rule from Glyphblade: platforms at alternating heights, some destructible.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/01__signal-2026-11-14-22-11-14-801.txt",
+          "quote": "alternating height with some destructible platforms"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "platforms of alternating height, destructible platforms, no corridor runs"
+        }
+      ],
+      "refs": [
+        "TF-009"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-030",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Proper vertical sections",
+      "detail": "Whole sections that go up and down, built properly, not with floating platforms. Retro: shafts and multi-screen vertical rooms.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "levels could have entire sections where its not just move left/right but up and down, not on a floating platform, but properly"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Shafts, multi-screen vertical rooms."
+        }
+      ],
+      "refs": [
+        "TF-003"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-031",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Lifts and elevators instead of ladders",
+      "detail": "Ladders fit badly. Use elevators and other ways between floors: lifts, stairs, vents, shafts, grapple points.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "ladders are a poor choice in context, elevators would be nice as well as other features"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Lifts, stairs, vents, grapple points."
+        }
+      ],
+      "refs": [
+        "TF-004"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-032",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Levels",
+      "title": "Don't place objects with no reason to be there",
+      "detail": "MVP levels had floating ladders, street lights, pools of water, spikes and levitating platforms. Every object must be attached to something and make sense in its setting.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "random floating ladders -> makes no sense"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "random floating street lights -> makes no sense"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "random levitating platforms -> makes no sense"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "every object attached to something"
+        }
+      ],
+      "refs": [
+        "TF-005"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-033",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Secret areas",
+      "detail": "Hidden areas that give players a reason to explore, such as tokens, artifacts or weapon bonuses.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "secret areas, reason for exploration"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "each with a reason to explore (tokens, artifacts, weapon bonuses)."
+        }
+      ],
+      "refs": [
+        "TF-012"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-034",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Side routes through doors",
+      "detail": "Enter a door to appear \"inside\", adding depth and exploration.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "side routes (enter a door to appear in the \"inside\") - adds depth and exploration"
+        }
+      ],
+      "refs": [
+        "TF-013"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-035",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Physical puzzles",
+      "detail": "Puzzles such as pushing a box down to reach another area, as in Abe's Exoddus, so the game is not only run and gun. The transcript's \"Abs Exodus\" is read as Abe's Exoddus.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/05__signal-2026-11-15-13-28-49-068.txt",
+          "quote": "that have got physical puzzle in it, like, like Abs Exodus, like, it's like an obvious one where"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/05__signal-2026-11-15-13-28-49-068.txt",
+          "quote": "you have to push a box down to get to another bit and things like that."
+        }
+      ],
+      "refs": [
+        "TF-011"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-036",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Rare bonus loot stages",
+      "detail": "Rare, hard-to-find stages or secret rooms full of pickups, like the arcade game inside Call of Duty. Andy notes this may need a twist to fit the gritty tone.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "special stages where it's more like a loot grab loot got loot goblin situation"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "um but they're not they're like rare like rare levels to find"
+        }
+      ],
+      "refs": [
+        "TF-014"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-037",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "A map of the descent",
+      "detail": "A map uncovered as players go down in the lifts, hinting at what lies on the levels below.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "earth um also the that whole um mechanic of going down in the lifts is there a map so you can like"
+        }
+      ],
+      "refs": [
+        "TF-015"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-038",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Level-design reference games",
+      "detail": "Draw level design from Contra: Hard Corps, Sparkster and Rocket Knight Adventures (\"Contra, hardcore\" in the transcript), alongside Abuse.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/01__signal-2026-11-14-22-11-14-801.txt",
+          "quote": "inspo games to run from, like say, games like Contra, hardcore, games like Sparkster,"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Name reference games: Contra (e.g. Hard Corps), Sparkster, Rocket Knight Adventures, alongside"
+        }
+      ],
+      "refs": [
+        "TF-010"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-039",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Opening: escape from the lab cells",
+      "detail": "Both players start in cells opposite a torture device. A tortured inmate's hidden grenade falls out; he explodes, the grenade damages the machine, the lights fail, emergency lighting comes on and the cell doors open. In co-op player 1 is in the left cell and player 2 in the right.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "the players begin their journey captive inside two cells"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "the emergency lighting activates and the cell doors fling open"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "coop: the first cell (left) is player 1, the second cell (right) is player 2"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-040",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Lab to research facility: unarmed escape, then recover gear",
+      "detail": "Players run through the facility unarmed, fighting weak lab and security staff and scavenging health packs. In locker rooms they recover boots, armour, helmet and the plasma pistol; alarms sound, armoured guards rush in, and a basic security bot guards the exit.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "eventually you get to lockers rooms/safes where all your equipment is stored, you grab boots, armor, helmet and your basic weapons (plasma pistol)"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "you blast your way through to the exit where you encounter a basic security bot and head out to the walkway"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-041",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Walkway: raised bridge to the prison",
+      "detail": "A short raised bridge between the facility and the prison, with stationary turrets, drones and security, and a view of the background parallax.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "the walkway is a raised platform/bridge connecting the research facility to the prison cell building"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "chance to see some background visuals/parallax"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-042",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Prison cells: release inmates through a secret area",
+      "detail": "The prison goes underground. A secret area with a keycard lets players release inmates, who attack the guards unarmed and cause chaos; many of them die.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "you have the opportunity to release a few inmates here if you find a secret area with keycard"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "released inmates have no weapons and attack the guards causing chaos as you battle through, many will fail"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-043",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Lower industrial complex",
+      "detail": "Machines and conduits that power the facility. Giant mutant rats, and a first glimpse of the parasite. Players cross the complex to a maintenance shaft.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "get to the lower level of the prison and emerge into the lower industrial complex"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "but occasionally a glimpse of something more parasitic, you are on the right track"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-044",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Maintenance shaft: elevator ride under attack",
+      "detail": "Players ride a guarded supply elevator up; grenades are thrown down, drones are sent, and elite crew zip down. At the top they fight heavily armed goons.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "as the elevator rises, grenades are occasionally thrown down at you, drones are sent, and elite crew zip down"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-045",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Streets: surface fight to the level-1 boss",
+      "detail": "Streets full of cops, military, drones and turrets after the escape. Players cross the surface to the final checkpoint and the head of security.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "fight drones, security, and military crew as well as a few turrets"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "defeat him and level is over"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-046",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Level 2: car chase",
+      "detail": "Steal a cop car onto the highway, chased by a slow gunship. The driver only controls speed, the only way to dodge fire; the other player leans out shooting drones and destroys barricades with grenades or rockets. Stopping at barricades lets the gunship close in; an indicator grows as it nears, and if it catches up the car is destroyed.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "steal a cop car, hit the highway"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "in coop: the first player to get in the car becomes the driver"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "the driving player can slow down or speed up the car, this is the only way to avoid incoming fire"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "an indicator on the left grows in size as gunship gets closer"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-047",
+      "list": "design",
+      "kind": "feature",
+      "category": "Hazards",
+      "title": "Hazards with a cause that fits the setting",
+      "detail": "Every hazard must be contextually relevant and have a visible source, for example a broken pipe floods a room or a shorted cable arcs.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "hazards should be contextually relevant or have an excuse to be there"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "environmental hazards need to be thought out and make sense"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "every hazard with a cause (a broken pipe floods a room, a shorted cable arcs)"
+        }
+      ],
+      "refs": [
+        "TF-006"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-048",
+      "list": "design",
+      "kind": "feature",
+      "category": "Hazards",
+      "title": "Flames, electricity and point-to-point lasers",
+      "detail": "Hazards that suit the game: flames, electricity, laser beams between two points, or all of these.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/03__signal-2026-11-14-22-12-44-128.txt",
+          "quote": "either like flames or electricity or some other kind of hazard"
+        },
+        {
+          "file": "berserker7/feedback/mvp/andy/03__signal-2026-11-14-22-12-44-128.txt",
+          "quote": "laser beam from point to point or something as a hazard or all of the above rather than spikes."
+        }
+      ],
+      "refs": [
+        "TF-008"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-049",
+      "list": "design",
+      "kind": "feature",
+      "category": "Hazards",
+      "title": "Spike hazards",
+      "detail": "Rejected: spikes are \"Sonic 1 style\" and do not fit the game.",
+      "status": "rejected",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/03__signal-2026-11-14-22-12-44-128.txt",
+          "quote": "What else? I'd get rid of the spikes"
+        },
+        {
+          "file": "berserker7/feedback/mvp/andy/03__signal-2026-11-14-22-12-44-128.txt",
+          "quote": "The spikes were totally sonic one"
+        }
+      ],
+      "refs": [
+        "TF-008"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-050",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Hazards",
+      "title": "Don't let players run past hazards for free",
+      "detail": "In the MVP, holding forward and jumping fast avoided hazard damage; only enemies killed players. Hazards that can be run past are scenery.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/02__signal-2026-11-14-22-12-06-325.txt",
+          "quote": "and jump really fast you don't really take any damage"
+        },
+        {
+          "file": "berserker7/feedback/mvp/andy/02__signal-2026-11-14-22-12-06-325.txt",
+          "quote": "run and jump forward you won't die it's the enemies that kill you"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Players skip anything that doesn't hurt them: hazards that can be run past are scenery."
+        }
+      ],
+      "refs": [
+        "TF-007"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-051",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Fewer, distinct weapons with clear roles and trade-offs",
+      "detail": "Weapons should feel powerful and each have a clear use, advantages and disadvantages, so players do not settle on one best gun. Retro: write a weapon roles table before building.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "needs to be more and better weapons, weapons need to feel powerful but have clear use cases and advantages/disadvantages"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "more weapon choices"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/07__signal-2026-11-15-13-32-02-000.txt",
+          "quote": "is the best gun and just stick with that go all through you figure out that one's not good never"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Weapon roles table before building."
+        }
+      ],
+      "refs": [
+        "TF-026"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-052",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Weapons",
+      "title": "Don't add a pickup that is worse than the starting gun",
+      "detail": "A weapon with less range than the starting gun reads as a downgrade, whatever its damage figure; players avoid picking it up.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/05__signal-2026-11-14-22-13-42-826.txt",
+          "quote": "Also that plasma cutter is like a weapon downgrade. I was trying not to get it"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "A weapon with a worse range than the starting gun reads as a downgrade, whatever its damage figure."
+        }
+      ],
+      "refs": [
+        "TF-027"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-053",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Plasma cutter (MVP weapon)",
+      "detail": "Rejected: less range and seemingly less damage than the starting gun.",
+      "status": "rejected",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/05__signal-2026-11-14-22-13-42-826.txt",
+          "quote": "It's got less range and seemingly less damage than stock. So I'd just get rid of it"
+        }
+      ],
+      "refs": [
+        "TF-027"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-054",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Weapons",
+      "title": "Don't clutter the arsenal",
+      "detail": "Do not add everything that can be thought of; keep the weapons down to earth.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "so much you could put in it but at the same time you don't want to just clutter it with junk it"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "doesn't want to be just a collection of everything you could think of you want to keep it down to"
+        }
+      ],
+      "refs": [
+        "TF-033"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-055",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Starting weapon: plasma pistol",
+      "detail": "The Hunters' basic weapon, recovered from the facility lockers.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "your basic weapons (plasma pistol)"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-056",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Unarmed melee: punches and headbutts",
+      "detail": "At the start of level 1 the Hunters are unarmed and fight with punches and headbutts.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "you are unarmed and rely on melee punches and headbutts"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-057",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Faster, punchier player shots",
+      "detail": "Player projectiles should be faster and feel more powerful. Retro: impact effects, recoil and hit-stop.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "make player projectiles faster and punchier so they feel more powerful"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Faster shots, impact effects, recoil, hit-stop."
+        }
+      ],
+      "refs": [
+        "TF-034"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-058",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Rocket launcher",
+      "detail": "Add a rocket launcher (\"check that in there\" is most likely \"chuck that in there\").",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/05__signal-2026-11-14-22-13-42-826.txt",
+          "quote": "What else be good to have a rocket launcher and check that in there"
+        }
+      ],
+      "refs": [
+        "TF-028"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-059",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Collectible throwable grenades and seismic charges",
+      "detail": "Collectible grenades or seismic charges thrown with one button and lobbed ahead, like the Call of Duty grenade on R3.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "mechanic in Call of Duty where you like click R3 and it throws a grenade. Having that like"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "it properly but like being able to grab seismic charges and stuff like that and like lob them"
+        }
+      ],
+      "refs": [
+        "TF-030"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-060",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Throw explosives, then shoot them to detonate",
+      "detail": "Thrown or planted charges that the player sets off by shooting them. Ties in with the boss rage-phase idea.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/18__signal-2026-11-15-13-38-01-923.txt",
+          "quote": "throw explosives, but then shoot them to set them off. That was awesome."
+        }
+      ],
+      "refs": [
+        "TF-041",
+        "TF-019"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-061",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Ammo scarcity",
+      "detail": "Limited ammunition so players choose when to shoot, making the game less about spamming bullets. Andy leaves the pace open: if the game should be pure run and gun, this is not needed.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "maybe there's an ammo scarcity"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/15__signal-2026-11-15-13-36-18-243.txt",
+          "quote": "the more you complexify the game, the less it is going to be just spam bullets and they're gone."
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/15__signal-2026-11-15-13-36-18-243.txt",
+          "quote": "hide, let him bleed. I don't know if you want that though, I don't know if that's too slow-paced"
+        }
+      ],
+      "refs": [
+        "TF-031"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-062",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Rare homing weapons",
+      "detail": "Rare or quickly used-up homing weapons, like the homing missiles in Super Fantasy Zone.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "don't know if you had any like homing homing style weapons that were like rare or you know"
+        }
+      ],
+      "refs": [
+        "TF-032"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-063",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Armour-piercing weapons",
+      "detail": "Slow, armour-piercing guns, like an elephant gun, needed against armoured enemies and bosses where the pulse rifle fails.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/07__signal-2026-11-15-13-32-02-000.txt",
+          "quote": "and like if some guns were like armor piercing versus like armored bosses and stuff"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/07__signal-2026-11-15-13-32-02-000.txt",
+          "quote": "it's slow firing right like an elephant gun like but it pierces the armor"
+        }
+      ],
+      "refs": [
+        "TF-035"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-064",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Carry weapons and cycle them until empty",
+      "detail": "Keep picked-up guns and cycle through them; a gun leaves the selection when its ammo runs out. Auto-switching to whatever gun is picked up is annoying.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/07__signal-2026-11-15-13-32-02-000.txt",
+          "quote": "grab the guns and cycle through them and then when they expend their ammunition they just"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/07__signal-2026-11-15-13-32-02-000.txt",
+          "quote": "just disappear from the selection set and way better, way way better."
+        }
+      ],
+      "refs": [
+        "TF-036"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-065",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "A real flamethrower: liquid napalm, long range, sets targets burning",
+      "detail": "The MVP flamethrower fired balls. Deano: a real liquid flamethrower, Vietnam style, napalm and long range. Andy: targets keep burning after being hit.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "its going to be a REAL flamethrower, not a gas thrower, a liquid thrower. vietnam style, napalm and long range"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/13__signal-2026-11-15-13-35-13-203.txt",
+          "quote": "Also, by the way your flamethrower was a ball shooter, not a flamethrower"
+        }
+      ],
+      "refs": [
+        "TF-037"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-066",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Fire grenade or Molotov cocktail",
+      "detail": "A fire grenade or Molotov cocktail.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/16__signal-2026-11-15-13-36-33-774.txt",
+          "quote": "You want to add a fire grenade to Molotov Cocktail or whatever, that's very satisfying."
+        }
+      ],
+      "refs": [
+        "TF-039"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-067",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Rare novelty weapons, harsh and gory",
+      "detail": "Very rare novelty weapons (for example a gun that fires a sword), kept harsh and gory enough to fit the gritty tone.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/17__signal-2026-11-15-13-37-30-905.txt",
+          "quote": "with novelty weapons that are really rare"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/17__signal-2026-11-15-13-37-30-905.txt",
+          "quote": "weapon is harsh and gory enough it works"
+        }
+      ],
+      "refs": [
+        "TF-040"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-068",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "A BFG: Lorentz plasma cannon or Tesla coil backpack",
+      "detail": "There will be a BFG-style homage weapon; candidates are a Lorentz plasma cannon or a Tesla coil backpack. Andy suggests homages to classic games in general.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "and we WILL have a bfg, im thinking the lorentz plasma cannon"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "or the tesla coil backpack"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/03__signal-2026-11-15-13-24-26-604.txt",
+          "quote": "You could do loads of homage stuff as well, like remember the BFG."
+        }
+      ],
+      "refs": [
+        "TF-042"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-069",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Bonus for picking up a weapon you already have",
+      "detail": "A duplicate pickup gives a bonus, not only ammo (the MVP gave ammo only).",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "weapon bonus when picking up one you already have"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Gives ammo only."
+        }
+      ],
+      "refs": [
+        "TF-043"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-070",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Deployable turret",
+      "detail": "A turret players can pick up and drop.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "deployables like a turret that you can pick up and drop"
+        }
+      ],
+      "refs": [
+        "TF-044"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-071",
+      "list": "design",
+      "kind": "feature",
+      "category": "Combat",
+      "title": "Burn and bleed damage over time",
+      "detail": "Damage-over-time effects: burning (flamethrower, fire grenade) and bleeding, as with Diablo II's open wounds. With scarce ammo: shoot once, hide, let the enemy bleed.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/14__signal-2026-11-15-13-35-41-771.txt",
+          "quote": "Two really underrated DOTs, damage over times, are burn and bleed."
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/13__signal-2026-11-15-13-35-13-203.txt",
+          "quote": "like they continue to burn, burn damage"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/15__signal-2026-11-15-13-36-18-243.txt",
+          "quote": "but your weapon might have bleed effect, so you literally have to save your bullet, shoot once,"
+        }
+      ],
+      "refs": [
+        "TF-038"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-072",
+      "list": "design",
+      "kind": "feature",
+      "category": "Combat",
+      "title": "Status effects such as a flashbang",
+      "detail": "Weapons that disrupt enemies, for example a flashbang that blinds them so their aim goes wild.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/04__signal-2026-11-15-13-27-28-818.txt",
+          "quote": "stuff and you can also have like status ailments where like you know a flashbang blinds the enemy"
+        }
+      ],
+      "refs": [
+        "TF-024"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-073",
+      "list": "design",
+      "kind": "feature",
+      "category": "Combat",
+      "title": "Armour; players must survive longer",
+      "detail": "Players died very quickly in the MVP; they need armour or another way to survive longer.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "players need to be able to get armour or something, they die super quick"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Armour pickups and upgrades."
+        }
+      ],
+      "refs": [
+        "TF-057"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-074",
+      "list": "design",
+      "kind": "feature",
+      "category": "Combat",
+      "title": "Health packs",
+      "detail": "Players scavenge health packs to keep going.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "you scavenge healthpacks to keep you going"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-075",
+      "list": "design",
+      "kind": "feature",
+      "category": "Controls and movement",
+      "title": "Better jump",
+      "detail": "Improve the jump. Impact's Biolab player is a reference: separate ground and air acceleration and friction, a jump buffer and variable jump height (the MVP already had coyote time, buffering and variable jump).",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "better jump, better animations, more dynamic characters etc"
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "The Biolab player has separate ground and air acceleration and friction"
+        }
+      ],
+      "refs": [
+        "TF-083"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-076",
+      "list": "design",
+      "kind": "feature",
+      "category": "Progression",
+      "title": "Upgrade in the lift between levels",
+      "detail": "Between levels the players ride a lift down, shown as a visible descent scene, and pick an upgrade from a modal (a shop). Upgrades last for the campaign session. References: Raptor: Call of the Shadows; Andy's examples are a longer health bar and faster fire.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "When you finish a stage and you get in"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "intermission between levels where players can upgrade between levels"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "i really liked the intermission for upgrades, i liked that in raptor:call of the shadows"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "between levels, have a visible elevator descent scene where players can go to a modal (a shop) to pick an upgrade which is permanent for the campaign session"
+        }
+      ],
+      "refs": [
+        "TF-049",
+        "TF-051"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-077",
+      "list": "design",
+      "kind": "feature",
+      "category": "Progression",
+      "title": "Start weak and grow stronger",
+      "detail": "Early levels have slow fire and slow movement, so each upgrade feels like a real gain.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "make it really slow rate of fire,"
+        },
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "slow movement speed as well at the beginning levels"
+        }
+      ],
+      "refs": [
+        "TF-050"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-078",
+      "list": "design",
+      "kind": "feature",
+      "category": "Progression",
+      "title": "Armour upgrades that show on the character",
+      "detail": "Keep upgrades grounded, not Vampire Survivors-style power-ups: armour visibly gets heavier each level, shown as the character appears at the next stage. The upgrade could be the loading screen. Andy also proposes performance upgrades (health, fire rate) where armour adds resilience as well as looks.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/21__signal-2026-11-15-13-41-04-874.txt",
+          "quote": "survivors type power ups, like in Glyphblade, but like you just literally upgrade your armor"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/21__signal-2026-11-15-13-41-04-874.txt",
+          "quote": "The loading screen would be, like, upgrading your armor, and then when you hit the next"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/25__signal-2026-11-15-13-45-28-412.txt",
+          "quote": "If the upgrades are going to be more like performance based than just armor aesthetics it would be"
+        }
+      ],
+      "refs": [
+        "TF-052",
+        "TF-051"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-079",
+      "list": "design",
+      "kind": "feature",
+      "category": "Progression",
+      "title": "Two different upgrades per lift, split between players",
+      "detail": "Each lift offers two different upgrades and the players must agree who takes which; with silent characters, that negotiation is the point.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/25__signal-2026-11-15-13-45-28-412.txt",
+          "quote": "really cool if you had to pick like every lift there was two upgrades and you didn't just both"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/25__signal-2026-11-15-13-45-28-412.txt",
+          "quote": "decisions like that is probably the coolest mechanic about it"
+        }
+      ],
+      "refs": [
+        "TF-053"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-080",
+      "list": "design",
+      "kind": "feature",
+      "category": "Progression",
+      "title": "Upgrades with trade-offs",
+      "detail": "Upgrades can carry a downside, for example faster fire but less damage per bullet, or more armour but heavier.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/25__signal-2026-11-15-13-45-28-412.txt",
+          "quote": "negatives as part of the upgrade like you know you shoot faster but um i don't know bullets do"
+        }
+      ],
+      "refs": [
+        "TF-054"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-081",
+      "list": "design",
+      "kind": "feature",
+      "category": "Progression",
+      "title": "Tokens to spend between levels",
+      "detail": "Collect artifacts or tokens during a level and spend them at the end of it.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "collecting artifacts or tokens or something to spend at end of level"
+        }
+      ],
+      "refs": [
+        "TF-055"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-082",
+      "list": "design",
+      "kind": "feature",
+      "category": "Progression",
+      "title": "Mid-level safe zones that must be activated",
+      "detail": "Mid-level safe zones or airlocks where players can upgrade; they may need activating first. Impact's checkpoint entity is the pattern; whether a checkpoint is shared or per player in co-op is still to be decided.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "mid-point safe zones/air lock (level context needed) where players can upgrade (plot twist: maybe these need to be activated somehow to enable them)"
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Co-op: whether a checkpoint is shared or per player is a design decision."
+        }
+      ],
+      "refs": [
+        "TF-056"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-083",
+      "list": "design",
+      "kind": "feature",
+      "category": "Co-op",
+      "title": "Two-player puzzle mechanics",
+      "detail": "Tasks that need both players, such as one holding a cage up while the other passes through.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/22__signal-2026-11-15-13-41-56-275.txt",
+          "quote": "something that I really would like in it would be co-op mechanics like where one"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/22__signal-2026-11-15-13-41-56-275.txt",
+          "quote": "player has to go up and hold a button to hold a cage up and while the other"
+        }
+      ],
+      "refs": [
+        "TF-059"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-084",
+      "list": "design",
+      "kind": "feature",
+      "category": "Co-op",
+      "title": "Friendly fire: off, reduced, or slow-only (undecided)",
+      "detail": "Conflict: Andy hates friendly-fire damage; Deano will experiment with it on but much reduced, as a deterrent to chaos. Andy's alternative: friendly fire slows the partner instead of damaging them.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/20__signal-2026-11-15-13-40-15-805.txt",
+          "quote": "But as a rule generally, I hate when a game has got friendly fire damage on."
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "maybe friendly fire is on but way reduced i dunno ill experiment with it. even if its minor and just a deterrant to going full chaos"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/24__signal-2026-11-15-13-43-59-488.txt",
+          "quote": "What if friendly fire didn't inflict damage? It just inflicted slow, like it slowed you down."
+        }
+      ],
+      "refs": [
+        "TF-060",
+        "TF-061"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-085",
+      "list": "design",
+      "kind": "feature",
+      "category": "Co-op",
+      "title": "Shield while reviving a partner",
+      "detail": "Healing another player raises a short, low-power forcefield that reduces damage slightly and buys time.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "when healing another player they should activate a short low power forcefield to reduce damage slightly/buy time"
+        }
+      ],
+      "refs": [
+        "TF-058"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-086",
+      "list": "design",
+      "kind": "feature",
+      "category": "Co-op",
+      "title": "Non-verbal signal button",
+      "detail": "A button makes the character do a random gesture (eyes flash Predator-style, points a hand); players invent their own signals. Inspired by Abe's Oddysee chants and gestures.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "odyssee style gimmick signals"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "push a button and your character does a random nondescript thing - eyes flash (predator style), points a hand, etc - players define their own communication schema"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/09__signal-2026-11-15-13-32-43-520.txt",
+          "quote": "do you remember Eaboo's like, what is it he says like follow me, hello, hello follow me"
+        }
+      ],
+      "refs": [
+        "TF-063"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-087",
+      "list": "design",
+      "kind": "feature",
+      "category": "Co-op",
+      "title": "Voice chat",
+      "detail": "Rejected: no voice chat in this game; silent characters make players work things out.",
+      "status": "rejected",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/05__signal-2026-11-15-13-28-49-068.txt",
+          "quote": "I get what you're saying about voice chat, I actually don't think voice chat for this one."
+        }
+      ],
+      "refs": [
+        "TF-062"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-088",
+      "list": "design",
+      "kind": "feature",
+      "category": "Modes and difficulty",
+      "title": "Single player with an AI buddy (the inmate)",
+      "detail": "In single player the second cell holds an inmate who acts as an AI buddy. On easy he is a coward and stays put; on standard and hard he follows you; on extreme he runs off and leaves you. In the car chase he appears on easy; on extreme you drive and shoot alone.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "singleplayer: the first cell is the player, the second cell is the inmate (ai buddy)"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "singleplayer: on easy the inmate is a coward and stays put, standard and hard difficulty the inmate follows you, on extreme he runs out and leaves you behind"
+        },
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "if on extreme you need to drive and shoot on your own"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-089",
+      "list": "design",
+      "kind": "feature",
+      "category": "Modes and difficulty",
+      "title": "Four difficulty levels",
+      "detail": "Easy, standard, hard and extreme.",
+      "status": "open",
+      "authors": [
+        "Level ideas"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/levels/level-ideas.md",
+          "quote": "on easy the inmate is a coward and stays put, standard and hard difficulty"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-090",
+      "list": "design",
+      "kind": "feature",
+      "category": "Controls and movement",
+      "title": "Number keys for weapons",
+      "detail": "Bind weapons to keys 1 to 4 or more for quick switching (the MVP already did this).",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/07__signal-2026-11-15-13-32-02-000.txt",
+          "quote": "key bindings to one two three four we have an awesome mechanic just being able to switch gun"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "so right now technophage uses number keys for gun switching already"
+        }
+      ],
+      "refs": [
+        "TF-045"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-091",
+      "list": "design",
+      "kind": "feature",
+      "category": "Controls and movement",
+      "title": "Radial weapon menu, revolver-style, possibly the default",
+      "detail": "A radial weapon menu like Alien Soldier's, expanded beyond four slots, that turns like a revolver cylinder with a strong click sound. Andy wants it as the default; Deano will experiment and may make it the default.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/11__signal-2026-11-15-13-34-18-746.txt",
+          "quote": "Like genuinely just grab the alien soldier radio menu thing and it make it expand to more than four"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/11__signal-2026-11-15-13-34-18-746.txt",
+          "quote": "Revolver style the sound is everything if there's a really cool engage sound when it clicks round it's gonna be awesome"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/12__signal-2026-11-15-13-34-46-084.txt",
+          "quote": "Now, do the radial menu for default, even purely for aesthetics."
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "like the revolver and click sound for radial menu"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "maybe use radial menu as the default"
+        }
+      ],
+      "refs": [
+        "TF-046"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-092",
+      "list": "design",
+      "kind": "feature",
+      "category": "Controls and movement",
+      "title": "Mouse/touchpad-only control scheme",
+      "detail": "Many laptops disable the touchpad while keys are held, so a mouse-only scheme with click-toggle fire is needed. Carried over from the MVP.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Many laptops disable the touchpad while keys are held, so keyboard + touchpad play does not work; a mouse-only scheme is needed."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Mouse/touchpad-only control scheme and click-toggle fire"
+        }
+      ],
+      "refs": [
+        "TF-047"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-093",
+      "list": "design",
+      "kind": "feature",
+      "category": "Controls and movement",
+      "title": "One clear secondary-fire button in every control mode",
+      "detail": "Andy could not use the right-click grenade launcher; in the MVP its button differed between control modes. Use one clear secondary-fire button everywhere and show its ammo on the HUD.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/06__signal-2026-11-14-22-13-54-050.txt",
+          "quote": "Also, I'm sure in a previous iteration I had a grenade launcher on my gun with a right click."
+        },
+        {
+          "file": "berserker7/feedback/mvp/andy/06__signal-2026-11-14-22-13-54-050.txt",
+          "quote": "In that current game I couldn't seem to use it, it wasn't working."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "One clear secondary-fire button in every control mode; show its ammo on the HUD."
+        }
+      ],
+      "refs": [
+        "TF-029"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-094",
+      "list": "design",
+      "kind": "feature",
+      "category": "Controls and movement",
+      "title": "Mobile-friendly controls",
+      "detail": "Support controls that work on mobile.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "add support for mobile-friendly controls"
+        }
+      ],
+      "refs": [
+        "TF-048"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-095",
+      "list": "design",
+      "kind": "feature",
+      "category": "HUD and UI",
+      "title": "A better HUD with clearly labelled weapons",
+      "detail": "The MVP HUD was poor; weapons need to be clearer, with numbered labels.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "better hud/ui"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "the hud is fucking shite"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "guns clearer - with a numbered label"
+        }
+      ],
+      "refs": [
+        "TF-093"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-096",
+      "list": "design",
+      "kind": "feature",
+      "category": "HUD and UI",
+      "title": "Character selection in the lobby",
+      "detail": "Players choose their character in the lobby or menu, as classic games do.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "i want the lobby/menu to have character selection"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "like all the nostalgics do"
+        }
+      ],
+      "refs": [
+        "TF-094"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-097",
+      "list": "design",
+      "kind": "feature",
+      "category": "HUD and UI",
+      "title": "Better loading, menu and transition screens",
+      "detail": "Improve the loading, menu and transition screens.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "better loading, menu, transition, screens etc"
+        }
+      ],
+      "refs": [
+        "TF-095"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-098",
+      "list": "design",
+      "kind": "feature",
+      "category": "HUD and UI",
+      "title": "Highlight pickups and crates; crates react when shot",
+      "detail": "Players could not tell what crates were. Add a glint or pulsing light to pickups and crates, and make crates visibly react when shot, as in Contra.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/04__signal-2026-11-14-22-13-17-550.txt",
+          "quote": "I would add some highlighting onto power-ups and things as well, like there was chests."
+        },
+        {
+          "file": "berserker7/feedback/mvp/andy/04__signal-2026-11-14-22-13-17-550.txt",
+          "quote": "Honestly, first when I saw the chests, I was like, am I supposed to press a button to open that?"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "add a glint to pickups and crates or something"
+        }
+      ],
+      "refs": [
+        "TF-078"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-099",
+      "list": "design",
+      "kind": "feature",
+      "category": "Art direction",
+      "title": "Gritty 1990s PC side-scroller pixel-art look",
+      "detail": "Most character-study prompts ask for a richly detailed, gritty 1990s PC side-scrolling pixel-art look: dark, worn industrial materials, controlled highlights and readable silhouettes.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1/00-hunter1-sprite_02.png.generated.json",
+          "quote": "Match the original's richly detailed gritty 1990s PC pixel-art sprite aesthetic, dark worn materials, controlled highlights and readable shapes."
+        },
+        {
+          "file": "berserker7/design/characterstudy/25-xenophage_stalker/25-xenophage_stalker-sprite_01.png.generated.json",
+          "quote": "Preserve the reference's gritty detailed 1990s PC side-scrolling pixel-art aesthetic, dark industrial science-fiction and controlled highlights."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-100",
+      "list": "design",
+      "kind": "feature",
+      "category": "Art direction",
+      "title": "Parasite look: red flesh fused with industrial machinery",
+      "detail": "Parasite organisms combine bone, wet red tissue and corroded industrial metal, matching a world where alien life and machinery have fused.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/04-bio_megaboss/04-bio_megaboss-sprite_01.png.generated.json",
+          "quote": "Preserve the monumental asymmetrical combination of bone, wet red alien tissue and embedded industrial machinery"
+        },
+        {
+          "file": "berserker7/design/characterstudy/25-xenophage_stalker-sprite.png",
+          "quote": "",
+          "shows": "red skeletal alien quadruped with hooked claws and a long arched tail"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-101",
+      "list": "design",
+      "kind": "feature",
+      "category": "Art direction",
+      "title": "Zone mood references: MVP scene mockups",
+      "detail": "The seven MVP scene mockups (surface megacity, cyberpunk surface, lower megacity, city underbelly, caverns, bio-terror caverns, infested depths) are the visual and aesthetic reference; character studies use them as world references.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/readme.md",
+          "quote": "original reference scene mockups for visual and aesthetic design"
+        },
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1/00-hunter1-sprite_02.png.generated.json",
+          "quote": "images 2 and 3 are world and aesthetic references, not backgrounds to reproduce"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "D-102",
+      "list": "design",
+      "kind": "feature",
+      "category": "Art direction",
+      "title": "Carry over the MVP art direction",
+      "detail": "Keep the MVP's art direction: zone palettes, materials and readability rules.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Art direction (zone palettes, materials, readability rules)"
+        }
+      ],
+      "refs": [
+        "TF-113"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-103",
+      "list": "design",
+      "kind": "feature",
+      "category": "Art direction",
+      "title": "Eerie, crepuscular caverns",
+      "detail": "Cavern areas should feel eerie and crepuscular, as in Mega Drive games, not Tomb Raider. Andy will pull the mood from about three of his Mega Drive games, and named Alien Soldier, because agents misread his descriptions.",
+      "status": "open",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/01__signal-2026-11-15-13-22-30-467.txt",
+          "quote": "about when I'm talking about like cavernous games, eerie, crepuscular vibes. It always gives me the"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/01__signal-2026-11-15-13-22-30-467.txt",
+          "quote": "I'm going to look through, basically look through my physical Mega Drive games, go all the way through"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/06__signal-2026-11-15-13-29-32-271.txt",
+          "quote": "Did you ever play, what's it called, Alien Soldier on the Mega Drive? Alien Soldier."
+        }
+      ],
+      "refs": [
+        "TF-084"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-104",
+      "list": "design",
+      "kind": "feature",
+      "category": "Art direction",
+      "title": "Unique parallax backgrounds per level type",
+      "detail": "Each level type needs its own background parallax layers, not a single blurred screenshot: repeating layers plus one-off layers for local features and transitions.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "every single level type needs unique background parallax layers (not a single blurred screenshot or single bg) both with repeating layers, and one-shot layers for unique local background features or transitions"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Per zone: several repeating parallax layers, plus one-off layers for local landmarks and zone transitions."
+        }
+      ],
+      "refs": [
+        "TF-080"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-105",
+      "list": "design",
+      "kind": "feature",
+      "category": "Art direction",
+      "title": "Unique tilesets and enemies per level type",
+      "detail": "Each level type needs its own tileset and enemy set (the MVP recoloured one code-drawn tileset per zone).",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "every single level type needs unique tilesets and enemies"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Code-drawn tiles recoloured per zone."
+        }
+      ],
+      "refs": [
+        "TF-081"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-106",
+      "list": "design",
+      "kind": "feature",
+      "category": "Art direction",
+      "title": "Lighting designed with the art (deferred)",
+      "detail": "MVP lighting did not add atmosphere. Deano wants lighting but defers it for now. Retro: decide which lights exist and what they reveal; lights belong to placed objects.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "lighting is a nice touch but it feels not well thought out / doesnt add to atmosphere right now - lets assume we want it, but ditch it for now"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Lights belong to placed objects, not to free-floating markers."
+        }
+      ],
+      "refs": [
+        "TF-082"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-107",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Art direction",
+      "title": "Avoid shipping programmer art",
+      "detail": "Much of the MVP art stayed code-drawn even though proper art was requested: the art pass returned concept studies, not game-ready assets.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "theres still tons of programmer art even though it was requested to make proper art"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "it was requested in full, and the work came back as concept studies, not as game-ready assets."
+        }
+      ],
+      "refs": [
+        "TF-073"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-108",
+      "list": "design",
+      "kind": "feature",
+      "category": "Animation and effects",
+      "title": "Death animations for everyone; enemies leave corpses",
+      "detail": "Every player and enemy needs a death animation; enemies leave a corpse.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "You need like death animations for each"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "players need a death animation"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "all enemies need a death animation and corpse"
+        }
+      ],
+      "refs": [
+        "TF-074"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-109",
+      "list": "design",
+      "kind": "feature",
+      "category": "Animation and effects",
+      "title": "Kill debris (MVP)",
+      "detail": "Rejected: Andy wants the debris that flew around on MVP kills removed. Conflict: Deano keeps gibs for explosive or extreme deaths (separate item); Andy did not address that case.",
+      "status": "rejected",
+      "authors": [
+        "Andy"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/00__signal-2026-11-14-22-10-14-836.txt",
+          "quote": "flies around when you kill stuff. I just get rid of that."
+        }
+      ],
+      "refs": [
+        "TF-075"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-110",
+      "list": "design",
+      "kind": "feature",
+      "category": "Animation and effects",
+      "title": "Gibs only for explosive or extreme deaths",
+      "detail": "Keep gibs for deaths from explosive or extreme damage.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "save giblets for actual explosive deaths (extreme damage)"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Damage threshold for gibbing."
+        }
+      ],
+      "refs": [
+        "TF-075"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-111",
+      "list": "design",
+      "kind": "feature",
+      "category": "Animation and effects",
+      "title": "Remains settle and sink into the floor",
+      "detail": "Gibs and remains slowly sink into the floor instead of fading out.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "giblets should slowly sink into floor, not fade"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "remains settle and sink rather than fade"
+        }
+      ],
+      "refs": [
+        "TF-077"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-112",
+      "list": "design",
+      "kind": "feature",
+      "category": "Animation and effects",
+      "title": "Claws-out grab animation for the stalker lunge",
+      "detail": "The red alien (stalker) needs a grabbing, claws-out animation when it lunges.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "the red aliens when they lunge at the player dont have an appropriate animation, should be like a grabbing animation, claws out"
+        }
+      ],
+      "refs": [
+        "TF-079"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-113",
+      "list": "design",
+      "kind": "feature",
+      "category": "Animation and effects",
+      "title": "Better animations and more dynamic characters",
+      "detail": "Better animations across characters, and characters that feel more dynamic.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "better jump, better animations, more dynamic characters etc"
+        }
+      ],
+      "refs": [
+        "TF-083"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-114",
+      "list": "design",
+      "kind": "feature",
+      "category": "Audio",
+      "title": "Reuse the MVP's recorded sound samples",
+      "detail": "The MVP's recorded samples were an improvement over its earlier blips and clicks; carry them over, except the bfxr heartbeat and plasma loop.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "other sounds seemed appropriate for now and was improved over the blips and clicks from before"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Sound library index and the 45 chosen samples (except the bfxr heartbeat and plasma loop)"
+        }
+      ],
+      "refs": [
+        "TF-090",
+        "TF-113"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-115",
+      "list": "design",
+      "kind": "feature",
+      "category": "Audio",
+      "title": "MVP bfxr heartbeat sound",
+      "detail": "Rejected: the new heartbeat was loud and sounded like an alarm; the old one was fine. Restoring the old one is a separate item.",
+      "status": "rejected",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "the newly chosen heartbeat sound was a lot worse than the old one, was loud and sounded like an alarm - the old one was ok"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Restore the old heartbeat; audition step."
+        }
+      ],
+      "refs": [
+        "TF-087"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-116",
+      "list": "design",
+      "kind": "feature",
+      "category": "Audio",
+      "title": "MVP plasma cutter loop sound",
+      "detail": "Rejected: the new plasma cutter sound was bad.",
+      "status": "rejected",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "the new plasma cutter sound was bad"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "except the bfxr heartbeat and plasma loop"
+        }
+      ],
+      "refs": [
+        "TF-088"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-117",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Audio",
+      "title": "Don't play a repeating sound the player cannot explain",
+      "detail": "An MVP sound repeated (\"nink nink nink\") without matching anything visible; it may have been the low-health heartbeat. Tie every repeating sound to visible state and add a low-health HUD indicator.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/02__signal-2026-11-14-22-12-06-325.txt",
+          "quote": "uh also what was that like nink nink nink nink"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Every repeating sound tied to visible state; a HUD indicator for low health."
+        }
+      ],
+      "refs": [
+        "TF-089"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-118",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Audio",
+      "title": "Don't ship a sound nobody has listened to",
+      "detail": "Two MVP sounds got worse because they were picked from measurements, unheard. A person listens before a sound ships, and the old one stays until the new one is approved. Proposals: loudness-normalised library, an audition page with A/B, and a mix pass.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "A human listens before a sound ships; keep the old one until the new one is approved."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Loudness-normalised library, an audition step, and a mix pass with all sounds playing at once."
+        }
+      ],
+      "refs": [
+        "TF-091"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-119",
+      "list": "design",
+      "kind": "feature",
+      "category": "Process",
+      "title": "Voice-note feedback after every playtest",
+      "detail": "Play, then talk through everything straight after, transcribe it, feed it in and refine; possibly daily.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/07__signal-2026-11-14-22-15-05-413.txt",
+          "quote": "yeah this is the way we should do it like after each game just like rattle through everything"
+        },
+        {
+          "file": "berserker7/feedback/ideas-session-1/andy/01__signal-2026-11-15-13-22-30-467.txt",
+          "quote": "and just keep refining. Like, we could even do it pretty much daily until the game's epic."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Voice notes right after a session, transcribed with timestamps, capture far more than anyone writes down later."
+        }
+      ],
+      "refs": [
+        "TF-114"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-120",
+      "list": "design",
+      "kind": "feature",
+      "category": "Process",
+      "title": "Sketch levels and write level-design rules before building",
+      "detail": "Do not let the agent invent levels freely: give it hand-drawn layouts and written rules. Use generation, if at all, inside hand-made rules.",
+      "status": "open",
+      "authors": [
+        "Andy",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/andy/01__signal-2026-11-14-22-11-14-801.txt",
+          "quote": "and in my opinion I wouldn't give Claude free rein to just make the levels. I would sketch out"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Use generation, if at all, inside hand-made rules."
+        }
+      ],
+      "refs": [
+        "TF-115"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-121",
+      "list": "design",
+      "kind": "feature",
+      "category": "Process",
+      "title": "A detailed design pass next",
+      "detail": "Deano will deliver level designs, items and enemies in granular detail; ideas for foes, weapons, items and level features go to him now.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/ideas-session-1/deano/unstructured-ideas.md",
+          "quote": "next stage is an actual bonafide design process, where i deliver level designs, items, enemies, and so on to more granular detail"
+        }
+      ],
+      "refs": [
+        "TF-116"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-122",
+      "list": "design",
+      "kind": "feature",
+      "category": "Process",
+      "title": "Depth before breadth",
+      "detail": "Make one zone, two enemy types and one boss properly before adding more; MVP breadth (5 zones, 15 enemy types, 5 bosses) cost depth.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "One zone, two enemy types and one boss made properly, before adding more."
+        }
+      ],
+      "refs": [
+        "TF-120"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-123",
+      "list": "design",
+      "kind": "feature",
+      "category": "Process",
+      "title": "People judge feel and difficulty",
+      "detail": "People approve sounds, difficulty and animation; agents and bots shortlist and measure. MVP boss health was tuned for a bot.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Bots finish levels; humans judge difficulty."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Tune difficulty with humans; use bots only for \"can it be finished\"."
+        }
+      ],
+      "refs": [
+        "TF-121"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-124",
+      "list": "design",
+      "kind": "feature",
+      "category": "Process",
+      "title": "Playtest checklist and round scope",
+      "detail": "Use a short checklist each playtest (each weapon, each boss, revive, mouse-only, water, lobby re-join) and state whether a round is a prototype or polish.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "(each weapon, each boss, revive, mouse-only, water, lobby re-join)"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Set the scope of each round:"
+        }
+      ],
+      "refs": [
+        "TF-122"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-001",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Renderer: three.js",
+      "detail": "Decided: three.js (latest), chosen by the project owner for looks, performance and familiarity. The renderer trial the retro asked for was done in framework-evaluations.",
+      "status": "open",
+      "authors": [
+        "Decision",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "framework-evaluations/README.md",
+          "quote": "The project owner decided on **three.js** for Technophage"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "use latest threejs"
+        }
+      ],
+      "refs": [
+        "TF-097"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-002",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "2.5D: a 3D world with 2D gameplay",
+      "detail": "Decided: 3D environments with 2D gameplay; a 3D world adds richness without stopping the game being 2D.",
+      "status": "open",
+      "authors": [
+        "Decision",
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "framework-evaluations/README.md",
+          "quote": "a 3D world with 2D gameplay"
+        },
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "possibly move to 3d environments with 2d entities (experimental) making it a 2.5d game"
+        }
+      ],
+      "refs": [
+        "TF-098"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-003",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Pixel-art look from basic textures, no post-processing",
+      "detail": "Decided: the pixel-art look comes from basic textures, not from post-processing.",
+      "status": "open",
+      "authors": [
+        "Decision"
+      ],
+      "sources": [
+        {
+          "file": "framework-evaluations/README.md",
+          "quote": "The pixel-art look will come from basic textures, not from post-processing."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-004",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "PixiJS v8 renderer",
+      "detail": "Rejected: the evaluation recommended PixiJS v8 for a side-on 2D game; the project owner's three.js decision overrides it.",
+      "status": "rejected",
+      "authors": [
+        "Decision"
+      ],
+      "sources": [
+        {
+          "file": "framework-evaluations/README.md",
+          "quote": "This decision overrides the evaluation's recommendation below."
+        },
+        {
+          "file": "framework-evaluations/README.md",
+          "quote": "**For Technophage, a side-on 2D game: PixiJS v8.**"
+        }
+      ],
+      "refs": [
+        "TF-097"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-005",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Pixel-stable rendering: integer scale, snapped camera, nearest filtering",
+      "detail": "MVP pixels shimmered because a 960x540 canvas was stretched by a non-integer factor. Use a fixed texels-per-world-unit, snap camera and sprite positions to that grid, an integer render scale and NearestFilter textures.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "better canvas/graphics rendering, its very much shimmery pixels because presumably its a small canvas stretched to a larger size causing moving pixel artifacts"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Non-integer canvas scaling makes pixel art shimmer in motion."
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "a fixed texels-per-world-unit, the camera and sprite positions snapped to that grid, an integer render scale, and `NearestFilter` textures"
+        }
+      ],
+      "refs": [
+        "TF-096"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-006",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Choose a perspective or orthographic camera in the renderer trial",
+      "detail": "With a perspective camera real depth gives parallax for free, but on-screen texel size varies with depth, which affects the pixel look. With an orthographic camera use a per-layer parallax divisor as Impact does.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Judgement: decide in the renderer spike, because perspective makes on-screen texel size vary by depth, which affects the pixel look."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-007",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Texture atlas per level theme, modular parts, baked levels",
+      "detail": "Use a large texture atlas per level theme and highly modular, reusable parts, baked into a level that loads easily at runtime.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "if transitioning to 2.5d: use a large texture atlas per level theme, highly modular and reusable parts, baked into a level thats easily loaded at runtime whilst providing ultimate creative expression"
+        }
+      ],
+      "refs": [
+        "TF-098"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-008",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Batch static level geometry per chunk",
+      "detail": "Merge each chunk's tiles into one mesh, or one instanced mesh per chunk, sharing one atlas, and draw only visible chunks to keep draw calls low.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "merge each chunk's tiles into one mesh, or use one instanced mesh per chunk, sharing one atlas. Keep draw calls low."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-009",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Foreground layers in front of the players",
+      "detail": "Pipes, girders and rain drawn in front of players for depth (z position or renderOrder). They must not hide hitboxes or projectiles; fade them near players.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Pipes, girders and rain in front of the players for depth."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-010",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Animated tiles",
+      "detail": "Flickering neon, pumping fluid, pulsing flesh: a per-tile frame offset in the tile material or swapped atlas UVs. Authors paint only the base tile.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Flickering neon, pumping fluid, pulsing flesh."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-011",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Sprite animator driven by the simulation tick",
+      "detail": "A small animator that sets UV offset and repeat on a sprite plane, with frame sequences and one-shot animations that chain states (death ends, then remove). Drive it from the tick count so both peers show the same frame.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Drive it from the simulation tick count, not wall-clock time, so both peers show the same frame."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-012",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Pre-drawn left-facing frames where mirroring looks wrong",
+      "detail": "Biolab selects separate frames for facing left instead of mirroring. Useful if art has lighting or asymmetric details; character studies are drawn right-facing.",
+      "status": "open",
+      "authors": [
+        "Impact research",
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "it adds `flippedAnimOffset` to the frame index to select frames drawn for the other direction"
+        },
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1/00-hunter1-sprite_02.png.generated.json",
+          "quote": "clear right-facing side-view silhouette"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-013",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Co-op camera: deadzone, look-ahead, damping, level bounds",
+      "detail": "Camera control: follow a point derived from both players (midpoint or bounding box) with a deadzone, look-ahead and damping, clamped to the level.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "camera control"
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "For co-op, follow a point derived from both players (midpoint or bounding box), with this deadzone and damping."
+        }
+      ],
+      "refs": [
+        "TF-107"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-014",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Screen shake triggered by level events",
+      "detail": "A collapse or a boss entrance shakes the camera from level data, with strength decaying over time. Shake runs only on each client's render side, with a render-only RNG.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Run shake on each client's render side only, with a seeded or render-only RNG, so it never affects the simulation."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-015",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Particle effects: pooled, instanced, outside the simulation",
+      "detail": "Engine support for particles and gibs with lifetime, fade, bounce and a per-type rest behaviour (for example settle and sink), in a pooled, instanced system kept out of the simulation and network snapshots.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "support for particle effects"
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Keep the parameters, but use a pooled, instanced particle system, not full entities."
+        }
+      ],
+      "refs": [
+        "TF-106"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-016",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Engine and rendering",
+      "title": "Don't zero gravity on resting gibs while keeping their velocity",
+      "detail": "MVP gibs bounced, came to rest, then floated upwards: gravity was set to 0 at rest while a small upward velocity remained.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "giblets bug: they hit the floor, bounce, then slowly float upwards against gravity"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Zero velocity when gravity is switched off; better, let gibs settle and sink."
+        }
+      ],
+      "refs": [
+        "TF-076"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-017",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Scenes with a common interface; transitions",
+      "detail": "Menu, lobby, game, intermission and credits as scene objects with one run interface, swapped at the end of a frame, with support for transitions between them.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "support for transitions"
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "A scene interface for the menu, lobby, game, intermission and credits."
+        }
+      ],
+      "refs": [
+        "TF-105"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-018",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Engine and rendering",
+      "title": "Don't port Canvas 2D workarounds",
+      "detail": "Impact's Canvas 2D workarounds (data-URL chunks, per-pixel scaling, vendor prefixes, user-agent sniffing) are specific to old browsers and not relevant to three.js.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Specific to Canvas 2D and old browsers. Not relevant to three.js."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-019",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "Fixed-step deterministic simulation",
+      "detail": "Keep the MVP's fixed 60 Hz step with an accumulator, deterministic where possible, so both peers agree and recorded inputs replay a bug exactly.",
+      "status": "open",
+      "authors": [
+        "MVP retro",
+        "Impact research",
+        "Fix Your Timestep (Glenn Fiedler)"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Fixed-step, deterministic where possible, so recorded inputs can replay a bug exactly."
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "keep the MVP's fixed 60 Hz step with an accumulator"
+        },
+        {
+          "file": ".external-references/fix-your-timestep.md",
+          "quote": "the renderer produces time and the simulation consumes it in discrete dt sized steps."
+        }
+      ],
+      "refs": [
+        "TF-110",
+        "T-089",
+        "T-090"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-020",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Simulation",
+      "title": "Don't use a variable time step",
+      "detail": "Impact's tick is wall-clock delta; it is not deterministic and entity collision depends on frame rate.",
+      "status": "open",
+      "authors": [
+        "Impact research",
+        "Fix Your Timestep (Glenn Fiedler)"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Not deterministic, and entity–entity collision depends on frame rate."
+        },
+        {
+          "file": ".external-references/fix-your-timestep.md",
+          "quote": "The problem is that the behavior of your physics simulation depends on the delta time you pass in."
+        }
+      ],
+      "refs": [
+        "TF-110",
+        "T-090"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-021",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Simulation",
+      "title": "Don't use Math.random() in gameplay code",
+      "detail": "It breaks deterministic replay and identical results on both peers. Use a seeded RNG in the simulation (the MVP had one); render-only effects may use an unseeded RNG.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Breaks deterministic replay and identical results on both peers. Use a seeded RNG in the simulation"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-022",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Simulation",
+      "title": "Don't read global input or a single global player inside entities",
+      "detail": "Impact entities read one global input and target one global player. Co-op needs input passed in per player and enemies that choose a target among players.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Co-op needs input passed in per player and enemies that choose a target among players."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-023",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "Timers as \"expires at tick N\"; global time scale",
+      "detail": "Store simulation timers as the tick they expire on: deterministic and easy to snapshot. A global time scale gives slow motion.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Store timers as \"expires at tick N\" in the simulation."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-024",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "Remove entities and change levels only at the end of a tick",
+      "detail": "Queue removals, spawns and level changes and apply them after update and checks, so arrays never change while iterated and changes become events at a known tick.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Arrays are never changed while being iterated."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-025",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "One damage interface",
+      "detail": "One function for every damage source (shots, hazards, contact), called by the host, with its outcome in the snapshot.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "One function for every damage source (shots, hazards, contact)."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-026",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "Object pooling",
+      "detail": "Pool projectiles, particles and decals. Impact pools by entity class: taking from the pool calls reset() instead of constructing, and erase() puts the instance back, so enemies can be pooled the same way.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Projectiles, particles, decals."
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "An `EntityPool` mixin replaces construction with taking an instance from a pool and calling `reset()`."
+        }
+      ],
+      "refs": [
+        "T-015"
+      ],
+      "notes": "2026-11-16, project owner: if designed right, enemy archetypes could be pooled too; creating and destroying objects is costly in JavaScript."
+    },
+    {
+      "id": "T-027",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Simulation",
+      "title": "Don't put particles in the main entity list",
+      "detail": "In Biolab particles are full entities that take part in collision checks and sorting. Keep them out of the simulation and snapshots.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "They take part in collision checks and sorting."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-028",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "Fixed set of reusable primitives",
+      "detail": "Build levels and features from a fixed collection of reusable primitives.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "fixed collection of reusable primitives"
+        }
+      ],
+      "refs": [
+        "TF-102"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-029",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Collision and physics",
+      "title": "Gameplay collision on its own 2D tile grid",
+      "detail": "3D meshes can be any shape while the simulation reads only a 2D grid in the gameplay plane. This keeps the simulation free of three.js, so it runs in Node and on both peers.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "This keeps the simulation free of three.js, so it can run in Node and on both peers."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-030",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Collision and physics",
+      "title": "Swept tile trace with sub-steps",
+      "detail": "Split each move into steps no longer than one tile and resolve x and y against tiles, so fast entities (dash, pounce, thrown discs) cannot pass through thin walls.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Fast entities (dash, stalker pounce, thrown discs) cannot pass through thin walls."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-031",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Collision and physics",
+      "title": "Slopes and one-way tiles as table-driven line definitions",
+      "detail": "Each slope tile id maps to a line definition; one-way catwalks are one tile definition, not special-case code. high_impact also slides along slopes.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Ramps and organic cavern floors without per-pixel collision."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-032",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Collision and physics",
+      "title": "Hitbox separate from the sprite",
+      "detail": "The hitbox is an axis-aligned box in the simulation; the sprite plane is positioned from it with an offset, so art can change size without changing gameplay.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Art can change size without changing gameplay."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-033",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Collision and physics",
+      "title": "Bitmask collision types: who touches whom, separate from who pushes whom",
+      "detail": "A small, explicit overlap matrix: players, enemies, player shots, enemy shots, pickups, triggers. Both players share one type, so friendly fire is a single mask bit. Only the host runs damage checks.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Both players share one type, so friendly fire is a single mask bit."
+        }
+      ],
+      "refs": [
+        "TF-060"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-034",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Collision and physics",
+      "title": "Riding moving platforms and lifts",
+      "detail": "Waypoint entities named in the level, a mover that travels between them, and riders carried by the mover's displacement each tick. Supports the lifts that replace ladders.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "The pattern: waypoint entities named in the level, a mover that travels between them, and riders carried by the mover's displacement each tick."
+        }
+      ],
+      "refs": [
+        "TF-004"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-035",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Collision and physics",
+      "title": "Don't copy Impact's entity push solver",
+      "detail": "Its author calls it a mess; results depend on processing order and positions are rounded. Copy the type masks, not the solver.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "FIXME: This is a mess."
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Copy the type masks (idea 5), not the solver."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-036",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Collision and physics",
+      "title": "Broad phase for entity checks",
+      "detail": "A spatial hash or sweep-and-prune on x (suits a long horizontal level) for swarms, many projectiles and gibs.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Swarms, many projectiles and gibs."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-037",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Levels and editor",
+      "title": "Plain JSON level format: layers plus typed entities",
+      "detail": "A level is layers (with a depth per layer for 2.5D) plus a list of typed entities with per-entity settings. If LDtk or Tiled is used, convert their output to this runtime format.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "A layer's `distance` becomes a z depth, and per-entity `settings` carry things like lift speed, hazard period or which light a switch controls."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-038",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Levels and editor",
+      "title": "Don't save levels as executable code",
+      "detail": "Impact's editor saves levels as JavaScript modules. Loading a level should not run code; use plain JSON.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Loading a level should not run code. Use plain JSON"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-039",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Levels and editor",
+      "title": "Level events: triggers, named targets, delays",
+      "detail": "An events system for buttons, proximity and touch triggers, built from small named logic entities wired to targets (trigger, delay, earthquake). Triggers run on the host only, fire on either player, and their firing goes into the snapshot.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "events system for levels and creative applications (buttons, events that happen when a player is nearby, touch triggers etc)"
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "For co-op, triggers run on the host only, and their firing goes into the snapshot as an event. Triggers should fire on either player."
+        }
+      ],
+      "refs": [
+        "TF-103"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-040",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Levels and editor",
+      "title": "Level teleporters",
+      "detail": "Teleporters for side routes, entering doors to inside areas, or moving to another point in the level.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "level teleporters to facilitate side routes/going inside doors or switching to different point in the level"
+        }
+      ],
+      "refs": [
+        "TF-104"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-041",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Levels and editor",
+      "title": "Level editor or hint editor",
+      "detail": "An editor, not necessarily full-featured, for a person to block out, annotate or give feedback to an agent. Options: LDtk or Tiled with typed entities and auto-tiling, or an in-game three.js editor that runs the real entity classes (shows true 2.5D result, costs more).",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "level editor / hint editor (might not need to be fully featured, but enough for a human to annotate, block out, or provide feedback for an agent)"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Author levels in a real editor (LDtk or Tiled) with typed entities and auto-tiling"
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "An in-game three.js editor would show true sizes, sprites and depth layers."
+        }
+      ],
+      "refs": [
+        "TF-108"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-042",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Levels and editor",
+      "title": "Editor metadata on entity definitions",
+      "detail": "Each entity definition declares its editor appearance (hidden, resizable, coloured box) next to its gameplay defaults, so trigger zones, hazard areas and camera bounds are visible while editing.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Each entity definition declares its editor appearance next to its gameplay defaults"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-043",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Levels and editor",
+      "title": "Never deploy an editor save endpoint like Weltmeister's",
+      "detail": "Weltmeister's PHP save endpoint writes any .js path under the file root. high_impact's editor saves through the browser's File System Access API instead.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "It needs PHP and must never be deployed."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-044",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Clear split between authoritative and non-authoritative logic",
+      "detail": "Keep the host-authoritative snapshot model and separate host logic clearly from client logic.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "clear separation of authoritive and non-authoritive actions/logic/responsibility"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Keep host-authoritative snapshots, level/session IDs and the lag option."
+        }
+      ],
+      "refs": [
+        "TF-066"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-045",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Highly efficient netcode",
+      "detail": "Netcode should be highly efficient.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "highly efficient netcode"
+        }
+      ],
+      "refs": [
+        "TF-067"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-046",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "MessagePack if it helps: measure snapshot size first",
+      "detail": "Use MessagePack if it reduces message size or latency. MVP snapshot size was never measured: measure first, then compare JSON, MessagePack and delta compression.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "use messagepack if it provides benefits to message size and network latency"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Measure snapshot size first, then compare JSON with MessagePack and delta compression on real numbers."
+        }
+      ],
+      "refs": [
+        "TF-064"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-047",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "TURN relay available for players who need it",
+      "detail": "PeerJS 1.5.5's default config already lists public TURN servers; their reliability is untested. Test from a mobile network; if they fail, run or rent a relay.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "enable peerjs stun/turn server if we can so its available for those who need it"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Test PeerJS's default TURN servers from a mobile network; if they fail, run or rent a TURN relay."
+        }
+      ],
+      "refs": [
+        "TF-065"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-048",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Host migration or a clean re-join",
+      "detail": "Plan for the host leaving, or at least a clean way to re-join.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Plan host migration or at least a clean re-join."
+        }
+      ],
+      "refs": [
+        "TF-069"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-049",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Tag every message with a level or session ID",
+      "detail": "Old messages from a previous level caused the MVP's level-2 boss-arena bug. Tag every message with a level or session ID.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Old messages from a previous level are a real hazard in peer-to-peer games; tag every message with a level or session ID."
+        }
+      ],
+      "refs": [
+        "TF-113"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-050",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Protocol check, size and rate limits, validated input",
+      "detail": "Carry over the MVP's protocol version check, message size and rate limits, and validation of received values.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Host-authoritative model with level IDs, protocol check, size/rate limits and validated input"
+        }
+      ],
+      "refs": [
+        "TF-113"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-051",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Worker-driven host tick",
+      "detail": "Browsers throttle timers in hidden tabs; the authoritative host ticks from a Worker so a background host tab does not freeze the guest.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Hidden tabs throttle timers; an authoritative host needs a Worker-driven tick."
+        }
+      ],
+      "refs": [
+        "TF-113"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-052",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Lobby flow: room code, invite link, ready, start, drop-in",
+      "detail": "Carry over the MVP lobby: host opens a lobby with a room code and invite link, guest toggles Ready, host presses Start, drop-in allowed.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Lobby flow (host Start, guest Ready, invite link, drop-in)"
+        }
+      ],
+      "refs": [
+        "TF-113"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-053",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "Input as named actions; one input frame per player per tick",
+      "detail": "Bind keys to named actions read as held, pressed or released. Build one input frame per player per simulation tick (actions plus aim angle); that frame goes over the network and into replays. Compute pressed edges per tick, not per render frame.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Build one input frame per player per simulation tick (actions plus an aim angle)."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-054",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "Asset spec and gap list before building",
+      "detail": "Before building, list every asset and its source, and write the asset spec: sizes, grid, autotile cases, frame counts, fps, anchor and event points, emissive layer, naming, JSON metadata. Label code-drawn placeholders. The MVP art handover documents are a starting point.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Before building, list every asset the game needs and its source (supplied, to commission, code-drawn placeholder)."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Write the asset spec first: sizes, 32 px grid (or whatever is chosen), autotile neighbour cases, frame counts, fps, anchor and event points, emissive layer, naming, JSON metadata."
+        }
+      ],
+      "refs": [
+        "TF-085",
+        "TF-117"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-055",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Assets and pipeline",
+      "title": "Don't treat generated images as runtime assets",
+      "detail": "Image generation produces illustrations, not registered sprite sheets; the character studies are large single illustrations. Treat them as concept art and produce runtime art with a pixel-art step or an artist, at least for tiles and animation.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Generated images are concept art. Runtime art needs an exact spec and an acceptance check."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Treat image generation as concept art; produce runtime art with a pixel-art step (e.g. Aseprite) or a human artist, at least for tiles and animation."
+        }
+      ],
+      "refs": [
+        "TF-085"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-056",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "Art validator and animation preview",
+      "detail": "Check each art delivery automatically (dimensions, grid alignment, transparent edges, frame count, anchors, metadata) and preview sprite sheets at game scale over the zone background.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Checks each delivered image against the spec: dimensions, grid alignment, transparent edges and halos, frame count, anchors, metadata present."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Plays a sprite sheet at game scale over the zone background with its anchor and ground line shown."
+        }
+      ],
+      "refs": [
+        "TF-086"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-057",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "Depth, normal, mask and pose maps for sprites",
+      "detail": "The character study keeps depth, normal, mask, pose and 3D-geometry estimates beside sprites (done for hunter1; hunter2 has a 3D estimate) and lists the tools that make them. How the game uses these maps is not stated.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/readme.md",
+          "quote": "dntrs-isde - generate depth map"
+        },
+        {
+          "file": "berserker7/design/characterstudy/readme.md",
+          "quote": "dntrs-isne - generate normal map"
+        },
+        {
+          "file": "berserker7/design/characterstudy/readme.md",
+          "quote": "generate moge 3d geometry estimation (produces a glb, a mask, a depth, and normals)"
+        },
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1-norm.png",
+          "quote": "",
+          "shows": "normal map of hunter1"
+        },
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1-depth.png",
+          "quote": "",
+          "shows": "depth map of hunter1"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-058",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "Character file naming: index-slug-type",
+      "detail": "Name character files [index]-[slug]-[type].ext, with dashes between fields and underscores within a field; each entity has a unique index shared by its images and variants.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/readme.md",
+          "quote": "`[index]-[slug]-[type].ext`"
+        },
+        {
+          "file": "berserker7/design/characterstudy/readme.md",
+          "quote": "Each entity has a unique index, shared by its images and variants."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-059",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "Character source art: one right-facing figure on a transparent background",
+      "detail": "Each study is one complete right-facing side-view figure with its weapon, on a transparent background, with no scenery, text or muzzle flash, and arms visibly connected to hands.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/17-mech1/17-mech1-sprite_01.png.generated.json",
+          "quote": "Show one right-facing full figure in a readable side-view, with the complete figure and weapon in frame. Transparent background, no scene, text, borders, other figures or muzzle flash."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-060",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "A generation record beside every generated image",
+      "detail": "Each generated study has a .generated.json record: prompt, references and their roles, generator, settings, and a separate post-generation visual analysis with defects.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1/00-hunter1-sprite_02.png.generated.json",
+          "quote": "\"provenance\": \"Post-generation subagent visual analysis; not part of the original generation prompt.\""
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-061",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Assets and pipeline",
+      "title": "Avoid losing which prompt made which image",
+      "detail": "Some hunter variants were generated concurrently and the output was truncated, so their records list candidate prompts instead of the exact one. Record each prompt with its image.",
+      "status": "open",
+      "authors": [
+        "Character study"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/design/characterstudy/00-hunter1/00-hunter1-sprite_02.png.generated.json",
+          "quote": "The concurrent tool output was truncated, so the mapping between individual outputs and prompts could not be recovered."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-062",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "Asset manifest, loader with progress, loud failure",
+      "detail": "A manifest each module adds to, preloaded per zone, with a progress display and a clear error on a missing file.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "A manifest that each module adds to, preloaded per zone, with a clear error on a missing file."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-063",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "Hot reload of textures",
+      "detail": "A dev key or Vite file watching reloads three.js textures in place, so art can be checked in the running game without a restart.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "so art can be checked in the game without a restart"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-064",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Assets and pipeline",
+      "title": "Bitmap HUD font with widths stored in the image",
+      "detail": "A pixel font drawn in one PNG with character widths marked in its bottom row, so no separate metrics file is needed. Limited to ASCII from code 32.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "A pixel HUD font that artists can draw in one PNG with no separate metrics file."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-065",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Assets and pipeline",
+      "title": "Don't reuse Biolab code or assets, or unlicensed Impact images",
+      "detail": "Biolab Disaster has no licence: ideas only. Impact's font and collision-tile images have no stated licence. Impact and high_impact code is MIT: reuse only with the notice kept.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Treat as all rights reserved: ideas only."
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Do not reuse without checking."
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Code may be reused if the licence notice is kept."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-066",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Audio",
+      "title": "Sounds as data in one audio file",
+      "detail": "Load one audio file once and play sections of it; each sound is a data entry (start, end, one-shot or loop).",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "sound can be a single audio file loaded one time and we just granularly play and pick what we want. sounds then become pure data expressions (start, end, one-shoot or loop, etc)"
+        }
+      ],
+      "refs": [
+        "TF-092"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-067",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Audio",
+      "title": "Web Audio for effects, streamed music, unlock on first input",
+      "detail": "Decode each effect once and play many times with Web Audio; stream music; unlock audio on the first input. Check current Safari codec support before choosing formats.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Web Audio for all effects (decode once, many plays), streamed music, a first-input unlock."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-068",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Audio",
+      "title": "Don't add HTML5 Audio channel pools",
+      "detail": "Impact's HTML5 Audio pools are a fallback for browsers without Web Audio; not needed now.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "A fallback for browsers without Web Audio. Not needed now (judgement)."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-069",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Regression tests that fail by default",
+      "detail": "Strong regression tests; none is written without confirming it tests what it claims, and each fails by default.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "strong regression tests, no tests get written without confirming they test what we want. fail by default"
+        }
+      ],
+      "refs": [
+        "TF-101"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-070",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Debug and testing",
+      "title": "Don't let a test switch off what it tests",
+      "detail": "MVP co-op tests made players invulnerable and the bot teleported past obstacles, so real bugs got through. Every hazard needs an \"enter and leave\" test.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Tests must not switch off the thing being tested."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "A bot that cheats proves nothing about the level."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Every hazard needs an \"enter and leave\" test."
+        }
+      ],
+      "refs": [
+        "TF-101"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-071",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Debug overlay and frame-time graph",
+      "detail": "Show hitboxes, the collision grid, entity IDs, network round trip, snapshot size and frame time, plus a rolling frame-time graph with network event marks (snapshot received, correction applied).",
+      "status": "open",
+      "authors": [
+        "MVP retro",
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Hitboxes, entity IDs, network round trip, snapshot size, frame time."
+        },
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Add net marks (\"snapshot received\", \"correction applied\") to the graph"
+        }
+      ],
+      "refs": [
+        "TF-111"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-072",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Input recording and replay",
+      "detail": "Record both players' inputs with the seed and replay the session exactly, for bugs one player saw once.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Records both players' inputs with the seed; replays the session exactly."
+        }
+      ],
+      "refs": [
+        "TF-110"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-073",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Two-client network test with injected lag",
+      "detail": "Two tabs on one machine hide latency bugs. Run two headless clients with injected lag, loss and reordering in CI and check positions and events match.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Two tabs on one machine hide every latency bug. Inject lag and packet reordering in tests."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Two headless browsers with injected lag, loss and reordering; checks positions and events match."
+        }
+      ],
+      "refs": [
+        "TF-068"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-074",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Local-transport and lag test options",
+      "detail": "Carry over ?net=local (two tabs without PeerJS) and ?lag=ms, which reproduced the stale-packet bug.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Co-op in two tabs without PeerJS or the internet."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Reproduced the stale-packet arena bug."
+        }
+      ],
+      "refs": [
+        "TF-113"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-075",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Reachability and placement checks for every level",
+      "detail": "Keep the real-physics reachability check. Add a placement checker: lamps attached to a wall or ceiling, ladders join two floors, hazards have a source, enemies have enough floor, nothing spawns inside geometry.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Runs over every level: lamps attached to a wall or ceiling, ladders join two floors, hazards have a source, enemies have enough floor, nothing spawns inside geometry."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Real-physics reachability check (idea and approach)"
+        }
+      ],
+      "refs": [
+        "TF-109"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-076",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Hazard run-through bot",
+      "detail": "A bot that holds right and jumps, ignoring hazards, and reports hazard damage per section.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "A bot that holds right and jumps, ignoring hazards; reports how much hazard damage it took per section."
+        }
+      ],
+      "refs": [
+        "TF-007"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-077",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Playtest telemetry",
+      "detail": "Record deaths, time per section and damage per zone, plotted on the level, so difficulty is not tuned by feel or by bot.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Deaths, time per section and damage taken per zone, plotted on the level."
+        }
+      ],
+      "refs": [
+        "TF-112"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-078",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "In-game feedback key and changelog",
+      "detail": "One key saves a screenshot, zone, seed, position, version and a typed note; a changelog next to the version label tells testers what to look at.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "One key saves a screenshot, zone, seed, position, version and a typed note to a file or clipboard."
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "next to the version label, so testers know what to look at."
+        }
+      ],
+      "refs": [
+        "TF-123"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-079",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Code",
+      "title": "Shared library of reusable code",
+      "detail": "Keep code DRY (\"try\" in the note is most likely \"DRY\") and maintain a shared library of reusable code.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "keep code try, maintain a shared library of reusable code"
+        }
+      ],
+      "refs": [
+        "TF-099"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-080",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Code",
+      "title": "Pure functions, functional and modular build",
+      "detail": "Keep functions pure and the build as functional as possible while modular.",
+      "status": "open",
+      "authors": [
+        "Deano"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "try to keep functions pure, try to keep the general build as functional as possible while being modular"
+        }
+      ],
+      "refs": [
+        "TF-100"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-081",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Code",
+      "title": "Don't build a custom module loader or class system",
+      "detail": "Use native ES modules and classes; Impact's system deep-copies every property on construction and hides allocation costs.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Native ES modules and classes do this with tooling support. The deep copy hides allocation costs."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-082",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Code",
+      "title": "Don't extend built-in prototypes",
+      "detail": "Global side effects can conflict with libraries such as three.js and PeerJS. Use plain helper functions.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Global side effects that can conflict with libraries (three.js, PeerJS). Use plain helper functions."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-083",
+      "list": "technical",
+      "kind": "advisory",
+      "category": "Code",
+      "title": "Don't look up entity classes by global name",
+      "detail": "Fragile and pollutes the global scope. Use an explicit registry from type id to definition, which also lists entities for the editor and for checking level files.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Use an explicit registry from type id to definition"
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-084",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Build and deploy",
+      "title": "Bundle with Vite or esbuild",
+      "detail": "Use Vite or esbuild for dependency-ordered bundling and minification.",
+      "status": "open",
+      "authors": [
+        "Impact research"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/impact-research-report.md",
+          "quote": "Use Vite or esbuild, which do this."
+        }
+      ],
+      "refs": [],
+      "notes": ""
+    },
+    {
+      "id": "T-085",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Build and deploy",
+      "title": "Deploy workflow with a visible version stamp",
+      "detail": "Carry over the Pages workflow that writes a version stamp, and show the version label so every player's build is known.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Pages workflow with version stamp"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "and the protocol check made it obvious which build each player had."
+        }
+      ],
+      "refs": [
+        "TF-113"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-086",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Process",
+      "title": "One-purpose changes with checks before each playtest",
+      "detail": "For each change: update the spec, build it in a one-purpose commit, run the bot, reachability, placement and lag tests, deploy, check the version label, playtest with the checklist, triage feedback.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Build the change in a small commit with one purpose."
+        }
+      ],
+      "refs": [
+        "TF-124"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-087",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Process",
+      "title": "One owner per folder",
+      "detail": "Each session (code, art, sound, docs) owns its own folder; handovers have acceptance criteria.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Handovers are contracts with acceptance criteria."
+        }
+      ],
+      "refs": [
+        "TF-118"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-088",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Process",
+      "title": "Record asset licences in the repository",
+      "detail": "Record the licence of every third-party or self-made asset pack in the repository.",
+      "status": "open",
+      "authors": [
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "for every third-party or self-made asset pack."
+        }
+      ],
+      "refs": [
+        "TF-119"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "D-125",
+      "list": "design",
+      "kind": "feature",
+      "category": "Audio",
+      "title": "Restore the MVP's original low-health heartbeat",
+      "detail": "Use the old heartbeat sound, which Deano found acceptable, instead of the rejected bfxr replacement.",
+      "status": "open",
+      "authors": [
+        "Deano",
+        "MVP retro"
+      ],
+      "sources": [
+        {
+          "file": "berserker7/feedback/mvp/deano/part1.md",
+          "quote": "the old one was ok"
+        },
+        {
+          "file": ".archived/technophage-mvp/docs/retro.html",
+          "quote": "Restore the old heartbeat; audition step."
+        }
+      ],
+      "refs": [
+        "TF-087"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-089",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Interpolate between simulation states when drawing",
+      "detail": "Draw a blend of the previous and current simulation state using alpha = accumulator / dt, so motion does not stutter when the display rate and the step rate differ. It must work with pixel-stable rendering (T-005): interpolate first, then snap what is drawn to the pixel grid. That combination is not yet tested.",
+      "status": "open",
+      "authors": [
+        "Fix Your Timestep (Glenn Fiedler)"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/fix-your-timestep.md",
+          "quote": "causing a subtle but visually unpleasant stuttering"
+        },
+        {
+          "file": ".external-references/fix-your-timestep.md",
+          "quote": "alpha = accumulator / dt"
+        }
+      ],
+      "refs": [
+        "T-019",
+        "T-005"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-090",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "Cap frame time or steps per frame",
+      "detail": "Clamp each frame's elapsed time (the article uses 0.25 s) or cap the number of simulation steps per frame, so one slow frame cannot make the loop fall further behind every frame (the \"spiral of death\"). Under heavy load the game slows down instead.",
+      "status": "open",
+      "authors": [
+        "Fix Your Timestep (Glenn Fiedler)"
+      ],
+      "sources": [
+        {
+          "file": ".external-references/fix-your-timestep.md",
+          "quote": "It's called the spiral of death because being behind causes your update to simulate more steps to catch up"
+        },
+        {
+          "file": ".external-references/fix-your-timestep.md",
+          "quote": "clamp at a maximum # of steps per-frame and the simulation will appear to slow down under heavy load"
+        },
+        {
+          "file": ".external-references/fix-your-timestep.md",
+          "quote": "if ( frameTime > 0.25 ) frameTime = 0.25;"
+        }
+      ],
+      "refs": [
+        "T-019",
+        "T-020"
+      ],
+      "notes": ""
+    }
+  ]
+}
