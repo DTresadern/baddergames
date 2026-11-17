@@ -18,9 +18,19 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: berserker7/game/package-lock.json
 
       - name: JavaScript syntax
         run: git ls-files -z '*.js' '*.mjs' '*.cjs' | xargs -0 -r -n1 node --check
 
       - name: JSON syntax
         run: git ls-files -z '*.json' | xargs -0 -r -n1 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))'
+
+      - name: Install game dependencies
+        run: npm ci
+        working-directory: berserker7/game
+
+      - name: Build game
+        run: npm run build
+        working-directory: berserker7/game
