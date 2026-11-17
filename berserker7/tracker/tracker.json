@@ -3810,7 +3810,7 @@
       "refs": [
         "TF-105"
       ],
-      "notes": "2026-11-17: implemented in PR #PRNUM (game harness and scenes): layers, queued scene changes, lifecycle hooks, per-scene tick/draw/leave settings, fade transition with a loading scene, shown with test scenes and a debug panel on the game page."
+      "notes": "2026-11-17: implemented in PR #47 (game harness and scenes): layers, queued scene changes, lifecycle hooks, per-scene tick/draw/leave settings, fade transition with a loading scene, shown with test scenes and a debug panel on the game page."
     },
     {
       "id": "T-018",
@@ -3864,7 +3864,7 @@
         "T-089",
         "T-090"
       ],
-      "notes": "2026-11-17: the harness (PR #PRNUM) runs a fixed 60 Hz step with an accumulator; this applies to all further work."
+      "notes": "2026-11-17: the harness (PR #47) runs a fixed 60 Hz step with an accumulator; this applies to all further work."
     },
     {
       "id": "T-020",
@@ -3892,7 +3892,7 @@
         "TF-110",
         "T-090"
       ],
-      "notes": "2026-11-17: the harness (PR #PRNUM) runs a fixed 60 Hz step with an accumulator; this applies to all further work."
+      "notes": "2026-11-17: the harness (PR #47) runs a fixed 60 Hz step with an accumulator; this applies to all further work."
     },
     {
       "id": "T-021",
@@ -5498,7 +5498,7 @@
         "T-019",
         "T-005"
       ],
-      "notes": "2026-11-17: deferred; the harness (PR #PRNUM) draws the current state each frame with no interpolation."
+      "notes": "2026-11-17: deferred; the harness (PR #47) draws the current state each frame with no interpolation."
     },
     {
       "id": "T-090",
@@ -5529,7 +5529,7 @@
         "T-019",
         "T-020"
       ],
-      "notes": "2026-11-17: implemented in PR #PRNUM: frame time capped at 0.25 s and at most 8 steps per frame; a slow frame slows the game down."
+      "notes": "2026-11-17: implemented in PR #47: frame time capped at 0.25 s and at most 8 steps per frame; a slow frame slows the game down."
     },
     {
       "id": "T-091",
