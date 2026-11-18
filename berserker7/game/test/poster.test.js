@@ -4,7 +4,7 @@ import { Texture } from 'three';
 import { assetByKey, groupAssets } from '../src/assets/manifest.js';
 import { createMainMenu } from '../src/scenes/main-menu.js';
 import { createNewGame } from '../src/scenes/new-game.js';
-import { POSTERS, pickPoster, withPoster } from '../src/scenes/poster.js';
+import { POSTERS, pickPoster, shortNames, withPoster } from '../src/scenes/poster.js';
 
 const CLASSIC = 'poster.classic';
 const THRASH = 'poster.thrash';
@@ -98,5 +98,13 @@ test('main menu and New Game acquire the key they were given', async () => {
     assert.deepEqual(acquired, [poster, poster], poster);
     assert.equal(loaded.length, 2);
     assert.ok(loaded.every((path) => path === assetByKey(poster).path), poster);
+  }
+});
+
+test('shortNames: poster.<name> keys map name -> key; any other key throws', () => {
+  assert.deepEqual(shortNames(['poster.classic', 'poster.thrash']), { classic: 'poster.classic', thrash: 'poster.thrash' });
+  assert.deepEqual(shortNames(['poster.neon-2']), { 'neon-2': 'poster.neon-2' });
+  for (const key of ['poster.Classic', 'menubg.neon', 'poster.a.b', 'poster.', 'classic']) {
+    assert.throws(() => shortNames(['poster.classic', key]), /must look like poster\.<name>/, key);
   }
 });
