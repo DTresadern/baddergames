@@ -649,6 +649,48 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T26k another thread cannot send a lane's notices", r.code === 1 && /only that thread sends its notices/.test(r.err) && sent("mcp:hub").length === hubBefore + 1, r.err);
 }
 
+// T27 finalise after a summary: only when events were recorded after it
+{
+  const T = (d, hm) => `${d}T${hm}Z`;
+  const sumFile = (text) => { const f = path.join(tmp, "t27-summary.md"); fs.writeFileSync(f, text); return f; };
+  const fins = (day) => (threadsTitled(`daily update · ${day}`)[0]?.[1].messages || []).filter((m) => m.includes(`[devlog finalise · ${day}]`));
+  const metaOf = (day) => JSON.parse(read(devlog(`data/${day}.json`)) || "{}");
+  const A = "2027-03-01", B = "2027-03-02", C = "2027-03-03", D = "2027-03-04", F = "2027-03-05";
+  // Every mm command closes earlier days, so the days below close (and may get a finalise message) as the clock moves on.
+  const s = fakeState();
+  s.prs.push({ number: 90, title: "Early merge", url: "https://github.com/o/r/pull/90", state: "MERGED", mergedAt: T(B, "11:00:00"), headRefName: "baddergames/90-early" });
+  saveFake(s);
+  // A: event after the summary
+  mm(["devlog", "event", "note", "A early"], { at: T(A, "10:00:00") });
+  mm(["devlog", "summary", A, "--file", sumFile("A first summary\n")], { at: T(A, "12:00:00") });
+  mm(["devlog", "event", "note", "A late"], { at: T(A, "15:00:00") });
+  // B: a pull request merged before the summary, found by the closing sweep
+  mm(["devlog", "event", "note", "B early"], { at: T(B, "09:00:00") });
+  mm(["devlog", "summary", B, "--file", sumFile("B summary\n")], { at: T(B, "20:00:00") });
+  // C: summary after every event, nothing swept
+  mm(["devlog", "event", "note", "C only"], { at: T(C, "09:00:00") });
+  mm(["devlog", "summary", C, "--file", sumFile("C summary\n")], { at: T(C, "18:00:00") });
+  // D: no summary
+  mm(["devlog", "event", "note", "D only"], { at: T(D, "09:00:00") });
+  // F: old data, no recordedAt anywhere
+  fs.mkdirSync(devlog("data"), { recursive: true });
+  fs.writeFileSync(devlog(`data/${F}.jsonl`), JSON.stringify({ kind: "note", ns: "dev.baddergames", what: "F old event", at: T(F, "09:00:00") }) + "\n");
+  fs.writeFileSync(devlog(`data/${F}.json`), JSON.stringify({ final: true, finalisedAt: T(F, "23:59:00"), summary: "F summary", summaryAt: T(F, "12:00:00") }));
+  const r = mm(["rollover", "--json"], { at: "2027-03-06T09:00:00Z" });
+  check("T27a a summary followed by a later event gets one finalise message", fins(A).length === 1 && !!metaOf(A).finaliseSentAt, JSON.stringify(fins(A).length) + JSON.stringify(metaOf(A)));
+  const swept = lines(B).map((l) => JSON.parse(l)).find((e) => e.key === "pr:90");
+  check("T27b a pull request merged before the summary but swept at close is recorded after it", !!swept && swept.at < metaOf(B).summaryAt && swept.recordedAt > metaOf(B).summaryAt && fins(B).length === 1 && !!metaOf(B).finaliseSentAt, JSON.stringify(swept) + JSON.stringify(metaOf(B)));
+  const mc = metaOf(C);
+  check("T27c a summary written after every event gets no finalise message", fins(C).length === 0 && !mc.finaliseSentAt && !mc.summaryMissing && !mc.finaliseSkipped && !!mc.final, JSON.stringify(mc));
+  check("T27d a day with no summary gets one finalise message", fins(D).length === 1 && !!metaOf(D).finaliseSentAt, JSON.stringify(fins(D).length));
+  const r2 = mm(["rollover", "--json"], { at: "2027-03-06T10:00:00Z" });
+  check("T27e a second rollover sends no second finalise message", r2.json?.finaliseSent?.length === 0 && fins(A).length === 1 && fins(B).length === 1 && fins(D).length === 1, r2.out);
+  const mf = metaOf(F);
+  check("T27f a closed day whose events have no recordedAt gets no finalise message", !mf.finaliseSentAt && !mf.summaryMissing && !mf.finaliseSkipped, JSON.stringify(mf));
+  mm(["devlog", "summary", A, "--file", sumFile("A rewritten **final** summary\n")], { at: "2027-03-06T11:00:00Z" });
+  check("T27g a new summary replaces the old one and the page shows it", metaOf(A).summary.startsWith("A rewritten") && read(devlog(`${A}.html`)).includes("<strong>final</strong>") && !read(devlog(`${A}.html`)).includes("A first summary"), metaOf(A).summary);
+}
+
 const failed = results.filter((r) => !r.ok);
 for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.name}${r.ok || !r.detail ? "" : `\n      ${String(r.detail).slice(0, 600).replace(/\n/g, "\n      ")}`}`);
 console.log(JSON.stringify({ passed: results.length - failed.length, failed: failed.length, tmp: keep ? tmp : undefined }));
