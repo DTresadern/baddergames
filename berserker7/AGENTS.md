@@ -27,7 +27,8 @@ Commands, run from `berserker7/game/`:
 
 Version label and CI:
 
-- The version label (bottom-left) shows the short commit and UTC build time when built by CI (from `GITHUB_SHA`), and `dev` otherwise.
+- The version label (bottom-right) shows the short commit and UTC build time when built by CI (from `GITHUB_SHA`), and `dev` otherwise.
+  - `main.js` hides it (`hidden` attribute) when the `showVersionLabel` setting is false, at start-up and on every change.
 - CI (`.github/workflows/checks.yml`) runs:
   - `node --check` on every tracked `.js` file
   - JSON parse checks
@@ -160,12 +161,61 @@ Version label and CI:
   - `jump`, `interact` and a click select.
   - A click on an available card sets the campaign.
   - Back keys: the Back item, Escape and gamepad Start (`pause`), V and gamepad B (`melee`).
-  - Selecting a difficulty does nothing yet.
-  - Selecting Back closes the overlay.
+  - Selecting a difficulty creates the session and saves the last choice (see below); nothing else happens yet (no scene change, no sound), and the overlay stays open.
+  - Selecting Back closes the overlay; it creates no session and saves nothing.
 - State fields:
   - `state.selected` (`easy`, `normal`, `hard`, `extreme` or `back`) and `state.selections` are for debug checks only.
+  - `state.start` is `{ campaign, difficulty }` when a difficulty was selected in the tick (the last one wins), else null; it is reset each tick.
   - `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection in the same tick cannot cancel it), and the scene's `tick` closes the overlay on it.
+- Opening and saving (`createNewGame({ screens, settings, session })`):
+  - `enter` calls `initNewGame(settings.get().lastChoice)`: the saved campaign if it is an available campaign, else the first available one (Megacity); the saved difficulty if it is one of `DIFFICULTIES`, else `DEFAULT_DIFFICULTY`.
+  - The scene's `tick`, when `state.start` is set: `session.set(createSession(state.start))` and `settings.set({ lastChoice: { ...state.start } })`; then the Back handling.
 - Its leave setting is `unload`, so closing frees its labels and each open starts fresh. The poster stays loaded because the main menu still holds it.
+
+## Settings and session (`game/src/settings/store.js`, `game/src/session.js`)
+
+Settings store (`createSettingsStore({ storage })`):
+
+- It is the only code that reads or writes `localStorage` (`browserStorage(window)` in the same file gives the storage, or null when reading `window.localStorage` throws). Nothing else, including comments elsewhere, should mention reading it.
+- Saved format: one JSON object under the key `b7.settings` (`SETTINGS_KEY`).
+
+  | Field | Default | Valid |
+  |---|---|---|
+  | `version` | `1` (`SETTINGS_VERSION`) | positive integer |
+  | `musicVolume` | `0.35` (`MUSIC_VOLUME`) | finite number, 0 to 1 |
+  | `showVersionLabel` | `true` | boolean |
+  | `bindings` | `{}` | plain object of overrides: only known schemes and actions with a list of valid sources; the rest is dropped |
+  | `lastChoice` | `{ campaign: 'megacity', difficulty: 'normal' }` | `campaign` a string, `difficulty` one of `DIFFICULTIES`; each falls back on its own |
+  | `progress` | `{}` | any plain object |
+
+- `progress` is reserved for saved games and campaign progress. Nothing uses it yet. It is kept exactly as saved (deep copy), and `reset()` keeps it.
+- Whether a saved campaign is available is checked by the New Game screen, not the store.
+- Load rules (`parseSettings(text, { version, upgrades })`, pure, never throws):
+  - Missing key, unparseable JSON, a value that is not a plain object, or a `version` that is not a positive integer: all defaults.
+  - A `version` lower than `SETTINGS_VERSION`: the upgrades run in order. A missing step, a throwing step or a result that is not a plain object gives all defaults.
+  - A `version` higher than `SETTINGS_VERSION` (saved by a newer build): the fields that exist are checked as the current format.
+  - Then each setting is checked on its own: invalid or missing gives that setting's default and the others keep their saved values. Unknown top-level fields are dropped. The result always has the current version.
+- Version upgrades:
+  - `UPGRADES` is an object keyed by the version it upgrades from: `UPGRADES[n](data)` returns version n + 1 data.
+  - To change the format: bump `SETTINGS_VERSION` to n + 1, add `UPGRADES[n]`, and add a test.
+- Adding a setting: add one entry to the `SETTINGS` table (`name`, `default()`, `check(value)` returning the cleaned value or `INVALID`), then a test. A setting added with a default does not need a version bump.
+- Legacy bindings move: the old key `b7.bindings` held the overrides alone.
+  - On creation, if it exists: when `b7.settings` has no saved value its (cleaned) contents become `bindings` (unparseable gives `{}`); in every case the old key is removed and the settings are saved.
+  - If the old key is absent, nothing is written on creation.
+- Methods:
+  - `get()`: the current settings, deeply frozen. Each change makes a new object, so callers cannot change the store.
+  - `set(patch)`: `patch` is a partial object of setting names. Each value goes through the same check; an invalid value or unknown name is ignored (no throw). If nothing changes (compared as JSON) there is no save and no notification; otherwise it saves and notifies once. Returns true when something changed.
+  - `reset()`: every setting but `progress` back to its default; saves and notifies only if something changed.
+  - `subscribe(fn)`: `fn(settings)` after each change; returns the unsubscribe function.
+- Blocked storage: with storage null, or a storage whose `getItem`, `setItem` or `removeItem` throws, the game keeps working in memory, nothing is saved and nothing is logged.
+- Saving happens only on a change, never per frame.
+- `main.js` creates the store first, then passes it to what needs it: `attachInput` (bindings, at start-up), `createMusic` (volume, plus a `subscribe` callback calling `setVolume`), the version label (`showVersionLabel`), the New Game scene and the debug panel.
+
+Session (`createSession`, `createSessionHolder`):
+
+- A session is the run being set up, as plain data: `{ campaign, difficulty }`, frozen, with no functions and no engine objects, so it survives `structuredClone` and a JSON round trip unchanged and can later be saved or sent over the network.
+- The holder (`createSessionHolder()`) has `get()` (null at start), `set(session)` and `clear()`. Only the New Game screen sets it so far; nothing reads it yet.
+- Scenes get `settings` and `session` through the objects passed at registration (like `music` and `screens`): `createNewGame({ screens, settings, session })`. They never read storage or devices themselves.
 
 ## Assets and content
 
@@ -203,7 +253,11 @@ Version label and CI:
   - After `MUSIC_PRELOAD_TIMEOUT_MS` (15 s) it resolves with a `console.warn` that the music will stream when played (some mobile browsers ignore preload until a gesture).
   - A later `play` of the same url keeps the source and does not restart.
 - Playback starts on the first click, key or touch (browsers block it before), and pauses while the tab is hidden.
-- `MUSIC_VOLUME` is the one volume value.
+- Volume:
+  - `createMusic({ window, volume })`: `volume` defaults to `MUSIC_VOLUME` (0.35, the default for the `musicVolume` setting).
+  - `music.setVolume(v)` clamps to 0 to 1 (a value that is not a number is ignored), keeps it for an element not yet created, and applies it to the element at once.
+  - `music.debug.volume` is the current volume.
+  - `music.js` does not read settings: `main.js` passes the saved volume and calls `setVolume` from a `settings.subscribe` callback.
 - Scenes call `music.play(url)` from `enter` and `resume`, and `music.stop()` from `suspend` and `exit`. Exception: the intro plays the title music from `enter` and never stops it, so it carries on into the menu.
 
 ## Input (`game/src/input/`)
@@ -229,11 +283,11 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   | `nextWeapon` / `previousWeapon` | wheel down / wheel up | right bumper (5) / Y (3) |
   | `weaponMenu` (held) | Q | View/Back (8) |
   | `pause` | Esc | Start (9) |
-- Saved overrides: localStorage key `b7.bindings`, JSON in the same shape as the defaults but partial.
-  - `resolveBindings` (`bindings.js`) applies them.
-  - Unknown schemes and actions are ignored, an invalid value keeps that action's default, an empty list unbinds it.
-  - Missing, unparseable or throwing storage gives the defaults.
-  - `saveBindings` exists for a later settings screen.
+- Saved overrides: the `bindings` field of the saved settings (see Settings and session), in the same shape as the defaults but partial.
+  - `main.js` passes `settings.get().bindings` to `attachInput({ bindings })` once at start-up; there is no live rebinding yet (a later rebind screen will add it).
+  - `resolveBindings` (`bindings.js`) applies them. Unknown schemes and actions are ignored, an invalid value keeps that action's default, an empty list unbinds it.
+  - The store cleans the overrides when it loads them, so only known schemes, known actions and valid source lists reach `resolveBindings`.
+  - `input/` never reads storage.
 - Players and devices (`PLAYER_DEVICES` in `sampler.js`):
   - Player 1 (index 0) is keyboard + mouse and is always connected.
   - Player 2 (index 1) is on a gamepad with `mapping === 'standard'` and is connected only while that pad is; player 1 also gets a second such pad.
@@ -307,15 +361,18 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - Buttons give up focus after a click, so keys go to the game.
   - The "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure.
   - The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; `test/harness.test.js` also reads them.
+- The panel also shows `[data-value="settings"]` (JSON of `settings.get()`) and `[data-value="session"]` (JSON of the current session, or `none`), refreshed with the other values (every 250 ms).
+  - The "Reset settings" button (`button[data-action="reset-settings"]`) calls `settings.reset()` (everything but `progress` goes back to its default).
 - `window.__b7` (for debug checks only; it is not a game API) exposes:
   - The harness
   - The renderer
   - The asset cache
   - The loader (`window.__b7.loader.status('boot')`)
   - Input (`window.__b7.input`, the object `attachInput` returns)
-  - Music (`window.__b7.music.debug`: `element`, `created`, `wanted`)
+  - Music (`window.__b7.music.debug`: `element`, `created`, `wanted`, `volume`)
+  - The settings store (`window.__b7.settings`) and the session holder (`window.__b7.session`)
 - Input panel (`game/src/debug/input-panel.js`):
-  - `#b7-input`: top-left; bottom-left above the version label on windows up to 760 px wide; collapsed by default at every width.
+  - `#b7-input`: top-left; bottom-left (24 px up, clear of the bottom-right version label) on windows up to 760 px wide; collapsed by default at every width.
   - Toggled by `#b7-input-toggle`.
   - Per player `[data-player="0"]` and `[data-player="1"]`:
     - `[data-field="device"]`
