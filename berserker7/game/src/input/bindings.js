@@ -10,14 +10,27 @@ import { ACTIONS, DEFAULT_BINDINGS, SCHEMES, deepFreeze } from './actions.js';
 
 export const STORAGE_KEY = 'b7.bindings';
 
-// Source string formats per scheme (see actions.js).
-const SOURCE_PATTERNS = {
-  keyboardMouse: [/^key:[A-Za-z0-9]+$/, /^mouse:[0-4]$/, /^wheel:[+-]$/],
-  gamepad: [/^button:([0-9]|[12][0-9]|3[01])$/, /^axis:[0-7]:[+-]$/],
-};
+// Source string formats per scheme (see actions.js), bounded: mouse 0-4, button 0-31, axis 0-7.
+const KEYBOARD_MOUSE_SOURCE = /^(?:key:[A-Za-z0-9]+|mouse:[0-4]|wheel:[+-])$/;
+const BUTTON_SOURCE = /^button:([0-9]|[12][0-9]|3[01])$/;
+const AXIS_SOURCE = /^axis:([0-7]):([+-])$/;
+
+// Parses one source string for a scheme. Returns null when it is not valid there, else
+// { kind: 'latch', source } (keyboard, mouse, wheel), { kind: 'button', index } or
+// { kind: 'axis', index, sign } (sign 1 or -1).
+export function parseSource(scheme, source) {
+  if (typeof source !== 'string') return null;
+  if (scheme === 'keyboardMouse') return KEYBOARD_MOUSE_SOURCE.test(source) ? { kind: 'latch', source } : null;
+  if (scheme !== 'gamepad') return null;
+  let m = BUTTON_SOURCE.exec(source);
+  if (m) return { kind: 'button', index: Number(m[1]) };
+  m = AXIS_SOURCE.exec(source);
+  if (m) return { kind: 'axis', index: Number(m[1]), sign: m[2] === '+' ? 1 : -1 };
+  return null;
+}
 
 export function isValidSource(scheme, source) {
-  return typeof source === 'string' && (SOURCE_PATTERNS[scheme] ?? []).some((pattern) => pattern.test(source));
+  return parseSource(scheme, source) !== null;
 }
 
 function isPlainObject(value) {

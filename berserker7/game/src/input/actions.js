@@ -1,12 +1,5 @@
-// Named actions and their default bindings, as data.
-//
-// Source strings:
-//   keyboard + mouse scheme: 'key:<KeyboardEvent.code>', 'mouse:<button>' (0 left, 1 middle,
-//     2 right, 3 back, 4 forward), 'wheel:+' (scroll down, toward the user: deltaY > 0), 'wheel:-'
-//   gamepad scheme (standard mapping): 'button:<index>', 'axis:<index>:+', 'axis:<index>:-'
-//
-// Aim is not an action: it comes from the mouse position (keyboard + mouse) or the
-// right stick, axes 2 and 3 (gamepad).
+// Named actions and their default bindings, as data. Source string formats and aim:
+// see berserker7/AGENTS.md, Input. Mouse buttons: 0 left, 1 middle, 2 right, 3 back, 4 forward.
 
 const WEAPON_SLOTS = 9;
 const weapons = Array.from({ length: WEAPON_SLOTS }, (_, i) => `weapon${i + 1}`);

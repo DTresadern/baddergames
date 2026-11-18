@@ -1,6 +1,5 @@
-// Keyboard, mouse and wheel state as one plain mutable object, changed only by the
-// functions below. dom.js calls them from browser events; tests call them directly.
-// Gamepads are not kept here: they are polled each tick as plain snapshots (snapshotPad).
+// Keyboard, mouse and wheel state as a plain object, changed only by these functions
+// (dom.js calls them from browser events). See berserker7/AGENTS.md, Input.
 
 // Wheel rule (see wheel()).
 export const WHEEL_STEP_PIXELS = 40;
@@ -10,7 +9,7 @@ export const WHEEL_QUIET_MS = 120;
 export function createDevices() {
   return {
     // Latches keyed by source string ('key:Space', 'mouse:0', 'wheel:+'):
-    // { down, presses, releases }; presses and releases count since the last sample.
+    // { down, presses }; presses counts since the last sample.
     sources: {},
     // Mouse position in CSS px relative to the canvas top-left; `moved` since the last sample.
     mouse: { x: 0, y: 0, moved: false },
@@ -27,7 +26,7 @@ export function createDevices() {
 function latch(dev, source) {
   let entry = dev.sources[source];
   if (!entry) {
-    entry = { down: false, presses: 0, releases: 0 };
+    entry = { down: false, presses: 0 };
     dev.sources[source] = entry;
   }
   return entry;
@@ -43,21 +42,17 @@ export function press(dev, source) {
 
 export function release(dev, source) {
   const entry = dev.sources[source];
-  if (!entry?.down) return;
-  entry.down = false;
-  entry.releases += 1;
+  if (entry) entry.down = false;
 }
 
-// A press and release in one go, without being down (wheel steps).
+// A press without being down (wheel steps).
 export function tap(dev, source) {
-  const entry = latch(dev, source);
-  entry.presses += 1;
-  entry.releases += 1;
+  latch(dev, source).presses += 1;
 }
 
 // Window blur, tab hidden: everything held is released.
 export function releaseAll(dev) {
-  for (const source of Object.keys(dev.sources)) release(dev, source);
+  for (const entry of Object.values(dev.sources)) entry.down = false;
 }
 
 export function moveMouse(dev, x, y) {
@@ -76,12 +71,8 @@ function wheelStep(dev, sign) {
   tap(dev, sign > 0 ? 'wheel:+' : 'wheel:-');
 }
 
-// One wheel event. deltaMode 1 (lines) or 2 (pages): one step per event in the sign of
-// deltaY (mouse wheel notches). deltaMode 0 (pixels): the distance accumulates; at
-// WHEEL_STEP_PIXELS it gives one step and locks. While locked, pixel events are ignored
-// until WHEEL_LOCK_MS have passed since the step and no wheel event has arrived for
-// WHEEL_QUIET_MS (each ignored event restarts that quiet time). So a touchpad swipe,
-// momentum included, gives one step; notches with pauses between them give one each.
+// Line and page events: one step each. Pixel events accumulate to one step, then lock
+// until WHEEL_LOCK_MS after the step and WHEEL_QUIET_MS without any wheel event.
 export function wheel(dev, deltaY, deltaMode, now) {
   const quietSince = dev.wheelLastAt;
   dev.wheelLastAt = now;
@@ -104,10 +95,7 @@ export function wheel(dev, deltaY, deltaMode, now) {
 
 // Called by the sampler after each tick: counts and movement start again from zero.
 export function clearLatches(dev) {
-  for (const entry of Object.values(dev.sources)) {
-    entry.presses = 0;
-    entry.releases = 0;
-  }
+  for (const entry of Object.values(dev.sources)) entry.presses = 0;
   dev.mouse.moved = false;
   dev.wheelSteps = 0;
 }

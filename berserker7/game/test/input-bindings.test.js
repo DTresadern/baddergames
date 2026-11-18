@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ACTIONS, DEFAULT_BINDINGS, SCHEMES } from '../src/input/actions.js';
-import { STORAGE_KEY, isValidSource, loadBindings, resolveBindings, saveBindings } from '../src/input/bindings.js';
+import { STORAGE_KEY, isValidSource, loadBindings, parseSource, resolveBindings, saveBindings } from '../src/input/bindings.js';
 
 const DEFAULTS_JSON = JSON.stringify(DEFAULT_BINDINGS);
 
@@ -126,4 +126,15 @@ test('bindings: the resolved table is a copy; changing it is impossible and leav
   assert.throws(() => table.keyboardMouse.dash.push('key:KeyZ'), TypeError);
   assert.throws(() => DEFAULT_BINDINGS.keyboardMouse.jump.push('key:KeyZ'), TypeError);
   assert.equal(JSON.stringify(DEFAULT_BINDINGS), DEFAULTS_JSON);
+});
+
+test('bindings: parseSource gives the parsed form, or null when the source is not valid for the scheme', () => {
+  assert.deepEqual(parseSource('keyboardMouse', 'key:KeyA'), { kind: 'latch', source: 'key:KeyA' });
+  assert.deepEqual(parseSource('keyboardMouse', 'wheel:-'), { kind: 'latch', source: 'wheel:-' });
+  assert.deepEqual(parseSource('gamepad', 'button:31'), { kind: 'button', index: 31 });
+  assert.deepEqual(parseSource('gamepad', 'axis:3:-'), { kind: 'axis', index: 3, sign: -1 });
+  assert.deepEqual(parseSource('gamepad', 'axis:0:+'), { kind: 'axis', index: 0, sign: 1 });
+  assert.equal(parseSource('gamepad', 'button:32'), null);
+  assert.equal(parseSource('keyboardMouse', 'button:1'), null);
+  assert.equal(parseSource('gamepad', 42), null);
 });

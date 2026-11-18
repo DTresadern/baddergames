@@ -1,27 +1,11 @@
-// Per-tick input frames, one per player, built from the device state and gamepad snapshots.
-//
-// Frame (plain data, new objects every tick):
-//   { player, connected, actions: { [action]: { held, pressed, released } }, aim, wheel }
-//
-// Edges, per action, from all its bound sources on the player's devices:
-//   downNow = any source down; tapped = any source pressed since the last tick;
-//   held = downNow || tapped (a tap shorter than one tick is held for exactly one tick);
-//   pressed = held && !prevHeld; released = prevHeld && !held.
-// sampleInput clears the latches, so when one frame runs several ticks only the first
-// sees a press. Known limit: releasing and pressing the same action again between two
-// ticks while it is held gives no second pressed.
-//
-// Aim: radians, y up (0 = right, +PI/2 = up on screen), range (-PI, PI], starts at 0.
-// The mouse sets it when it moved since the last tick, from the player's aim origin.
-// Otherwise the right stick sets it when outside the radial dead zone. Otherwise it
-// keeps its value. So the mouse wins when both moved in one tick.
+// Per-tick input frames, one per player, from the device state and gamepad snapshots.
+// Frame shape, edge rules, aim and player assignment: see berserker7/AGENTS.md, Input.
 
-import { ACTIONS, DEFAULT_BINDINGS } from './actions.js';
+import { ACTIONS, DEFAULT_BINDINGS, SCHEMES } from './actions.js';
+import { parseSource } from './bindings.js';
 import { clearLatches } from './devices.js';
 
-// Which devices each player uses. `pad: n` = the n-th connected gamepad with the
-// standard mapping, ordered by gamepad index. One pad: player 2 on it. Two pads: both
-// players on pads, and player 1 also keeps keyboard + mouse.
+// Which devices each player uses. `pad: n` = the n-th connected standard gamepad, by index.
 export const PLAYER_DEVICES = Object.freeze([
   Object.freeze({ keyboardMouse: true, pad: 1 }),
   Object.freeze({ keyboardMouse: false, pad: 0 }),
@@ -31,20 +15,16 @@ const TRIGGERS = [6, 7]; // standard mapping: left and right trigger
 const STICK_X = 2; // right stick
 const STICK_Y = 3;
 
-function parseSource(source) {
-  let m = /^button:(\d+)$/.exec(source);
-  if (m) return { kind: 'button', index: Number(m[1]) };
-  m = /^axis:(\d+):([+-])$/.exec(source);
-  if (m) return { kind: 'axis', index: Number(m[1]), sign: m[2] === '+' ? 1 : -1 };
-  return { kind: 'latch', source };
-}
-
 // Parses each binding once: { keyboardMouse: { [action]: parsed[] }, gamepad: {...} }.
 function compile(bindings) {
   const compiled = {};
-  for (const scheme of ['keyboardMouse', 'gamepad']) {
+  for (const scheme of SCHEMES) {
     compiled[scheme] = {};
-    for (const action of ACTIONS) compiled[scheme][action] = (bindings[scheme]?.[action] ?? []).map(parseSource);
+    for (const action of ACTIONS) {
+      compiled[scheme][action] = (bindings[scheme]?.[action] ?? [])
+        .map((source) => parseSource(scheme, source))
+        .filter((parsed) => parsed !== null);
+    }
   }
   return compiled;
 }
@@ -56,22 +36,20 @@ function emptyTotals() {
 export function createInput({
   players = PLAYER_DEVICES,
   bindings = DEFAULT_BINDINGS,
-  deadZone = 0.25,
-  axisThreshold = 0.5,
+  deadZone = 0.25, // radial, for the aim stick
+  axisThreshold = 0.5, // digital axis sources
   triggerThreshold = 0.3,
 } = {}) {
   return {
     players,
-    bindings,
     compiled: compile(bindings),
     deadZone,
     axisThreshold,
     triggerThreshold,
-    // Per player: last tick's held per action, aim angle, aim origin in CSS px (null = canvas centre).
     perPlayer: players.map(() => ({
       prevHeld: Object.fromEntries(ACTIONS.map((action) => [action, false])),
       aim: 0,
-      aimOrigin: null,
+      aimOrigin: null, // CSS px of the canvas; null = canvas centre
     })),
     // Read by the input panel; not part of the frames.
     debug: {
@@ -83,13 +61,7 @@ export function createInput({
   };
 }
 
-export function setBindings(input, bindings) {
-  input.bindings = bindings;
-  input.compiled = compile(bindings);
-}
-
-// Where a player is on screen, in CSS px of the canvas; mouse aim is measured from here.
-// null for x or y goes back to the canvas centre.
+// Where a player is on screen, in CSS px of the canvas; null for x or y = canvas centre.
 export function setAimOrigin(input, player, x, y) {
   const entry = input.perPlayer[player];
   if (!entry) return;
@@ -102,20 +74,13 @@ export function normaliseAngle(angle) {
   return angle === 0 ? 0 : angle;
 }
 
-function deadZoned(value, deadZone) {
-  return Math.abs(value) < deadZone ? 0 : value;
-}
-
 function padSourceDown(input, pad, parsed) {
   if (parsed.kind === 'button') {
     const button = pad.buttons[parsed.index];
     if (!button) return false;
     return TRIGGERS.includes(parsed.index) ? button.value > input.triggerThreshold : button.pressed;
   }
-  if (parsed.kind === 'axis') {
-    const value = deadZoned(pad.axes[parsed.index] ?? 0, input.deadZone);
-    return value * parsed.sign >= input.axisThreshold;
-  }
+  if (parsed.kind === 'axis') return (pad.axes[parsed.index] ?? 0) * parsed.sign >= input.axisThreshold;
   return false;
 }
 
@@ -158,7 +123,7 @@ export function sampleInput(input, devices, pads = []) {
       let tapped = false;
       if (keyboardMouse) {
         for (const parsed of input.compiled.keyboardMouse[action]) {
-          const latch = parsed.kind === 'latch' ? devices.sources[parsed.source] : undefined;
+          const latch = devices.sources[parsed.source];
           if (!latch) continue;
           downNow ||= latch.down;
           tapped ||= latch.presses > 0;
