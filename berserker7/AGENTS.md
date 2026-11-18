@@ -93,7 +93,7 @@ Version label and CI:
 ## Start-up (`scenes/boot.js`, `scenes/intro.js`)
 
 - Order: boot (loading screen, the scene the game page starts on) -> a press -> intro (two logos) -> main menu (`scenes/main-menu.js`).
-  - All of them draw a full-screen black quad first (the renderer's clear colour is not black) and are not pausable.
+  - Boot and intro draw a full-screen black quad first (the renderer's clear colour is not black); the main menu draws the poster scaled to cover the view instead. None of them is pausable.
 - Boot (`createBoot({ loader, screens })`, the first main scene):
   - `enter` starts `loader.load('boot')`.
   - While loading: a centred bar, `min(400 px, 70% of the width)` wide and 6 px tall, a dim track with a white fill scaled by progress.
@@ -107,8 +107,8 @@ Version label and CI:
   - `enter` calls `music.play` for `music.title` (the first logo starts fading in at the same moment).
   - The intro never stops the music, and the menu's own `play` of the same URL does not restart it.
 - Leaving the intro (`tickIntro`):
-  - At `end` it calls `screens.showMenu({ fromBlack: true })`: `setMain('mainMenu', { fade: 2 * FADE_SECONDS, fromAlpha: 1 })`, so the menu fades in from black over 1 s.
-  - Skip: any connected frame with `activated` or any action pressed (a click, key, Escape, touch or gamepad button; also a wheel step or a left-stick tilt, since they press actions too; not a mouse move), after the first `SKIP_DELAY_SECONDS` (0.25 s), calls `screens.showMenu({ fromBlack: false })`: the intro fades to black over 1 s, then the menu fades in over 1 s.
+  - At `end` it sets `state.request` to `'menu'`, and the scene's `tick` calls `screens.showMenu({ fromBlack: true })`: `setMain('mainMenu', { fade: 2 * FADE_SECONDS, fromAlpha: 1 })`, so the menu fades in from black over 1 s.
+  - Skip: any connected frame with `activated` or any action pressed (a click, key, Escape, touch or a gamepad button bound to an action; also a wheel step or a left-stick tilt, since they press actions too; not a mouse move, and not gamepad buttons 10, 11 or 16 and above, which are unbound by default), after the first `SKIP_DELAY_SECONDS` (0.25 s), sets `state.request` to `'skip'`, and the scene's `tick` calls `screens.showMenu({ fromBlack: false })`: the intro fades to black over 1 s, then the menu fades in over 1 s.
   - The delay is there because a touch screen sends the tap's compatibility mouse events after `touchend`, possibly a tick later, which would otherwise skip the intro the tap started.
   - One request only.
 - Layout (`logoRect`): centred, aspect kept, inside `LOGO_MAX_WIDTH` (80%) of the view width and `LOGO_MAX_HEIGHT` (60%) of its height, and never more device pixels than the image has (CSS size at most image size / `renderer.getPixelRatio()`).
@@ -121,7 +121,7 @@ Version label and CI:
 
 - Layout, drawing and music:
   - There is no backdrop behind the menu.
-  - It shows the poster drawn as cover, a black panel holding three no-op items ("New Game", "Multiplayer", "Options"), and plays the title music.
+  - It shows the poster drawn as cover, a semi-transparent black panel holding three items ("New Game", "Multiplayer", "Options"; only "Multiplayer" and "Options" do nothing), and plays the title music.
   - Each label is drawn once into its own off-screen 2D canvas (never added to the page) and shown as a tracked `CanvasTexture` on a plane.
   - The highlighted item gets a white bar and full opacity; the others are dimmed.
   - `menuLayout` and `itemAt` in `main-menu.js` give the item rectangles and hit test.
@@ -176,12 +176,12 @@ Version label and CI:
   - Every file the game uses is listed in the asset manifest (see Manifest below); code never writes a content path itself.
 - Asset code is in `game/src/assets/`.
 - Manifest (`manifest.js`): `ASSETS`, one frozen list of every runtime asset, `{ key, path, type, groups, colorSpace? }`.
-  - `path` is relative under `content/` (no leading slash, no `..`).
+  - `path` starts with `content/` and is relative to `public/` (for example `content/textures/logos/w8omg.png`; no leading slash, no `..`).
   - `type` is `texture` or `music`.
   - `groups` names the preload groups that load it (`GROUPS`, now only `boot`).
   - A texture's `colorSpace` is `srgb` (default, colour images) or `raw` (stored values used as data; the w8omg logo).
   - `assetByKey(key)` and `groupAssets(group)` throw on an unknown key or group.
-  - `checkManifest(list)` returns the problems (duplicate or missing key, bad path, unknown type or colour space, unknown or empty groups, a group with no assets); the module throws at import if `ASSETS` has any.
+  - `checkManifest(list)` returns the problems (duplicate or missing key, bad path, unknown type or colour space, a colour space on an entry that is not a texture, unknown or empty groups, a group with no assets); the module throws at import if `ASSETS` has any.
   - A test checks that every path exists under `game/public/`.
 - Textures (`textures.js`): `acquireTexture(acquire, key)` returns a promise of the texture, through the asset cache under the manifest key.
   - Scenes pass `context.acquire`; the loader passes the cache's own `acquire`.
@@ -239,7 +239,7 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - Player 2 (index 1) is on a gamepad with `mapping === 'standard'` and is connected only while that pad is; player 1 also gets a second such pad.
   - Each player keeps the `gamepad.index` it was given while that pad stays connected (`perPlayer[i].padIndex`).
   - A free player slot is filled only from connected standard pads that no player holds, in ascending gamepad index, with slots filled in ascending order of their `pad` number in `PLAYER_DEVICES` (player 2 has `pad: 0`, player 1 `pad: 1`): one pad goes to player 2, a second to player 1.
-  - When a player's pad disconnects, the slot goes empty and its held actions give `released` on the next tick; unplugging one pad never moves another player's pad.
+  - When a player's pad disconnects, a connected standard pad that no player holds fills the freed slot in the same sample; with none, the slot goes empty. Either way its held actions give `released` on the next tick; unplugging one pad never moves another player's pad.
   - Non-standard pads are listed as ignored in the input panel; standard pads beyond the two assigned are not used.
 - Frame, one per player per tick, plain data, new objects every tick: `{ player, connected, actions: { [action]: { held, pressed, released } }, aim, wheel, pointer, activated }`.
   - `pointer` is `{ x, y, width, height, moved }` for keyboard + mouse players (mouse position and canvas size in CSS px, top-left origin, y down; `moved` is true only on the first tick after a move) and `null` for gamepad-only players.
@@ -257,7 +257,7 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - `pressed` = held now and not held last tick, or a wheel step this tick, or a new tap or press after a tick on which the action was held only by a tap or a wheel step.
   - `released` = held last tick and not held now, or that same new tap or press (the earlier tap or wheel step ends on the tick the new one starts).
   - So an action is pressed only when it goes from no bound source held to at least one, and released only when the last held source is let go.
-  - Pressing, tapping or releasing a second source while another is held gives no edge, and neither does releasing and pressing the same key again between two ticks.
+  - Pressing, tapping or releasing a second source while another is held gives no edge (except a wheel step, which always gives `pressed`), and neither does releasing and pressing the same key again between two ticks.
   - A tap shorter than one tick is held for exactly one tick (pressed on it, released on the next); taps on consecutive ticks each give their own press.
   - When one render frame runs several ticks, only the first sees a press.
   - Key repeat adds no press.
@@ -306,7 +306,7 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - Has a "Main menu" button and buttons for each harness behaviour, including the test scenes ("Players scene (input test)", the A / B switch and the slow scene), which add the backdrop.
   - Buttons give up focus after a click, so keys go to the game.
   - The "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure.
-  - The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; nothing else reads them.
+  - The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; `test/harness.test.js` also reads them.
 - `window.__b7` (for debug checks only; it is not a game API) exposes:
   - The harness
   - The renderer
@@ -320,7 +320,7 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - Per player `[data-player="0"]` and `[data-player="1"]`:
     - `[data-field="device"]`
     - `[data-field="aim"]` (degrees)
-    - `[data-field="wheel"]` (total steps)
+    - `[data-field="wheel"]` (running sum of `frame.wheel`: signed, steps down minus steps up)
     - One row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts)
   - Also `[data-field="ignored"]` (ignored gamepads) and `[data-field="pad-event"]`.
   - Refreshes every 100 ms.
