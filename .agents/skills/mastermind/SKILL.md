@@ -29,7 +29,7 @@ Dates and times come only from `mm` output. The date in your own context is the 
 2. `mm whoami`. Read every file it lists under "read first".
 3. `mm claim`. If another live orchestrator holds the namespace, stop and tell the user.
 4. `mm status` and `mm lane list --open`. Give the user a short summary: what is running, what waits on them, and today's devlog state.
-5. Hub orchestrator only: check the nightly devlog task with `list_scheduled_tasks`. If no task is titled `dev.baddergames · devlog nightly`, create it with `schedule_task`: that title, `bindToCurrentThread` false, `freshSession` true, schedule `{"type": "fixed_time", "timeOfDay": "00:05"}`, and the prompt in `templates/nightly-prompt.md` with `{{mm}}` replaced by the `mm` path from `mm whoami`. It closes the previous day even when nobody works the next day; every `mm` command also closes past days, so a missed night loses nothing. T3 runs it in a worktree of its own, which it reuses every night; that is expected, and it always runs the current `mm` by its full path.
+5. Hub orchestrator only: the day-change hook (`scripts/day-check`, set in `.agents/settings.json`) adds a DAY CHANGE notice to your first message of a new day and repeats it until the day change is done. Follow its steps before anything else in that turn, without asking the user. Without the hook (another host, or it failed), run `scripts/day-check` at the start of every turn and do the same when `last_handled` is before today.
 
 All state is in files, so your conversation can be cleared at any time; rebuild with these steps.
 

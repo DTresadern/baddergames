@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Day-change check for the hub orchestrator (mastermind) and its Daily Update threads.
+
+  day-check hook                      UserPromptSubmit hook. Prints nothing unless this is the hub orchestrator's
+                                      thread and the day has changed (or a test is pending).
+  day-check --done YYYY-MM-DD [--daily-thread ID]
+                                      the day change for that date is handled; record today's Daily Update thread.
+  day-check --test                    the next orchestrator message gets a one-line "hook ran" notice.
+  day-check                           print the state.
+
+The hub orchestrator is the thread that holds the hub namespace's claim in .mastermind/state/ledger.json; this
+session's thread id comes from T3CODE_THREAD_ID (or MM_THREAD_ID). No registration step: the claim already exists.
+State: .mastermind/state/day.json and day-check.log (gitignored). Time zone: "timezone" in .mastermind/config.json.
+Optional overrides: DAY_CHECK_HOME (folder instead of .mastermind), DAY_CHECK_TZ (time zone).
+"""
+import datetime
+import json
+import os
+import sys
+from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+SCRIPT = Path(__file__).resolve()
+REPO = Path(os.environ.get("CLAUDE_PROJECT_DIR") or SCRIPT.parents[4])
+HOME = Path(os.environ.get("DAY_CHECK_HOME") or REPO / ".mastermind")
+STATE = HOME / "state" / "day.json"
+LOG = HOME / "state" / "day-check.log"
+LEDGER = HOME / "state" / "ledger.json"
+CONFIG = HOME / "config.json"
+MM = SCRIPT.parent / "mm"
+
+
+def read_json(path):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def timezone():
+    for name in (os.environ.get("DAY_CHECK_TZ"), read_json(CONFIG).get("timezone"), "Europe/London"):
+        if name:
+            try:
+                return name, ZoneInfo(name)
+            except (ZoneInfoNotFoundError, ValueError):
+                continue
+
+
+TZ_NAME, TZ = timezone()
+
+
+def save(state):
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = STATE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, indent=2) + "\n")
+    tmp.replace(STATE)
+
+
+def log(line):
+    # Only where the state folder already exists (the main checkout), so lane worktrees stay clean.
+    if not LOG.parent.is_dir():
+        return
+    now = datetime.datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
+    lines = LOG.read_text().splitlines()[-199:] if LOG.exists() else []
+    LOG.write_text("\n".join(lines + [f"{now} {line}"]) + "\n")
+
+
+def hub_thread():
+    config, claims = read_json(CONFIG), read_json(LEDGER).get("claims", {})
+    return (claims.get(config.get("project", "")) or {}).get("threadId")
+
+
+def new_day_steps(state, today):
+    last = state.get("last_handled")
+    return (
+        f"DAY CHANGE ({today}, {TZ_NAME}). Last day handled: {last or 'none'}. "
+        "Before anything else in this turn, without asking the user:\n"
+        f"1. Run `{MM} rollover --json`. It closes past days and sends the finalise message to any day that needs it.\n"
+        "2. For every day before today in the ledger's `dailyThreads`: read its thread (`t3_thread_read`). If it is "
+        "not settled, is idle, and has answered any finalise message, settle it with `t3_thread_organize`. If it is "
+        "still finalising, leave it: this notice repeats and you settle it on a later message.\n"
+        f"3. Start today's Daily Update thread if `{MM} status` shows no `devlog.thread`: record one event, "
+        f"`{MM} devlog event note \"Day started. Carried over: <lanes running or waiting, pull requests waiting for "
+        "approval, from mm status>\"`.\n"
+        f"4. When every earlier day's thread is settled and today's thread exists, run: "
+        f"{SCRIPT} --done {today} --daily-thread <today's thread id from mm status>\n"
+        "This notice repeats on every message until step 4 runs."
+    )
+
+
+def hook():
+    try:
+        sys.stdin.read()
+    except OSError:
+        pass
+    me = os.environ.get("T3CODE_THREAD_ID") or os.environ.get("MM_THREAD_ID") or ""
+    hub = hub_thread()
+    mine = bool(me) and me == hub
+    if not mine:
+        return
+    state = read_json(STATE)
+    today = datetime.datetime.now(TZ).date().isoformat()
+    parts = []
+    if state.get("test_pending"):
+        parts.append(f"DAY-CHECK TEST: the hook ran in the orchestrator thread at {datetime.datetime.now(TZ):%H:%M}.")
+        state["test_pending"] = False
+        save(state)
+    if (state.get("last_handled") or "") < today:
+        parts.append(new_day_steps(state, today))
+    log(f"thread={me} emitted={'yes' if parts else 'no'}")
+    if parts:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "\n\n".join(parts)}}))
+
+
+def main(argv):
+    state = read_json(STATE)
+    if argv[:1] == ["hook"]:
+        return hook()
+    if argv[:1] == ["--done"] and len(argv) >= 2:
+        datetime.date.fromisoformat(argv[1])
+        state["last_handled"] = argv[1]
+        if "--daily-thread" in argv:
+            state["daily_thread"] = argv[argv.index("--daily-thread") + 1]
+        save(state)
+    elif argv[:1] == ["--test"]:
+        state["test_pending"] = True
+        save(state)
+    elif argv:
+        print(__doc__)
+        return 2
+    print(json.dumps(read_json(STATE), indent=2))
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]) or 0)
