@@ -1,8 +1,10 @@
 // Game harness: fixed-step loop, scene layers, and a queue of scene changes.
 //
 // Each frame(frameSeconds):
-//   1. tick: run the clock's steps; each step ticks every scene allowed to tick, in layer order.
-//   2. draw: clear, draw every scene allowed to draw in layer order, then the fade.
+//   1. tick: run the clock's steps; each step samples the input once (one frame per player),
+//      calls onInputs with those frames, then ticks every scene allowed to tick, in layer order,
+//      as tick(state, inputs, dt).
+//   2. draw: clear the input's aim origins (scenes set them again in draw), clear, draw every scene allowed to draw in layer order, then the fade.
 //   3. end failed loads; apply the queued scene changes in request order; activate scenes whose load finished.
 //   4. advance the fade; swap the main scene when it reaches its midpoint.
 // Requests made at any time (including from scene hooks) only take effect in step 3
@@ -15,7 +17,7 @@ import { advanceClock, clampFrame, createClock } from './clock.js';
 import { callHook, createRecord, drawOrder, isLeaveMode, setLife, shouldDraw, shouldTick } from './scene.js';
 import { advanceTransition, createTransition, markSwapped, swapDue, transitionAlpha, transitionDone } from './transition.js';
 
-const NO_INPUTS = Object.freeze({});
+const NO_INPUTS = Object.freeze([]);
 const PLAY_MODES = ['local', 'online'];
 
 export function createHarness({
@@ -26,11 +28,19 @@ export function createHarness({
   drawTransition = () => {},
   now = () => performance.now(),
   loadingScene = null, // id of the scene shown in the main slot while the main scene loads
+  input = null, // { sample() -> frames, setAimOrigin(player, x, y)?, clearAimOrigins()? }; none: every tick gets []
+  onInputs = () => {}, // called once per step with that step's frames, before the scenes tick
 } = {}) {
   const records = new Map();
   const layers = { background: [], main: null, overlays: [] };
   const queue = [];
-  const view = { renderer, width: 1, height: 1 };
+  // setAimOrigin(player, x, y): where a player is on screen in CSS px, for mouse aim.
+  const view = {
+    renderer,
+    width: 1,
+    height: 1,
+    setAimOrigin: (player, x, y) => input?.setAimOrigin?.(player, x, y),
+  };
 
   const harness = {
     assets,
@@ -47,6 +57,7 @@ export function createHarness({
     lastSteps: 0,
     lastWorkMs: 0, // time spent inside frame()
     lastLongFrame: null, // { frameSeconds, steps } of the last frame longer than clock.maxFrame
+    lastInputs: NO_INPUTS, // debug: the last tick's input frames
     register,
     setSize,
     frame,
@@ -320,12 +331,16 @@ export function createHarness({
     const order = drawOrder(layers, mainId).map((entry) => ({ ...entry, record: get(entry.id) }));
     const ticking = order.filter((e) => shouldTick(e.record, e.layer, e.covered, harness.playMode));
     for (let i = 0; i < steps; i++) {
+      const inputs = input ? input.sample() : NO_INPUTS;
+      harness.lastInputs = inputs;
+      onInputs(inputs);
       for (const { record } of ticking) {
-        record.state = callHook(record, 'tick', record.state, NO_INPUTS, clock.step) ?? record.state;
+        record.state = callHook(record, 'tick', record.state, inputs, clock.step) ?? record.state;
       }
     }
 
     // 2. draw
+    input?.clearAimOrigins?.();
     renderer.clear();
     let drawn = 0;
     for (const { record, covered } of order) {
