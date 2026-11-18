@@ -16,7 +16,7 @@ const SIMS = {
   loading: [initLoading, tickLoading],
 };
 
-const NO_INPUTS = Object.freeze({});
+const NO_INPUTS = Object.freeze([]);
 
 function run(init, tick, n) {
   let state = init();
