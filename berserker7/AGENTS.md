@@ -239,7 +239,7 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - Player 2 (index 1) is on a gamepad with `mapping === 'standard'` and is connected only while that pad is; player 1 also gets a second such pad.
   - Each player keeps the `gamepad.index` it was given while that pad stays connected (`perPlayer[i].padIndex`).
   - A free player slot is filled only from connected standard pads that no player holds, in ascending gamepad index, with slots filled in ascending order of their `pad` number in `PLAYER_DEVICES` (player 2 has `pad: 0`, player 1 `pad: 1`): one pad goes to player 2, a second to player 1.
-  - When a player's pad disconnects, a connected standard pad that no player holds fills the freed slot in the same sample; with none, the slot goes empty. Either way its held actions give `released` on the next tick; unplugging one pad never moves another player's pad.
+  - When a player's pad disconnects, a connected standard pad that no player holds fills the freed slot in the same sample; with none, the slot goes empty. Its held actions give `released` on the next tick, except those the replacement pad also holds; unplugging one pad never moves another player's pad.
   - Non-standard pads are listed as ignored in the input panel; standard pads beyond the two assigned are not used.
 - Frame, one per player per tick, plain data, new objects every tick: `{ player, connected, actions: { [action]: { held, pressed, released } }, aim, wheel, pointer, activated }`.
   - `pointer` is `{ x, y, width, height, moved }` for keyboard + mouse players (mouse position and canvas size in CSS px, top-left origin, y down; `moved` is true only on the first tick after a move) and `null` for gamepad-only players.
