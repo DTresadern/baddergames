@@ -1,8 +1,4 @@
-// The list of every runtime asset. Scenes and the loader look assets up here by key.
-// `path` is relative (no leading slash) so it works under any base path; files live in
-// `public/content/`. `groups` name the preload groups that load the asset (see loader.js).
-// Textures may set `colorSpace`: 'srgb' (default, colour images) or 'raw' (the stored byte
-// values are used as data, for example a mask).
+// Every runtime asset, by key. See berserker7/AGENTS.md, Assets.
 
 export const TYPES = Object.freeze(['texture', 'music']);
 export const GROUPS = Object.freeze(['boot']);

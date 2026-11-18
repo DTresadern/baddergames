@@ -72,12 +72,14 @@ test('tickIntro: menu request once when the timeline ends, nothing after', () =>
   assert.equal(state.leaving, true);
 });
 
-test('tickIntro: skip by an activating press, a key action (Escape too) or a gamepad button', () => {
+test('tickIntro: skip by an activating press, a key action (Escape too), a gamepad button, a wheel step or a stick tilt', () => {
   const presses = {
     click: frame(['primaryFire'], null, true, true),
     touch: frame([], null, true, true),
     escape: frame(['pause']),
     gamepad: { ...frame(['jump']), player: 1 },
+    wheel: { ...frame(['nextWeapon']), wheel: 1 },
+    stick: { ...frame(['moveLeft']), player: 1, pointer: null },
   };
   for (const [name, f] of Object.entries(presses)) {
     const state = pastDelay();
