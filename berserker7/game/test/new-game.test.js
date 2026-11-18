@@ -169,12 +169,8 @@ test('new game scene: tick closes the overlay only when back is selected', () =>
   assert.equal(state.selected, 'back');
 });
 
-test('new game scene: reopening starts fresh in the same state object', () => {
-  const scene = createNewGame({ screens: { closeNewGame() {} } });
-  const state = scene.enter();
-  scene.tick(state, [frame(['moveDown', 'pause'])]);
-  scene.resume();
-  assert.deepEqual(state, initNewGame());
+test('new game scene: closing unloads it, so each open starts fresh', () => {
+  assert.equal(createNewGame({ screens: {} }).settings.leave, 'unload');
 });
 
 test('new game scene: does not pause', () => {

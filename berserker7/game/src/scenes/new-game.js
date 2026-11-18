@@ -125,12 +125,13 @@ export function createNewGame({
   loadTexture = defaultLoadTexture,
   createCanvas = () => document.createElement('canvas'),
 }) {
-  let scene, camera, poster, outline, panel, bar, imageWidth, imageHeight, current;
+  let scene, camera, poster, outline, panel, bar, imageWidth, imageHeight;
   let cards = []; // { fill, text, material } per campaign
   let lists = {}; // campaign id -> meshes with materials, one per difficulty
   let back;
   return {
-    settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend', pausable: false },
+    // Closing unloads it, so each open starts fresh; the main menu keeps the shared poster loaded.
+    settings: { tick: 'uncovered', drawCovered: true, leave: 'unload', pausable: false },
     async load({ track, acquire }) {
       const texture = await acquirePoster(acquire, loadTexture);
       imageWidth = texture.image.width;
@@ -167,12 +168,7 @@ export function createNewGame({
       back = text('Back', ITEM_WIDTH, ITEM_HEIGHT, 28, 4);
       camera = new OrthographicCamera(-1, 1, 1, -1, -10, 10);
     },
-    enter() {
-      current = initNewGame();
-      return current;
-    },
-    // Reopened after a close: start fresh (the harness keeps the same state object).
-    resume: () => Object.assign(current, initNewGame()),
+    enter: () => initNewGame(),
     tick(state, inputs) {
       const before = state.selections;
       tickNewGame(state, inputs);
