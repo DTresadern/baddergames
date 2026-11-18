@@ -10,7 +10,7 @@ Sub-project of dev.baddergames. Namespace: `dev.baddergames.berserker7`. Root: `
 - Files outside this folder belong to the namespace that contains them. Change them only when your task names them.
 - To confirm your namespace, root and the files to read: `../.agents/skills/mastermind/scripts/mm whoami`.
 
-## This sub-project
+## This sub-project and commands
 
 Berserker 7 is a browser game built with three.js and Vite. Its features are planned in the feature tracker.
 
@@ -25,60 +25,216 @@ Commands, run from `berserker7/game/`:
 - build: `npm run build` (output in `dist/`, not committed)
 - check the build: `npm run preview` (serves `dist/`)
 
-The version label (bottom-left) shows the short commit and UTC build time when built by CI (from `GITHUB_SHA`), and `dev` otherwise.
+Version label and CI:
 
-CI (`.github/workflows/checks.yml`) runs `node --check` on every tracked `.js` file, JSON parse checks, and `npm ci`, `npm test` and `npm run build` in `berserker7/game/`.
+- The version label (bottom-left) shows the short commit and UTC build time when built by CI (from `GITHUB_SHA`), and `dev` otherwise.
+- CI (`.github/workflows/checks.yml`) runs:
+  - `node --check` on every tracked `.js` file
+  - JSON parse checks
+  - `npm ci`, `npm test` and `npm run build` in `berserker7/game/`
 
 ## Game harness (`game/src/engine/`)
 
-- Fixed 60 Hz step with an accumulator (`clock.js`). Each frame's time is capped at 0.25 s and at most 8 steps run per frame, so a slow frame slows the game down. No interpolation: each frame draws the current state.
+- Fixed 60 Hz step with an accumulator (`clock.js`).
+  - Each frame's time is capped at 0.25 s and at most 8 steps run per frame, so a slow frame slows the game down.
+  - No interpolation: each frame draws the current state.
 - Layers, drawn in this order: `background` (list), `main` (one scene), `overlays` (list, last on top).
-- Each `frame(seconds)` in `harness.js`: 1. per step: sample the input once (one frame per player), call `onInputs(inputs)`, then tick the allowed scenes in layer order; 2. clear, draw the allowed scenes in layer order, then the fade; 3. end failed loads, apply queued requests in request order, and activate scenes whose load finished; 4. advance the fade and swap the main scene at its midpoint.
+- Each `frame(seconds)` in `harness.js`:
+  1. Per step: sample the input once (one frame per player), call `onInputs(inputs)`, then tick the allowed scenes in layer order.
+  2. Clear, draw the allowed scenes in layer order, then the fade.
+  3. End failed loads, apply queued requests in request order, and activate scenes whose load finished.
+  4. Advance the fade and swap the main scene at its midpoint.
 - Requests (`setMain`, `openOverlay`, `closeOverlay`, `addBackground`, `leave`, `preload`, `setPlayMode`) are always queued. Nothing changes mid-frame, including requests from scene hooks.
-- `setMain(id, { params, fade, fromAlpha })`: `fade` is the fade duration in seconds (0 = swap at once); the screen darkens over the first half, the scene swaps at the midpoint, and the new scene shows over the second half. `fromAlpha` (0 to 1) is the darkness the fade starts at; by default the darkness of the fade it replaces, else 0. With `fromAlpha: 1` the screen is taken as already black: the swap happens in the frame the request applies and the new scene fades in over `fade / 2`.
+- `setMain(id, { params, fade, fromAlpha })`:
+  - `fade` is the fade duration in seconds (0 = swap at once). The screen darkens over the first half, the scene swaps at the midpoint, and the new scene shows over the second half.
+  - `fromAlpha` (0 to 1) is the darkness the fade starts at; by default the darkness of the fade it replaces, else 0.
+  - With `fromAlpha: 1` the screen is taken as already black: the swap happens in the frame the request applies and the new scene fades in over `fade / 2`.
 - Play modes: `local` and `online`. In `online`, overlays never pause the main scene.
 - While the main scene loads, the loading scene is drawn in its place. A fade with nothing to show stays black at its midpoint until the scene is ready.
 
 ## Scene contract (`game/src/scenes/`)
 
 - A scene is a plain object from a factory function: `{ settings, load, enter, tick, draw, suspend, resume, exit, unload }`. Missing hooks are no-ops; hook errors are not caught.
-- Hooks: `load(context)` async (build three.js objects; `context` has `track`, `acquire` and `renderer`, and the scene keeps it for later hooks if it needs it), `enter(params) -> state`, `tick(state, inputs, dt) -> state` (`inputs[i]` is player i's input frame for this tick; an empty array when the harness has no input), `draw(state, view)` (`view` has `renderer`, `width`, `height` and `setAimOrigin(player, x, y)`), `suspend()`, `resume()`, `exit()`, `unload()` (optional: only for clean-up beyond tracked resources and acquired assets).
-- Lifecycle: `unloaded -> loading -> ready -> active <-> suspended`; any loaded state `-> unloaded`; a failed load goes back to `unloaded` and leaves its layer, keeping any saved snapshot (a later request retries it). Illegal changes throw. Only `active` scenes tick and draw.
-- Settings: `tick` (`always`, `uncovered`, `never`), `drawCovered` (true or false), `leave` (`suspend`, `unload`, `snapshot`), `pausable` (true or false, default true; false for the menus, see the pause toggle in Input).
-- Leave modes: `suspend` keeps state and three.js objects; `unload` drops both and re-enters fresh; `snapshot` keeps a `structuredClone` of the state, unloads, and on return loads and restores that state, then calls `resume()`. A scene left by `unload` or `snapshot` while its load runs is unloaded when the load ends.
-- State is one plain object (numbers, strings, booleans, arrays, plain objects). `tick` changes only the state; `draw` makes the three.js objects match it. No `Math.random` in a simulation.
-- The harness owns each scene's resources. A scene passes every geometry, material, texture and render target it creates to `context.track(obj)`, and gets shared assets with `context.acquire(key, create)` (the harness's asset cache, `asset-cache.js`, counts users and disposes an asset when its last user releases it). After a failed load, and on every unload (including a snapshot leave), the harness disposes everything the scene tracked and releases everything it acquired, however far `load()` got, even when `unload()` throws or is missing. `unload()` must not dispose tracked resources or release acquired assets itself. No GPU objects created per frame.
+- Hooks:
+  - `load(context)` async: build three.js objects. `context` has `track`, `acquire` and `renderer`, and the scene keeps it for later hooks if it needs it.
+  - `enter(params) -> state`
+  - `tick(state, inputs, dt) -> state`: `inputs[i]` is player i's input frame for this tick; an empty array when the harness has no input.
+  - `draw(state, view)`: `view` has `renderer`, `width`, `height` and `setAimOrigin(player, x, y)`.
+  - `suspend()`
+  - `resume()`
+  - `exit()`
+  - `unload()`: optional; only for clean-up beyond tracked resources and acquired assets.
+- Lifecycle: `unloaded -> loading -> ready -> active <-> suspended`; any loaded state `-> unloaded`.
+  - A failed load goes back to `unloaded` and leaves its layer, keeping any saved snapshot (a later request retries it).
+  - Illegal changes throw.
+  - Only `active` scenes tick and draw.
+- Settings:
+  - `tick`: `always`, `uncovered`, `never`
+  - `drawCovered`: true or false
+  - `leave`: `suspend`, `unload`, `snapshot`
+  - `pausable`: true or false, default true; false for the menus (see the pause toggle in Input)
+- Leave modes:
+  - `suspend` keeps state and three.js objects.
+  - `unload` drops both and re-enters fresh.
+  - `snapshot` keeps a `structuredClone` of the state, unloads, and on return loads and restores that state, then calls `resume()`.
+  - A scene left by `unload` or `snapshot` while its load runs is unloaded when the load ends.
+- State is one plain object (numbers, strings, booleans, arrays, plain objects).
+  - `tick` changes only the state; `draw` makes the three.js objects match it.
+  - No `Math.random` in a simulation.
+- Resource ownership: the harness owns each scene's resources.
+  - A scene passes every geometry, material, texture and render target it creates to `context.track(obj)`.
+  - A scene gets shared assets with `context.acquire(key, create)`. The harness's asset cache (`asset-cache.js`) counts users and disposes an asset when its last user releases it.
+  - After a failed load, and on every unload (including a snapshot leave), the harness disposes everything the scene tracked and releases everything it acquired, however far `load()` got, even when `unload()` throws or is missing.
+  - `unload()` must not dispose tracked resources or release acquired assets itself.
+  - No GPU objects created per frame.
 - Lookups from state entities to three.js objects use a `WeakMap`, so they do not keep old state alive.
 - No scene or game object reads a device or listens to input events; input arrives only as `tick`'s `inputs`.
 
-The game page starts on the boot scene (see Start-up below), which leads through the intro to the main menu (`scenes/main-menu.js`): the poster drawn as cover, a black panel holding three no-op items ("New Game", "Multiplayer", "Options"), and the title music. Each label is drawn once into its own off-screen 2D canvas (never added to the page) and shown as a tracked `CanvasTexture` on a plane; the highlighted item gets a white bar and full opacity, the others are dimmed. `menuLayout` and `itemAt` in `main-menu.js` give the item rectangles and hit test. Navigation: `moveUp` / `moveDown` from any connected player move the highlight with wrapping; a moved mouse over an item (`frame.pointer`) highlights it; `jump` and `interact` select the highlighted item; `primaryFire` selects the item under the pointer for a mouse player (a click elsewhere does nothing) and the highlighted item for a gamepad player. Player 1's frame always has a pointer (keyboard + mouse), so a trigger on player 1's gamepad selects only when the mouse is over an item; its A (`jump`) and X (`interact`) still select the highlight. Selecting "New Game" opens the New Game screen (below); the other items do nothing: `state.selected` (label) and `state.selections` (count) are for debug checks only; `state.request` (`'newGame'` or null, reset each tick) is what the scene's `tick` acts on. The poster (manifest key `poster.classic`, `POSTER` in `poster.js`) comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once; labels come from `labels.js` (`labelTexture`). There is no backdrop behind it. `main.js` preloads the menu once the boot group has loaded; the loading scene shows only if the menu is reached before that (for example from the debug panel during boot). A debug panel (`game/src/debug/panel.js`, top-right, collapsed at start) has a "Main menu" button and buttons for each harness behaviour, including the test scenes ("Players scene (input test)", the A / B switch and the slow scene), which add the backdrop. Panel buttons give up focus after a click, so keys go to the game. `window.__b7` exposes the harness, renderer, asset cache, loader (`window.__b7.loader.status('boot')`), input (`window.__b7.input`, the object `attachInput` returns) and music (`window.__b7.music.debug`: `element`, `created`, `wanted`) for debug checks only; it is not a game API. The panel's "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure. The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; nothing else reads them.
-
-New Game screen (`scenes/new-game.js`): an overlay over the main menu, opened by `harness.openOverlay('newGame')` through the `screens` object `main.js` passes to both scenes. It is an overlay so the main menu never leaves its layer: the title music is not interrupted and there is no fade. While it is open the menu does not tick (it ignores input) but still draws underneath; in `online` play mode (set only from the debug panel) a covered main scene still ticks, so the hidden menu would react to input there. The menu's `suspend` and `exit` close it. It shows the shared poster, four campaign cards from `src/data/campaigns.js` (Megacity available and preselected; the others dimmed "Coming later" and not selectable), a difficulty list for the selected campaign (default "Inmate") and a "Back" item. `newGameLayout` puts the cards in one row when the view is at least 720 px wide and in a 2 x 2 grid below that, scaled uniformly to fit. Navigation: up and down (wrapping) and a moved mouse move the highlight; left and right change campaign (available ones only); `jump`, `interact` and a click select; a click on an available card sets the campaign. Back keys: the Back item, Escape and gamepad Start (`pause`), V and gamepad B (`melee`). Selecting a difficulty does nothing yet: `state.selected` (`easy`, `normal`, `hard`, `extreme` or `back`) and `state.selections` are for debug checks only; `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection in the same tick cannot cancel it), and the scene's `tick` closes the overlay on it. Selecting Back closes the overlay. Its leave setting is `unload`, so closing frees its labels and each open starts fresh; the poster stays loaded because the main menu still holds it.
-
-## Content (`game/public/content/`)
-
-Runtime assets (images, audio). Vite copies them as-is into `dist/`, so they are published at `/berserker7/content/`. Load them with relative paths (`content/...`, no leading slash) so they work under the published base path. Subfolders: `textures/logos/`, `textures/posters/`, `audio/music/` (more come later). Every file the game uses is listed in the asset manifest (see Assets); code never writes a content path itself.
-
-## Assets (`game/src/assets/`)
-
-- Manifest (`manifest.js`): `ASSETS`, one frozen list of every runtime asset, `{ key, path, type, groups, colorSpace? }`. `path` is relative under `content/` (no leading slash, no `..`), `type` is `texture` or `music`, `groups` names the preload groups that load it (`GROUPS`, now only `boot`). A texture's `colorSpace` is `srgb` (default, colour images) or `raw` (stored values used as data; the w8omg logo). `assetByKey(key)` and `groupAssets(group)` throw on an unknown key or group. `checkManifest(list)` returns the problems (duplicate or missing key, bad path, unknown type or colour space, unknown or empty groups, a group with no assets); the module throws at import if `ASSETS` has any. A test checks that every path exists under `game/public/`.
-- Textures (`textures.js`): `acquireTexture(acquire, key)` returns a promise of the texture, through the asset cache under the manifest key. Scenes pass `context.acquire`; the loader passes the cache's own `acquire`. Whoever acquires first starts the download; the others get the same entry, so a texture is loaded once. Scenes must not `track` it.
-- Loader (`loader.js`, `createLoader({ assets, music })`): `load(group)` returns a promise (the same one on every call for that group) and loads each asset of the group once, even when it is in several groups: textures through `acquireTexture`, music through `music.preload`. The loader never releases what it acquired, so preloaded assets stay loaded for the page's life and a scene's later acquire gets them at once; a scene releasing them does not dispose them. `status(group)` gives `{ progress, done, error }`: `progress` is loaded assets / group size, only moves forward, and is exactly 1 when `done`. Loud failure: the first asset that fails rejects the group's promise, sets `error` to `Could not load <path>`, and is logged once with `console.error`; the group never becomes done and there is no retry.
-- Adding an asset: put the file under `game/public/content/...`, add an entry to `ASSETS` with its groups, and in code use `acquireTexture(context.acquire, key)` for a texture or `assetByKey(key).path` for music.
-
 ## Start-up (`scenes/boot.js`, `scenes/intro.js`)
 
-- Order: boot (loading screen) -> a press -> intro (two logos) -> main menu. All of them draw a full-screen black quad first (the renderer's clear colour is not black) and are not pausable.
-- Boot (`createBoot({ loader, screens })`, the first main scene): `enter` starts `loader.load('boot')`. While loading: a centred bar, `min(400 px, 70% of the width)` wide and 6 px tall, a dim track with a white fill scaled by progress. When done: the text "Click or press any key to start". The first tick after that with an `activated` frame (see Input) calls `screens.startIntro()`; presses during loading are not kept. On a failure: "Could not load" and the path, in place of the bar or prompt, and nothing else happens. `tickBoot(state, inputs, status)` is the pure logic.
-- Intro (`createIntro({ music, screens })`): constants in `intro.js`: `FADE_SECONDS` 1, `HOLD_SECONDS` 2, `TICKS_PER_SECOND` (from the clock's `STEP_SECONDS`, 60), `INTRO_LOGOS` (`logo.baddergames`, then `logo.w8omg`). `introAt(tick)` gives `{ logo, alpha, phase }`: each logo fades in linearly over 1 s, holds 2 s, fades out over 1 s; the second follows with no gap; then `end`. `enter` calls `music.play` for `music.title` (the first logo starts fading in at the same moment); the intro never stops the music, and the menu's own `play` of the same URL does not restart it.
-- Leaving the intro (`tickIntro`): at `end` it calls `screens.showMenu({ fromBlack: true })`: `setMain('mainMenu', { fade: 2 * FADE_SECONDS, fromAlpha: 1 })`, so the menu fades in from black over 1 s. Skip: any connected frame with `activated` or any action pressed (a click, key, Escape, touch or gamepad button; also a wheel step or a left-stick tilt, since they press actions too; not a mouse move), after the first `SKIP_DELAY_SECONDS` (0.25 s), calls `screens.showMenu({ fromBlack: false })`: the intro fades to black over 1 s, then the menu fades in over 1 s. The delay is there because a touch screen sends the tap's compatibility mouse events after `touchend`, possibly a tick later, which would otherwise skip the intro the tap started. One request only.
+- The game page starts on the boot scene, which leads through the intro to the main menu (`scenes/main-menu.js`).
+- Order: boot (loading screen) -> a press -> intro (two logos) -> main menu.
+  - All of them draw a full-screen black quad first (the renderer's clear colour is not black) and are not pausable.
+- Boot (`createBoot({ loader, screens })`, the first main scene):
+  - `enter` starts `loader.load('boot')`.
+  - While loading: a centred bar, `min(400 px, 70% of the width)` wide and 6 px tall, a dim track with a white fill scaled by progress.
+  - When done: the text "Click or press any key to start".
+  - The first tick after that with an `activated` frame (see Input) calls `screens.startIntro()`; presses during loading are not kept.
+  - On a failure: "Could not load" and the path, in place of the bar or prompt, and nothing else happens.
+  - `tickBoot(state, inputs, status)` is the pure logic.
+- Intro (`createIntro({ music, screens })`):
+  - Constants in `intro.js`: `FADE_SECONDS` 1, `HOLD_SECONDS` 2, `TICKS_PER_SECOND` (from the clock's `STEP_SECONDS`, 60), `INTRO_LOGOS` (`logo.baddergames`, then `logo.w8omg`).
+  - `introAt(tick)` gives `{ logo, alpha, phase }`: each logo fades in linearly over 1 s, holds 2 s, fades out over 1 s; the second follows with no gap; then `end`.
+  - `enter` calls `music.play` for `music.title` (the first logo starts fading in at the same moment).
+  - The intro never stops the music, and the menu's own `play` of the same URL does not restart it.
+- Leaving the intro (`tickIntro`):
+  - End: at `end` it calls `screens.showMenu({ fromBlack: true })`: `setMain('mainMenu', { fade: 2 * FADE_SECONDS, fromAlpha: 1 })`, so the menu fades in from black over 1 s.
+  - Skip: any connected frame with `activated` or any action pressed (a click, key, Escape, touch or gamepad button; also a wheel step or a left-stick tilt, since they press actions too; not a mouse move), after the first `SKIP_DELAY_SECONDS` (0.25 s), calls `screens.showMenu({ fromBlack: false })`: the intro fades to black over 1 s, then the menu fades in over 1 s.
+  - The delay is there because a touch screen sends the tap's compatibility mouse events after `touchend`, possibly a tick later, which would otherwise skip the intro the tap started.
+  - One request only.
 - Layout (`logoRect`): centred, aspect kept, inside `LOGO_MAX_WIDTH` (80%) of the view width and `LOGO_MAX_HEIGHT` (60%) of its height, and never more device pixels than the image has (CSS size at most image size / `renderer.getPixelRatio()`).
-- w8omg logo: the file is black text on white without alpha; it is shown as white text on black with its soft edges. Its texture is `raw` (manifest), and a `ShaderMaterial` outputs white with alpha `(1 - texel.r) * opacity`, so over black each shown pixel is the exact inverse of the image. The baddergames logo is a plain `MeshBasicMaterial` with its own alpha.
+- w8omg logo:
+  - The file is black text on white without alpha; it is shown as white text on black with its soft edges.
+  - Its texture is `raw` (manifest), and a `ShaderMaterial` outputs white with alpha `(1 - texel.r) * opacity`, so over black each shown pixel is the exact inverse of the image.
+  - The baddergames logo is a plain `MeshBasicMaterial` with its own alpha.
+
+## Main menu (`scenes/main-menu.js`)
+
+Layout and drawing:
+
+- It shows the poster drawn as cover, a black panel holding three no-op items ("New Game", "Multiplayer", "Options"), and plays the title music.
+- Each label is drawn once into its own off-screen 2D canvas (never added to the page) and shown as a tracked `CanvasTexture` on a plane.
+- The highlighted item gets a white bar and full opacity; the others are dimmed.
+- `menuLayout` and `itemAt` in `main-menu.js` give the item rectangles and hit test.
+
+Navigation:
+
+- `moveUp` / `moveDown` from any connected player move the highlight with wrapping.
+- A moved mouse over an item (`frame.pointer`) highlights it.
+- `jump` and `interact` select the highlighted item.
+- `primaryFire` selects the item under the pointer for a mouse player (a click elsewhere does nothing) and the highlighted item for a gamepad player.
+- Player 1's frame always has a pointer (keyboard + mouse), so a trigger on player 1's gamepad selects only when the mouse is over an item; its A (`jump`) and X (`interact`) still select the highlight.
+
+Selecting:
+
+- Selecting "New Game" opens the New Game screen (see New Game screen); the other items do nothing.
+
+State fields:
+
+- `state.selected` (label) and `state.selections` (count) are for debug checks only.
+- `state.request` (`'newGame'` or null, reset each tick) is what the scene's `tick` acts on.
+
+Shared assets:
+
+- The poster (manifest key `poster.classic`, `POSTER` in `poster.js`) comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once.
+- Labels come from `labels.js` (`labelTexture`).
+- There is no backdrop behind it.
+
+Preload:
+
+- `main.js` preloads the menu once the boot group has loaded.
+- The loading scene shows only if the menu is reached before that (for example from the debug panel during boot).
+
+## New Game screen (`scenes/new-game.js`)
+
+Opening, and why it is an overlay:
+
+- An overlay over the main menu, opened by `harness.openOverlay('newGame')` through the `screens` object `main.js` passes to both scenes.
+- It is an overlay so the main menu never leaves its layer: the title music is not interrupted and there is no fade.
+- The menu's `suspend` and `exit` close it.
+
+The menu while it is open:
+
+- The menu does not tick (it ignores input) but still draws underneath.
+- In `online` play mode (set only from the debug panel) a covered main scene still ticks, so the hidden menu would react to input there.
+
+Layout:
+
+- It shows the shared poster, four campaign cards from `src/data/campaigns.js` (Megacity available and preselected; the others dimmed "Coming later" and not selectable), a difficulty list for the selected campaign (default "Inmate") and a "Back" item.
+- `newGameLayout` puts the cards in one row when the view is at least 720 px wide and in a 2 x 2 grid below that, scaled uniformly to fit.
+
+Navigation:
+
+- Up and down (wrapping) and a moved mouse move the highlight.
+- Left and right change campaign (available ones only).
+- `jump`, `interact` and a click select.
+- A click on an available card sets the campaign.
+
+Back keys: the Back item, Escape and gamepad Start (`pause`), V and gamepad B (`melee`).
+
+Selecting:
+
+- Selecting a difficulty does nothing yet.
+- Selecting Back closes the overlay.
+
+State fields:
+
+- `state.selected` (`easy`, `normal`, `hard`, `extreme` or `back`) and `state.selections` are for debug checks only.
+- `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection in the same tick cannot cancel it), and the scene's `tick` closes the overlay on it.
+
+Leave setting:
+
+- Its leave setting is `unload`, so closing frees its labels and each open starts fresh.
+- The poster stays loaded because the main menu still holds it.
+
+## Assets and content
+
+Content folder (`game/public/content/`):
+
+- Runtime assets (images, audio). Vite copies them as-is into `dist/`, so they are published at `/berserker7/content/`.
+- Load them with relative paths (`content/...`, no leading slash) so they work under the published base path.
+- Subfolders: `textures/logos/`, `textures/posters/`, `audio/music/` (more come later).
+- Every file the game uses is listed in the asset manifest (see Manifest below); code never writes a content path itself.
+
+Assets (`game/src/assets/`):
+
+- Manifest (`manifest.js`): `ASSETS`, one frozen list of every runtime asset, `{ key, path, type, groups, colorSpace? }`.
+  - `path` is relative under `content/` (no leading slash, no `..`).
+  - `type` is `texture` or `music`.
+  - `groups` names the preload groups that load it (`GROUPS`, now only `boot`).
+  - A texture's `colorSpace` is `srgb` (default, colour images) or `raw` (stored values used as data; the w8omg logo).
+  - `assetByKey(key)` and `groupAssets(group)` throw on an unknown key or group.
+  - `checkManifest(list)` returns the problems (duplicate or missing key, bad path, unknown type or colour space, unknown or empty groups, a group with no assets); the module throws at import if `ASSETS` has any.
+  - A test checks that every path exists under `game/public/`.
+- Textures (`textures.js`): `acquireTexture(acquire, key)` returns a promise of the texture, through the asset cache under the manifest key.
+  - Scenes pass `context.acquire`; the loader passes the cache's own `acquire`.
+  - Whoever acquires first starts the download; the others get the same entry, so a texture is loaded once.
+  - Scenes must not `track` it.
+- Loader (`loader.js`, `createLoader({ assets, music })`):
+  - `load(group)` returns a promise (the same one on every call for that group) and loads each asset of the group once, even when it is in several groups: textures through `acquireTexture`, music through `music.preload`.
+  - The loader never releases what it acquired, so preloaded assets stay loaded for the page's life and a scene's later acquire gets them at once; a scene releasing them does not dispose them.
+  - `status(group)` gives `{ progress, done, error }`: `progress` is loaded assets / group size, only moves forward, and is exactly 1 when `done`.
+  - Loud failure: the first asset that fails rejects the group's promise, sets `error` to `Could not load <path>`, and is logged once with `console.error`; the group never becomes done and there is no retry.
+- Adding an asset: put the file under `game/public/content/...`, add an entry to `ASSETS` with its groups, and in code use `acquireTexture(context.acquire, key)` for a texture or `assetByKey(key).path` for music.
 
 ## Audio (`game/src/audio/music.js`)
 
 - The only code that touches audio. One streamed `HTMLAudioElement` (never fetch + decode), created on the first `play(url)` or `preload(url)`.
-- `preload(url)` sets the source without playing (does not set `wanted`). Its promise resolves once the element can play through (`canplaythrough`, or `readyState` already 4), rejects on the element's `error` naming the url, and after `MUSIC_PRELOAD_TIMEOUT_MS` (15 s) resolves with a `console.warn` that the music will stream when played (some mobile browsers ignore preload until a gesture). A later `play` of the same url keeps the source and does not restart.
+- `preload(url)` sets the source without playing (does not set `wanted`).
+  - Its promise resolves once the element can play through (`canplaythrough`, or `readyState` already 4).
+  - It rejects on the element's `error` naming the url.
+  - After `MUSIC_PRELOAD_TIMEOUT_MS` (15 s) it resolves with a `console.warn` that the music will stream when played (some mobile browsers ignore preload until a gesture).
+  - A later `play` of the same url keeps the source and does not restart.
 - Playback starts on the first click, key or touch (browsers block it before), and pauses while the tab is hidden.
 - `MUSIC_VOLUME` is the one volume value.
 - Scenes call `music.play(url)` from `enter` and `resume`, and `music.stop()` from `suspend` and `exit`. Exception: the intro plays the title music from `enter` and never stops it, so it carries on into the menu.
@@ -88,7 +244,9 @@ Runtime assets (images, audio). Vite copies them as-is into `dist/`, so they are
 Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate from the browser wiring (`dom.js`), so Node tests cover it.
 
 - Actions (`actions.js`, `ACTIONS`): `moveLeft`, `moveRight`, `moveUp`, `moveDown`, `jump`, `primaryFire`, `secondaryFire`, `melee`, `dash`, `interact`, `weapon1` to `weapon9`, `nextWeapon`, `previousWeapon`, `weaponMenu` (held), `pause`. Aim is not an action.
-- Bindings: one data table, `DEFAULT_BINDINGS` in `actions.js`, with two schemes, `keyboardMouse` and `gamepad`. Source strings: `key:<KeyboardEvent.code>`, `mouse:<0-4>`, `wheel:+` (scroll down) and `wheel:-`; gamepad (standard mapping) `button:<0-31>`, `axis:<0-7>:+` and `axis:<0-7>:-`. Each scheme accepts only its own source kinds.
+- Bindings: one data table, `DEFAULT_BINDINGS` in `actions.js`, with two schemes, `keyboardMouse` and `gamepad`.
+  - Source strings: `key:<KeyboardEvent.code>`, `mouse:<0-4>`, `wheel:+` (scroll down) and `wheel:-`; gamepad (standard mapping) `button:<0-31>`, `axis:<0-7>:+` and `axis:<0-7>:-`.
+  - Each scheme accepts only its own source kinds.
 - Default bindings (`DEFAULT_BINDINGS`; gamepad numbers are standard-mapping button indices):
 
   | Action | Keyboard + mouse | Gamepad |
@@ -104,15 +262,104 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   | `nextWeapon` / `previousWeapon` | wheel down / wheel up | right bumper (5) / Y (3) |
   | `weaponMenu` (held) | Q | View/Back (8) |
   | `pause` | Esc | Start (9) |
-- Saved overrides: localStorage key `b7.bindings`, JSON in the same shape as the defaults but partial. `resolveBindings` (`bindings.js`) applies them; unknown schemes and actions are ignored, an invalid value keeps that action's default, an empty list unbinds it. Missing, unparseable or throwing storage gives the defaults. `saveBindings` exists for a later settings screen.
-- Players and devices (`PLAYER_DEVICES` in `sampler.js`): player 1 (index 0) is keyboard + mouse and is always connected; player 2 (index 1) is on a gamepad with `mapping === 'standard'` and is connected only while that pad is; player 1 also gets a second such pad. Each player keeps the `gamepad.index` it was given while that pad stays connected (`perPlayer[i].padIndex`). A free player slot is filled only from connected standard pads that no player holds, in ascending gamepad index, with slots filled in ascending order of their `pad` number in `PLAYER_DEVICES` (player 2 has `pad: 0`, player 1 `pad: 1`): one pad goes to player 2, a second to player 1. When a player's pad disconnects, the slot goes empty and its held actions give `released` on the next tick; unplugging one pad never moves another player's pad. Non-standard pads are listed as ignored in the input panel; standard pads beyond the two assigned are not used.
-- Frame, one per player per tick, plain data, new objects every tick: `{ player, connected, actions: { [action]: { held, pressed, released } }, aim, wheel, pointer, activated }`. `pointer` is `{ x, y, width, height, moved }` for keyboard + mouse players (mouse position and canvas size in CSS px, top-left origin, y down; `moved` is true only on the first tick after a move) and `null` for gamepad-only players.
-- `activated`: true on the first tick after one or more presses that the browser counts as user activation (they unlock sound), for keyboard + mouse players only; gamepad buttons never set it, so a gamepad-only frame is always false. Counted presses (HTML spec, activation-triggering input events), all in `dom.js`: a `keydown` whose `key` is not `Escape`, not a key repeat and not in a text field; a `mousedown` on the canvas (this also covers `pointerdown` from a mouse); a `pointerup` on the canvas whose `pointerType` is not `mouse`; a `touchend` on the canvas. Where `navigator.userActivation` exists, a press counts only when `navigator.userActivation.isActive` is true inside the listener. The count is a latch in `devices.js` (`activate`), cleared after each sample. The touch listeners are passive and block nothing.
-- Edge rules, per action, from all its bound sources on the player's devices: `held` = any source down now, or a source that went down and up again since the last tick (a tap), or a wheel step since the last tick; `pressed` = held now and not held last tick, or a wheel step this tick, or a new tap or press after a tick on which the action was held only by a tap or a wheel step; `released` = held last tick and not held now, or that same new tap or press (the earlier tap or wheel step ends on the tick the new one starts). So an action is pressed only when it goes from no bound source held to at least one, and released only when the last held source is let go: pressing, tapping or releasing a second source while another is held gives no edge, and neither does releasing and pressing the same key again between two ticks. A tap shorter than one tick is held for exactly one tick (pressed on it, released on the next); taps on consecutive ticks each give their own press. When one render frame runs several ticks, only the first sees a press. Key repeat adds no press. Window blur and a hidden tab release everything.
-- Gamepad sources: buttons 6 and 7 (triggers) are down when their value is above 0.3, other buttons when pressed; `axis:i:±` is down when the axis value reaches 0.5 (`axisThreshold`) in that sign. The 0.25 dead zone (`deadZone`) is radial and applies only to the aim stick. A pad that disconnects gives `released` for its held actions on the next tick.
-- Aim: radians, y up (0 = right, +π/2 = up on screen), range (-π, π], starts at 0. Mouse: when the mouse moved since the last tick, the angle from the player's aim origin to the pointer. The aim origin defaults to the canvas centre; a scene sets it in `draw` with `view.setAimOrigin(player, x, y)` (CSS px of the canvas). Otherwise the right stick (axes 2, 3) sets the angle when its length is at least 0.25 (radial dead zone). Otherwise the angle is unchanged. So a moved mouse wins over the stick in the same tick. The harness clears every aim origin before each frame's draw, after that frame's ticks, so an origin is only kept while a scene that sets it is drawn.
-- Wheel: `frame.wheel` is the signed count of wheel steps since the last tick (+ = scroll down; keyboard + mouse players only). Several notches can land in one tick, so weapon cycling reads `frame.wheel` for the mouse wheel; `nextWeapon` and `previousWeapon` are pressed on every tick that has at least one step in their direction (`wheel:+`, `wheel:-`) and by their gamepad buttons. Weapon cycling per tick: `frame.wheel` when it is not 0, otherwise `nextWeapon.pressed` minus `previousWeapon.pressed`; a bumper press on the same tick as a wheel step is folded into that step. Reading the wheel (`devices.js`, settings in `WHEEL_SETTINGS` in `actions.js`): an event with zero distance (including -0) is ignored and is not activity. Pixel mode: a `deltaY` that is a non-zero whole multiple of `notchPixels` (120) is mouse-wheel notches, `deltaY / 120` steps at once (240 = 2), no lock; any other distance is a touchpad swipe, one step once it covers `swipePixels` (40) in one direction, then no more steps until the swipe ends (`swipeEndMs`, 120 ms, without an event that has distance) or reverses direction (a reversal starts a new swipe at once). Line and page modes: one step per event, or `|deltaY|` steps when that is a whole number above 1. The rule is tested by replaying recorded Chrome-on-Linux mouse-wheel and touchpad events (`game/test/fixtures/wheel-recordings.json`).
-- Harness: `createHarness({ input, onInputs })`. `input.sample()` runs once per step, even when no scene ticks; `onInputs(inputs)` runs right after, before the scenes tick. `harness.lastInputs` holds the last tick's frames. `main.js` passes `togglePauseOnPress` (`pause-toggle.js`) as `onInputs`: any player's `pause` press (Escape, gamepad Start) opens the `pause` overlay, or closes it when open. A press opens it only when there is no main scene or the main scene's `pausable` setting is true (the main menu is not pausable, so Escape never opens pause on the menu screens).
-- Browser wiring (`dom.js`, `attachInput`): keyboard by `event.code` on the window (keys typed into text fields are ignored; Space, arrows and Tab do not scroll or move focus); mouse buttons on the canvas, released on the window; `pointerup` and `touchend` on the canvas only for `activated`; context menu and side-button navigation blocked; mouse position from the window relative to the canvas (the canvas size is read on every sample, so it follows resizes); wheel on the canvas (default blocked); gamepads polled on each sample.
+- Saved overrides: localStorage key `b7.bindings`, JSON in the same shape as the defaults but partial.
+  - `resolveBindings` (`bindings.js`) applies them.
+  - Unknown schemes and actions are ignored, an invalid value keeps that action's default, an empty list unbinds it.
+  - Missing, unparseable or throwing storage gives the defaults.
+  - `saveBindings` exists for a later settings screen.
+- Players and devices (`PLAYER_DEVICES` in `sampler.js`):
+  - Player 1 (index 0) is keyboard + mouse and is always connected.
+  - Player 2 (index 1) is on a gamepad with `mapping === 'standard'` and is connected only while that pad is; player 1 also gets a second such pad.
+  - Each player keeps the `gamepad.index` it was given while that pad stays connected (`perPlayer[i].padIndex`).
+  - A free player slot is filled only from connected standard pads that no player holds, in ascending gamepad index, with slots filled in ascending order of their `pad` number in `PLAYER_DEVICES` (player 2 has `pad: 0`, player 1 `pad: 1`): one pad goes to player 2, a second to player 1.
+  - When a player's pad disconnects, the slot goes empty and its held actions give `released` on the next tick; unplugging one pad never moves another player's pad.
+  - Non-standard pads are listed as ignored in the input panel; standard pads beyond the two assigned are not used.
+- Frame, one per player per tick, plain data, new objects every tick: `{ player, connected, actions: { [action]: { held, pressed, released } }, aim, wheel, pointer, activated }`.
+  - `pointer` is `{ x, y, width, height, moved }` for keyboard + mouse players (mouse position and canvas size in CSS px, top-left origin, y down; `moved` is true only on the first tick after a move) and `null` for gamepad-only players.
+- `activated`: true on the first tick after one or more presses that the browser counts as user activation (they unlock sound), for keyboard + mouse players only; gamepad buttons never set it, so a gamepad-only frame is always false.
+  - Counted presses (HTML spec, activation-triggering input events), all in `dom.js`:
+    - a `keydown` whose `key` is not `Escape`, not a key repeat and not in a text field
+    - a `mousedown` on the canvas (this also covers `pointerdown` from a mouse)
+    - a `pointerup` on the canvas whose `pointerType` is not `mouse`
+    - a `touchend` on the canvas
+  - Where `navigator.userActivation` exists, a press counts only when `navigator.userActivation.isActive` is true inside the listener.
+  - The count is a latch in `devices.js` (`activate`), cleared after each sample.
+  - The touch listeners are passive and block nothing.
+- Edge rules, per action, from all its bound sources on the player's devices:
+  - `held` = any source down now, or a source that went down and up again since the last tick (a tap), or a wheel step since the last tick.
+  - `pressed` = held now and not held last tick, or a wheel step this tick, or a new tap or press after a tick on which the action was held only by a tap or a wheel step.
+  - `released` = held last tick and not held now, or that same new tap or press (the earlier tap or wheel step ends on the tick the new one starts).
+  - So an action is pressed only when it goes from no bound source held to at least one, and released only when the last held source is let go.
+  - Pressing, tapping or releasing a second source while another is held gives no edge, and neither does releasing and pressing the same key again between two ticks.
+  - A tap shorter than one tick is held for exactly one tick (pressed on it, released on the next); taps on consecutive ticks each give their own press.
+  - When one render frame runs several ticks, only the first sees a press.
+  - Key repeat adds no press.
+  - Window blur and a hidden tab release everything.
+- Gamepad sources:
+  - Buttons 6 and 7 (triggers) are down when their value is above 0.3, other buttons when pressed.
+  - `axis:i:±` is down when the axis value reaches 0.5 (`axisThreshold`) in that sign.
+  - The 0.25 dead zone (`deadZone`) is radial and applies only to the aim stick.
+  - A pad that disconnects gives `released` for its held actions on the next tick.
+- Aim: radians, y up (0 = right, +π/2 = up on screen), range (-π, π], starts at 0.
+  - Mouse: when the mouse moved since the last tick, the angle from the player's aim origin to the pointer.
+  - The aim origin defaults to the canvas centre; a scene sets it in `draw` with `view.setAimOrigin(player, x, y)` (CSS px of the canvas).
+  - Otherwise the right stick (axes 2, 3) sets the angle when its length is at least 0.25 (radial dead zone).
+  - Otherwise the angle is unchanged.
+  - So a moved mouse wins over the stick in the same tick.
+  - The harness clears every aim origin before each frame's draw, after that frame's ticks, so an origin is only kept while a scene that sets it is drawn.
+- Wheel: `frame.wheel` is the signed count of wheel steps since the last tick (+ = scroll down; keyboard + mouse players only).
+  - Several notches can land in one tick, so weapon cycling reads `frame.wheel` for the mouse wheel.
+  - `nextWeapon` and `previousWeapon` are pressed on every tick that has at least one step in their direction (`wheel:+`, `wheel:-`) and by their gamepad buttons.
+  - Weapon cycling per tick: `frame.wheel` when it is not 0, otherwise `nextWeapon.pressed` minus `previousWeapon.pressed`; a bumper press on the same tick as a wheel step is folded into that step.
+  - Reading the wheel (`devices.js`, settings in `WHEEL_SETTINGS` in `actions.js`):
+    - An event with zero distance (including -0) is ignored and is not activity.
+    - Pixel mode: a `deltaY` that is a non-zero whole multiple of `notchPixels` (120) is mouse-wheel notches, `deltaY / 120` steps at once (240 = 2), no lock.
+    - Pixel mode: any other distance is a touchpad swipe, one step once it covers `swipePixels` (40) in one direction, then no more steps until the swipe ends (`swipeEndMs`, 120 ms, without an event that has distance) or reverses direction (a reversal starts a new swipe at once).
+    - Line and page modes: one step per event, or `|deltaY|` steps when that is a whole number above 1.
+  - The rule is tested by replaying recorded Chrome-on-Linux mouse-wheel and touchpad events (`game/test/fixtures/wheel-recordings.json`).
+- Harness: `createHarness({ input, onInputs })`.
+  - `input.sample()` runs once per step, even when no scene ticks; `onInputs(inputs)` runs right after, before the scenes tick.
+  - `harness.lastInputs` holds the last tick's frames.
+  - `main.js` passes `togglePauseOnPress` (`pause-toggle.js`) as `onInputs`: any player's `pause` press (Escape, gamepad Start) opens the `pause` overlay, or closes it when open.
+  - A press opens it only when there is no main scene or the main scene's `pausable` setting is true (the main menu is not pausable, so Escape never opens pause on the menu screens).
+- Browser wiring (`dom.js`, `attachInput`):
+  - Keyboard by `event.code` on the window (keys typed into text fields are ignored; Space, arrows and Tab do not scroll or move focus).
+  - Mouse buttons on the canvas, released on the window.
+  - `pointerup` and `touchend` on the canvas only for `activated`.
+  - Context menu and side-button navigation blocked.
+  - Mouse position from the window relative to the canvas (the canvas size is read on every sample, so it follows resizes).
+  - Wheel on the canvas (default blocked).
+  - Gamepads polled on each sample.
 - Many laptops disable the touchpad while keys are held, so aiming with the touchpad while moving may not work on some laptops. This is not worked around (see D-092).
-- Input panel (`game/src/debug/input-panel.js`): `#b7-input` (top-left; bottom-left above the version label on windows up to 760 px wide; collapsed by default at every width), toggled by `#b7-input-toggle`. Per player `[data-player="0"]` and `[data-player="1"]`: `[data-field="device"]`, `[data-field="aim"]` (degrees), `[data-field="wheel"]` (total steps), and one row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts). Also `[data-field="ignored"]` (ignored gamepads) and `[data-field="pad-event"]`. Refreshes every 100 ms.
+
+## Debug tools
+
+Debug panel (`game/src/debug/panel.js`):
+
+- Top-right, collapsed at start.
+- Has a "Main menu" button and buttons for each harness behaviour, including the test scenes ("Players scene (input test)", the A / B switch and the slow scene), which add the backdrop.
+- Buttons give up focus after a click, so keys go to the game.
+- The "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure.
+- The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; nothing else reads them.
+- Play mode `online` is set only from this panel.
+
+`window.__b7` (for debug checks only; it is not a game API) exposes:
+
+- the harness
+- the renderer
+- the asset cache
+- the loader (`window.__b7.loader.status('boot')`)
+- input (`window.__b7.input`, the object `attachInput` returns)
+- music (`window.__b7.music.debug`: `element`, `created`, `wanted`)
+
+Input panel (`game/src/debug/input-panel.js`):
+
+- `#b7-input`: top-left; bottom-left above the version label on windows up to 760 px wide; collapsed by default at every width.
+- Toggled by `#b7-input-toggle`.
+- Per player `[data-player="0"]` and `[data-player="1"]`:
+  - `[data-field="device"]`
+  - `[data-field="aim"]` (degrees)
+  - `[data-field="wheel"]` (total steps)
+  - one row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts)
+- Also `[data-field="ignored"]` (ignored gamepads) and `[data-field="pad-event"]`.
+- Refreshes every 100 ms.
