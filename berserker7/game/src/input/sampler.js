@@ -5,7 +5,9 @@ import { ACTIONS, DEFAULT_BINDINGS, SCHEMES } from './actions.js';
 import { parseSource } from './bindings.js';
 import { clearLatches } from './devices.js';
 
-// Which devices each player uses. `pad: n` = the n-th connected standard gamepad, by index.
+// Which devices each player uses. A player with `pad` gets a free standard gamepad and
+// keeps it while it stays connected; free slots are filled in ascending `pad` order from
+// the free pads in ascending gamepad index. So one pad goes to player 2, a second to player 1.
 export const PLAYER_DEVICES = Object.freeze([
   Object.freeze({ keyboardMouse: true, pad: 1 }),
   Object.freeze({ keyboardMouse: false, pad: 0 }),
@@ -50,6 +52,7 @@ export function createInput({
       prevHeld: Object.fromEntries(ACTIONS.map((action) => [action, false])),
       aim: 0,
       aimOrigin: null, // CSS px of the canvas; null = canvas centre
+      padIndex: null, // gamepad.index of the pad this player holds
     })),
     // Read by the input panel; not part of the frames.
     debug: {
@@ -72,6 +75,25 @@ export function setAimOrigin(input, player, x, y) {
 export function normaliseAngle(angle) {
   if (angle <= -Math.PI) return Math.PI;
   return angle === 0 ? 0 : angle;
+}
+
+// Keeps each player's pad while it is connected; fills free slots from unheld pads.
+function assignPads(input, standard) {
+  const byIndex = new Map(standard.map((pad) => [pad.index, pad]));
+  for (const entry of input.perPlayer) {
+    if (entry.padIndex !== null && !byIndex.has(entry.padIndex)) entry.padIndex = null;
+  }
+  const held = new Set(input.perPlayer.map((entry) => entry.padIndex));
+  const free = standard.filter((pad) => !held.has(pad.index)); // already in ascending index
+  const waiting = input.players
+    .map((config, player) => ({ config, entry: input.perPlayer[player] }))
+    .filter(({ config, entry }) => config.pad != null && entry.padIndex === null)
+    .sort((a, b) => a.config.pad - b.config.pad);
+  for (const { entry } of waiting) {
+    if (free.length === 0) break;
+    entry.padIndex = free.shift().index;
+  }
+  return byIndex;
 }
 
 function padSourceDown(input, pad, parsed) {
@@ -110,10 +132,11 @@ export function sampleInput(input, devices, pads = []) {
   const standard = connectedPads.filter((pad) => pad.mapping === 'standard').sort((a, b) => a.index - b.index);
   input.debug.ignoredPads = connectedPads.filter((pad) => pad.mapping !== 'standard').map((pad) => pad.id);
   input.debug.ticks += 1;
+  const padsByIndex = assignPads(input, standard);
 
   const frames = input.players.map((config, player) => {
     const entry = input.perPlayer[player];
-    const pad = config.pad == null ? null : standard[config.pad] ?? null;
+    const pad = entry.padIndex === null ? null : padsByIndex.get(entry.padIndex);
     const keyboardMouse = Boolean(config.keyboardMouse);
     const connected = keyboardMouse || pad !== null;
 

@@ -223,6 +223,41 @@ test('gamepad: two standard pads put both players on pads; non-standard pads are
   assert.equal(p2.actions.jump.held, false);
 });
 
+test('gamepad: each player keeps its pad; unplugging the first pad does not move the other', () => {
+  const { devices, input } = setup();
+  const a = pad(0, { id: 'A' });
+  const b = pad(1, { id: 'B', buttons: { 0: 1 } }); // jump held on pad B
+  let [p1, p2] = sampleInput(input, devices, [a, b]);
+  assert.equal(input.perPlayer[1].padIndex, 0, 'player 2 gets the first free pad');
+  assert.equal(input.perPlayer[0].padIndex, 1, 'player 1 gets the next');
+  assert.deepEqual(edge(p1, 'jump'), [true, true, false]);
+
+  [p1, p2] = sampleInput(input, devices, [null, b]); // pad A (index 0) unplugged
+  assert.equal(input.debug.players[0].device, 'keyboard + mouse, gamepad B');
+  assert.deepEqual(edge(p1, 'jump'), [true, false, false], 'player 1 keeps its held jump');
+  assert.equal(p2.connected, false);
+  assert.deepEqual(edge(p2, 'jump'), [false, false, false], 'no press on player 2');
+  assert.equal(input.perPlayer[1].padIndex, null);
+
+  [p1, p2] = sampleInput(input, devices, [a, b]); // plugged back in
+  assert.equal(p2.connected, true);
+  assert.equal(input.perPlayer[1].padIndex, 0);
+  assert.deepEqual(edge(p2, 'jump'), [false, false, false]);
+  assert.deepEqual(edge(p1, 'jump'), [true, false, false]);
+});
+
+test('gamepad: a pad is kept even when a lower index connects later', () => {
+  const { devices, input } = setup();
+  sampleInput(input, devices, [null, pad(1, { id: 'B' })]);
+  assert.equal(input.debug.players[1].device, 'gamepad B');
+  sampleInput(input, devices, [pad(0, { id: 'A' }), pad(1, { id: 'B' })]);
+  assert.equal(input.debug.players[1].device, 'gamepad B');
+  assert.equal(input.debug.players[0].device, 'keyboard + mouse, gamepad A');
+  sampleInput(input, devices, [pad(0, { id: 'A' }), null]); // B unplugged: player 2 empty, player 1 keeps A
+  assert.equal(input.debug.players[1].device, 'not connected');
+  assert.equal(input.debug.players[0].device, 'keyboard + mouse, gamepad A');
+});
+
 test('gamepad: snapshotPad makes a plain copy of a Gamepad-like object', () => {
   const gamepad = {
     index: 2,
