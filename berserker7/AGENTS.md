@@ -137,7 +137,7 @@ Version label and CI:
   - `state.selected` (label) and `state.selections` (count) are for debug checks only.
   - `state.request` (`'newGame'` or null, reset each tick) is what the scene's `tick` acts on.
 - Shared assets:
-  - The poster (manifest key `poster.classic`, `POSTER` in `poster.js`) comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once.
+  - The poster (manifest key `poster.classic`, file `content/textures/menubg/berserkerguy-classic-2-1.png`, `POSTER` in `poster.js`) comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once.
   - Labels come from `labels.js` (`labelTexture`).
 - Preload:
   - `main.js` preloads the menu once the boot group has loaded.
@@ -222,7 +222,7 @@ Session (`createSession`, `createSessionHolder`):
 - Content folder (`game/public/content/`): runtime assets (images, audio).
   - Vite copies them as-is into `dist/`, so they are published at `/berserker7/content/`.
   - Load them with relative paths (`content/...`, no leading slash) so they work under the published base path.
-  - Subfolders: `textures/logos/`, `textures/posters/`, `audio/music/` (more come later).
+  - Subfolders: `textures/logos/`, `textures/menubg/`, `audio/music/` (more come later).
   - Every file the game uses is listed in the asset manifest (see Manifest below); code never writes a content path itself.
 - Asset code is in `game/src/assets/`.
 - Manifest (`manifest.js`): `ASSETS`, one frozen list of every runtime asset, `{ key, path, type, groups, colorSpace? }`.
