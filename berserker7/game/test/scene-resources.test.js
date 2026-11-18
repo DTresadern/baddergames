@@ -22,7 +22,7 @@ import { createPlayers, initPlayers } from '../src/scenes/players.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
 import { CHECKER } from '../src/scenes/shared.js';
-import { settle, STEP } from './fakes.js';
+import { fakeSession, fakeSettings, settle, STEP } from './fakes.js';
 
 // Collects the GPU-backed objects of every rendered scene graph.
 function recordingRenderer() {
@@ -90,7 +90,8 @@ function fakeDeps(loads = { count: 0 }) {
   };
 }
 const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), ...fakeDeps() });
-const fakeNewGame = () => createNewGame({ screens: fakeScreens(), ...fakeDeps() });
+const fakeNewGame = () =>
+  createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), ...fakeDeps() });
 function fakeScreens() {
   return { openNewGame() {}, closeNewGame() {}, startIntro() {}, showMenu() {} };
 }
@@ -224,7 +225,7 @@ test('main menu and New Game share one poster, disposed once after both unload; 
   const deps = fakeDeps(loads);
   const { harness, renderer } = harnessFor({
     mainMenu: createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), ...deps }),
-    newGame: createNewGame({ screens: fakeScreens(), ...deps }),
+    newGame: createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), ...deps }),
   });
   harness.setMain('mainMenu');
   harness.openOverlay('newGame');
