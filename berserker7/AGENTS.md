@@ -25,8 +25,6 @@ Commands, run from `berserker7/game/`:
 - build: `npm run build` (output in `dist/`, not committed)
 - check the build: `npm run preview` (serves `dist/`)
 
-Version label and CI:
-
 - The version label (bottom-left) shows the short commit and UTC build time when built by CI (from `GITHUB_SHA`), and `dev` otherwise.
 - CI (`.github/workflows/checks.yml`) runs:
   - `node --check` on every tracked `.js` file
@@ -92,8 +90,7 @@ Version label and CI:
 
 ## Start-up (`scenes/boot.js`, `scenes/intro.js`)
 
-- The game page starts on the boot scene, which leads through the intro to the main menu (`scenes/main-menu.js`).
-- Order: boot (loading screen) -> a press -> intro (two logos) -> main menu.
+- Order: boot (loading screen, the scene the game page starts on) -> a press -> intro (two logos) -> main menu (`scenes/main-menu.js`).
   - All of them draw a full-screen black quad first (the renderer's clear colour is not black) and are not pausable.
 - Boot (`createBoot({ loader, screens })`, the first main scene):
   - `enter` starts `loader.load('boot')`.
@@ -108,7 +105,7 @@ Version label and CI:
   - `enter` calls `music.play` for `music.title` (the first logo starts fading in at the same moment).
   - The intro never stops the music, and the menu's own `play` of the same URL does not restart it.
 - Leaving the intro (`tickIntro`):
-  - End: at `end` it calls `screens.showMenu({ fromBlack: true })`: `setMain('mainMenu', { fade: 2 * FADE_SECONDS, fromAlpha: 1 })`, so the menu fades in from black over 1 s.
+  - At `end` it calls `screens.showMenu({ fromBlack: true })`: `setMain('mainMenu', { fade: 2 * FADE_SECONDS, fromAlpha: 1 })`, so the menu fades in from black over 1 s.
   - Skip: any connected frame with `activated` or any action pressed (a click, key, Escape, touch or gamepad button; also a wheel step or a left-stick tilt, since they press actions too; not a mouse move), after the first `SKIP_DELAY_SECONDS` (0.25 s), calls `screens.showMenu({ fromBlack: false })`: the intro fades to black over 1 s, then the menu fades in over 1 s.
   - The delay is there because a touch screen sends the tap's compatibility mouse events after `touchend`, possibly a tick later, which would otherwise skip the intro the tap started.
   - One request only.
@@ -120,94 +117,62 @@ Version label and CI:
 
 ## Main menu (`scenes/main-menu.js`)
 
-Layout and drawing:
-
-- It shows the poster drawn as cover, a black panel holding three no-op items ("New Game", "Multiplayer", "Options"), and plays the title music.
-- Each label is drawn once into its own off-screen 2D canvas (never added to the page) and shown as a tracked `CanvasTexture` on a plane.
-- The highlighted item gets a white bar and full opacity; the others are dimmed.
-- `menuLayout` and `itemAt` in `main-menu.js` give the item rectangles and hit test.
-
-Navigation:
-
-- `moveUp` / `moveDown` from any connected player move the highlight with wrapping.
-- A moved mouse over an item (`frame.pointer`) highlights it.
-- `jump` and `interact` select the highlighted item.
-- `primaryFire` selects the item under the pointer for a mouse player (a click elsewhere does nothing) and the highlighted item for a gamepad player.
-- Player 1's frame always has a pointer (keyboard + mouse), so a trigger on player 1's gamepad selects only when the mouse is over an item; its A (`jump`) and X (`interact`) still select the highlight.
-
-Selecting:
-
+- Layout and drawing:
+  - It shows the poster drawn as cover, a black panel holding three no-op items ("New Game", "Multiplayer", "Options"), and plays the title music.
+  - Each label is drawn once into its own off-screen 2D canvas (never added to the page) and shown as a tracked `CanvasTexture` on a plane.
+  - The highlighted item gets a white bar and full opacity; the others are dimmed.
+  - `menuLayout` and `itemAt` in `main-menu.js` give the item rectangles and hit test.
+- Navigation:
+  - `moveUp` / `moveDown` from any connected player move the highlight with wrapping.
+  - A moved mouse over an item (`frame.pointer`) highlights it.
+  - `jump` and `interact` select the highlighted item.
+  - `primaryFire` selects the item under the pointer for a mouse player (a click elsewhere does nothing) and the highlighted item for a gamepad player.
+  - Player 1's frame always has a pointer (keyboard + mouse), so a trigger on player 1's gamepad selects only when the mouse is over an item; its A (`jump`) and X (`interact`) still select the highlight.
 - Selecting "New Game" opens the New Game screen (see New Game screen); the other items do nothing.
-
-State fields:
-
-- `state.selected` (label) and `state.selections` (count) are for debug checks only.
-- `state.request` (`'newGame'` or null, reset each tick) is what the scene's `tick` acts on.
-
-Shared assets:
-
-- The poster (manifest key `poster.classic`, `POSTER` in `poster.js`) comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once.
-- Labels come from `labels.js` (`labelTexture`).
-- There is no backdrop behind it.
-
-Preload:
-
-- `main.js` preloads the menu once the boot group has loaded.
-- The loading scene shows only if the menu is reached before that (for example from the debug panel during boot).
+- State fields:
+  - `state.selected` (label) and `state.selections` (count) are for debug checks only.
+  - `state.request` (`'newGame'` or null, reset each tick) is what the scene's `tick` acts on.
+- Shared assets:
+  - The poster (manifest key `poster.classic`, `POSTER` in `poster.js`) comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once.
+  - Labels come from `labels.js` (`labelTexture`).
+  - There is no backdrop behind it.
+- Preload:
+  - `main.js` preloads the menu once the boot group has loaded.
+  - The loading scene shows only if the menu is reached before that (for example from the debug panel during boot).
 
 ## New Game screen (`scenes/new-game.js`)
 
-Opening, and why it is an overlay:
-
-- An overlay over the main menu, opened by `harness.openOverlay('newGame')` through the `screens` object `main.js` passes to both scenes.
-- It is an overlay so the main menu never leaves its layer: the title music is not interrupted and there is no fade.
-- The menu's `suspend` and `exit` close it.
-
-The menu while it is open:
-
-- The menu does not tick (it ignores input) but still draws underneath.
-- In `online` play mode (set only from the debug panel) a covered main scene still ticks, so the hidden menu would react to input there.
-
-Layout:
-
-- It shows the shared poster, four campaign cards from `src/data/campaigns.js` (Megacity available and preselected; the others dimmed "Coming later" and not selectable), a difficulty list for the selected campaign (default "Inmate") and a "Back" item.
-- `newGameLayout` puts the cards in one row when the view is at least 720 px wide and in a 2 x 2 grid below that, scaled uniformly to fit.
-
-Navigation:
-
-- Up and down (wrapping) and a moved mouse move the highlight.
-- Left and right change campaign (available ones only).
-- `jump`, `interact` and a click select.
-- A click on an available card sets the campaign.
-
-Back keys: the Back item, Escape and gamepad Start (`pause`), V and gamepad B (`melee`).
-
-Selecting:
-
-- Selecting a difficulty does nothing yet.
-- Selecting Back closes the overlay.
-
-State fields:
-
-- `state.selected` (`easy`, `normal`, `hard`, `extreme` or `back`) and `state.selections` are for debug checks only.
-- `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection in the same tick cannot cancel it), and the scene's `tick` closes the overlay on it.
-
-Leave setting:
-
-- Its leave setting is `unload`, so closing frees its labels and each open starts fresh.
-- The poster stays loaded because the main menu still holds it.
+- Opening:
+  - An overlay over the main menu, opened by `harness.openOverlay('newGame')` through the `screens` object `main.js` passes to both scenes.
+  - It is an overlay so the main menu never leaves its layer: the title music is not interrupted and there is no fade.
+  - The menu's `suspend` and `exit` close it.
+- The menu while it is open:
+  - The menu does not tick (it ignores input) but still draws underneath.
+  - In `online` play mode (set only from the debug panel) a covered main scene still ticks, so the hidden menu would react to input there.
+- Layout:
+  - It shows the shared poster, four campaign cards from `src/data/campaigns.js` (Megacity available and preselected; the others dimmed "Coming later" and not selectable), a difficulty list for the selected campaign (default "Inmate") and a "Back" item.
+  - `newGameLayout` puts the cards in one row when the view is at least 720 px wide and in a 2 x 2 grid below that, scaled uniformly to fit.
+- Navigation:
+  - Up and down (wrapping) and a moved mouse move the highlight.
+  - Left and right change campaign (available ones only).
+  - `jump`, `interact` and a click select.
+  - A click on an available card sets the campaign.
+  - Back keys: the Back item, Escape and gamepad Start (`pause`), V and gamepad B (`melee`).
+  - Selecting a difficulty does nothing yet.
+  - Selecting Back closes the overlay.
+- State fields:
+  - `state.selected` (`easy`, `normal`, `hard`, `extreme` or `back`) and `state.selections` are for debug checks only.
+  - `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection in the same tick cannot cancel it), and the scene's `tick` closes the overlay on it.
+- Its leave setting is `unload`, so closing frees its labels and each open starts fresh. The poster stays loaded because the main menu still holds it.
 
 ## Assets and content
 
-Content folder (`game/public/content/`):
-
-- Runtime assets (images, audio). Vite copies them as-is into `dist/`, so they are published at `/berserker7/content/`.
-- Load them with relative paths (`content/...`, no leading slash) so they work under the published base path.
-- Subfolders: `textures/logos/`, `textures/posters/`, `audio/music/` (more come later).
-- Every file the game uses is listed in the asset manifest (see Manifest below); code never writes a content path itself.
-
-Assets (`game/src/assets/`):
-
+- Content folder (`game/public/content/`): runtime assets (images, audio).
+  - Vite copies them as-is into `dist/`, so they are published at `/berserker7/content/`.
+  - Load them with relative paths (`content/...`, no leading slash) so they work under the published base path.
+  - Subfolders: `textures/logos/`, `textures/posters/`, `audio/music/` (more come later).
+  - Every file the game uses is listed in the asset manifest (see Manifest below); code never writes a content path itself.
+- Asset code is in `game/src/assets/`.
 - Manifest (`manifest.js`): `ASSETS`, one frozen list of every runtime asset, `{ key, path, type, groups, colorSpace? }`.
   - `path` is relative under `content/` (no leading slash, no `..`).
   - `type` is `texture` or `music`.
@@ -334,32 +299,26 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
 
 ## Debug tools
 
-Debug panel (`game/src/debug/panel.js`):
-
-- Top-right, collapsed at start.
-- Has a "Main menu" button and buttons for each harness behaviour, including the test scenes ("Players scene (input test)", the A / B switch and the slow scene), which add the backdrop.
-- Buttons give up focus after a click, so keys go to the game.
-- The "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure.
-- The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; nothing else reads them.
-- Play mode `online` is set only from this panel.
-
-`window.__b7` (for debug checks only; it is not a game API) exposes:
-
-- the harness
-- the renderer
-- the asset cache
-- the loader (`window.__b7.loader.status('boot')`)
-- input (`window.__b7.input`, the object `attachInput` returns)
-- music (`window.__b7.music.debug`: `element`, `created`, `wanted`)
-
-Input panel (`game/src/debug/input-panel.js`):
-
-- `#b7-input`: top-left; bottom-left above the version label on windows up to 760 px wide; collapsed by default at every width.
-- Toggled by `#b7-input-toggle`.
-- Per player `[data-player="0"]` and `[data-player="1"]`:
-  - `[data-field="device"]`
-  - `[data-field="aim"]` (degrees)
-  - `[data-field="wheel"]` (total steps)
-  - one row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts)
-- Also `[data-field="ignored"]` (ignored gamepads) and `[data-field="pad-event"]`.
-- Refreshes every 100 ms.
+- Debug panel (`game/src/debug/panel.js`):
+  - Top-right, collapsed at start.
+  - Has a "Main menu" button and buttons for each harness behaviour, including the test scenes ("Players scene (input test)", the A / B switch and the slow scene), which add the backdrop.
+  - Buttons give up focus after a click, so keys go to the game.
+  - The "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure.
+  - The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; nothing else reads them.
+- `window.__b7` (for debug checks only; it is not a game API) exposes:
+  - the harness
+  - the renderer
+  - the asset cache
+  - the loader (`window.__b7.loader.status('boot')`)
+  - input (`window.__b7.input`, the object `attachInput` returns)
+  - music (`window.__b7.music.debug`: `element`, `created`, `wanted`)
+- Input panel (`game/src/debug/input-panel.js`):
+  - `#b7-input`: top-left; bottom-left above the version label on windows up to 760 px wide; collapsed by default at every width.
+  - Toggled by `#b7-input-toggle`.
+  - Per player `[data-player="0"]` and `[data-player="1"]`:
+    - `[data-field="device"]`
+    - `[data-field="aim"]` (degrees)
+    - `[data-field="wheel"]` (total steps)
+    - one row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts)
+  - Also `[data-field="ignored"]` (ignored gamepads) and `[data-field="pad-event"]`.
+  - Refreshes every 100 ms.
