@@ -165,7 +165,7 @@ export function sampleInput(input, devices, pads = []) {
       const held = downNow || tapped || pulsed;
       const prevHeld = entry.prevHeld[action];
       // Held last tick only by a tap, and a new press since: that tap ended, a new press starts.
-      const restarted = prevHeld && !entry.prevDown[action] && tapped;
+      const restarted = prevHeld && !entry.prevDown[action] && (downNow || tapped);
       actions[action] = {
         held,
         pressed: (held && !prevHeld) || restarted || pulsed,

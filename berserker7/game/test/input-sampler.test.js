@@ -68,6 +68,18 @@ test('edges: short taps on consecutive ticks each give a press', () => {
   assert.deepEqual(input.debug.players[0].totals.jump, { pressed: 3, released: 3 });
 });
 
+test('edges: a gamepad press after a tick held only by a tap or a wheel step is a new press', () => {
+  const { devices, input } = setup();
+  const pads = (buttons = {}) => [pad(0), pad(1, { buttons })]; // player 1 holds pad 1
+  press(devices, 'key:Space');
+  release(devices, 'key:Space');
+  assert.deepEqual(edge(sampleInput(input, devices, pads())[0], 'jump'), [true, true, false]);
+  assert.deepEqual(edge(sampleInput(input, devices, pads({ 0: 1 }))[0], 'jump'), [true, true, true]);
+  wheel(devices, 120, 0, 0);
+  assert.deepEqual(edge(sampleInput(input, devices, pads())[0], 'nextWeapon'), [true, true, false]);
+  assert.deepEqual(edge(sampleInput(input, devices, pads({ 5: 1 }))[0], 'nextWeapon'), [true, true, true]);
+});
+
 test('edges: holding for several ticks gives one pressed, then one released', () => {
   const { devices, input } = setup();
   press(devices, 'key:KeyD');
