@@ -704,6 +704,166 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T27g a new summary replaces the old one and the page shows it", metaOf(A).summary.startsWith("A rewritten") && read(devlog(`${A}.html`)).includes("<strong>final</strong>") && !read(devlog(`${A}.html`)).includes("A first summary"), metaOf(A).summary);
 }
 
+// T28 the day check hook, which threads are ready to settle, and the thread started at a day change.
+// Runs in its own state, devlog folder and fake T3, so earlier tests' threads do not appear in the lists.
+{
+  const s28 = path.join(tmp, "t28-fake.json");
+  const E28 = { MM_STATE_DIR: path.join(tmp, "t28-state"), MM_DEVLOG_DIR: path.join(tmp, "t28-devlog"), FAKE_STATE: s28 };
+  fs.writeFileSync(s28, JSON.stringify({ threads: {}, prs: [], issues: [], next: 1 }));
+  const fk = () => JSON.parse(fs.readFileSync(s28, "utf8"));
+  const sv = (x) => fs.writeFileSync(s28, JSON.stringify(x, null, 2));
+  const m = (args, o = {}) => mm(args, { ...o, extra: { ...E28, ...o.extra } });
+  const T = (day, hm = "09:00:00") => `2027-06-${day}T${hm}Z`;
+  const hub = { MM_THREAD_ID: "mcp:hub28" };
+  const dc = (at, extra = {}) => m(["daycheck"], { at, extra: { ...hub, ...extra } });
+  const dcFile = path.join(E28.MM_STATE_DIR, "daycheck.json");
+  const last = () => JSON.parse(read(dcFile) || "{}").lastChecked;
+  const hook = (r) => JSON.parse(r.out).hookSpecificOutput;
+  const quiet = (r) => r.code === 0 && r.out === "" && r.err === "";
+  const dthread = (day) => Object.entries(fk().threads).filter(([, t]) => t.title?.includes(`daily update · 2027-06-${day}`));
+  const tune = (day, fields) => { const x = fk(); Object.assign(x.threads[dthread(day)[0][0]], fields); sv(x); };
+  const ledger28 = () => JSON.parse(read(path.join(E28.MM_STATE_DIR, "ledger.json")));
+  const days28 = (list) => list.map((t) => t.day.slice(8));
+  const mmBin = path.join(HERE, "mm");
+  const x28 = fk();
+  for (const id of ["mcp:hub28", "mcp:other28"]) x28.threads[id] = { title: "dev.baddergames", messages: [], settled: false, archived: false };
+  sv(x28);
+
+  // a. nothing is said outside the hub orchestrator's thread
+  let r = m(["daycheck"], { at: T("01", "08:00:00") });
+  check("T28a1 with no thread id, the day check prints nothing and exits 0", quiet(r), r.out + r.err);
+  r = dc(T("01", "08:00:00"));
+  check("T28a2 with a thread id but no claim, it prints nothing and writes nothing", quiet(r) && !fs.existsSync(dcFile), r.out + r.err);
+  m(["claim", "dev.baddergames"], { at: T("01", "08:00:00"), extra: hub });
+  r = dc(T("01", "08:30:00"), { MM_THREAD_ID: "mcp:other28" });
+  check("T28a3 in another thread, it prints nothing and writes nothing", quiet(r) && !fs.existsSync(dcFile), r.out + r.err);
+  const first = dthread("01")[0]?.[1].messages[0] || "";
+  check("T28a4 the first mm command of the day started that day's thread: no work carried over", dthread("01").length === 1 && /\[devlog day start · 2027-06-01\] No work was carried over from earlier days\./.test(first) && /Events of 2027-06-01 follow in this thread as messages\./.test(first), first.slice(-300));
+
+  // b. the first run ever, in the hub thread (matched by either thread id variable)
+  r = dc(T("01"), { T3CODE_THREAD_ID: "mcp:hub28", MM_THREAD_ID: "mcp:other28" });
+  const o = r.code === 0 && r.err === "" ? hook(r) : {};
+  check("T28b the first run in the hub thread tells it to run mm rollover", o.hookEventName === "UserPromptSubmit" && o.additionalContext.includes(`${mmBin} rollover`) && /last checked never/.test(o.additionalContext) && o.additionalContext.includes("2027-06-01") && /settleThreads/.test(o.additionalContext), r.out + r.err);
+  check("T28b2 with nothing left to do, the date is marked as checked", last() === "2027-06-01", read(dcFile));
+  m(["devlog", "event", "note", "first note"], { at: T("01", "10:00:00"), extra: hub });
+
+  // c. the same day: no output, and no t3 or gh call
+  const marker = path.join(tmp, "t28-marker.txt");
+  const spy = path.join(tmp, "t28-spy.sh");
+  fs.writeFileSync(spy, `#!/bin/sh\necho "$0 $@" >> "${marker}"\nexit 1\n`);
+  fs.chmodSync(spy, 0o755);
+  r = dc(T("01", "15:00:00"), { MM_T3: spy, MM_GH: spy });
+  check("T28c on a day already checked it prints nothing and calls neither t3 nor gh", quiet(r) && !fs.existsSync(marker), r.out + r.err + read(marker));
+
+  // d. a day change, and a gap of several days
+  r = dc(T("02"));
+  check("T28d1 the next day prints a message naming the new date and the last check", r.code === 0 && hook(r).additionalContext.includes("The day has changed to 2027-06-02 (last checked 2027-06-01)"), r.out + r.err);
+  r = dc(T("05"));
+  check("T28d2 after several days the message names the new date", r.code === 0 && hook(r).additionalContext.includes("The day has changed to 2027-06-05 (last checked 2027-06-01)"), r.out + r.err);
+  check("T28d3 the last checked date does not advance while a past day is still open", last() === "2027-06-01", read(dcFile));
+
+  // e. the date advances only when nothing is left
+  r = dc(T("05"), { MM_T3: spy, MM_GH: spy });
+  check("T28e0 a day check that has work to look at does call t3 (so the test in c proves something)", fs.existsSync(marker), r.out + r.err);
+  const old = dthread("01")[0][0];
+  const roll = m(["rollover", "--json"], { at: T("05", "09:30:00"), extra: hub });
+  check("T28e1 mm rollover closes the old day and lists its thread as ready", roll.json?.closed?.includes("2027-06-01") && roll.json.settleThreads.some((t) => t.day === "2027-06-01" && t.threadId === old), roll.out + roll.err);
+  r = dc(T("05", "10:00:00"));
+  check("T28e2 a live finished thread keeps the date unchanged and is named in the message", last() === "2027-06-01" && hook(r).additionalContext.includes(`2027-06-01 (${old})`), r.out + r.err + read(dcFile));
+  { const x = fk(); x.threads[old].settled = true; sv(x); }
+  r = dc(T("05", "10:10:00"));
+  check("T28e3 once it is settled and every day is closed, the date advances", last() === "2027-06-05" && r.code === 0 && hook(r).additionalContext.includes("2027-06-05"), r.out + r.err + read(dcFile));
+  r = dc(T("05", "11:00:00"));
+  check("T28e4 after that the same day prints nothing", quiet(r), r.out + r.err);
+
+  // f. which finished threads are ready to settle
+  const ev = (d, text = `day ${d}`) => m(["devlog", "event", "note", text], { at: T(d, "10:00:00"), extra: hub });
+  for (const d of ["10", "11", "12", "13", "14", "15", "16"]) {
+    ev(d); tune(d, { runCount: 1 });
+    if (d === "15") m(["devlog", "summary", "2027-06-15", "Day fifteen is done."], { at: T("15", "18:00:00"), extra: hub });
+  }
+  tune("13", { settled: true });
+  tune("14", { archived: true });
+  { const x = fk(); delete x.threads[dthread("16")[0][0]]; sv(x); }
+  tune("11", { runCount: 2, status: "running", activeRunId: "run:2" });
+  tune("12", { runCount: 2, status: "waiting", pendingRequestCount: 1 });
+  let f = m(["rollover", "--json"], { at: T("20"), extra: hub }).json || {};
+  const ready = days28(f.settleThreads || []);
+  const laterOf = (d) => (f.settleLater || []).find((t) => t.day === `2027-06-${d}`);
+  check("T28f1 only idle days with the final-summary question decided are ready; today's thread is not listed", JSON.stringify(ready) === JSON.stringify(["05", "15"]) && !(f.settleThreads || []).concat(f.settleLater || []).some((t) => t.day === "2027-06-20"), JSON.stringify(f.settleThreads) + JSON.stringify(f.settleLater));
+  check("T28f2 a thread that was asked for its final summary and has not run since is not ready", /final summary/.test(laterOf("10")?.reason) && laterOf("10").threadId === dthread("10")[0][0], JSON.stringify(f.settleLater));
+  check("T28f3 a running thread is not ready", /running/.test(laterOf("11")?.reason), JSON.stringify(laterOf("11")));
+  check("T28f4 a thread with a question open is not ready", /question/.test(laterOf("12")?.reason), JSON.stringify(laterOf("12")));
+  check("T28f5 settled, archived and deleted threads are not listed, and are remembered", !laterOf("13") && !laterOf("14") && !laterOf("16") && !ready.some((d) => ["13", "14", "16"].includes(d)) && JSON.stringify(ledger28().dailySettled).includes('"2027-06-13":"settled"') && ledger28().dailySettled["2027-06-14"] === "archived" && ledger28().dailySettled["2027-06-16"] === "gone", JSON.stringify(ledger28().dailySettled));
+  f = m(["rollover", "--json"], { at: T("20", "09:30:00"), extra: { ...hub, FAKE_T3_DOWN: "1" } }).json || {};
+  check("T28f6 with T3 not reachable, nothing is ready and the reason says why", f.settleThreads?.length === 0 && f.settleLater?.length > 0 && f.settleLater.every((t) => t.reason === "T3 not reachable"), JSON.stringify(f.settleLater));
+  tune("10", { runCount: 2 });
+  tune("11", { status: "completed", activeRunId: null });
+  tune("12", { status: "completed", pendingRequestCount: 0 });
+  f = m(["status", "--json"], { at: T("20", "10:00:00"), extra: hub }).json || {};
+  check("T28f7 mm status lists the threads once they have answered, finished and been answered", JSON.stringify(days28(f.settleThreads || [])) === JSON.stringify(["05", "10", "11", "12", "15"]) && f.settleLater?.length === 0, JSON.stringify(f.settleThreads?.map((t) => t.day)) + JSON.stringify(f.settleLater));
+
+  // g. the day's thread starts at the day change with the work carried over, and later events go to it
+  const lane = (name, title, issue) => m(["lane", "new", name, "--ns", "dev.baddergames", "--title", title, "--issue", String(issue), "--goal-file", goal, "--skip-git-check"], { at: T("24"), extra: hub });
+  lane("g-run", "Fix the boss", 12); lane("g-wait", "Tune the lobby", 13); lane("g-block", "Rewrite saves", 14); lane("g-held", "Add a menu", 15);
+  m(["lane", "update", "g-wait", "waiting"], { at: T("24", "09:10:00"), extra: hub });
+  m(["lane", "update", "g-block", "blocked"], { at: T("24", "09:11:00"), extra: hub });
+  m(["lane", "update", "g-held", "held", "--pr", "16"], { at: T("24", "09:12:00"), extra: hub });
+  m(["status"], { at: T("25", "08:00:00"), extra: hub });
+  const day25 = dthread("25");
+  const msg = day25[0]?.[1].messages[0] || "";
+  const eventLines25 = () => read(path.join(E28.MM_DEVLOG_DIR, "data", "2027-06-25.jsonl")).split("\n").filter(Boolean);
+  check("T28g1 the first command of the day starts one thread with the carried-over work, grouped", day25.length === 1 && msg.includes("[devlog day start · 2027-06-25] Work carried over from earlier days:")
+    && msg.includes("Running:\n- Fix the boss (g-run, baddergames) #12\n") && msg.includes("Waiting for an answer:\n- Tune the lobby (g-wait, baddergames) #13\n")
+    && msg.includes("Blocked:\n- Rewrite saves (g-block, baddergames) #14\n") && msg.includes("Pull requests waiting for approval:\n- Add a menu (g-held, baddergames) #15 PR #16\n")
+    && /Events of 2027-06-25 follow in this thread as messages\./.test(msg), msg.slice(-700));
+  check("T28g2 the day-start message is not recorded as a devlog event", eventLines25().length === 0, eventLines25().join("\n"));
+  ev("25", "later that day");
+  const after = dthread("25");
+  check("T28g3 a later event the same day goes to the same thread", after.length === 1 && after[0][1].messages.length === 2 && /later that day/.test(after[0][1].messages[1]) && eventLines25().length === 1, JSON.stringify(after.map(([, t]) => t.messages.length)));
+
+  // h. a late event for a closed day reaches its thread even when settled
+  m(["status"], { at: T("26", "08:00:00"), extra: hub });
+  const t13 = dthread("13")[0];
+  const cached = ledger28().dailySettled["2027-06-13"];
+  m(["lane", "new", "late28", "--ns", "dev.baddergames", "--title", "Late merge", "--goal-file", goal, "--skip-git-check"], { at: T("26", "08:30:00"), extra: hub });
+  m(["lane", "set", "late28", "--pr", "61"], { at: T("26", "08:31:00"), extra: hub });
+  { const x = fk(); x.prs.push({ number: 61, state: "MERGED", mergedAt: T("13", "22:00:00"), closedAt: null }); sv(x); }
+  const before13 = fk().threads[t13[0]].messages.length;
+  m(["status"], { at: T("26", "09:30:00"), extra: hub });
+  const msgs13 = fk().threads[t13[0]].messages;
+  check("T28h1 a late event for a closed day is sent to its settled thread", fk().threads[t13[0]].settled === true && msgs13.length === before13 + 1 && /2027-06-13 is already closed; this event was recorded late/.test(msgs13.at(-1)), JSON.stringify(msgs13.slice(-1)));
+  check("T28h2 and that day's settled entry is cleared so it is checked again", cached === "settled" && ledger28().dailySettled["2027-06-13"] === undefined, `${cached} → ${ledger28().dailySettled["2027-06-13"]}`);
+
+  // j. the day check takes no lock
+  const lockDir = path.join(E28.MM_STATE_DIR, ".lock");
+  fs.mkdirSync(lockDir); fs.writeFileSync(path.join(lockDir, "pid"), String(process.pid));
+  r = dc(T("27"));
+  fs.rmSync(lockDir, { recursive: true, force: true });
+  check("T28j the day check does not wait for the mm lock", r.code === 0 && /The day has changed to 2027-06-27/.test(r.out), r.out + r.err);
+
+  // i. a failing day check never blocks a prompt: run the hook's own command string
+  const repoRoot = path.join(HERE, "..", "..", "..", "..");
+  const command = JSON.parse(fs.readFileSync(path.join(repoRoot, ".agents", "settings.json"), "utf8")).hooks.UserPromptSubmit[0].hooks[0].command;
+  const bash = fs.existsSync("/bin/bash") ? "/bin/bash" : "/usr/bin/bash";
+  const hookRun = (extra, dir = repoRoot) => spawnSync(bash, ["-c", command], { cwd: main, encoding: "utf8", env: { ...env({ MM_NOW: T("30"), ...E28, ...hub }), CLAUDE_PROJECT_DIR: dir, ...extra } });
+  const silent = (x) => x.status === 0 && x.stdout === "" && x.stderr === "";
+  const ledgerFile = path.join(E28.MM_STATE_DIR, "ledger.json");
+  const goodLedger = fs.readFileSync(ledgerFile, "utf8");
+  fs.writeFileSync(ledgerFile, "{ this is not json");
+  const bad = hookRun({});
+  fs.writeFileSync(ledgerFile, goodLedger);
+  check("T28i1 a broken ledger makes the hook print nothing and exit 0", silent(bad), JSON.stringify(bad));
+  const noNode = hookRun({ PATH: "/nonexistent" });
+  check("T28i2 with node not on the PATH the hook prints nothing and exits 0", silent(noNode), JSON.stringify(noNode));
+  const empty = fs.mkdtempSync(path.join(os.tmpdir(), "mm-empty-"));
+  const missing = hookRun({}, empty);
+  fs.rmSync(empty, { recursive: true, force: true });
+  check("T28i3 with the script missing the hook prints nothing and exits 0", silent(missing), JSON.stringify(missing));
+  const good = hookRun({});
+  check("T28i4 the same command, with everything in place, prints the day change message", good.status === 0 && good.stderr === "" && /The day has changed to 2027-06-30/.test(JSON.parse(good.stdout).hookSpecificOutput.additionalContext), JSON.stringify(good));
+}
+
 const failed = results.filter((r) => !r.ok);
 for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.name}${r.ok || !r.detail ? "" : `\n      ${String(r.detail).slice(0, 600).replace(/\n/g, "\n      ")}`}`);
 console.log(JSON.stringify({ passed: results.length - failed.length, failed: failed.length, tmp: keep ? tmp : undefined }));
