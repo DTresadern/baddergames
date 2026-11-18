@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "Berserker 7",
-  "updated": "2026-11-17",
+  "updated": "2026-11-18",
   "statuses": [
     "open",
     "accepted",
@@ -2503,7 +2503,7 @@
       "refs": [
         "TF-045"
       ],
-      "notes": ""
+      "notes": "2026-11-18: the input system (issue #48) has the actions weapon1 to weapon9 on number keys 1 to 9; weapon switching itself is not built yet."
     },
     {
       "id": "D-091",
@@ -2542,7 +2542,7 @@
       "refs": [
         "TF-046"
       ],
-      "notes": ""
+      "notes": "2026-11-18: the input system (issue #48) has the held action weaponMenu (Q, gamepad d-pad down); the radial menu itself is not built yet."
     },
     {
       "id": "D-092",
@@ -2568,7 +2568,7 @@
       "refs": [
         "TF-047"
       ],
-      "notes": ""
+      "notes": "2026-11-18, project owner: decided against toggle fire; fire is held."
     },
     {
       "id": "D-093",
@@ -2599,7 +2599,7 @@
       "refs": [
         "TF-029"
       ],
-      "notes": ""
+      "notes": "2026-11-18: the input system (issue #48) has the action secondaryFire (right mouse button, gamepad left trigger) in every control scheme; secondary fire itself is not built yet."
     },
     {
       "id": "D-094",
@@ -3921,7 +3921,7 @@
       "category": "Simulation",
       "title": "Don't read global input or a single global player inside entities",
       "detail": "Impact entities read one global input and target one global player. Co-op needs input passed in per player and enemies that choose a target among players.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -3932,7 +3932,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-18: the harness passes each scene one input frame per player per tick as tick(state, inputs, dt); no scene or game object reads a device directly. Applies to all further work."
     },
     {
       "id": "T-023",
@@ -4611,7 +4611,7 @@
       "category": "Simulation",
       "title": "Input as named actions; one input frame per player per tick",
       "detail": "Bind keys to named actions read as held, pressed or released. Build one input frame per player per simulation tick (actions plus aim angle); that frame goes over the network and into replays. Compute pressed edges per tick, not per render frame.",
-      "status": "accepted",
+      "status": "implemented",
       "authors": [
         "Impact research"
       ],
@@ -4622,7 +4622,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-18: implemented in PR (input system, issue #48): named actions with bindings as data (defaults, overrides saved in localStorage), one input frame per player per tick with per-tick pressed/released edges, aim angle and wheel steps; keyboard + mouse and standard gamepads; two local players; shown with a players test scene and an input panel on the game page."
     },
     {
       "id": "T-054",
@@ -5472,6 +5472,23 @@
         "TF-087"
       ],
       "notes": ""
+    },
+    {
+      "id": "D-126",
+      "list": "design",
+      "kind": "feature",
+      "category": "Co-op",
+      "title": "Two players on one machine (hotseat)",
+      "detail": "Two local players on one machine: player 1 on keyboard + mouse, player 2 on a gamepad, or both on gamepads.",
+      "status": "ongoing",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-053"
+      ],
+      "notes": "2026-11-18, project owner: decided. The input system (issue #48) supports it: one input frame per player per tick, player 1 on keyboard + mouse, player 2 on the first gamepad, both players on gamepads when two are connected."
     },
     {
       "id": "T-089",
