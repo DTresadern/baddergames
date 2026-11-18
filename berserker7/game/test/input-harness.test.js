@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createDevices, press, release, setSurface } from '../src/input/devices.js';
-import { createInput, sampleInput, setAimOrigin } from '../src/input/sampler.js';
+import { clearAimOrigins, createInput, sampleInput, setAimOrigin } from '../src/input/sampler.js';
 import { harnessWith, settle, STEP } from './fakes.js';
 
 function fakeInput() {
@@ -20,6 +20,7 @@ function fakeInput() {
       return sampleInput(input, devices, []);
     },
     setAimOrigin: (player, x, y) => setAimOrigin(input, player, x, y),
+    clearAimOrigins: () => clearAimOrigins(input),
   };
 }
 
@@ -130,4 +131,21 @@ test('harness: view.setAimOrigin forwards to the input, and is a no-op without o
   assert.doesNotThrow(() => bare.view.setAimOrigin(0, 1, 2));
   const partial = harnessWith([], { input: { sample: () => [] } }).harness;
   assert.doesNotThrow(() => partial.view.setAimOrigin(0, 1, 2));
+});
+
+test('harness: aim origins are kept only while a scene that sets them is drawn', async () => {
+  const fake = fakeInput();
+  let drawsOrigin = true;
+  const { harness } = harnessWith([['main', {}, {
+    draw: (state, view) => {
+      if (drawsOrigin) view.setAimOrigin(0, 100, 200);
+    },
+  }]], { input: fake });
+  harness.setMain('main');
+  await settle(harness, STEP);
+  harness.frame(STEP);
+  assert.deepEqual(fake.input.perPlayer[0].aimOrigin, { x: 100, y: 200 });
+  drawsOrigin = false;
+  harness.frame(STEP);
+  assert.equal(fake.input.perPlayer[0].aimOrigin, null);
 });

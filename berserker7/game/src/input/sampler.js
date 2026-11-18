@@ -70,6 +70,11 @@ export function setAimOrigin(input, player, x, y) {
   entry.aimOrigin = x == null || y == null ? null : { x, y };
 }
 
+// Called by the harness before each draw, so only a scene drawn this frame sets an origin.
+export function clearAimOrigins(input) {
+  for (const entry of input.perPlayer) entry.aimOrigin = null;
+}
+
 // Angle in (-PI, PI], with -0 as 0 so frames survive a JSON round trip unchanged.
 export function normaliseAngle(angle) {
   if (angle <= -Math.PI) return Math.PI;

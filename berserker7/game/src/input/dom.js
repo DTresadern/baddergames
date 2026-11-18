@@ -13,7 +13,7 @@ import {
   snapshotPad,
   wheel,
 } from './devices.js';
-import { createInput, sampleInput, setAimOrigin } from './sampler.js';
+import { clearAimOrigins, createInput, sampleInput, setAimOrigin } from './sampler.js';
 
 // Keys whose browser default (scrolling, moving focus, activating a focused button) is blocked.
 const BLOCKED_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab']);
@@ -118,6 +118,7 @@ export function attachInput({
   return {
     sample,
     setAimOrigin: (player, x, y) => setAimOrigin(input, player, x, y),
+    clearAimOrigins: () => clearAimOrigins(input),
     debug: input.debug,
     devices,
     input,

@@ -4,7 +4,7 @@
 //   1. tick: run the clock's steps; each step samples the input once (one frame per player),
 //      calls onInputs with those frames, then ticks every scene allowed to tick, in layer order,
 //      as tick(state, inputs, dt).
-//   2. draw: clear, draw every scene allowed to draw in layer order, then the fade.
+//   2. draw: clear the input's aim origins (scenes set them again in draw), clear, draw every scene allowed to draw in layer order, then the fade.
 //   3. end failed loads; apply the queued scene changes in request order; activate scenes whose load finished.
 //   4. advance the fade; swap the main scene when it reaches its midpoint.
 // Requests made at any time (including from scene hooks) only take effect in step 3
@@ -28,7 +28,7 @@ export function createHarness({
   drawTransition = () => {},
   now = () => performance.now(),
   loadingScene = null, // id of the scene shown in the main slot while the main scene loads
-  input = null, // { sample() -> frames, setAimOrigin(player, x, y)? }; none: every tick gets []
+  input = null, // { sample() -> frames, setAimOrigin(player, x, y)?, clearAimOrigins()? }; none: every tick gets []
   onInputs = () => {}, // called once per step with that step's frames, before the scenes tick
 } = {}) {
   const records = new Map();
@@ -340,6 +340,7 @@ export function createHarness({
     }
 
     // 2. draw
+    input?.clearAimOrigins?.();
     renderer.clear();
     let drawn = 0;
     for (const { record, covered } of order) {

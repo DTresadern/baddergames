@@ -67,7 +67,7 @@ export const DEFAULT_BINDINGS = deepFreeze({
     ...Object.fromEntries(weapons.map((action) => [action, []])),
     nextWeapon: ['button:5'],
     previousWeapon: ['button:3'],
-    weaponMenu: ['button:13'], // d-pad down is also moveDown, as the owner's table has it
+    weaponMenu: ['button:13'], // d-pad down is also moveDown (issue #48 bindings table)
     pause: ['button:9'],
   },
 });
