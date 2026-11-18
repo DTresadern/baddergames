@@ -95,12 +95,6 @@ export function attachInput({
     moveMouse(devices, e.clientX - rect.left, e.clientY - rect.top);
   }, { signal });
 
-  // The surface size is otherwise only read on mouse moves, so a resize alone would leave it stale.
-  win.addEventListener('resize', () => {
-    const rect = canvas.getBoundingClientRect();
-    setSurface(devices, rect.width, rect.height);
-  }, { signal });
-
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     wheel(devices, e.deltaY, e.deltaMode, e.timeStamp);
@@ -113,11 +107,11 @@ export function attachInput({
   win.addEventListener('gamepadconnected', padEvent, { signal });
   win.addEventListener('gamepaddisconnected', padEvent, { signal });
 
+  // The canvas size is read on every sample: a resize event can arrive before the renderer
+  // has resized the canvas, so reading it in a resize listener would keep the old size.
   function sample() {
-    if (devices.surface.width === 0) {
-      const rect = canvas.getBoundingClientRect();
-      setSurface(devices, rect.width, rect.height);
-    }
+    const rect = canvas.getBoundingClientRect();
+    setSurface(devices, rect.width, rect.height);
     return sampleInput(input, devices, readPads(nav));
   }
 
