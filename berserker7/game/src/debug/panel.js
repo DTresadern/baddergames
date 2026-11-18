@@ -3,12 +3,13 @@
 //
 // Stable hooks for browser scripts:
 //   #b7-debug, #b7-debug-toggle, #b7-debug-body
-//   button[data-action="..."]           see ACTIONS below
+//   button[data-action="..."]           see ACTIONS below (starts collapsed)
 //   [data-value="..."]                  frame-ms, work-ms, steps, long-frame, play-mode,
 //                                       layers, transition, geometries, textures, assets
 //   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
 
 const ACTIONS = [
+  ['main-menu', 'Main menu'],
   ['players', 'Players scene (input test)'],
   ['switch-ab', 'Switch A / B (fade)'],
   ['pause', 'Open pause'],
@@ -74,8 +75,8 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
   root.id = 'b7-debug';
   const ids = [...harness.records.keys()];
   root.innerHTML = `
-    <button id="b7-debug-toggle" type="button" aria-expanded="true">Debug ▾</button>
-    <div id="b7-debug-body">
+    <button id="b7-debug-toggle" type="button" aria-expanded="false">Debug ▸</button>
+    <div id="b7-debug-body" hidden>
       <div class="b7-actions">
         ${ACTIONS.map(([action, label]) => `<button type="button" data-action="${action}">${label}</button>`).join('')}
       </div>
@@ -115,10 +116,17 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
   }
 
   const handlers = {
+    'main-menu'() {
+      // The menu has no backdrop.
+      if (harness.layers.background.includes('backdrop')) harness.leave('backdrop');
+      harness.setMain('mainMenu', { fade: FADE });
+    },
     players() {
+      harness.addBackground('backdrop');
       harness.setMain('players', { fade: FADE });
     },
     'switch-ab'() {
+      harness.addBackground('backdrop');
       const current = harness.transition?.to ?? harness.layers.main;
       harness.setMain(current === 'sceneA' ? 'sceneB' : 'sceneA', { fade: FADE });
     },
@@ -138,6 +146,7 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
       while (performance.now() < end);
     },
     'slow-scene'() {
+      harness.addBackground('backdrop');
       harness.setMain('slow', { fade: FADE });
     },
     'fail-slow'() {

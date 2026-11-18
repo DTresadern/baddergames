@@ -1,6 +1,7 @@
 // DOM panel showing the input system's per-player state: device, aim, wheel steps, and
 // for each action whether it is held now and how many pressed and released edges it had.
 // Reads the input's debug data (outside the frames); refreshes about 10 times per second.
+// Collapsed at start, at every window width.
 //
 // Stable hooks for browser scripts:
 //   #b7-input, #b7-input-toggle, #b7-input-body, [data-field="ignored"], [data-field="pad-event"]
@@ -11,7 +12,6 @@
 import { ACTIONS } from '../input/actions.js';
 
 const REFRESH_MS = 100;
-const NARROW = 600; // px: collapsed by default below this window width
 
 const STYLE = `
 #b7-input { position: fixed; top: 8px; left: 8px; z-index: 2; width: min(300px, calc(100vw - 16px));
@@ -48,8 +48,8 @@ export function mountInputPanel({ input, parent = document.body, win = window })
   const root = document.createElement('section');
   root.id = 'b7-input';
   root.innerHTML = `
-    <button id="b7-input-toggle" type="button" aria-expanded="true">Input ▾</button>
-    <div id="b7-input-body">
+    <button id="b7-input-toggle" type="button" aria-expanded="false">Input ▸</button>
+    <div id="b7-input-body" hidden>
       <div><span class="b7-dim">ignored pads</span> <span data-field="ignored"></span></div>
       <div><span class="b7-dim">last pad event</span> <span data-field="pad-event"></span></div>
       ${debug.players
@@ -80,7 +80,6 @@ export function mountInputPanel({ input, parent = document.body, win = window })
     setOpen(body.hidden);
     toggle.blur(); // keys go to the game, not this button
   });
-  setOpen(win.innerWidth >= NARROW);
 
   const sections = debug.players.map((_, player) => {
     const section = root.querySelector(`[data-player="${player}"]`);

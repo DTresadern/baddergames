@@ -2,10 +2,12 @@ import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene, WebG
 import { mountInputPanel } from './debug/input-panel.js';
 import { mountPanel } from './debug/panel.js';
 import { createHarness } from './engine/harness.js';
+import { createMusic } from './audio/music.js';
 import { attachInput } from './input/dom.js';
 import { togglePauseOnPress } from './pause-toggle.js';
 import { createBackdrop } from './scenes/backdrop.js';
 import { createLoading } from './scenes/loading.js';
+import { createMainMenu } from './scenes/main-menu.js';
 import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
 import { createSceneA } from './scenes/scene-a.js';
@@ -35,6 +37,9 @@ function drawTransition(alpha) {
 // The only place that listens to input devices. Bindings overrides come from localStorage.
 const input = attachInput({ window, canvas: renderer.domElement });
 
+// The only place that touches audio. Starts after the first click, key or touch.
+const music = createMusic({ window });
+
 const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
 const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input, onInputs });
 const { assets } = harness;
@@ -44,10 +49,11 @@ harness.register('sceneA', createSceneA());
 harness.register('sceneB', createSceneB());
 harness.register('pause', createPause());
 harness.register('slow', createSlow());
+harness.register('mainMenu', createMainMenu({ music }));
 harness.register('loading', createLoading());
 harness.preload('loading');
-harness.addBackground('backdrop');
-harness.setMain('players');
+// The menu has no backdrop; the debug panel's test scene buttons add it.
+harness.setMain('mainMenu');
 
 function resize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -71,5 +77,5 @@ requestAnimationFrame(loop);
 mountPanel({ harness, renderer, assets });
 mountInputPanel({ input });
 
-// Debug only: lets browser scripts read the harness, renderer, shared assets and input. Not a game API.
-window.__b7 = { harness, renderer, assets, input };
+// Debug only: lets browser scripts read the harness, renderer, shared assets, input and music. Not a game API.
+window.__b7 = { harness, renderer, assets, input, music };
