@@ -19,7 +19,7 @@ import { createMainMenu } from '../src/scenes/main-menu.js';
 import { createNewGame } from '../src/scenes/new-game.js';
 import { POSTERS } from '../src/scenes/poster.js';
 
-const POSTER = POSTERS[0];
+const MENU_POSTER = POSTERS[0];
 import { createPlayers, initPlayers } from '../src/scenes/players.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
@@ -91,9 +91,9 @@ function fakeDeps(loads = { count: 0 }) {
     createCanvas: () => ({ width: 0, height: 0, getContext: () => stub2d }),
   };
 }
-const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), poster: POSTER, ...fakeDeps() });
+const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), poster: MENU_POSTER, ...fakeDeps() });
 const fakeNewGame = () =>
-  createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), poster: POSTER, ...fakeDeps() });
+  createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), poster: MENU_POSTER, ...fakeDeps() });
 function fakeScreens() {
   return { openNewGame() {}, closeNewGame() {}, startIntro() {}, showMenu() {} };
 }
@@ -226,17 +226,17 @@ test('main menu and New Game share one poster, disposed once after both unload; 
   const loads = { count: 0 };
   const deps = fakeDeps(loads);
   const { harness, renderer } = harnessFor({
-    mainMenu: createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), poster: POSTER, ...deps }),
-    newGame: createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), poster: POSTER, ...deps }),
+    mainMenu: createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), poster: MENU_POSTER, ...deps }),
+    newGame: createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), poster: MENU_POSTER, ...deps }),
   });
   harness.setMain('mainMenu');
   harness.openOverlay('newGame');
   await settle(harness, STEP);
   for (let i = 0; i < 3; i++) harness.frame(STEP);
   assert.equal(loads.count, 1);
-  assert.equal(harness.assets.count(POSTER), 2);
-  const poster = (await harness.assets.acquire(POSTER, () => assert.fail('should exist')).ready);
-  harness.assets.release(POSTER);
+  assert.equal(harness.assets.count(MENU_POSTER), 2);
+  const poster = (await harness.assets.acquire(MENU_POSTER, () => assert.fail('should exist')).ready);
+  harness.assets.release(MENU_POSTER);
   const disposed = new Set();
   for (const obj of renderer.used) obj.addEventListener('dispose', () => disposed.add(obj));
   let posterDisposed = 0;
@@ -245,7 +245,7 @@ test('main menu and New Game share one poster, disposed once after both unload; 
   harness.leave('newGame', 'unload');
   harness.frame(0);
   await flush();
-  assert.equal(harness.assets.count(POSTER), 1);
+  assert.equal(harness.assets.count(MENU_POSTER), 1);
   assert.equal(posterDisposed, 0);
   const afterNewGame = disposed.size;
   assert.ok(afterNewGame > 0, 'New Game own geometry, materials and label textures are disposed');

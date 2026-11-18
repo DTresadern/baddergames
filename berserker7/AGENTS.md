@@ -103,13 +103,14 @@ Version label and CI:
   - On a failure: "Could not load" and the path, in place of the bar or prompt, and nothing else happens.
   - `tickBoot(state, inputs, status)` is the pure logic.
 - Intro (`createIntro({ music, screens })`):
-  - Constants in `intro.js`: `FADE_SECONDS` 1, `HOLD_SECONDS` 2, `TICKS_PER_SECOND` (from the clock's `STEP_SECONDS`, 60), `INTRO_LOGOS` (`logo.baddergames`, then `logo.w8omg`).
-  - `introAt(tick)` gives `{ logo, alpha, phase }`: each logo fades in linearly over 1 s, holds 2 s, fades out over 1 s; the second follows with no gap; then `end`.
+  - Tick counts (fade, hold, skip delay) are rounded to whole ticks, because 1.3 * 60 is 78.00000000000001 in floating point; `FADE_TICKS` is exactly 78.
+  - Constants in `intro.js`: `FADE_SECONDS` 1.3, `HOLD_SECONDS` 2, `MENU_FADE_IN_SECONDS` 2 (the menu's fade-in from black after the logos end), `TICKS_PER_SECOND` (from the clock's `STEP_SECONDS`, 60), `INTRO_LOGOS` (`logo.baddergames`, then `logo.w8omg`).
+  - `introAt(tick)` gives `{ logo, alpha, phase }`: each logo fades in linearly over 1.3 s (78 ticks), holds 2 s, fades out over 1.3 s (a logo is 276 ticks, the intro 552); the second follows with no gap; then `end`.
   - `enter` calls `music.play` for `music.title` (the first logo starts fading in at the same moment).
   - The intro never stops the music, and the menu's own `play` of the same URL does not restart it.
 - Leaving the intro (`tickIntro`):
-  - At `end` it sets `state.request` to `'menu'`, and the scene's `tick` calls `screens.showMenu({ fromBlack: true })`: `setMain('mainMenu', { fade: 2 * FADE_SECONDS, fromAlpha: 1 })`, so the menu fades in from black over 1 s.
-  - Skip: any connected frame with `activated` or any action pressed (a click, key, Escape, touch or a gamepad button bound to an action; also a wheel step or a left-stick tilt, since they press actions too; not a mouse move, and not gamepad buttons 10, 11 or 16 and above, which are unbound by default), after the first `SKIP_DELAY_SECONDS` (0.25 s), sets `state.request` to `'skip'`, and the scene's `tick` calls `screens.showMenu({ fromBlack: false })`: the intro fades to black over 1 s, then the menu fades in over 1 s.
+  - At `end` it sets `state.request` to `'menu'`, and the scene's `tick` calls `screens.showMenu({ fromBlack: true })`: `main.js` calls `setMain('mainMenu', menuFade({ fromBlack }))`. `menuFade` (pure, in `intro.js`) gives `{ fade: 2 * MENU_FADE_IN_SECONDS, fromAlpha: 1 }`, so the menu fades in from black over 2 s.
+  - Skip: any connected frame with `activated` or any action pressed (a click, key, Escape, touch or a gamepad button bound to an action; also a wheel step or a left-stick tilt, since they press actions too; not a mouse move, and not gamepad buttons 10, 11 or 16 and above, which are unbound by default), after the first `SKIP_DELAY_SECONDS` (0.25 s), sets `state.request` to `'skip'`, and the scene's `tick` calls `screens.showMenu({ fromBlack: false })`: `menuFade` gives `{ fade: 2 * FADE_SECONDS }`: the intro fades to black over 1.3 s, then the menu fades in over 1.3 s.
   - The delay is there because a touch screen sends the tap's compatibility mouse events after `touchend`, possibly a tick later, which would otherwise skip the intro the tap started.
   - One request only.
 - Layout (`logoRect`): centred, aspect kept, inside `LOGO_MAX_WIDTH` (80%) of the view width and `LOGO_MAX_HEIGHT` (60%) of its height, and never more device pixels than the image has (CSS size at most image size / `renderer.getPixelRatio()`).
@@ -137,7 +138,11 @@ Version label and CI:
   - `state.selected` (label) and `state.selections` (count) are for debug checks only.
   - `state.request` (`'newGame'` or null, reset each tick) is what the scene's `tick` acts on.
 - Shared assets:
-  - The poster (manifest key `poster.classic`, file `content/textures/menubg/berserkerguy-classic-2-1.png`, `POSTER` in `poster.js`) comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once.
+  - There are two backgrounds, both in manifest group `menubg`: `poster.classic` (`content/textures/menubg/berserkerguy-classic-2-1.png`) and `poster.thrash` (`content/textures/menubg/berserkerguy-thrash-2-1.png`). `POSTERS` in `poster.js` lists them.
+  - `main.js` picks one once at start-up with `pickPoster` (equal chance; `Math.random`, not the seeded generator, since it is not gameplay) and passes the key as `poster` to `createMainMenu` and `createNewGame`; both throw if it is not in `POSTERS`.
+  - `?menubg=classic` or `?menubg=thrash` forces one; any other value logs one warning and the pick is random.
+  - Only the picked one is downloaded: `withPoster(groupAssets, poster)` is the loader's `listGroup` and adds it to the `boot` group, so it is preloaded with the boot group.
+  - The poster comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once.
   - Labels come from `labels.js` (`labelTexture`).
 - Preload:
   - `main.js` preloads the menu once the boot group has loaded.
@@ -153,7 +158,7 @@ Version label and CI:
   - The menu does not tick (it ignores input) but still draws underneath.
   - In `online` play mode (set only from the debug panel) a covered main scene still ticks, so the hidden menu would react to input there.
 - Layout:
-  - It shows the shared poster, four campaign cards from `src/data/campaigns.js` (Megacity available and preselected; the others dimmed "Coming later" and not selectable), a difficulty list for the selected campaign (default "Inmate") and a "Back" item.
+  - It shows the shared poster (the one picked at start-up, passed as `poster`; see Main menu), four campaign cards from `src/data/campaigns.js` (Megacity available and preselected; the others dimmed "Coming later" and not selectable), a difficulty list for the selected campaign (default "Inmate") and a "Back" item.
   - `newGameLayout` puts the cards in one row when the view is at least 720 px wide and in a 2 x 2 grid below that, scaled uniformly to fit.
 - Navigation:
   - Up and down (wrapping) and a moved mouse move the highlight.
@@ -167,7 +172,7 @@ Version label and CI:
   - `state.selected` (`easy`, `normal`, `hard`, `extreme` or `back`) and `state.selections` are for debug checks only.
   - `state.start` is `{ campaign, difficulty }` when a difficulty was selected in the tick (the last one wins), else null; it is reset each tick.
   - `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection in the same tick cannot cancel it), and the scene's `tick` closes the overlay on it.
-- Opening and saving (`createNewGame({ screens, settings, session })`):
+- Opening and saving (`createNewGame({ screens, settings, session, poster })`):
   - `enter` calls `initNewGame(settings.get().lastChoice)`: the saved campaign if it is an available campaign, else the first available one (Megacity); the saved difficulty if it is one of `DIFFICULTIES`, else `DEFAULT_DIFFICULTY`.
   - The scene's `tick`, when `state.start` is set: `session.set(createSession(state.start))` and `settings.set({ lastChoice: { ...state.start } })`; then the Back handling.
 - Its leave setting is `unload`, so closing frees its labels and each open starts fresh. The poster stays loaded because the main menu still holds it.
@@ -228,7 +233,7 @@ Session (`createSession`, `createSessionHolder`):
 - Manifest (`manifest.js`): `ASSETS`, one frozen list of every runtime asset, `{ key, path, type, groups, colorSpace? }`.
   - `path` starts with `content/` and is relative to `public/` (for example `content/textures/logos/w8omg.png`; no leading slash, no `..`).
   - `type` is `texture` or `music`.
-  - `groups` names the preload groups that load it (`GROUPS`, now only `boot`).
+  - `groups` names the preload groups that load it (`GROUPS`: `boot` and `menubg`; nothing loads `menubg` whole, start-up adds the picked poster to the boot load).
   - A texture's `colorSpace` is `srgb` (default, colour images) or `raw` (stored values used as data; the w8omg logo).
   - `assetByKey(key)` and `groupAssets(group)` throw on an unknown key or group.
   - `checkManifest(list)` returns the problems (duplicate or missing key, bad path, unknown type or colour space, a colour space on an entry that is not a texture, unknown or empty groups, a group with no assets); the module throws at import if `ASSETS` has any.
@@ -371,6 +376,7 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - Input (`window.__b7.input`, the object `attachInput` returns)
   - Music (`window.__b7.music.debug`: `element`, `created`, `wanted`, `volume`)
   - The settings store (`window.__b7.settings`) and the session holder (`window.__b7.session`)
+  - The picked menu poster key (`window.__b7.poster`, `poster.classic` or `poster.thrash`)
 - Input panel (`game/src/debug/input-panel.js`):
   - `#b7-input`: top-left; bottom-left (24 px up, clear of the bottom-right version label) on windows up to 760 px wide; collapsed by default at every width.
   - Toggled by `#b7-input-toggle`.
