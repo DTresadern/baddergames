@@ -17,6 +17,7 @@ const STYLE = `
 #b7-input { position: fixed; top: 8px; left: 8px; z-index: 2; width: min(300px, calc(100vw - 16px));
   max-height: calc(100vh - 40px); overflow: auto; box-sizing: border-box; font: 11px/1.35 monospace;
   color: #ddd; background: rgba(10, 12, 18, 0.85); border: 1px solid #444; border-radius: 4px; }
+/* On narrow windows: bottom-left, 24 px up, so it does not cover the version label (bottom-right, about 17 px tall). */
 @media (max-width: 760px) {
   #b7-input { top: auto; bottom: 24px; max-height: 35vh; }
 }

@@ -20,12 +20,19 @@ import { createSlow } from './scenes/slow.js';
 import { createSessionHolder } from './session.js';
 import { browserStorage, createSettingsStore } from './settings/store.js';
 
-document.getElementById('version').textContent = __BUILD_LABEL__;
+const versionLabel = document.getElementById('version');
+versionLabel.textContent = __BUILD_LABEL__;
 
 // The only code that reads or writes saved settings; created first so everything below can use them.
 const settings = createSettingsStore({ storage: browserStorage(window) });
 // The run being set up (plain data); scenes get the holder, like `music` and `screens`.
 const session = createSessionHolder();
+// The version label follows the showVersionLabel setting, now and on every change.
+const showVersionLabel = (s) => {
+  versionLabel.hidden = !s.showVersionLabel;
+};
+showVersionLabel(settings.get());
+settings.subscribe(showVersionLabel);
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -113,8 +120,9 @@ function loop(time) {
 }
 requestAnimationFrame(loop);
 
-mountPanel({ harness, renderer, assets });
+mountPanel({ harness, renderer, assets, settings, session });
 mountInputPanel({ input });
 
-// Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input and music. Not a game API.
-window.__b7 = { harness, renderer, assets, loader, input, music };
+// Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input, music,
+// settings and session. Not a game API.
+window.__b7 = { harness, renderer, assets, loader, input, music, settings, session };
