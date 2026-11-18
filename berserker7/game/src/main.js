@@ -46,7 +46,8 @@ function drawTransition(alpha) {
 // bindings overrides are read once, here; there is no live rebinding yet.
 const input = attachInput({ window, canvas: renderer.domElement, bindings: settings.get().bindings });
 
-const music = createMusic({ window });
+const music = createMusic({ window, volume: settings.get().musicVolume });
+settings.subscribe((s) => music.setVolume(s.musicVolume));
 
 const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
 const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input, onInputs });
