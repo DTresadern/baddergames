@@ -42,7 +42,7 @@ function appendEvent(ctx, ev) {
   const day = dayKey(ev.at, tzOf(ctx));
   const created = !fs.existsSync(eventsFile(ctx, day));
   fs.mkdirSync(dataDir(ctx), { recursive: true });
-  fs.appendFileSync(eventsFile(ctx, day), JSON.stringify(ev) + "\n");
+  fs.appendFileSync(eventsFile(ctx, day), JSON.stringify({ ...ev, recordedAt: ev.recordedAt || now().toISOString() }) + "\n");
   return { day, created };
 }
 
@@ -195,15 +195,25 @@ export function rollover(ctx, ledger) {
     result.closed.push(d);
   }
   // Ask each closed day's thread for its final summary, once. Retried on a later run if T3 was not reachable.
+  // A day with no summary always gets the message. A day with a summary gets it only if an event was recorded
+  // after the summary was saved and no later than the close (late sweep events, last-hour merges). Events recorded
+  // after the close were already sent to the thread one by one. Events without recordedAt (old data) never count.
   for (const d of days(ctx).filter((x) => x < day0)) {
     const meta = readMeta(ctx, d);
-    if (!meta.final || meta.summary || meta.finaliseSentAt || meta.summaryMissing) continue;
+    if (!meta.final || meta.finaliseSentAt || meta.summaryMissing || meta.finaliseSkipped || meta.finaliseNotNeeded) continue;
+    // The window (summaryAt, finalisedAt] cannot gain events later, so a "not needed" result is stored and not checked again.
+    if (meta.summary && !(meta.summaryAt && meta.finalisedAt && readEvents(ctx, d).some((e) => e.recordedAt && e.recordedAt > meta.summaryAt && e.recordedAt <= meta.finalisedAt))) {
+      writeMeta(ctx, d, { ...meta, finaliseNotNeeded: true });
+      continue;
+    }
     const id = ledger.dailyThreads[d];
     const st = threadState(id);
     if (st === "unknown") { result.warnings.push(`T3 not reachable: finalise for ${d} will be sent later`); continue; }
     if ((st === "live" || st === "settled") && sendToThread(id, fillTemplate("finalise-message.md", { day: d, mm: ctx.mmPath }))) {
       meta.finaliseSentAt = now().toISOString();
       result.finaliseSent.push(d);
+    } else if (meta.summary) {
+      meta.finaliseSkipped = true;
     } else {
       meta.summaryMissing = true;
     }
