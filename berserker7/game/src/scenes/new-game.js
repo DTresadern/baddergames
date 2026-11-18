@@ -21,7 +21,7 @@ export const WIDE_VIEW = 720; // from this width the cards sit in one row, below
 const MARGIN = 16; // minimum space between the block and the view edge
 const OUTLINE = 3;
 const DIM_OPACITY = 0.6;
-const UNAVAILABLE_OPACITY = 0.45;
+const UNAVAILABLE_OPACITY = 0.5;
 const CARD_FONT = 24;
 
 // Rectangles in canvas CSS px (top-left origin, y down). The whole block (cards, then list
@@ -150,8 +150,8 @@ export function createNewGame({
         const material = track(new MeshBasicMaterial({ map, transparent: true, depthWrite: false }));
         return { mesh: at(material, z), material };
       };
-      const fillAvailable = flat(0x000000, 0.75);
-      const fillUnavailable = flat(0x000000, 0.45);
+      const fillAvailable = flat(0x000000, 0.9); // dark enough that the outline behind it does not show through
+      const fillUnavailable = flat(0x000000, 0.7);
       scene = new Scene();
       poster = at(track(new MeshBasicMaterial({ map: texture })), 0);
       outline = at(flat(0xffffff, 0.9), 1);
