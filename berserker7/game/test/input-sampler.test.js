@@ -80,11 +80,24 @@ test('edges: two sources for one action count as one action', () => {
   const { devices, input } = setup();
   press(devices, 'key:KeyA');
   sampleInput(input, devices);
-  press(devices, 'key:ArrowLeft');
   release(devices, 'key:KeyA');
+  press(devices, 'key:ArrowLeft');
+  sampleInput(input, devices);
+  press(devices, 'key:KeyA');
+  sampleInput(input, devices);
+  release(devices, 'key:ArrowLeft'); // KeyA still down
   assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveLeft'), [true, false, false]);
-  release(devices, 'key:ArrowLeft');
+  release(devices, 'key:KeyA');
   assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveLeft'), [false, false, true]);
+});
+
+test('edges: known limit, pressing a second source of an action already held gives released + pressed', () => {
+  const { devices, input } = setup();
+  press(devices, 'key:ArrowLeft');
+  sampleInput(input, devices);
+  press(devices, 'key:KeyA');
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveLeft'), [true, true, true]);
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveLeft'), [true, false, false]);
 });
 
 test('edges: releaseAll gives released for everything held', () => {
@@ -99,13 +112,16 @@ test('edges: releaseAll gives released for everything held', () => {
   assert.equal(devices.sources['key:KeyW'].down, false);
 });
 
-test('edges: known limit, release and press again between two ticks while held gives no second pressed', () => {
+test('edges: release and press again between two ticks while held gives released + pressed', () => {
   const { devices, input } = setup();
   press(devices, 'key:Space');
   sampleInput(input, devices);
   release(devices, 'key:Space');
   press(devices, 'key:Space');
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, true, true]);
   assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, false, false]);
+  assert.equal(input.debug.players[0].totals.jump.pressed, 2);
+  assert.equal(input.debug.players[0].totals.jump.released, 1);
 });
 
 test('aim: mouse not moved keeps the angle; mouse moved computes it from the aim origin', () => {
@@ -281,6 +297,24 @@ test('wheel: steps press nextWeapon and previousWeapon for one tick', () => {
   assert.deepEqual(edge(frame, 'previousWeapon'), [true, true, false]);
   assert.equal(frame.wheel, -1);
   assert.equal(sampleInput(input, devices)[1].wheel, 0, 'a pad-only player gets no wheel');
+});
+
+test('wheel: 4 steps on 4 consecutive ticks give 4 pressed and 4 released', () => {
+  const { devices, input } = setup();
+  const seen = [];
+  for (let i = 0; i < 4; i++) {
+    wheel(devices, 1, 1, i * 16);
+    seen.push(edge(sampleInput(input, devices)[0], 'nextWeapon'));
+  }
+  seen.push(edge(sampleInput(input, devices)[0], 'nextWeapon'));
+  assert.deepEqual(seen, [
+    [true, true, false],
+    [true, true, true],
+    [true, true, true],
+    [true, true, true],
+    [false, false, true],
+  ]);
+  assert.deepEqual(input.debug.players[0].totals.nextWeapon, { pressed: 4, released: 4 });
 });
 
 test('frames are plain data: structuredClone and a JSON round trip give equal frames', () => {

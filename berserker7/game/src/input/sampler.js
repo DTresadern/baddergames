@@ -120,7 +120,7 @@ export function sampleInput(input, devices, pads = []) {
     const actions = {};
     for (const action of ACTIONS) {
       let downNow = false;
-      let tapped = false;
+      let tapped = false; // a bound source was pressed since the last tick
       if (keyboardMouse) {
         for (const parsed of input.compiled.keyboardMouse[action]) {
           const latch = devices.sources[parsed.source];
@@ -134,7 +134,12 @@ export function sampleInput(input, devices, pads = []) {
       }
       const held = downNow || tapped;
       const prevHeld = entry.prevHeld[action];
-      actions[action] = { held, pressed: held && !prevHeld, released: prevHeld && !held };
+      // A new press while held counts as released + pressed on the same tick.
+      actions[action] = {
+        held,
+        pressed: held && (!prevHeld || tapped),
+        released: prevHeld && (!held || tapped),
+      };
       entry.prevHeld[action] = held;
     }
 
