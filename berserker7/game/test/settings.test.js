@@ -453,6 +453,17 @@ test('blocked storage: legacy bindings with a throwing removeItem or setItem do 
   assert.deepEqual(output, []);
 });
 
+test('legacy bindings: when saving the settings fails, the old key is kept for the next start', () => {
+  const storage = memoryStorage({ [LEGACY_BINDINGS_KEY]: '{"gamepad":{"jump":["button:3"]}}' });
+  storage.setItem = () => {
+    throw new Error('quota');
+  };
+  const store = createSettingsStore({ storage });
+  assert.deepEqual(store.get().bindings, { gamepad: { jump: ['button:3'] } });
+  assert.equal(storage.data[LEGACY_BINDINGS_KEY], '{"gamepad":{"jump":["button:3"]}}');
+  assert.equal(storage.count('removeItem'), 0);
+});
+
 test('browserStorage: the window\'s localStorage, or null when reading it throws or it is missing', () => {
   const storage = memoryStorage();
   assert.equal(browserStorage({ localStorage: storage }), storage);

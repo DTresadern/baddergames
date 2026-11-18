@@ -135,8 +135,15 @@ export function createSettingsStore({ storage = null } = {}) {
     }
   };
   const read = (key) => (storage ? attempt(() => storage.getItem(key)) ?? null : null);
+  // True when the settings were written.
   const save = () => {
-    if (storage) attempt(() => storage.setItem(SETTINGS_KEY, JSON.stringify(current)));
+    if (!storage) return false;
+    try {
+      storage.setItem(SETTINGS_KEY, JSON.stringify(current));
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const saved = read(SETTINGS_KEY);
@@ -155,8 +162,8 @@ export function createSettingsStore({ storage = null } = {}) {
       }
       current = deepFreeze({ ...current, bindings });
     }
-    attempt(() => storage.removeItem(LEGACY_BINDINGS_KEY));
-    save();
+    // The old key is removed only once the settings are saved, so a failed save loses nothing.
+    if (save()) attempt(() => storage.removeItem(LEGACY_BINDINGS_KEY));
   }
 
   const subscribers = new Set();

@@ -200,7 +200,7 @@ Settings store (`createSettingsStore({ storage })`):
   - To change the format: bump `SETTINGS_VERSION` to n + 1, add `UPGRADES[n]`, and add a test.
 - Adding a setting: add one entry to the `SETTINGS` table (`name`, `default()`, `check(value)` returning the cleaned value or `INVALID`), then a test. A setting added with a default does not need a version bump.
 - Legacy bindings move: the old key `b7.bindings` held the overrides alone.
-  - On creation, if it exists: when `b7.settings` has no saved value its (cleaned) contents become `bindings` (unparseable gives `{}`); in every case the old key is removed and the settings are saved.
+  - On creation, if it exists: when `b7.settings` has no saved value its (cleaned) contents become `bindings` (unparseable gives `{}`); in every case the settings are saved, and the old key is removed only when that save succeeded (a failed save keeps it for the next start).
   - If the old key is absent, nothing is written on creation.
 - Methods:
   - `get()`: the current settings, deeply frozen. Each change makes a new object, so callers cannot change the store.
