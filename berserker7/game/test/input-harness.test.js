@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createDevices, press, release, setSurface } from '../src/input/devices.js';
+import { createDevices, moveMouse, press, release, setSurface } from '../src/input/devices.js';
 import { clearAimOrigins, createInput, sampleInput, setAimOrigin } from '../src/input/sampler.js';
 import { harnessWith, settle, STEP } from './fakes.js';
 
@@ -133,10 +133,15 @@ test('harness: view.setAimOrigin forwards to the input, and is a no-op without o
   assert.doesNotThrow(() => partial.view.setAimOrigin(0, 1, 2));
 });
 
-test('harness: aim origins are kept only while a scene that sets them is drawn', async () => {
-  const fake = fakeInput();
+test('harness: ticks use the origin from the last draw; origins are cleared before each draw', async () => {
+  const fake = fakeInput(); // surface 800 x 600: centre (400, 300)
   let drawsOrigin = true;
+  const aims = [];
   const { harness } = harnessWith([['main', {}, {
+    tick: (state, inputs) => {
+      aims.push(inputs[0].aim);
+      return state;
+    },
     draw: (state, view) => {
       if (drawsOrigin) view.setAimOrigin(0, 100, 200);
     },
@@ -145,6 +150,10 @@ test('harness: aim origins are kept only while a scene that sets them is drawn',
   await settle(harness, STEP);
   harness.frame(STEP);
   assert.deepEqual(fake.input.perPlayer[0].aimOrigin, { x: 100, y: 200 });
+  // From the origin (100, 200) the pointer is straight right; from the centre it is not.
+  moveMouse(fake.devices, 200, 200);
+  harness.frame(STEP);
+  assert.equal(aims.at(-1), 0);
   drawsOrigin = false;
   harness.frame(STEP);
   assert.equal(fake.input.perPlayer[0].aimOrigin, null);
