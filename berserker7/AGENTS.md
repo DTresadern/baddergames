@@ -25,6 +25,8 @@ Commands, run from `berserker7/game/`:
 - build: `npm run build` (output in `dist/`, not committed)
 - check the build: `npm run preview` (serves `dist/`)
 
+Version label and CI:
+
 - The version label (bottom-left) shows the short commit and UTC build time when built by CI (from `GITHUB_SHA`), and `dev` otherwise.
 - CI (`.github/workflows/checks.yml`) runs:
   - `node --check` on every tracked `.js` file
@@ -117,7 +119,8 @@ Commands, run from `berserker7/game/`:
 
 ## Main menu (`scenes/main-menu.js`)
 
-- Layout and drawing:
+- Layout, drawing and music:
+  - There is no backdrop behind the menu.
   - It shows the poster drawn as cover, a black panel holding three no-op items ("New Game", "Multiplayer", "Options"), and plays the title music.
   - Each label is drawn once into its own off-screen 2D canvas (never added to the page) and shown as a tracked `CanvasTexture` on a plane.
   - The highlighted item gets a white bar and full opacity; the others are dimmed.
@@ -135,14 +138,13 @@ Commands, run from `berserker7/game/`:
 - Shared assets:
   - The poster (manifest key `poster.classic`, `POSTER` in `poster.js`) comes from `acquireTexture` (`assets/textures.js`), shared with the New Game screen and the loader through the asset cache, so it is loaded once.
   - Labels come from `labels.js` (`labelTexture`).
-  - There is no backdrop behind it.
 - Preload:
   - `main.js` preloads the menu once the boot group has loaded.
   - The loading scene shows only if the menu is reached before that (for example from the debug panel during boot).
 
 ## New Game screen (`scenes/new-game.js`)
 
-- Opening:
+- Opening and closing:
   - An overlay over the main menu, opened by `harness.openOverlay('newGame')` through the `screens` object `main.js` passes to both scenes.
   - It is an overlay so the main menu never leaves its layer: the title music is not interrupted and there is no fade.
   - The menu's `suspend` and `exit` close it.
@@ -243,10 +245,10 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - `pointer` is `{ x, y, width, height, moved }` for keyboard + mouse players (mouse position and canvas size in CSS px, top-left origin, y down; `moved` is true only on the first tick after a move) and `null` for gamepad-only players.
 - `activated`: true on the first tick after one or more presses that the browser counts as user activation (they unlock sound), for keyboard + mouse players only; gamepad buttons never set it, so a gamepad-only frame is always false.
   - Counted presses (HTML spec, activation-triggering input events), all in `dom.js`:
-    - a `keydown` whose `key` is not `Escape`, not a key repeat and not in a text field
-    - a `mousedown` on the canvas (this also covers `pointerdown` from a mouse)
-    - a `pointerup` on the canvas whose `pointerType` is not `mouse`
-    - a `touchend` on the canvas
+    - A `keydown` whose `key` is not `Escape`, not a key repeat and not in a text field
+    - A `mousedown` on the canvas (this also covers `pointerdown` from a mouse)
+    - A `pointerup` on the canvas whose `pointerType` is not `mouse`
+    - A `touchend` on the canvas
   - Where `navigator.userActivation` exists, a press counts only when `navigator.userActivation.isActive` is true inside the listener.
   - The count is a latch in `devices.js` (`activate`), cleared after each sample.
   - The touch listeners are passive and block nothing.
@@ -306,12 +308,12 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - The "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure.
   - The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; nothing else reads them.
 - `window.__b7` (for debug checks only; it is not a game API) exposes:
-  - the harness
-  - the renderer
-  - the asset cache
-  - the loader (`window.__b7.loader.status('boot')`)
-  - input (`window.__b7.input`, the object `attachInput` returns)
-  - music (`window.__b7.music.debug`: `element`, `created`, `wanted`)
+  - The harness
+  - The renderer
+  - The asset cache
+  - The loader (`window.__b7.loader.status('boot')`)
+  - Input (`window.__b7.input`, the object `attachInput` returns)
+  - Music (`window.__b7.music.debug`: `element`, `created`, `wanted`)
 - Input panel (`game/src/debug/input-panel.js`):
   - `#b7-input`: top-left; bottom-left above the version label on windows up to 760 px wide; collapsed by default at every width.
   - Toggled by `#b7-input-toggle`.
@@ -319,6 +321,6 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
     - `[data-field="device"]`
     - `[data-field="aim"]` (degrees)
     - `[data-field="wheel"]` (total steps)
-    - one row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts)
+    - One row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts)
   - Also `[data-field="ignored"]` (ignored gamepads) and `[data-field="pad-event"]`.
   - Refreshes every 100 ms.
