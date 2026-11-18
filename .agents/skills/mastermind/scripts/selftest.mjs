@@ -876,6 +876,26 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   const listed16 = [...(r.json?.settleThreads || []), ...(r.json?.settleLater || [])].find((t) => t.day === "2027-06-16");
   check("T28m a thread recorded with mm devlog thread replaces a cached gone thread and is listed", cached16 === "gone" && listed16?.threadId === "mcp:replace16" && ledger28().dailySettled["2027-06-16"] === undefined, JSON.stringify(listed16) + cached16);
 
+  // n. a thread recorded by hand after a finalise is not compared with the old thread's run count
+  const J = (d, hm = "09:00:00") => `2027-07-${d}T${hm}Z`;
+  const jthread = (d) => Object.entries(fk().threads).filter(([, t]) => t.title?.includes(`daily update · 2027-07-${d}`));
+  m(["devlog", "event", "note", "n day"], { at: J("01", "10:00:00"), extra: hub });
+  { const x = fk(); x.threads[jthread("01")[0][0]].runCount = 5; sv(x); }
+  m(["rollover"], { at: J("02", "08:00:00"), extra: hub });
+  const old01 = jthread("01")[0][0];
+  { const x = fk(); delete x.threads[old01]; x.threads["mcp:hand01"] = { title: "by hand", messages: [], settled: false, archived: false, runCount: 2 }; sv(x); }
+  r = m(["devlog", "thread", "2027-07-01", "mcp:hand01", "--json"], { at: J("02", "08:10:00"), extra: hub });
+  const replaced01 = r.json?.replaced;
+  r = m(["rollover", "--json"], { at: J("02", "08:20:00"), extra: hub });
+  check("T28n a replacement thread is listed to settle, and the replaced id is reported", replaced01 === old01 && (r.json?.settleThreads || []).some((t) => t.threadId === "mcp:hand01"), JSON.stringify(r.json?.settleThreads) + JSON.stringify(r.json?.settleLater) + replaced01);
+
+  // o. recording today's thread by hand does not start an automatic one first
+  m(["status"], { at: J("03", "08:00:00"), extra: { ...hub, FAKE_T3_DOWN: "1" } });
+  const before03 = jthread("03").length;
+  { const x = fk(); x.threads["mcp:hand03"] = { title: "by hand", messages: [], settled: false, archived: false }; sv(x); }
+  r = m(["devlog", "thread", "today", "mcp:hand03", "--json"], { at: J("03", "08:10:00"), extra: hub });
+  check("T28o recording today's thread by hand starts no other thread for today", before03 === 0 && jthread("03").length === 0 && ledger28().dailyThreads["2027-07-03"] === "mcp:hand03" && r.json?.replaced === null, JSON.stringify(jthread("03").map(([id]) => id)) + r.out);
+
   // j. the day check takes no lock
   const lockDir = path.join(E28.MM_STATE_DIR, ".lock");
   fs.mkdirSync(lockDir); fs.writeFileSync(path.join(lockDir, "pid"), String(process.pid));

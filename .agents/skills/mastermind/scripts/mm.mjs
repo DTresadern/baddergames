@@ -8,7 +8,7 @@ import {
   nsFromTitle, nsInfo, readLedger, threadInfo, threadState, writeLedger,
 } from "./core.mjs";
 import { dayCheck } from "./daycheck.mjs";
-import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setSummary, settleLists } from "./devlog.mjs";
+import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setDailyThread, setSummary, settleLists } from "./devlog.mjs";
 import {
   claim, gitPreflight, issueNew, laneAttach, laneCleanup, laneList, laneMerge, laneNew, laneNotify, laneSet, laneUpdate, nsAdd, owner, reconcile,
   release, syncLanes, taskFind, taskList,
@@ -46,7 +46,7 @@ that stays idle past laneQuietMinutes gets a reminder in its thread, up to 3 in 
                                                   (lane states are recorded with mm lane update)
   mm devlog summary <YYYY-MM-DD|today> (--file <f> | "<text>")
   mm devlog render [<YYYY-MM-DD>]
-  mm devlog thread <YYYY-MM-DD> <thread-id>       record a Daily Update thread made by hand
+  mm devlog thread <YYYY-MM-DD> <thread-id>       record a Daily Update thread made by hand (reports the one it replaced)
   mm rollover                                     close past days, start today's Daily Update thread, list threads to settle
 
   mm owner <namespace>                            the running orchestrator responsible for a namespace
@@ -172,7 +172,7 @@ function main(argv) {
   const unlock = lock(ctx.stateDir);
   try {
     const ledger = readLedger(ctx);
-    const roll = rollover(ctx, ledger);
+    const roll = rollover(ctx, ledger, { startToday: !(cmd === "devlog" && sub === "thread") });
     syncLanes(ctx, ledger);
     writeLedger(ctx, ledger);
     let result;
@@ -241,9 +241,7 @@ function main(argv) {
           renderPages(ctx, d);
           result = { page: path.join(ctx.devlogDir, `${d}.html`), index: path.join(ctx.devlogDir, "index.html") };
         } else if (sub === "thread") {
-          ledger.dailyThreads[day(ctx, pos[0])] = pos[1] || fail("give the thread id");
-          delete ledger.dailySettled[day(ctx, pos[0])];
-          result = { day: day(ctx, pos[0]), thread: pos[1] };
+          result = setDailyThread(ctx, ledger, day(ctx, pos[0]), pos[1] || fail("give the thread id"));
         } else fail("usage: mm devlog event|summary|render|thread");
         break;
       case "preflight": result = { problems: gitPreflight(ctx) }; break;

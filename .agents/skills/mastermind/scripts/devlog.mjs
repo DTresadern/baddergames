@@ -186,10 +186,11 @@ function sweep(ctx, start, end) {
 
 // Close every past day that is not final, start today's Daily Update thread, and list the finished days' threads
 // that are ready to settle. Safe to run any number of times.
-export function rollover(ctx, ledger) {
+// startToday is false for `mm devlog thread`, which records a thread made by hand instead.
+export function rollover(ctx, ledger, { startToday = true } = {}) {
   const result = { today: today(ctx), closed: [], finaliseSent: [], warnings: [], settleThreads: [], settleLater: [] };
   closePastDays(ctx, ledger, result);
-  startTodayThread(ctx, ledger, result);
+  if (startToday) startTodayThread(ctx, ledger, result);
   ({ ready: result.settleThreads, later: result.settleLater } = dailyThreadsToSettle(ctx, ledger));
   return result;
 }
@@ -315,6 +316,18 @@ export function dailyThreadsToSettle(ctx, ledger) {
     if (reason) later.push({ ...entry, reason }); else ready.push(entry);
   }
   return { ready, later };
+}
+
+// Record a Daily Update thread made by hand. Run counts stored for the replaced thread do not apply to the new one.
+export function setDailyThread(ctx, ledger, day, id) {
+  const replaced = ledger.dailyThreads[day] && ledger.dailyThreads[day] !== id ? ledger.dailyThreads[day] : null;
+  ledger.dailyThreads[day] = id;
+  delete ledger.dailySettled[day];
+  if (fs.existsSync(metaFile(ctx, day))) {
+    const { finaliseRunCount, lateSentRunCount, ...meta } = readMeta(ctx, day);
+    writeMeta(ctx, day, meta);
+  }
+  return { day, thread: id, replaced };
 }
 
 export function setSummary(ctx, day, text) {
