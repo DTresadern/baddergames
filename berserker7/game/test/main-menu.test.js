@@ -5,7 +5,6 @@ import {
   ITEM_HEIGHT,
   ITEM_WIDTH,
   MENU_ITEMS,
-  MUSIC_URL,
   createMainMenu,
   initMainMenu,
   itemAt,
@@ -14,6 +13,7 @@ import {
   tickMainMenu,
 } from '../src/scenes/main-menu.js';
 import { coverSize } from '../src/scenes/poster.js';
+import { assetByKey } from '../src/assets/manifest.js';
 import { frame } from './frames.js';
 
 const VIEWS = [[1000, 1000], [1280, 800], [800, 1280], [390, 844]];
@@ -50,6 +50,7 @@ function fakeScreens(calls) {
 }
 
 test('main menu: music plays on enter and resume, stops on suspend and exit; suspend and exit close New Game', () => {
+  const MUSIC_URL = assetByKey('music.title').path;
   const calls = [];
   const music = { play: (url) => calls.push(['play', url]), stop: () => calls.push(['stop']) };
   const menu = createMainMenu({ music, screens: fakeScreens(calls) });

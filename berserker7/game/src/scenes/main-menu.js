@@ -3,7 +3,9 @@
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
 import { labelTexture } from './labels.js';
-import { acquirePoster, coverSize, defaultLoadTexture } from './poster.js';
+import { assetByKey } from '../assets/manifest.js';
+import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
+import { POSTER, coverSize } from './poster.js';
 import { fitOrtho, inside, place } from './shared.js';
 
 export const PANEL_WIDTH = 480;
@@ -14,8 +16,7 @@ export const ITEM_WIDTH = 320;
 export const ITEM_HEIGHT = 56;
 export const ITEM_GAP = 8;
 const DIM_OPACITY = 0.6;
-// Relative path (no leading slash) so it works under any base path.
-export const MUSIC_URL = 'content/audio/music/titlescreen-1.mp3';
+export const MUSIC = 'music.title'; // manifest key
 
 // Size of the black panel: at most 480 x 560, and at most 90% of the width and 80% of the height.
 export function panelSize(viewWidth, viewHeight) {
@@ -93,7 +94,7 @@ export function createMainMenu({
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend', pausable: false },
     async load({ track, acquire }) {
-      const texture = await acquirePoster(acquire, loadTexture);
+      const texture = await acquireTexture(acquire, POSTER, loadTexture);
       imageWidth = texture.image.width;
       imageHeight = texture.image.height;
       const geometry = track(new PlaneGeometry(1, 1));
@@ -123,10 +124,10 @@ export function createMainMenu({
       camera = new OrthographicCamera(-1, 1, 1, -1, -10, 10);
     },
     enter: () => {
-      music.play(MUSIC_URL);
+      music.play(assetByKey(MUSIC).path);
       return initMainMenu();
     },
-    resume: () => music.play(MUSIC_URL),
+    resume: () => music.play(assetByKey(MUSIC).path),
     // The New Game overlay never outlives the menu (for example when the debug panel switches scene).
     suspend() {
       music.stop();

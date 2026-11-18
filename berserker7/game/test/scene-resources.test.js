@@ -10,11 +10,14 @@ import { Texture } from 'three';
 import { createHarness } from '../src/engine/harness.js';
 import { createDevices, press, setSurface } from '../src/input/devices.js';
 import { createInput, sampleInput, setAimOrigin } from '../src/input/sampler.js';
+import { acquireTexture } from '../src/assets/textures.js';
 import { createBackdrop } from '../src/scenes/backdrop.js';
+import { createBoot } from '../src/scenes/boot.js';
+import { INTRO_LOGOS, createIntro } from '../src/scenes/intro.js';
 import { createLoading } from '../src/scenes/loading.js';
 import { createMainMenu } from '../src/scenes/main-menu.js';
 import { createNewGame } from '../src/scenes/new-game.js';
-import { POSTER_KEY } from '../src/scenes/poster.js';
+import { POSTER } from '../src/scenes/poster.js';
 import { createPlayers, initPlayers } from '../src/scenes/players.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
@@ -32,6 +35,7 @@ function recordingRenderer() {
     },
     clear() {},
     clearDepth() {},
+    getPixelRatio: () => 1,
     render(scene) {
       renderedScene = scene;
       scene.traverse((obj) => {
@@ -88,8 +92,15 @@ function fakeDeps(loads = { count: 0 }) {
 const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), ...fakeDeps() });
 const fakeNewGame = () => createNewGame({ screens: fakeScreens(), ...fakeDeps() });
 function fakeScreens() {
-  return { openNewGame() {}, closeNewGame() {} };
+  return { openNewGame() {}, closeNewGame() {}, startIntro() {}, showMenu() {} };
 }
+// Boot with a fake loader whose status the test sets.
+function fakeBoot(status = { progress: 0.5, done: false, error: null }) {
+  const loader = { load: () => Promise.resolve(), status: () => status };
+  return createBoot({ loader, screens: fakeScreens(), createCanvas: fakeDeps().createCanvas });
+}
+const fakeIntro = (deps = fakeDeps()) =>
+  createIntro({ music: { play() {}, stop() {} }, screens: fakeScreens(), loadTexture: deps.loadTexture });
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
@@ -101,6 +112,8 @@ const FACTORIES = {
   players: createPlayers,
   mainMenu: fakeMenu,
   newGame: fakeNewGame,
+  boot: fakeBoot,
+  intro: fakeIntro,
 };
 
 for (const [name, create] of Object.entries(FACTORIES)) {
@@ -218,9 +231,9 @@ test('main menu and New Game share one poster, disposed once after both unload; 
   await settle(harness, STEP);
   for (let i = 0; i < 3; i++) harness.frame(STEP);
   assert.equal(loads.count, 1);
-  assert.equal(harness.assets.count(POSTER_KEY), 2);
-  const poster = (await harness.assets.acquire(POSTER_KEY, () => assert.fail('should exist')).ready);
-  harness.assets.release(POSTER_KEY);
+  assert.equal(harness.assets.count(POSTER), 2);
+  const poster = (await harness.assets.acquire(POSTER, () => assert.fail('should exist')).ready);
+  harness.assets.release(POSTER);
   const disposed = new Set();
   for (const obj of renderer.used) obj.addEventListener('dispose', () => disposed.add(obj));
   let posterDisposed = 0;
@@ -229,7 +242,7 @@ test('main menu and New Game share one poster, disposed once after both unload; 
   harness.leave('newGame', 'unload');
   harness.frame(0);
   await flush();
-  assert.equal(harness.assets.count(POSTER_KEY), 1);
+  assert.equal(harness.assets.count(POSTER), 1);
   assert.equal(posterDisposed, 0);
   const afterNewGame = disposed.size;
   assert.ok(afterNewGame > 0, 'New Game own geometry, materials and label textures are disposed');
@@ -262,4 +275,52 @@ test('new game: after unload and a fresh load the scene has the same meshes', as
   await settle(harness, STEP);
   harness.frame(STEP);
   assert.equal(meshCount(), first);
+});
+
+// Materials whose texture is a shader uniform (the intro's inverted logo) are not in renderer.used.
+const uniformMaps = (used) => [...used].filter((o) => o.uniforms?.map).map((o) => o.uniforms.map.value);
+
+test('boot: the error label is made once when the error shows, and disposed with the rest', async () => {
+  const status = { progress: 0.5, done: false, error: null };
+  const { harness, renderer } = harnessFor({ boot: fakeBoot(status) });
+  harness.setMain('boot');
+  await settle(harness, STEP);
+  harness.frame(STEP);
+  const before = renderer.used.size;
+  status.error = 'Could not load content/textures/logos/w8omg.png';
+  for (let i = 0; i < 5; i++) harness.frame(STEP);
+  assert.equal(renderer.used.size, before + 2, 'one label texture and its material, made once');
+  assert.equal(harness.records.get('boot').state.error, status.error);
+  const disposed = new Set();
+  for (const obj of renderer.used) obj.addEventListener('dispose', () => disposed.add(obj));
+  harness.leave('boot', 'unload');
+  harness.frame(0);
+  assert.equal(disposed.size, renderer.used.size);
+});
+
+test('intro: unloading it disposes its own objects but not the preloaded logos, which stay loaded once', async () => {
+  const loads = { count: 0 };
+  const deps = fakeDeps(loads);
+  const { harness, renderer } = harnessFor({ intro: fakeIntro(deps) });
+  const { assets } = harness;
+  // What the loader does: acquire each logo and never release it.
+  const preloaded = await Promise.all(
+    INTRO_LOGOS.map((key) => acquireTexture((k, create) => assets.acquire(k, create), key, deps.loadTexture)),
+  );
+  assert.equal(loads.count, 2);
+  harness.setMain('intro');
+  await settle(harness, STEP);
+  for (let i = 0; i < 10; i++) harness.frame(STEP);
+  assert.equal(loads.count, 2, 'the intro loads nothing again');
+  for (const key of INTRO_LOGOS) assert.equal(assets.count(key), 2);
+  const used = [...renderer.used, ...uniformMaps(renderer.used)];
+  for (const texture of preloaded) assert.ok(used.includes(texture), 'drawn with the preloaded texture');
+  const disposed = new Set();
+  for (const obj of used) obj.addEventListener('dispose', () => disposed.add(obj));
+  harness.leave('intro', 'unload');
+  harness.frame(0);
+  await flush();
+  for (const texture of preloaded) assert.ok(!disposed.has(texture), 'a preloaded logo was disposed');
+  assert.equal(disposed.size, used.length - preloaded.length, 'everything else is disposed');
+  for (const key of INTRO_LOGOS) assert.equal(assets.count(key), 1);
 });

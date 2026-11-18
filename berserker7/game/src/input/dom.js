@@ -1,10 +1,11 @@
-// Browser wiring for the input system: listens to keyboard, mouse, wheel and focus
+// Browser wiring for the input system: listens to keyboard, mouse, touch, wheel and focus
 // events, polls gamepads each tick, and hands everything to the pure functions in
 // devices.js and sampler.js. Nothing else in the game listens to input events, except
 // audio/music.js, which only waits for the first gesture to unlock sound.
 
 import { loadBindings } from './bindings.js';
 import {
+  activate,
   createDevices,
   moveMouse,
   press,
@@ -56,10 +57,19 @@ export function attachInput({
   const { signal } = controller;
   const doc = win.document;
 
+  // Presses that the browser counts as user activation (HTML spec, activation-triggering input
+  // events), so they unlock sound: frame.activated. Where the browser exposes
+  // navigator.userActivation, its own answer inside the listener must agree.
+  const activation = () => {
+    if (!nav?.userActivation || nav.userActivation.isActive === true) activate(devices);
+  };
+
   win.addEventListener('keydown', (e) => {
     if (isEditable(e.target)) return;
     if (BLOCKED_KEYS.has(e.code)) e.preventDefault();
     press(devices, `key:${e.code}`);
+    // A held key's repeats are not new presses (they would skip the intro while a key is held).
+    if (e.key !== 'Escape' && !e.repeat) activation();
   }, { signal });
 
   // Released even in a text field, so a key pressed in the game and let go there does not stick.
@@ -76,7 +86,14 @@ export function attachInput({
   canvas.addEventListener('mousedown', (e) => {
     e.preventDefault();
     press(devices, `mouse:${e.button}`);
+    activation(); // also covers pointerdown from a mouse
   }, { signal });
+
+  // Touch and pen: activation comes on lift. Passive, so nothing is blocked.
+  canvas.addEventListener('pointerup', (e) => {
+    if (e.pointerType !== 'mouse') activation();
+  }, { passive: true, signal });
+  canvas.addEventListener('touchend', activation, { passive: true, signal });
 
   win.addEventListener('mouseup', (e) => {
     if (SIDE_BUTTONS.has(e.button)) e.preventDefault();

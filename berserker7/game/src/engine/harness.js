@@ -125,8 +125,14 @@ export function createHarness({
 
   // `params` go to enter() when the scene starts fresh; when omitted, the
   // params it was last entered with are used. `fade` is the fade duration in seconds.
-  function setMain(id, { params, fade = 0 } = {}) {
-    request('setMain', { id, params, fade });
+  // `fromAlpha` (0..1) is the darkness the fade starts at; by default the current fade's, else 0.
+  // With 1 the screen is taken as already black: the swap happens at once and the new scene
+  // fades in over the second half.
+  function setMain(id, { params, fade = 0, fromAlpha } = {}) {
+    if (fromAlpha !== undefined && !(typeof fromAlpha === 'number' && fromAlpha >= 0 && fromAlpha <= 1)) {
+      throw new Error(`harness: fromAlpha must be 0..1, got ${fromAlpha}`);
+    }
+    request('setMain', { id, params, fade, fromAlpha });
   }
 
   function openOverlay(id) {
@@ -164,7 +170,7 @@ export function createHarness({
     switch (req.type) {
       case 'setMain':
         if (req.fade > 0) {
-          const fromAlpha = harness.transition ? transitionAlpha(harness.transition) : 0;
+          const fromAlpha = req.fromAlpha ?? (harness.transition ? transitionAlpha(harness.transition) : 0);
           harness.transition = createTransition({ duration: req.fade, to: req.id, params: req.params, fromAlpha });
         } else {
           harness.transition = null;

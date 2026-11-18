@@ -13,6 +13,8 @@ export function createDevices({ wheel = WHEEL_SETTINGS } = {}) {
     // Canvas size in CSS px, for the default aim origin (the canvas centre).
     surface: { width: 0, height: 0 },
     wheelSteps: 0, // whole wheel steps since the last sample, signed (+ = scroll down)
+    // Presses since the last sample that the browser counts as user activation (they unlock sound).
+    activations: 0,
     wheelSettings: wheel,
     // The touchpad swipe in progress: direction (1, -1, 0 = none), distance, whether it
     // has given its step, and the time (ms) of its last event with distance.
@@ -40,6 +42,11 @@ export function press(dev, source) {
 export function release(dev, source) {
   const entry = dev.sources[source];
   if (entry) entry.down = false;
+}
+
+// A press that counts as user activation (dom.js decides which do).
+export function activate(dev) {
+  dev.activations += 1;
 }
 
 // Wheel steps: pressed for the tick they land in, without being down.
@@ -106,6 +113,7 @@ export function clearLatches(dev) {
   }
   dev.mouse.moved = false;
   dev.wheelSteps = 0;
+  dev.activations = 0;
 }
 
 // A plain copy of a Gamepad (or any object shaped like one).
