@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
-  currentThreadId, fail, fillTemplate, gh, ghJson, git, localStamp, now, nsInfo, nsShort, readJson, t3, threadInfo, threadState,
+  currentThreadId, fail, fillTemplate, gh, ghJson, git, localStamp, now, nsInfo, nsShort, readJson, t3, threadBusy, threadInfo, threadPending, threadState,
   writeJson, writeLedger, writeText,
 } from "./core.mjs";
 import { LANE_STATES, recordEvent } from "./devlog.mjs";
@@ -208,7 +208,6 @@ export function laneNotify(ctx, ledger, name, text, threadId = currentThreadId()
 
 const REPORT = /^\s*(WORKING|HELD|WAITING|BLOCKED|SCOPE|REQUEST-LANE|CLOSED):\s*(.*)/;
 const REPORT_STATE = { WORKING: "running", HELD: "held", WAITING: "waiting", BLOCKED: "blocked", SCOPE: "blocked", "REQUEST-LANE": "waiting", CLOSED: "closed" };
-const BUSY = new Set(["preparing", "queued", "starting", "running"]);
 const STOPPED = new Set(["interrupted", "failed", "cancelled", "rolled_back"]);
 const PR_URL = /https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/pull\/(\d+)/;
 const SYNC_BUDGET_MS = 20000;
@@ -239,8 +238,8 @@ export function syncLanes(ctx, ledger) {
     const r = t3(["thread", "show", lane.threadId, "--json", "--messages", "5"], undefined, 10000);
     if (r.code) continue;
     const { thread, messages = [] } = JSON.parse(r.out);
-    const pending = thread.pendingRequestCount > 0 || thread.status === "waiting";
-    const busy = !pending && (Boolean(thread.activeRunId) || BUSY.has(thread.status));
+    const pending = threadPending(thread);
+    const busy = threadBusy(thread);
     const marker = `${thread.latestRunId}|${pending}|${busy}|${thread.status}`;
     const quietFor = lane.quietSince ? (now() - new Date(lane.quietSince)) / 60000 : 0;
     if (marker === lane.syncMarker && !(lane.quietSince && quietFor >= quietMinutes(ctx))) continue;

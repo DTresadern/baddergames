@@ -149,7 +149,8 @@ export function lock(stateDir) {
 
 
 export const ledgerPath = (ctx) => path.join(ctx.stateDir, "ledger.json");
-export const readLedger = (ctx) => ({ claims: {}, lanes: {}, dailyThreads: {}, ...readJson(ledgerPath(ctx), {}) });
+// dailySettled caches which past days' Daily Update threads are already settled, archived or gone.
+export const readLedger = (ctx) => ({ claims: {}, lanes: {}, dailyThreads: {}, dailySettled: {}, ...readJson(ledgerPath(ctx), {}) });
 export const writeLedger = (ctx, ledger) => writeJson(ledgerPath(ctx), ledger);
 
 
@@ -160,19 +161,23 @@ export function t3(args, input, timeoutMs) { return run(t3bin(), args, { input, 
 export function t3Available() { return t3(["--version"]).code === 0; }
 
 // "gone" only when T3 answers that the thread does not exist; any other failure (no t3, server down) is "unknown".
-export function threadInfo(id) {
-  const r = t3(["thread", "show", id, "--json"]);
+export function threadInfo(id, timeoutMs) {
+  const r = t3(["thread", "show", id, "--json"], undefined, timeoutMs);
   if (r.code === 0) return { state: "found", thread: JSON.parse(r.out).thread || {} };
   return { state: /no longer available|was not found/i.test(`${r.err}\n${r.out}`) ? "gone" : "unknown", thread: null };
 }
 
 // "live" | "settled" | "archived" | "gone" | "unknown"
-export function threadState(id) {
-  if (!id) return "gone";
-  const { state, thread } = threadInfo(id);
+export function stateOfInfo({ state, thread }) {
   if (state !== "found") return state;
   return thread.archived ? "archived" : thread.settled ? "settled" : "live";
 }
+export function threadState(id) { return id ? stateOfInfo(threadInfo(id)) : "gone"; }
+
+// A thread with a question open (or waiting for an answer) is not busy: it waits for a person.
+const BUSY = new Set(["preparing", "queued", "starting", "running"]);
+export const threadPending = (thread) => thread.pendingRequestCount > 0 || thread.status === "waiting";
+export const threadBusy = (thread) => !threadPending(thread) && (Boolean(thread.activeRunId) || BUSY.has(thread.status));
 export function currentThreadId() { return process.env.MM_THREAD_ID || process.env.T3CODE_THREAD_ID || null; }
 
 export function gh(ctx, args) { return run(ghbin(), args, { cwd: ctx.main }); }
