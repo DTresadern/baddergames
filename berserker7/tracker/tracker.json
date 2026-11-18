@@ -2686,7 +2686,7 @@
       "category": "HUD and UI",
       "title": "Better loading, menu and transition screens",
       "detail": "Improve the loading, menu and transition screens.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Deano"
       ],
@@ -2699,7 +2699,7 @@
       "refs": [
         "TF-095"
       ],
-      "notes": ""
+      "notes": "2026-11-18: loading screen with a progress bar, press-to-start prompt and intro logos with fades (issue #52); main menu and New Game placeholders (issue #50). Final art and transitions are not done."
     },
     {
       "id": "D-098",
@@ -3901,7 +3901,7 @@
       "category": "Simulation",
       "title": "Don't use Math.random() in gameplay code",
       "detail": "It breaks deterministic replay and identical results on both peers. Use a seeded RNG in the simulation (the MVP had one); render-only effects may use an unseeded RNG.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -3912,7 +3912,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-18: followed; the game code has no Math.random and the scene rules forbid it in a simulation. The seeded random number generator is not built yet."
     },
     {
       "id": "T-022",
@@ -3961,7 +3961,7 @@
       "category": "Simulation",
       "title": "Remove entities and change levels only at the end of a tick",
       "detail": "Queue removals, spawns and level changes and apply them after update and checks, so arrays never change while iterated and changes become events at a known tick.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -3972,7 +3972,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-18: scene changes are queued and applied at the end of the frame (issue #46). Entity spawns and removals are not built yet."
     },
     {
       "id": "T-025",
@@ -4832,7 +4832,7 @@
       "category": "Assets and pipeline",
       "title": "Asset manifest, loader with progress, loud failure",
       "detail": "A manifest each module adds to, preloaded per zone, with a progress display and a clear error on a missing file.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -4843,7 +4843,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-18: one manifest of runtime assets with preload groups, a loader with progress and an on-screen error naming a missing file (issue #52). Only the `boot` group exists; per-zone groups come with levels."
     },
     {
       "id": "T-063",
@@ -4944,7 +4944,7 @@
       "category": "Audio",
       "title": "Web Audio for effects, streamed music, unlock on first input",
       "detail": "Decode each effect once and play many times with Web Audio; stream music; unlock audio on the first input. Check current Safari codec support before choosing formats.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -4958,7 +4958,7 @@
         "T-066",
         "T-091"
       ],
-      "notes": ""
+      "notes": "2026-11-18: music is streamed through one audio element and unlocks on the first click, key or touch (issues #50, #52). Web Audio sound effects are not built."
     },
     {
       "id": "T-068",
@@ -4967,7 +4967,7 @@
       "category": "Audio",
       "title": "Don't add HTML5 Audio channel pools",
       "detail": "Impact's HTML5 Audio pools are a fallback for browsers without Web Audio; not needed now.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -4978,7 +4978,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-18: followed; music uses one audio element and there are no channel pools."
     },
     {
       "id": "T-069",
@@ -5039,7 +5039,7 @@
       "category": "Debug and testing",
       "title": "Debug overlay and frame-time graph",
       "detail": "Show hitboxes, the collision grid, entity IDs, network round trip, snapshot size, frame time and the draw-call count (renderer.info.render.calls), plus a rolling frame-time graph with network event marks (snapshot received, correction applied).",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "MVP retro",
         "Impact research"
@@ -5058,7 +5058,7 @@
         "TF-111",
         "T-094"
       ],
-      "notes": "2026-11-17, project owner: added the draw-call count (renderer.info.render.calls) from the three.js rendering research, to check the effect of batching (T-094)."
+      "notes": "2026-11-17, project owner: added the draw-call count (renderer.info.render.calls) from the three.js rendering research, to check the effect of batching (T-094). 2026-11-18: the debug panel shows frame time, harness work time, steps per frame and the last long frame (issue #46). No graph, hitboxes, collision grid, entity IDs, network figures or draw-call count yet."
     },
     {
       "id": "T-072",
@@ -5237,7 +5237,7 @@
       "category": "Code",
       "title": "Shared library of reusable code",
       "detail": "Keep code DRY (don't repeat yourself) and maintain a shared library of reusable code.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Deano"
       ],
@@ -5250,7 +5250,7 @@
       "refs": [
         "TF-099"
       ],
-      "notes": ""
+      "notes": "2026-11-18: followed; shared modules (scene helpers, labels, textures, the asset cache) are reused across scenes."
     },
     {
       "id": "T-080",
@@ -5387,7 +5387,7 @@
       "category": "Process",
       "title": "One-purpose changes with checks before each playtest",
       "detail": "For each change: update the spec, build it in a one-purpose commit, run the bot, reachability, placement and lag tests, deploy, check the version label, playtest with the checklist, triage feedback.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "MVP retro"
       ],
@@ -5400,7 +5400,7 @@
       "refs": [
         "TF-124"
       ],
-      "notes": ""
+      "notes": "2026-11-18: each change is one issue and one pull request, with CI checks, a deploy and a version-label check (issues #42 to #52). The bot, reachability, placement and lag tests do not exist yet."
     },
     {
       "id": "T-087",
@@ -5409,7 +5409,7 @@
       "category": "Process",
       "title": "One owner per folder",
       "detail": "Each session (code, art, sound, docs) owns its own folder; handovers have acceptance criteria.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "MVP retro"
       ],
@@ -5422,7 +5422,7 @@
       "refs": [
         "TF-118"
       ],
-      "notes": ""
+      "notes": "2026-11-18: each folder has an owner namespace and its own AGENTS.md; files outside a folder belong to the namespace that contains them."
     },
     {
       "id": "T-088",
@@ -5497,7 +5497,7 @@
       "category": "Levels",
       "title": "Four campaigns: Megacity, Underbelly, Caverns, Infested Earth",
       "detail": "The game has four campaigns. Only Megacity is available on the New Game screen; the other three are shown as coming later.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Project owner"
       ],
@@ -5506,7 +5506,7 @@
         "D-101",
         "D-089"
       ],
-      "notes": "2026-11-18, project owner: decided."
+      "notes": "2026-11-18, project owner: decided. 2026-11-18: the four campaigns are data and placeholders on the New Game screen; only Megacity is available (issue #50). No campaign content yet."
     },
     {
       "id": "T-089",
@@ -5609,7 +5609,7 @@
         "T-003",
         "T-005"
       ],
-      "notes": ""
+      "notes": "2026-11-18: the game caps the pixel ratio at 2 and has antialiasing on; the test with antialiasing off at a ratio of 2 or more has not been done."
     },
     {
       "id": "T-093",
