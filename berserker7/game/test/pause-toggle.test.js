@@ -3,10 +3,11 @@ import { test } from 'node:test';
 import { togglePauseOnPress } from '../src/pause-toggle.js';
 
 // A harness that applies overlay requests at once and records them.
-function fakeHarness() {
+function fakeHarness(mainSettings = null) {
   const calls = [];
   const harness = {
-    layers: { overlays: [] },
+    layers: { main: null, overlays: [] },
+    records: new Map(),
     openOverlay(id) {
       calls.push(['open', id]);
       harness.layers.overlays.push(id);
@@ -16,6 +17,10 @@ function fakeHarness() {
       harness.layers.overlays.splice(harness.layers.overlays.indexOf(id), 1);
     },
   };
+  if (mainSettings) {
+    harness.layers.main = 'main';
+    harness.records.set('main', { settings: mainSettings });
+  }
   return { harness, calls };
 }
 
@@ -58,4 +63,23 @@ test('pause toggle: a pause overlay already open is closed, other overlays are l
   togglePauseOnPress(harness, frames({ held: true, pressed: true }));
   assert.deepEqual(calls, [['close', 'pause']]);
   assert.deepEqual(harness.layers.overlays, ['menu']);
+});
+
+test('pause toggle: a press does not open pause over a non-pausable main scene', () => {
+  const { harness, calls } = fakeHarness({ pausable: false });
+  togglePauseOnPress(harness, frames({ held: true, pressed: true }));
+  assert.deepEqual(calls, []);
+});
+
+test('pause toggle: a press opens pause over a pausable main scene', () => {
+  const { harness, calls } = fakeHarness({ pausable: true });
+  togglePauseOnPress(harness, frames({ held: true, pressed: true }));
+  assert.deepEqual(calls, [['open', 'pause']]);
+});
+
+test('pause toggle: an open pause overlay still closes over a non-pausable main scene', () => {
+  const { harness, calls } = fakeHarness({ pausable: false });
+  harness.layers.overlays.push('pause');
+  togglePauseOnPress(harness, frames({ held: true, pressed: true }));
+  assert.deepEqual(calls, [['close', 'pause']]);
 });

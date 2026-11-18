@@ -27,7 +27,7 @@ const CHOICES = {
   leave: ['suspend', 'unload', 'snapshot'],
 };
 
-export const DEFAULT_SETTINGS = Object.freeze({ tick: 'uncovered', drawCovered: true, leave: 'suspend' });
+export const DEFAULT_SETTINGS = Object.freeze({ tick: 'uncovered', drawCovered: true, leave: 'suspend', pausable: true });
 
 export function readSettings(scene) {
   const settings = { ...DEFAULT_SETTINGS, ...scene.settings };
@@ -37,6 +37,7 @@ export function readSettings(scene) {
     }
   }
   if (typeof settings.drawCovered !== 'boolean') throw new Error('scene setting drawCovered must be true or false');
+  if (typeof settings.pausable !== 'boolean') throw new Error('scene setting pausable must be true or false');
   return Object.freeze(settings);
 }
 
