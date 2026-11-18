@@ -2,8 +2,8 @@
 // the text refreshes a few times per second, not every frame.
 //
 // Stable hooks for browser scripts:
-//   #b7-debug, #b7-debug-toggle, #b7-debug-body
-//   button[data-action="..."]           see ACTIONS below (starts collapsed)
+//   #b7-debug, #b7-debug-toggle, #b7-debug-body (hidden at start)
+//   button[data-action="..."]           see ACTIONS below
 //   [data-value="..."]                  frame-ms, work-ms, steps, long-frame, play-mode,
 //                                       layers, transition, geometries, textures, assets
 //   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error

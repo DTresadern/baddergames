@@ -37,7 +37,6 @@ function drawTransition(alpha) {
 // The only input reader (music.js listens only for the gesture that unlocks sound). Bindings overrides come from localStorage.
 const input = attachInput({ window, canvas: renderer.domElement });
 
-// The only place that touches audio. Starts after the first click, key or touch.
 const music = createMusic({ window });
 
 const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
