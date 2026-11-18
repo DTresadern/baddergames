@@ -1,6 +1,6 @@
 // Runs the three.js test scenes in a harness with a fake renderer (no WebGL) and
 // checks that every geometry, material and texture they draw with is disposed
-// when the harness unloads them. The pause scene (needs a DOM canvas), the
+// when the harness unloads them. The pause scene (needs a DOM canvas) and the
 // slow scene (2 s load) are left out. The main menu gets a fake texture loader,
 // canvas and music.
 
