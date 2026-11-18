@@ -4622,7 +4622,7 @@
         }
       ],
       "refs": [],
-      "notes": "2026-11-18: implemented in PR (input system, issue #48): named actions with bindings as data (defaults, overrides saved in localStorage), one input frame per player per tick with per-tick pressed/released edges, aim angle and wheel steps; keyboard + mouse and standard gamepads; two local players; shown with a players test scene and an input panel on the game page."
+      "notes": "2026-11-18: implemented in PR #49 (input system, issue #48): named actions with bindings as data (defaults, overrides saved in localStorage), one input frame per player per tick with per-tick pressed/released edges, aim angle and wheel steps; keyboard + mouse and standard gamepads; two local players; shown with a players test scene and an input panel on the game page."
     },
     {
       "id": "T-054",
