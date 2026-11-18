@@ -9,7 +9,7 @@ import { attachInput } from './input/dom.js';
 import { togglePauseOnPress } from './pause-toggle.js';
 import { createBackdrop } from './scenes/backdrop.js';
 import { createBoot } from './scenes/boot.js';
-import { FADE_SECONDS, createIntro } from './scenes/intro.js';
+import { createIntro, menuFade } from './scenes/intro.js';
 import { createLoading } from './scenes/loading.js';
 import { createMainMenu } from './scenes/main-menu.js';
 import { createNewGame } from './scenes/new-game.js';
@@ -80,10 +80,9 @@ harness.register('slow', createSlow());
 // New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
 const screens = {
   startIntro: () => harness.setMain('intro'),
-  // The menu fades in over FADE_SECONDS. From black (the intro ended): the swap is at once. After a
-  // skip: the intro first fades to black over FADE_SECONDS.
-  showMenu: ({ fromBlack }) =>
-    harness.setMain('mainMenu', { fade: 2 * FADE_SECONDS, fromAlpha: fromBlack ? 1 : undefined }),
+  // From black (the intro ended): the swap is at once and the menu fades in over MENU_FADE_IN_SECONDS.
+  // After a skip: the intro fades to black over FADE_SECONDS, then the menu fades in over FADE_SECONDS.
+  showMenu: ({ fromBlack }) => harness.setMain('mainMenu', menuFade({ fromBlack })),
   openNewGame: () => harness.openOverlay('newGame'),
   closeNewGame: () => harness.closeOverlay('newGame'),
 };

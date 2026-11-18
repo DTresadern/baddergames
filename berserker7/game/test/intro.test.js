@@ -3,52 +3,68 @@ import { test } from 'node:test';
 import { assetByKey } from '../src/assets/manifest.js';
 import {
   FADE_SECONDS,
+  FADE_TICKS,
   HOLD_SECONDS,
   INTRO_LOGOS,
   INVERTED_LOGOS,
   INTRO_TICKS,
   LOGO_MAX_HEIGHT,
   LOGO_MAX_WIDTH,
+  MENU_FADE_IN_SECONDS,
   SKIP_DELAY_SECONDS,
   TICKS_PER_SECOND,
   createIntro,
   initIntro,
   introAt,
   logoRect,
+  menuFade,
   tickIntro,
 } from '../src/scenes/intro.js';
 import { frame } from './frames.js';
 
 const S = TICKS_PER_SECOND;
-const LOGO = (2 * FADE_SECONDS + HOLD_SECONDS) * S; // ticks per logo
+const HOLD = 2 * S;
+const LOGO = 2 * FADE_TICKS + HOLD; // ticks per logo
 const near = (a, b) => Math.abs(a - b) < 1e-9;
 
 test('intro constants', () => {
-  assert.deepEqual([FADE_SECONDS, HOLD_SECONDS, TICKS_PER_SECOND], [1, 2, 60]);
+  assert.deepEqual([FADE_SECONDS, HOLD_SECONDS, TICKS_PER_SECOND], [1.3, 2, 60]);
+  assert.equal(MENU_FADE_IN_SECONDS, 2);
+  assert.equal(FADE_TICKS, 78);
   assert.deepEqual(INTRO_LOGOS, ['logo.baddergames', 'logo.w8omg']);
-  assert.equal(INTRO_TICKS, 2 * LOGO);
+  assert.equal(LOGO, 78 + 120 + 78);
+  assert.equal(LOGO, 276);
+  assert.equal(INTRO_TICKS, 552);
 });
 
-test('introAt: logo 0 fades in, holds, fades out; logo 1 follows with no gap; then end', () => {
+test('introAt: logo 0 fades in (to tick 78), holds (to 198), fades out (to 276); logo 1 follows; end at 552', () => {
   assert.deepEqual(introAt(0), { logo: 0, alpha: 0, phase: 'fadeIn' });
-  assert.deepEqual(introAt(S / 2), { logo: 0, alpha: 0.5, phase: 'fadeIn' });
-  assert.ok(near(introAt(S - 1).alpha, (S - 1) / S));
-  assert.deepEqual(introAt(S), { logo: 0, alpha: 1, phase: 'hold' });
-  assert.deepEqual(introAt(3 * S - 1), { logo: 0, alpha: 1, phase: 'hold' });
-  assert.deepEqual(introAt(3 * S), { logo: 0, alpha: 1, phase: 'fadeOut' });
-  assert.deepEqual(introAt(3.5 * S), { logo: 0, alpha: 0.5, phase: 'fadeOut' });
-  assert.ok(near(introAt(LOGO - 1).alpha, 1 / S));
-  assert.deepEqual(introAt(LOGO), { logo: 1, alpha: 0, phase: 'fadeIn' });
-  assert.deepEqual(introAt(LOGO + S), { logo: 1, alpha: 1, phase: 'hold' });
-  assert.deepEqual(introAt(LOGO + 3.5 * S), { logo: 1, alpha: 0.5, phase: 'fadeOut' });
-  assert.deepEqual(introAt(2 * LOGO), { logo: null, alpha: 0, phase: 'end' });
-  assert.deepEqual(introAt(2 * LOGO + 100), { logo: null, alpha: 0, phase: 'end' });
+  assert.deepEqual(introAt(39), { logo: 0, alpha: 0.5, phase: 'fadeIn' });
+  assert.ok(near(introAt(77).alpha, 77 / 78));
+  assert.deepEqual(introAt(78), { logo: 0, alpha: 1, phase: 'hold' });
+  assert.deepEqual(introAt(197), { logo: 0, alpha: 1, phase: 'hold' });
+  assert.deepEqual(introAt(198), { logo: 0, alpha: 1, phase: 'fadeOut' });
+  assert.deepEqual(introAt(237), { logo: 0, alpha: 0.5, phase: 'fadeOut' });
+  assert.ok(near(introAt(275).alpha, 1 / 78));
+  assert.deepEqual(introAt(276), { logo: 1, alpha: 0, phase: 'fadeIn' });
+  assert.deepEqual(introAt(276 + 78), { logo: 1, alpha: 1, phase: 'hold' });
+  assert.deepEqual(introAt(276 + 237), { logo: 1, alpha: 0.5, phase: 'fadeOut' });
+  assert.deepEqual(introAt(551).phase, 'fadeOut');
+  assert.deepEqual(introAt(552), { logo: null, alpha: 0, phase: 'end' });
+  assert.deepEqual(introAt(652), { logo: null, alpha: 0, phase: 'end' });
 });
 
-test('introAt: alpha changes by at most one fade step per tick (no jumps)', () => {
+test('introAt: alpha changes by at most 1/78 per tick (no jumps)', () => {
   for (let t = 1; t <= INTRO_TICKS; t++) {
-    assert.ok(Math.abs(introAt(t).alpha - introAt(t - 1).alpha) <= 1 / S + 1e-9, `tick ${t}`);
+    assert.ok(Math.abs(introAt(t).alpha - introAt(t - 1).alpha) <= 1 / 78 + 1e-9, `tick ${t}`);
   }
+});
+
+test('menuFade: from black fades the menu in over 2 s; after a skip both fades take 1.3 s', () => {
+  assert.deepEqual(menuFade({ fromBlack: true }), { fade: 4, fromAlpha: 1 });
+  const skip = menuFade({ fromBlack: false });
+  assert.deepEqual(skip, { fade: 2.6 });
+  assert.ok(!('fromAlpha' in skip));
 });
 
 const run = (state, ticks, inputs = []) => {
@@ -59,7 +75,7 @@ const run = (state, ticks, inputs = []) => {
   }
   return requests;
 };
-const DELAY = SKIP_DELAY_SECONDS * S;
+const DELAY = Math.round(SKIP_DELAY_SECONDS * S);
 const pastDelay = () => {
   const state = initIntro();
   run(state, DELAY);
