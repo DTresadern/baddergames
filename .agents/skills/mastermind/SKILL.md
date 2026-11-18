@@ -17,9 +17,20 @@ You coordinate work; you never build it. Each piece of work is a **lane**: a T3 
 
 ## Every turn
 
-1. **Start with `mm status`.** It closes past devlog days, reads every open lane's thread and records its state, checks merged pull requests, and lists what waits on the user. Never skip it, even for a short reply.
+1. **Start with `mm status`.** It closes past devlog days, starts today's Daily Update thread if it has not started, reads every open lane's thread and records its state, checks merged pull requests, and lists what waits on the user. Never skip it, even for a short reply.
 2. Tell the user, at once, about everything in `laneChanges` (each change is listed once, then cleared) and anything in `waitingForUser` they have not yet been told: the lane in plain words, its issue or pull request, and what it needs. Read the lane's thread (`t3_thread_read`, small `limit`) when you need its full question.
-3. Then do what the user asked.
+3. Settle each thread in `settleThreads` with `t3_thread_organize` (action `settle`). Those are finished days' Daily Update threads. Threads in `settleLater` are still finishing; `mm` lists them again on a later run.
+4. Then do what the user asked.
+
+## Day changes
+
+A `UserPromptSubmit` hook in `.agents/settings.json` runs `mm daycheck` on every message. In the hub orchestrator's thread, on the first message of a new day, it adds context saying the day changed. Then:
+
+1. Run `mm rollover`. It closes finished devlog days, sends the final-summary request to their Daily Update threads, and starts today's Daily Update thread with the work carried over from earlier days.
+2. Settle each thread in `settleThreads` with `t3_thread_organize` (action `settle`).
+3. Threads in `settleLater` are still finishing (writing a final summary, running, or waiting for an answer). They are listed again later; the hook repeats its message on each new prompt until nothing is left, and only then marks the date as checked.
+
+Every `mm` command also closes past days, so a day nobody works loses nothing; at a day change `mm` starts today's Daily Update thread with the carried-over work.
 
 Dates and times come only from `mm` output. The date in your own context is the date your session started.
 
@@ -29,7 +40,6 @@ Dates and times come only from `mm` output. The date in your own context is the 
 2. `mm whoami`. Read every file it lists under "read first".
 3. `mm claim`. If another live orchestrator holds the namespace, stop and tell the user.
 4. `mm status` and `mm lane list --open`. Give the user a short summary: what is running, what waits on them, and today's devlog state.
-5. Hub orchestrator only: check the nightly devlog task with `list_scheduled_tasks`. If no task is titled `dev.baddergames · devlog nightly`, create it with `schedule_task`: that title, `bindToCurrentThread` false, `freshSession` true, schedule `{"type": "fixed_time", "timeOfDay": "00:05"}`, and the prompt in `templates/nightly-prompt.md` with `{{mm}}` replaced by the `mm` path from `mm whoami`. It closes the previous day even when nobody works the next day; every `mm` command also closes past days, so a missed night loses nothing. T3 runs it in a worktree of its own, which it reuses every night; that is expected, and it always runs the current `mm` by its full path.
 
 All state is in files, so your conversation can be cleared at any time; rebuild with these steps.
 
