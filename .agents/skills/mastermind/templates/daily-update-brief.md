@@ -21,6 +21,8 @@ You are the Daily Update session for **{{longDate}}** in the {{project}} project
 
 To see everything recorded so far: `cat {{devlog}}/data/{{day}}.jsonl`.
 
-## First event
+## First message
 
-{{firstEvent}}
+The first message is either the day's first event or the list of work carried over from earlier days. Later events arrive as separate messages.
+
+{{firstMessage}}

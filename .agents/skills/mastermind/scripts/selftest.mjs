@@ -143,7 +143,9 @@ fs.writeFileSync(goal, "Make the boss less punishing.\n");
   mm(["devlog", "event", "finding", "Second event"], { at: "2026-11-16T11:00:00Z" });
   const t = threadsTitled("daily update · 2026-11-16");
   check("T2a two events on one day create exactly one Daily Update thread", t.length === 1, JSON.stringify(t.map(([id]) => id)));
-  check("T2b the second event is sent to that thread", t[0]?.[1].messages.length === 2 && /Second event/.test(t[0][1].messages[1]), JSON.stringify(t[0]?.[1].messages));
+  // The thread starts with the day's first mm command (the carried-over message), so the two events are messages 2 and 3.
+  check("T2b the second event is sent to that thread", t[0]?.[1].messages.length === 3 && /Second event/.test(t[0][1].messages[2]) && /Use one devlog/.test(t[0][1].messages[1]), JSON.stringify(t[0]?.[1].messages));
+  check("T2d the thread starts with the carried-over message, not an event", /\[devlog day start · 2026-11-16\] No work was carried over from earlier days\./.test(t[0]?.[1].messages[0]) && !/\[devlog event/.test(t[0][1].messages[0]), t[0]?.[1].messages[0].slice(-300));
   check("T2c the Daily Update thread uses the configured model", t[0]?.[1].model === "claude-opus-5-5" && t[0][1].provider === "claudeAgent", JSON.stringify(t[0]?.[1]));
 }
 

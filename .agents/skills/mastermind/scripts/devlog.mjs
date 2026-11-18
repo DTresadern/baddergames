@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   addDays, clock, dayKey, fail, fillTemplate, gh, git, longDate, now, nsShort, readJson,
-  t3, t3Available, threadState, weekday, writeJson, writeText,
+  stateOfInfo, t3, t3Available, threadBusy, threadInfo, threadPending, threadState, weekday, writeJson, writeText,
 } from "./core.mjs";
 
 export const LANE_STATES = ["started", "running", "held", "waiting", "blocked", "merged", "closed"];
@@ -97,7 +97,7 @@ function ensureDailyThread(ctx, ledger, day, firstMessage) {
   const m = ctx.config.models.dailyUpdate;
   const brief = fillTemplate("daily-update-brief.md", {
     day, longDate: longDate(day), project: ctx.config.project, mm: ctx.mmPath, devlog: ctx.devlogDir,
-    timezone: tzOf(ctx), firstEvent: firstMessage,
+    timezone: tzOf(ctx), firstMessage,
   });
   const r = t3(["thread", "start", ctx.main, "-", "--title", dailyTitle(ctx, day), "--provider", m.provider, "--model", m.model, "--json"], brief);
   if (r.code) return { id: null, created: false, state: "start-failed", error: r.err || r.out };
@@ -129,6 +129,8 @@ export function recordEvent(ctx, ledger, ev, { notify = true } = {}) {
       if (thread.id && !thread.created) thread.sent = sendToThread(thread.id, message);
     } else if (ledger.dailyThreads[day] && ["live", "settled"].includes(threadState(ledger.dailyThreads[day]))) {
       thread = { id: ledger.dailyThreads[day], created: false, sent: sendToThread(ledger.dailyThreads[day], message) };
+      // The message may wake a settled thread, so it has to be checked again.
+      delete ledger.dailySettled?.[day];
     }
   }
   return { day, thread };
@@ -168,22 +170,30 @@ function sweep(ctx, start, end) {
   return { byDay, warnings, ok: warnings.length === 0 };
 }
 
-// Close every past day that is not final. Safe to run any number of times.
+// Close every past day that is not final, start today's Daily Update thread, and list the finished days' threads
+// that are ready to settle. Safe to run any number of times.
 export function rollover(ctx, ledger) {
+  const result = { today: today(ctx), closed: [], finaliseSent: [], warnings: [], settleThreads: [], settleLater: [] };
+  closePastDays(ctx, ledger, result);
+  startTodayThread(ctx, ledger, result);
+  ({ ready: result.settleThreads, later: result.settleLater } = dailyThreadsToSettle(ctx, ledger));
+  return result;
+}
+
+function closePastDays(ctx, ledger, result) {
   const day0 = today(ctx);
   const yesterday = addDays(day0, -1);
   const state = readJson(rolloverFile(ctx), {});
   const open = days(ctx).filter((d) => d < day0 && !readMeta(ctx, d).final);
   let start = state.lastDay ? addDays(state.lastDay, 1) : yesterday;
   if (open.length && open[0] < start) start = open[0];
-  const result = { today: day0, closed: [], finaliseSent: [], warnings: [] };
 
   if (start <= yesterday) {
     const { byDay, warnings, ok } = sweep(ctx, start, yesterday);
     result.warnings.push(...warnings);
     if (!ok) {
       result.warnings.push(`devlog days from ${start} to ${yesterday} stay open until the sweep works; nothing was closed`);
-      return result;
+      return;
     }
     for (const [d, evs] of Object.entries(byDay)) {
       const known = new Set(readEvents(ctx, d).map((e) => e.key).filter(Boolean));
@@ -207,10 +217,13 @@ export function rollover(ctx, ledger) {
       continue;
     }
     const id = ledger.dailyThreads[d];
-    const st = threadState(id);
+    const info = id ? threadInfo(id) : { state: "gone" };
+    const st = stateOfInfo(info);
     if (st === "unknown") { result.warnings.push(`T3 not reachable: finalise for ${d} will be sent later`); continue; }
     if ((st === "live" || st === "settled") && sendToThread(id, fillTemplate("finalise-message.md", { day: d, mm: ctx.mmPath }))) {
       meta.finaliseSentAt = now().toISOString();
+      // The thread has answered once its run count is higher than this.
+      meta.finaliseRunCount = info.thread.runCount ?? null;
       result.finaliseSent.push(d);
     } else if (meta.summary) {
       meta.finaliseSkipped = true;
@@ -221,7 +234,69 @@ export function rollover(ctx, ledger) {
   }
   if (start <= yesterday) writeJson(rolloverFile(ctx), { lastDay: yesterday, at: now().toISOString() });
   if (result.closed.length || result.finaliseSent.length) renderAll(ctx, () => true);
-  return result;
+}
+
+// Work still open, for the first message of a new day's thread. Reads the ledger directly (work.mjs imports this file).
+function carriedOverMessage(ctx, ledger, day) {
+  const open = Object.values(ledger.lanes).filter((l) => !COMPLETE.has(l.state)).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+  const groups = [
+    ["Running:", ["started", "running"]], ["Waiting for an answer:", ["waiting"]],
+    ["Blocked:", ["blocked"]], ["Pull requests waiting for approval:", ["held"]],
+  ].map(([heading, states]) => [heading, open.filter((l) => states.includes(l.state))]).filter(([, ls]) => ls.length);
+  const head = `[devlog day start · ${day}]`;
+  const follow = `Events of ${day} follow in this thread as messages.`;
+  if (!groups.length) return `${head} No work was carried over from earlier days.\n\n${follow}`;
+  const line = (l) => `- ${l.title} (${l.name}, ${nsShort(ctx, l.ns)})${l.issue ? ` #${l.issue}` : ""}${l.pr ? ` PR #${l.pr}` : ""}`;
+  return [`${head} Work carried over from earlier days:`, ...groups.map(([heading, ls]) => `\n${heading}\n${ls.map(line).join("\n")}`), `\n${follow}`].join("\n");
+}
+
+// Not recorded as a devlog event. If it cannot be started now, the next mm run tries again.
+function startTodayThread(ctx, ledger, result) {
+  const day = today(ctx);
+  if (ledger.dailyThreads[day]) return;
+  const t = ensureDailyThread(ctx, ledger, day, carriedOverMessage(ctx, ledger, day));
+  if (t.id) return;
+  result.warnings.push(t.state === "no-t3"
+    ? `T3 is not available: the Daily Update thread for ${day} will be started on a later mm run`
+    : `could not start the Daily Update thread for ${day} (${t.error}); mm tries again on its next run`);
+}
+
+const SETTLE_BUDGET_MS = 20000;
+
+// Past days' Daily Update threads that are still open in T3, split into ready to settle now and not yet.
+// A thread already settled, archived or gone is remembered in ledger.dailySettled and not read again.
+// Today's thread is never listed. The caller saves the ledger (or not).
+export function dailyThreadsToSettle(ctx, ledger) {
+  const day0 = today(ctx);
+  const withEvents = new Set(days(ctx));
+  const sweptTo = readJson(rolloverFile(ctx), {}).lastDay;
+  const deadline = Date.now() + SETTLE_BUDGET_MS;
+  const ready = [];
+  const later = [];
+  ledger.dailySettled ||= {};
+  for (const [day, threadId] of Object.entries(ledger.dailyThreads).sort(([a], [b]) => a.localeCompare(b))) {
+    if (day >= day0 || ledger.dailySettled[day]) continue;
+    const entry = { day, threadId, title: dailyTitle(ctx, day) };
+    if (Date.now() > deadline) { later.push({ ...entry, reason: "not checked yet" }); continue; }
+    const info = threadInfo(threadId, 10000);
+    const st = stateOfInfo(info);
+    if (st === "unknown") { later.push({ ...entry, reason: "T3 not reachable" }); continue; }
+    if (st !== "live") { ledger.dailySettled[day] = st; continue; }
+    const { thread } = info;
+    if (thread.title) entry.title = thread.title;
+    const meta = readMeta(ctx, day);
+    // A day with no events has no day file to close; it is finished once the sweep has covered it.
+    const quietDay = !withEvents.has(day) && sweptTo >= day;
+    const decided = quietDay || meta.finaliseNotNeeded || meta.finaliseSkipped || meta.summaryMissing || meta.finaliseSentAt;
+    const answered = meta.finaliseRunCount == null || thread.runCount > meta.finaliseRunCount;
+    const reason = !(meta.final || quietDay) ? "the day is not closed yet"
+      : !decided ? "the final summary has not been asked for yet"
+      : meta.finaliseSentAt && !answered ? "the thread is still writing the final summary"
+      : threadPending(thread) ? "the thread has a question waiting for an answer"
+      : threadBusy(thread) ? "the thread is running" : null;
+    if (reason) later.push({ ...entry, reason }); else ready.push(entry);
+  }
+  return { ready, later };
 }
 
 export function setSummary(ctx, day, text) {
