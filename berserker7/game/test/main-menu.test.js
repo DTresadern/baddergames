@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { coverSize, panelSize } from '../src/scenes/main-menu.js';
+import { MUSIC_URL, coverSize, createMainMenu, panelSize } from '../src/scenes/main-menu.js';
 
 const VIEWS = [[1000, 1000], [1280, 800], [800, 1280], [390, 844]];
 const IMAGES = [[1254, 1254], [1920, 1080], [1000, 2000]];
@@ -29,4 +29,15 @@ test('panelSize: capped at 480 x 560, else 90% width and 80% height', () => {
   assert.ok(Math.abs(narrow.width - 351) < 1e-9);
   assert.equal(narrow.height, 560);
   assert.deepStrictEqual(panelSize(1280, 500), { width: 480, height: 400 });
+});
+
+test('main menu: music plays on enter and resume, stops on suspend and exit', () => {
+  const calls = [];
+  const music = { play: (url) => calls.push(['play', url]), stop: () => calls.push(['stop']) };
+  const menu = createMainMenu({ music });
+  menu.enter();
+  menu.suspend();
+  menu.resume();
+  menu.exit();
+  assert.deepStrictEqual(calls, [['play', MUSIC_URL], ['stop'], ['play', MUSIC_URL], ['stop']]);
 });
