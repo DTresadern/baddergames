@@ -142,3 +142,45 @@ test('with a loading scene, a fade to a loading scene fades in to the stand-in',
   assert.deepEqual(alphas, [0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25]);
   gate.resolve();
 });
+
+test('fromAlpha 1: the swap happens in the frame the request applies, then the new scene fades in', async () => {
+  const alphas = [];
+  const { harness, log } = harnessWith([['a'], ['b']], { drawTransition: (alpha) => alphas.push(alpha) });
+  harness.setMain('a');
+  harness.preload('b');
+  await settle(harness);
+  log.length = 0;
+  harness.setMain('b', { fade: 2, fromAlpha: 1 });
+  harness.frame(0.25); // applied: t starts at 1 (the midpoint), advances to 1.25, swaps
+  assert.equal(harness.layers.main, 'b');
+  assert.deepEqual(log.filter((e) => e.endsWith('.draw')), ['a.draw']);
+  assert.deepEqual(alphas, [], 'no fade drawn before the request applied');
+  for (let i = 0; i < 3; i++) harness.frame(0.25);
+  assert.deepEqual(alphas, [0.75, 0.5, 0.25]);
+  assert.equal(harness.transition, null);
+  assert.deepEqual(log.filter((e) => e.endsWith('.draw')), ['a.draw', 'b.draw', 'b.draw', 'b.draw']);
+});
+
+test('fromAlpha overrides the current fade; without it a new fade starts at the current darkness', async () => {
+  const { harness } = harnessWith([['a'], ['b'], ['c']]);
+  harness.setMain('a');
+  harness.preload('b');
+  harness.preload('c');
+  await settle(harness);
+  harness.setMain('b', { fade: 1 });
+  harness.frame(0.125);
+  harness.frame(0.125); // t = 0.25: alpha 0.5
+  harness.setMain('c', { fade: 1, fromAlpha: 0 });
+  harness.frame(0); // applied; t = 0
+  assert.equal(harness.transition.t, 0);
+  harness.setMain('b', { fade: 1 });
+  harness.frame(0.125); // applied at alpha 0 (t = 0), then advanced to 0.125
+  assert.equal(harness.transition.t, 0.125);
+});
+
+test('fromAlpha outside 0..1 is rejected', () => {
+  const { harness } = harnessWith([['a']]);
+  for (const bad of [-0.1, 1.5, NaN, '1']) {
+    assert.throws(() => harness.setMain('a', { fade: 1, fromAlpha: bad }), /fromAlpha must be 0..1/);
+  }
+});
