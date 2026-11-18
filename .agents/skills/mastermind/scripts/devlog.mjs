@@ -127,13 +127,27 @@ export function recordEvent(ctx, ledger, ev, { notify = true } = {}) {
     if (isToday) {
       thread = ensureDailyThread(ctx, ledger, day, message);
       if (thread.id && !thread.created) thread.sent = sendToThread(thread.id, message);
-    } else if (ledger.dailyThreads[day] && ["live", "settled"].includes(threadState(ledger.dailyThreads[day]))) {
-      thread = { id: ledger.dailyThreads[day], created: false, sent: sendToThread(ledger.dailyThreads[day], message) };
-      // The message may wake a settled thread, so it has to be checked again.
-      delete ledger.dailySettled?.[day];
+    } else if (ledger.dailyThreads[day]) {
+      const info = threadInfo(ledger.dailyThreads[day]);
+      if (["live", "settled"].includes(stateOfInfo(info))) {
+        thread = { id: ledger.dailyThreads[day], created: false, sent: sendToThread(ledger.dailyThreads[day], message) };
+        if (thread.sent) {
+          // The thread has to answer this before it is ready to settle; the message may also wake a settled thread.
+          writeMeta(ctx, day, { ...readMeta(ctx, day), lateSentRunCount: info.thread.runCount ?? null });
+          lateSentThisRun.add(day);
+          delete ledger.dailySettled?.[day];
+        }
+      }
     }
   }
   return { day, thread };
+}
+
+// Past days whose thread was sent a late event by this mm run, after rollover made its settle lists.
+const lateSentThisRun = new Set();
+export function settleLists({ settleThreads, settleLater }) {
+  const sent = settleThreads.filter((t) => lateSentThisRun.has(t.day)).map((t) => ({ ...t, reason: "the thread was just sent a late event" }));
+  return { settleThreads: settleThreads.filter((t) => !lateSentThisRun.has(t.day)), settleLater: [...settleLater, ...sent] };
 }
 
 // Merged pull requests and first-parent commits on the default branch, by local day, for [start, end].
@@ -291,9 +305,11 @@ export function dailyThreadsToSettle(ctx, ledger) {
     const quietDay = !withEvents.has(day) && sweptTo >= day;
     const decided = quietDay || meta.finaliseNotNeeded || meta.finaliseSkipped || meta.summaryMissing || meta.finaliseSentAt;
     const answered = meta.finaliseRunCount == null || thread.runCount > meta.finaliseRunCount;
+    const lateAnswered = meta.lateSentRunCount == null || thread.runCount > meta.lateSentRunCount;
     const reason = !(meta.final || quietDay) ? "the day is not closed yet"
       : !decided ? "the final summary has not been asked for yet"
       : meta.finaliseSentAt && !answered ? "the thread is still writing the final summary"
+      : lateSentThisRun.has(day) || !lateAnswered ? "the thread has not answered a late event yet"
       : threadPending(thread) ? "the thread has a question waiting for an answer"
       : threadBusy(thread) ? "the thread is running" : null;
     if (reason) later.push({ ...entry, reason }); else ready.push(entry);

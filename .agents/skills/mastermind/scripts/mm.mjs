@@ -8,7 +8,7 @@ import {
   nsFromTitle, nsInfo, readLedger, threadInfo, threadState, writeLedger,
 } from "./core.mjs";
 import { dayCheck } from "./daycheck.mjs";
-import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setSummary } from "./devlog.mjs";
+import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setSummary, settleLists } from "./devlog.mjs";
 import {
   claim, gitPreflight, issueNew, laneAttach, laneCleanup, laneList, laneMerge, laneNew, laneNotify, laneSet, laneUpdate, nsAdd, owner, reconcile,
   release, syncLanes, taskFind, taskList,
@@ -121,7 +121,7 @@ function status(ctx, ledger, roll) {
   }
   return {
     now: localStamp(now(), ctx.config.timezone),
-    closedDays: roll.closed, finaliseSent: roll.finaliseSent, settleThreads: roll.settleThreads, settleLater: roll.settleLater, laneChanges: ledger.pendingChanges || [],
+    closedDays: roll.closed, finaliseSent: roll.finaliseSent, ...settleLists(roll), laneChanges: ledger.pendingChanges || [],
     waitingForUser: { approval: by(["held"]), answer: by(["waiting"]), blocked: by(["blocked"]) },
     running: by(["started", "running"]),
     // A lane that was just sent a reminder stays listed, so the orchestrator still schedules a check.
@@ -177,7 +177,7 @@ function main(argv) {
     writeLedger(ctx, ledger);
     let result;
     switch (cmd) {
-      case "rollover": result = roll; break;
+      case "rollover": result = { ...roll, ...settleLists(roll) }; break;
       case "status": result = status(ctx, ledger, roll); ledger.pendingChanges = []; break;
       case "claim": {
         const ns = pos[0] || whoami(ctx, {}).namespace;

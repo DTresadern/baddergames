@@ -848,6 +848,26 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   r = m(["rollover", "--json"], { at: T("28", "08:30:00"), extra: hub });
   check("T28k2 once it has answered, the thread is listed to settle again", days28(r.json?.settleThreads || []).includes("27"), JSON.stringify(r.json?.settleThreads));
 
+  // l. a thread sent a late event is not ready to settle until it has answered it
+  m(["devlog", "event", "note", "l day"], { at: T("29", "10:00:00"), extra: hub });
+  tune("29", { runCount: 1 });
+  m(["rollover"], { at: T("30", "08:00:00"), extra: hub });
+  tune("29", { runCount: 2 });
+  r = m(["status", "--json"], { at: T("30", "08:10:00"), extra: hub });
+  const readyBefore = days28(r.json?.settleThreads || []).includes("29");
+  m(["lane", "new", "late29", "--ns", "dev.baddergames", "--title", "Late merge 29", "--goal-file", goal, "--skip-git-check"], { at: T("30", "08:20:00"), extra: hub });
+  m(["lane", "set", "late29", "--pr", "62"], { at: T("30", "08:21:00"), extra: hub });
+  { const x = fk(); x.prs.push({ number: 62, state: "MERGED", mergedAt: T("29", "22:00:00"), closedAt: null }); sv(x); }
+  const sent29 = () => dthread("29")[0][1].messages.filter((x) => /2027-06-29 is already closed; this event was recorded late/.test(x)).length;
+  r = m(["status", "--json"], { at: T("30", "08:30:00"), extra: hub });
+  const later29 = (r.json?.settleLater || []).find((t) => t.day === "2027-06-29");
+  check("T28l1 a thread sent a late event in the same mm status run is not listed to settle", readyBefore && sent29() === 1 && !days28(r.json?.settleThreads || []).includes("29") && /late event/.test(later29?.reason || ""), JSON.stringify(r.json?.settleThreads) + JSON.stringify(later29));
+  r = m(["status", "--json"], { at: T("30", "08:40:00"), extra: hub });
+  check("T28l2 on the next run it is still not listed while it has not run since", !days28(r.json?.settleThreads || []).includes("29") && /not answered a late event/.test((r.json?.settleLater || []).find((t) => t.day === "2027-06-29")?.reason || ""), JSON.stringify(r.json?.settleLater));
+  tune("29", { runCount: 3 });
+  r = m(["status", "--json"], { at: T("30", "08:50:00"), extra: hub });
+  check("T28l3 once it has answered, it is listed to settle again", days28(r.json?.settleThreads || []).includes("29"), JSON.stringify(r.json?.settleThreads));
+
   // j. the day check takes no lock
   const lockDir = path.join(E28.MM_STATE_DIR, ".lock");
   fs.mkdirSync(lockDir); fs.writeFileSync(path.join(lockDir, "pid"), String(process.pid));

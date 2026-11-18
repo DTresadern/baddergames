@@ -28,7 +28,7 @@ A `UserPromptSubmit` hook in `.agents/settings.json` runs `mm daycheck` on every
 
 1. Run `mm rollover`. It closes finished devlog days, sends the final-summary request to their Daily Update threads, and starts today's Daily Update thread with the work carried over from earlier days.
 2. Settle each thread in `settleThreads` with `t3_thread_organize` (action `settle`).
-3. Threads in `settleLater` are still finishing (writing a final summary, running, or waiting for an answer). They are listed again later; the hook repeats its message on each new prompt until nothing is left, and only then marks the date as checked.
+3. Threads in `settleLater` are still finishing (writing a final summary, running, or waiting for an answer). They are listed again later; the hook repeats its message on each new prompt until nothing is left, and only then marks the date as checked. A thread in `settleLater` whose reason is a question waiting for an answer does not finish by itself: read it (`t3_thread_read`) and answer it, or put the question to the user.
 
 Every `mm` command also closes past days, so a day nobody works loses nothing; at a day change `mm` starts today's Daily Update thread with the carried-over work.
 
