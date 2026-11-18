@@ -1,20 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ACTIONS, DEFAULT_BINDINGS, SCHEMES } from '../src/input/actions.js';
-import { STORAGE_KEY, isValidSource, loadBindings, parseSource, resolveBindings, saveBindings } from '../src/input/bindings.js';
+import { isValidSource, parseSource, resolveBindings } from '../src/input/bindings.js';
 
 const DEFAULTS_JSON = JSON.stringify(DEFAULT_BINDINGS);
-
-function memoryStorage(initial = {}) {
-  const data = { ...initial };
-  return {
-    data,
-    getItem: (key) => (Object.hasOwn(data, key) ? data[key] : null),
-    setItem: (key, value) => {
-      data[key] = String(value);
-    },
-  };
-}
 
 test('bindings: every action has a binding list in both schemes, and the table is deeply frozen', () => {
   for (const scheme of SCHEMES) {
@@ -87,36 +76,9 @@ test('bindings: source string formats', () => {
   for (const [scheme, source] of invalid) assert.equal(isValidSource(scheme, source), false, source);
 });
 
-test('bindings: overrides are loaded from storage and saved to it', () => {
-  const storage = memoryStorage();
-  assert.equal(saveBindings(storage, { gamepad: { jump: ['button:3'] } }), true);
-  assert.equal(storage.data[STORAGE_KEY], '{"gamepad":{"jump":["button:3"]}}');
-  const table = loadBindings(storage);
-  assert.deepEqual(table.gamepad.jump, ['button:3']);
-  assert.deepEqual(table.keyboardMouse, DEFAULT_BINDINGS.keyboardMouse);
-});
-
-test('bindings: missing, empty, unparseable and throwing storage give the defaults', () => {
-  const throwing = {
-    getItem() {
-      throw new Error('denied');
-    },
-    setItem() {
-      throw new Error('denied');
-    },
-  };
-  const cases = [
-    undefined,
-    null,
-    memoryStorage(),
-    memoryStorage({ [STORAGE_KEY]: '{not json' }),
-    memoryStorage({ [STORAGE_KEY]: '"a string"' }),
-    memoryStorage({ [STORAGE_KEY]: '{"__proto__": {"jump": ["key:KeyZ"]}}' }),
-    throwing,
-  ];
-  for (const storage of cases) assert.deepEqual(loadBindings(storage), DEFAULT_BINDINGS);
-  assert.equal(saveBindings(throwing, {}), false);
-  assert.equal(saveBindings(undefined, {}), false);
+test('bindings: a __proto__ key in the overrides is ignored', () => {
+  const saved = JSON.parse('{"__proto__": {"jump": ["key:KeyZ"]}, "keyboardMouse": {"__proto__": ["key:KeyZ"]}}');
+  assert.deepEqual(resolveBindings(saved), DEFAULT_BINDINGS);
   assert.equal(JSON.stringify(DEFAULT_BINDINGS), DEFAULTS_JSON);
 });
 

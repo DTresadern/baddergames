@@ -2,10 +2,9 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { STORAGE_KEY } from '../src/input/bindings.js';
 import { attachInput } from '../src/input/dom.js';
 
-function fakePage({ pads = [], storage, userActivation } = {}) {
+function fakePage({ pads = [], bindings, userActivation } = {}) {
   const win = new EventTarget();
   win.document = new EventTarget();
   win.document.visibilityState = 'visible';
@@ -13,7 +12,7 @@ function fakePage({ pads = [], storage, userActivation } = {}) {
   const canvas = new EventTarget();
   canvas.rect = { left: 10, top: 20, width: 800, height: 600 };
   canvas.getBoundingClientRect = () => canvas.rect;
-  const attached = attachInput({ window: win, canvas, storage });
+  const attached = attachInput({ window: win, canvas, bindings });
   return { win, canvas, attached };
 }
 
@@ -121,9 +120,8 @@ test('dom: gamepads are polled each sample; null entries and a missing API are f
   assert.equal(noPads.sample()[1].connected, false);
 });
 
-test('dom: bindings come from storage; detach removes the listeners', () => {
-  const storage = { getItem: (key) => (key === STORAGE_KEY ? '{"keyboardMouse":{"jump":["key:KeyJ"]}}' : null) };
-  const { win, attached } = fakePage({ storage });
+test('dom: bindings overrides are applied over the defaults; detach removes the listeners', () => {
+  const { win, attached } = fakePage({ bindings: { keyboardMouse: { jump: ['key:KeyJ'] } } });
   send(win, 'keydown', { code: 'KeyJ' });
   assert.equal(attached.sample()[0].actions.jump.pressed, true);
   attached.detach();

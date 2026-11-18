@@ -3,9 +3,10 @@
 //
 // Stable hooks for browser scripts:
 //   #b7-debug, #b7-debug-toggle, #b7-debug-body (hidden at start)
-//   button[data-action="..."]           see ACTIONS below
+//   button[data-action="..."]           see ACTIONS below (reset-settings: settings.reset())
 //   [data-value="..."]                  frame-ms, work-ms, steps, long-frame, play-mode,
-//                                       layers, transition, geometries, textures, assets
+//                                       layers, transition, geometries, textures, assets,
+//                                       settings (JSON of settings.get()), session (JSON or none)
 //   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
 
 const ACTIONS = [
@@ -20,6 +21,7 @@ const ACTIONS = [
   ['slow-frame', 'Simulate slow frame (1 s)'],
   ['slow-scene', 'Switch to slow scene'],
   ['fail-slow', 'Fail slow scene\'s next load'],
+  ['reset-settings', 'Reset settings'],
 ];
 
 const VALUES = [
@@ -33,6 +35,8 @@ const VALUES = [
   ['geometries', 'GPU geometries'],
   ['textures', 'GPU textures'],
   ['assets', 'shared assets'],
+  ['settings', 'settings'],
+  ['session', 'session'],
 ];
 
 const FIELDS = ['layer', 'life', 'settings', 'ticks', 'left', 'back', 'error'];
@@ -66,7 +70,7 @@ function hash(text) {
   return h.toString(16).padStart(8, '0');
 }
 
-export function mountPanel({ harness, renderer, assets, parent = document.body }) {
+export function mountPanel({ harness, renderer, assets, settings, session, parent = document.body }) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.append(style);
@@ -153,6 +157,7 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
       const { debug } = harness.records.get('slow').scene;
       debug.failNextLoad = !debug.failNextLoad;
     },
+    'reset-settings': () => settings.reset(),
   };
 
   // Each button gives up focus after a click, so Space and other keys go to the game.
@@ -203,6 +208,8 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
     setValue('transition', tr ? `to ${tr.to}, ${(tr.t / tr.duration * 100).toFixed(0)}%` : '—');
     setValue('geometries', String(renderer.info.memory.geometries));
     setValue('textures', String(renderer.info.memory.textures));
+    setValue('settings', JSON.stringify(settings.get()));
+    setValue('session', session.get() ? JSON.stringify(session.get()) : 'none');
     setValue('assets', assets.keys().map((key) => `${key} ×${assets.count(key)}`).join(', ') || 'none');
 
     for (const record of harness.records.values()) {

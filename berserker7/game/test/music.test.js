@@ -45,7 +45,7 @@ function fakeAudio() {
 }
 
 // Timers are fake: `timers` holds { fn, ms, cleared }; the test runs fn itself.
-function setup() {
+function setup(options = {}) {
   const win = new EventTarget();
   win.document = new EventTarget();
   win.document.visibilityState = 'visible';
@@ -54,6 +54,7 @@ function setup() {
   const warnings = [];
   const music = createMusic({
     window: win,
+    ...options,
     createAudio: () => { const a = fakeAudio(); audios.push(a); return a; },
     setTimer: (fn, ms) => timers.push({ fn, ms, cleared: false }) - 1,
     clearTimer: (id) => { if (timers[id]) timers[id].cleared = true; },
@@ -251,4 +252,45 @@ test('music preload: play with the same url afterwards keeps src and does not re
   music.play('a.mp3'); // a second play with the same url (the menu after the intro)
   assert.equal(audios[0].srcSets, 1);
   assert.equal(audios[0].currentTime, 3);
+});
+
+test('music: the volume option sets the element volume when it is created; the default is MUSIC_VOLUME', () => {
+  const { music, audios } = setup({ volume: 0.8 });
+  assert.equal(music.debug.volume, 0.8);
+  assert.equal(audios.length, 0);
+  music.play('a.mp3');
+  assert.equal(audios[0].volume, 0.8);
+  assert.equal(setup().music.debug.volume, MUSIC_VOLUME);
+  assert.equal(setup({ volume: 7 }).music.debug.volume, 1);
+  assert.equal(setup({ volume: 'x' }).music.debug.volume, MUSIC_VOLUME);
+});
+
+test('music: setVolume before the element exists is kept and used when it is created', () => {
+  const { music, audios } = setup();
+  music.setVolume(0.2);
+  assert.equal(music.debug.volume, 0.2);
+  assert.equal(audios.length, 0);
+  music.preload('a.mp3');
+  assert.equal(audios[0].volume, 0.2);
+});
+
+test('music: setVolume after the element exists changes it at once, without a new element or a restart', () => {
+  const { music, audios } = setup();
+  music.play('a.mp3');
+  music.setVolume(0.6);
+  assert.equal(audios[0].volume, 0.6);
+  assert.equal(music.debug.volume, 0.6);
+  assert.equal(audios.length, 1);
+  assert.equal(audios[0].srcSets, 1);
+  assert.equal(audios[0].pauseCalls, 0);
+});
+
+test('music: setVolume clamps to 0..1 and ignores a value that is not a number', () => {
+  const { music, audios } = setup();
+  music.play('a.mp3');
+  for (const [given, expected] of [[-1, 0], [2, 1], [0, 0], [1, 1], [0.5, 0.5], [NaN, 0.5], ['loud', 0.5], [undefined, 0.5]]) {
+    music.setVolume(given);
+    assert.equal(audios[0].volume, expected, String(given));
+    assert.equal(music.debug.volume, expected);
+  }
 });

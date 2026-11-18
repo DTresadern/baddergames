@@ -4,7 +4,8 @@
 // Browsers block playback until a user gesture, so play() is only called after one, and
 // while the tab is visible.
 
-// The one volume value for music (0 to 1).
+// The default music volume (0 to 1). The saved volume comes from the settings through the
+// `volume` option and setVolume; this module does not read settings itself.
 export const MUSIC_VOLUME = 0.35;
 
 // preload() resolves without buffering after this long, and the music then streams on play.
@@ -14,8 +15,15 @@ export const MUSIC_PRELOAD_TIMEOUT_MS = 15000;
 const GESTURES = ['pointerdown', 'pointerup', 'keydown', 'touchend', 'click'];
 const HAVE_ENOUGH_DATA = 4;
 
+// `v` limited to 0..1; `fallback` when it is not a number.
+function clampVolume(v, fallback) {
+  if (typeof v !== 'number' || Number.isNaN(v)) return fallback;
+  return Math.min(1, Math.max(0, v));
+}
+
 export function createMusic({
   window,
+  volume = MUSIC_VOLUME,
   createAudio = () => new window.Audio(),
   setTimer = (fn, ms) => setTimeout(fn, ms),
   clearTimer = (id) => clearTimeout(id),
@@ -27,6 +35,7 @@ export function createMusic({
   let sourceUrl = null;
   let gestured = false;
   let listening = true;
+  let currentVolume = clampVolume(volume, MUSIC_VOLUME);
 
   function update() {
     if (!element) return;
@@ -64,7 +73,7 @@ export function createMusic({
     created += 1;
     element.loop = true;
     element.preload = 'auto';
-    element.volume = MUSIC_VOLUME;
+    element.volume = currentVolume;
   }
 
   // The element's own `src` is resolved to an absolute URL, so compare with the url we set.
@@ -118,6 +127,11 @@ export function createMusic({
       update();
     },
     preload,
+    // Clamps to 0..1 (a non-number is ignored), keeps it for an element not created yet, and applies it to an existing one.
+    setVolume(v) {
+      currentVolume = clampVolume(v, currentVolume);
+      if (element) element.volume = currentVolume;
+    },
     stop() {
       wanted = null;
       if (!element) return;
@@ -125,6 +139,9 @@ export function createMusic({
       element.currentTime = 0;
     },
     debug: {
+      get volume() {
+        return currentVolume;
+      },
       get element() {
         return element;
       },

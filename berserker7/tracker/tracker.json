@@ -5938,6 +5938,38 @@
         "T-001"
       ],
       "notes": ""
+    },
+    {
+      "id": "T-105",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Code",
+      "title": "Settings store saved in the browser",
+      "detail": "One versioned settings object saved under one browser storage key, with each setting checked on its own (an invalid value falls back to that setting's default), upgrade steps for older versions, and a reserved section for saved games and campaign progress that settings resets keep. It is the only code that touches browser storage; blocked storage leaves the game working in memory.",
+      "status": "implemented",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [],
+      "notes": "2026-11-18: implemented for issue #62."
+    },
+    {
+      "id": "T-106",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Simulation",
+      "title": "Session state as plain data",
+      "detail": "The run being set up (campaign and difficulty) is kept as plain data, with no functions or engine objects, so it can later be saved or sent over the network.",
+      "status": "ongoing",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-049"
+      ],
+      "notes": "2026-11-18: issue #62 sets it up from the New Game screen only; there is no game to start yet."
     }
   ]
 }

@@ -1,12 +1,14 @@
 // New Game screen: the poster, four campaign cards and a difficulty list for the selected
-// campaign, plus a Back item. Selecting a difficulty does nothing yet (it is recorded for debug
-// checks). It is an overlay over the main menu, so the title music is never interrupted.
+// campaign, plus a Back item. It opens on the last choice saved in the settings. Selecting a
+// difficulty creates the session and saves the last choice; nothing else happens yet. It is an
+// overlay over the main menu, so the title music is never interrupted.
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
 import { CAMPAIGNS, DEFAULT_DIFFICULTY, DIFFICULTIES } from '../data/campaigns.js';
 import { labelTexture } from './labels.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
 import { POSTER, coverSize } from './poster.js';
+import { createSession } from '../session.js';
 import { fitOrtho, inside, place } from './shared.js';
 
 export const LIST = Object.freeze([...DIFFICULTIES, 'back']);
@@ -76,23 +78,32 @@ export function nextAvailable(campaigns, currentId, step) {
   return available[(at + step + available.length) % available.length].id;
 }
 
-export function initNewGame() {
+// `lastChoice` is the saved { campaign, difficulty }. A campaign that is not available (or not
+// known) gives the first available one; a difficulty that is not known gives the default.
+export function initNewGame(lastChoice) {
+  const saved = CAMPAIGNS.find((c) => c.available && c.id === lastChoice?.campaign);
+  const campaign = saved ?? CAMPAIGNS.find((c) => c.available) ?? CAMPAIGNS[0];
+  const difficulty = DIFFICULTIES.includes(lastChoice?.difficulty) ? lastChoice.difficulty : DEFAULT_DIFFICULTY;
   return {
     ticks: 0,
-    campaign: CAMPAIGNS[0].id,
-    highlight: LIST.indexOf(DEFAULT_DIFFICULTY),
+    campaign: campaign.id,
+    highlight: LIST.indexOf(difficulty),
     selected: null,
     selections: 0,
     request: null,
+    start: null,
   };
 }
 
 // `selected` and `selections` are for debug checks. `request` is 'back' when Back was selected
 // at any point in this tick (so a later selection in the same tick cannot cancel it), else null.
+// `start` is { campaign, difficulty } when a difficulty was selected in this tick (the last one
+// wins), else null; the scene's tick turns it into the session and the saved last choice.
 function select(state, id) {
   state.selected = id;
   state.selections += 1;
   if (id === 'back') state.request = 'back';
+  else state.start = { campaign: state.campaign, difficulty: id };
 }
 
 function applyFrame(state, { actions, pointer }) {
@@ -119,12 +130,15 @@ function applyFrame(state, { actions, pointer }) {
 export function tickNewGame(state, inputs = []) {
   state.ticks += 1;
   state.request = null;
+  state.start = null;
   for (const frame of inputs) if (frame.connected) applyFrame(state, frame);
   return state;
 }
 
 export function createNewGame({
   screens,
+  settings,
+  session,
   loadTexture = defaultLoadTexture,
   createCanvas = () => document.createElement('canvas'),
 }) {
@@ -174,9 +188,13 @@ export function createNewGame({
       back = text('Back', ITEM_WIDTH, ITEM_HEIGHT, 28, 4);
       camera = new OrthographicCamera(-1, 1, 1, -1, -10, 10);
     },
-    enter: () => initNewGame(),
+    enter: () => initNewGame(settings.get().lastChoice),
     tick(state, inputs) {
       tickNewGame(state, inputs);
+      if (state.start) {
+        session.set(createSession(state.start));
+        settings.set({ lastChoice: { ...state.start } });
+      }
       if (state.request === 'back') screens.closeNewGame();
       return state;
     },

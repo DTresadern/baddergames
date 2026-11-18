@@ -17,8 +17,22 @@ import { createPlayers } from './scenes/players.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
 import { createSlow } from './scenes/slow.js';
+import { createSessionHolder } from './session.js';
+import { browserStorage, createSettingsStore } from './settings/store.js';
 
-document.getElementById('version').textContent = __BUILD_LABEL__;
+const versionLabel = document.getElementById('version');
+versionLabel.textContent = __BUILD_LABEL__;
+
+// The only code that reads or writes saved settings; created first so everything below can use them.
+const settings = createSettingsStore({ storage: browserStorage(window) });
+// The run being set up (plain data); scenes get the holder, like `music` and `screens`.
+const session = createSessionHolder();
+// The version label follows the showVersionLabel setting, now and on every change.
+const showVersionLabel = (s) => {
+  versionLabel.hidden = !s.showVersionLabel;
+};
+showVersionLabel(settings.get());
+settings.subscribe(showVersionLabel);
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -38,10 +52,12 @@ function drawTransition(alpha) {
   renderer.render(fadeScene, fadeCamera);
 }
 
-// The only input reader (music.js listens only for the gesture that unlocks sound). Bindings overrides come from localStorage.
-const input = attachInput({ window, canvas: renderer.domElement });
+// The only input reader (music.js listens only for the gesture that unlocks sound). The saved
+// bindings overrides are read once, here; there is no live rebinding yet.
+const input = attachInput({ window, canvas: renderer.domElement, bindings: settings.get().bindings });
 
-const music = createMusic({ window });
+const music = createMusic({ window, volume: settings.get().musicVolume });
+settings.subscribe((s) => music.setVolume(s.musicVolume));
 
 const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
 const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input, onInputs });
@@ -68,7 +84,7 @@ const screens = {
 harness.register('boot', createBoot({ loader, screens }));
 harness.register('intro', createIntro({ music, screens }));
 harness.register('mainMenu', createMainMenu({ music, screens }));
-harness.register('newGame', createNewGame({ screens }));
+harness.register('newGame', createNewGame({ screens, settings, session }));
 harness.register('loading', createLoading());
 harness.preload('loading');
 // The boot scene starts the same load on enter; starting it here saves a frame.
@@ -104,8 +120,9 @@ function loop(time) {
 }
 requestAnimationFrame(loop);
 
-mountPanel({ harness, renderer, assets });
+mountPanel({ harness, renderer, assets, settings, session });
 mountInputPanel({ input });
 
-// Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input and music. Not a game API.
-window.__b7 = { harness, renderer, assets, loader, input, music };
+// Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input, music,
+// settings and session. Not a game API.
+window.__b7 = { harness, renderer, assets, loader, input, music, settings, session };

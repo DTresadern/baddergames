@@ -61,3 +61,15 @@ export async function settle(harness, frameSeconds = 0) {
 export function ticksOf(harness, id) {
   return harness.records.get(id).state?.ticks;
 }
+
+// A settings object for scenes: get() gives `{ lastChoice }`; set(patch) is recorded in `sets`.
+export function fakeSettings(lastChoice = { campaign: 'megacity', difficulty: 'normal' }) {
+  const sets = [];
+  return { sets, get: () => ({ lastChoice }), set: (patch) => sets.push(patch) };
+}
+
+// A session holder for scenes: set(session) is recorded in `sessions`.
+export function fakeSession() {
+  const sessions = [];
+  return { sessions, get: () => sessions.at(-1) ?? null, set: (session) => sessions.push(session), clear() {} };
+}
