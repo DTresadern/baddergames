@@ -1,10 +1,5 @@
-// Bindings: the default table with the player's saved overrides applied.
-//
-// Override shape (saved as JSON under STORAGE_KEY): the same as DEFAULT_BINDINGS but
-// partial, { keyboardMouse?: { [action]: string[] }, gamepad?: { [action]: string[] } }.
-// Unknown schemes and actions are ignored. An override value that is not an array of
-// valid source strings for its scheme leaves that action on its default. An empty
-// array is valid and unbinds the action.
+// Bindings: the default table with the player's saved overrides applied, and the source
+// string parser. Override shape and fallback rules: see berserker7/AGENTS.md, Input.
 
 import { ACTIONS, DEFAULT_BINDINGS, SCHEMES, deepFreeze } from './actions.js';
 

@@ -17,15 +17,14 @@ const TRIGGERS = [6, 7]; // standard mapping: left and right trigger
 const STICK_X = 2; // right stick
 const STICK_Y = 3;
 
-// Parses each binding once: { keyboardMouse: { [action]: parsed[] }, gamepad: {...} }.
+// Parses each binding of a full, validated table once:
+// { keyboardMouse: { [action]: parsed[] }, gamepad: {...} }.
 function compile(bindings) {
   const compiled = {};
   for (const scheme of SCHEMES) {
     compiled[scheme] = {};
     for (const action of ACTIONS) {
-      compiled[scheme][action] = (bindings[scheme]?.[action] ?? [])
-        .map((source) => parseSource(scheme, source))
-        .filter((parsed) => parsed !== null);
+      compiled[scheme][action] = bindings[scheme][action].map((source) => parseSource(scheme, source));
     }
   }
   return compiled;
