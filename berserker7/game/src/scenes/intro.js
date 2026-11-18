@@ -1,16 +1,14 @@
-// Intro: two logos on black, each fading in, holding and fading out, then the main menu.
-// The title music starts on enter and carries on into the menu (no stop here). Any press
-// skips to the menu with a fade; the end of the timeline goes to the menu from black.
-// The logos are preloaded by the boot group, so load() finds them in the asset cache.
+// Intro: the two logos on black, then the main menu. See berserker7/AGENTS.md, Start-up.
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene, ShaderMaterial } from 'three';
 import { assetByKey } from '../assets/manifest.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
+import { STEP_SECONDS } from '../engine/clock.js';
 import { fitOrtho, place } from './shared.js';
 
 export const FADE_SECONDS = 1;
 export const HOLD_SECONDS = 2;
-export const TICKS_PER_SECOND = 60; // the harness step is 1/60 s
+export const TICKS_PER_SECOND = Math.round(1 / STEP_SECONDS);
 export const INTRO_LOGOS = Object.freeze(['logo.baddergames', 'logo.w8omg']);
 // Black text on white with no alpha, shown as white text on black (see invertedMaterial).
 export const INVERTED_LOGOS = Object.freeze(['logo.w8omg']);
@@ -124,7 +122,6 @@ export function createIntro({ music, screens, loadTexture = defaultLoadTexture }
       });
       camera = new OrthographicCamera(-1, 1, 1, -1, -10, 10);
     },
-    // The first logo starts fading in now, with the music.
     enter() {
       music.play(assetByKey(INTRO_MUSIC).path);
       return initIntro();
@@ -140,7 +137,7 @@ export function createIntro({ music, screens, loadTexture = defaultLoadTexture }
       fitOrtho(camera, view, height / 2); // world units are CSS px
       place(black, { x: 0, y: 0, width, height }, width, height);
       const { logo, alpha } = introAt(state.ticks);
-      const pixelRatio = view.renderer.getPixelRatio?.() ?? 1;
+      const pixelRatio = view.renderer.getPixelRatio();
       logos.forEach((l, i) => {
         l.mesh.visible = i === logo;
         if (i !== logo) return;

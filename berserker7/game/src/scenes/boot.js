@@ -1,6 +1,4 @@
-// Boot (the first scene): preloads the 'boot' asset group with a progress bar on black, then
-// asks "Click or press any key to start". That press is a user activation (frame.activated),
-// so the intro's music can start. On a load failure it shows which file failed and stops there.
+// Boot: the first scene. Loading bar, then the start prompt. See berserker7/AGENTS.md, Start-up.
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
 import { LOAD_ERROR_PREFIX } from '../assets/loader.js';

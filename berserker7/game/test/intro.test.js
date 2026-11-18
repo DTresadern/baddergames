@@ -5,6 +5,7 @@ import {
   FADE_SECONDS,
   HOLD_SECONDS,
   INTRO_LOGOS,
+  INVERTED_LOGOS,
   INTRO_TICKS,
   LOGO_MAX_HEIGHT,
   LOGO_MAX_WIDTH,
@@ -138,4 +139,8 @@ test('logoRect: phone, desktop and high-density desktop', () => {
   // A wide, short view: 60% of the height.
   assert.ok(near(logoRect(800, 200, 654, 180).height, 120));
   assert.equal(logoRect(1920, 1080, 654, 180).width, 654, 'default pixel ratio 1');
+});
+
+test('intro: every inverted logo is a raw (not sRGB) texture in the manifest', () => {
+  for (const key of INVERTED_LOGOS) assert.equal(assetByKey(key).colorSpace, 'raw', key);
 });

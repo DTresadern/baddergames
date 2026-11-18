@@ -35,6 +35,7 @@ function recordingRenderer() {
     },
     clear() {},
     clearDepth() {},
+    getPixelRatio: () => 1,
     render(scene) {
       renderedScene = scene;
       scene.traverse((obj) => {

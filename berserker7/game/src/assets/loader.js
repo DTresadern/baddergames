@@ -1,10 +1,4 @@
-// Preloads the assets of a manifest group (manifest.js) and reports progress.
-// Textures go into the harness's asset cache through acquireTexture, and the loader keeps
-// its use of each for the life of the page (it never releases), so they stay loaded and a
-// scene's later acquire returns the same entry at once. Music is buffered by music.preload.
-// Each asset is loaded once, however many groups or load() calls ask for it.
-// A failure is loud: the group's promise rejects, status().error names the file, and the
-// failure is logged once. A failed group never becomes done; there is no retry.
+// Preloads a manifest group and reports its progress. See berserker7/AGENTS.md, Assets.
 
 import { groupAssets } from './manifest.js';
 import { acquireTexture, defaultLoadTexture } from './textures.js';
@@ -21,7 +15,7 @@ export function createLoader({ assets, music, loadTexture = defaultLoadTexture, 
     if (promise) return promise;
     const start =
       asset.type === 'texture'
-        ? () => acquireTexture((key, create) => assets.acquire(key, create), asset.key, loadTexture)
+        ? () => acquireTexture(assets.acquire, asset.key, loadTexture)
         : () => music.preload(asset.path);
     promise = Promise.resolve()
       .then(start)
@@ -47,7 +41,7 @@ export function createLoader({ assets, music, loadTexture = defaultLoadTexture, 
     const each = list.map((asset) =>
       loadAsset(asset).then(() => {
         loaded += 1;
-        entry.progress = Math.max(entry.progress, loaded / list.length);
+        entry.progress = loaded / list.length;
       }),
     );
     entry.promise = Promise.all(each).then(

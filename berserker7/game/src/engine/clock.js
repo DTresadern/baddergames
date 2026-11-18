@@ -6,7 +6,9 @@
 // Absorbs float rounding, so that, for example, 15 frames of 1/60 s give 15 steps.
 const EPSILON = 1e-9;
 
-export function createClock({ step = 1 / 60, maxFrame = 0.25, maxSteps = 8 } = {}) {
+export const STEP_SECONDS = 1 / 60;
+
+export function createClock({ step = STEP_SECONDS, maxFrame = 0.25, maxSteps = 8 } = {}) {
   return { step, maxFrame, maxSteps, accumulator: 0 };
 }
 

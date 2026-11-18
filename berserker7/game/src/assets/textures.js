@@ -1,7 +1,4 @@
-// Texture entries in the harness's asset cache (engine/asset-cache.js), keyed by manifest key.
-// Scenes call acquireTexture with context.acquire; the loader calls it with the cache's own
-// acquire. Whoever acquires first creates the entry and starts the download; the others get
-// the same entry, so each texture is loaded once.
+// Texture entries in the asset cache, keyed by manifest key: the first acquire downloads, the rest share it.
 
 import { NoColorSpace, SRGBColorSpace, TextureLoader } from 'three';
 import { assetByKey } from './manifest.js';
