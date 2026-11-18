@@ -17,7 +17,9 @@ import { INTRO_LOGOS, createIntro } from '../src/scenes/intro.js';
 import { createLoading } from '../src/scenes/loading.js';
 import { createMainMenu } from '../src/scenes/main-menu.js';
 import { createNewGame } from '../src/scenes/new-game.js';
-import { POSTER } from '../src/scenes/poster.js';
+import { POSTERS } from '../src/scenes/poster.js';
+
+const POSTER = POSTERS[0];
 import { createPlayers, initPlayers } from '../src/scenes/players.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
@@ -89,9 +91,9 @@ function fakeDeps(loads = { count: 0 }) {
     createCanvas: () => ({ width: 0, height: 0, getContext: () => stub2d }),
   };
 }
-const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), ...fakeDeps() });
+const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), poster: POSTER, ...fakeDeps() });
 const fakeNewGame = () =>
-  createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), ...fakeDeps() });
+  createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), poster: POSTER, ...fakeDeps() });
 function fakeScreens() {
   return { openNewGame() {}, closeNewGame() {}, startIntro() {}, showMenu() {} };
 }
@@ -224,8 +226,8 @@ test('main menu and New Game share one poster, disposed once after both unload; 
   const loads = { count: 0 };
   const deps = fakeDeps(loads);
   const { harness, renderer } = harnessFor({
-    mainMenu: createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), ...deps }),
-    newGame: createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), ...deps }),
+    mainMenu: createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), poster: POSTER, ...deps }),
+    newGame: createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), poster: POSTER, ...deps }),
   });
   harness.setMain('mainMenu');
   harness.openOverlay('newGame');

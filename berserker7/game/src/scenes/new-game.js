@@ -7,7 +7,7 @@ import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } fro
 import { CAMPAIGNS, DEFAULT_DIFFICULTY, DIFFICULTIES } from '../data/campaigns.js';
 import { labelTexture } from './labels.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
-import { POSTER, coverSize } from './poster.js';
+import { checkPoster, coverSize } from './poster.js';
 import { createSession } from '../session.js';
 import { fitOrtho, inside, place } from './shared.js';
 
@@ -139,9 +139,11 @@ export function createNewGame({
   screens,
   settings,
   session,
+  poster: posterKey,
   loadTexture = defaultLoadTexture,
   createCanvas = () => document.createElement('canvas'),
 }) {
+  checkPoster(posterKey);
   let scene, camera, poster, outline, panel, bar, imageWidth, imageHeight;
   let cards = []; // { fill, text, material } per campaign
   let lists = {}; // campaign id -> meshes with materials, one per difficulty
@@ -150,7 +152,7 @@ export function createNewGame({
     // Closing unloads it, so each open starts fresh; the main menu keeps the shared poster loaded.
     settings: { tick: 'uncovered', drawCovered: true, leave: 'unload', pausable: false },
     async load({ track, acquire }) {
-      const texture = await acquireTexture(acquire, POSTER, loadTexture);
+      const texture = await acquireTexture(acquire, posterKey, loadTexture);
       imageWidth = texture.image.width;
       imageHeight = texture.image.height;
       const geometry = track(new PlaneGeometry(1, 1));

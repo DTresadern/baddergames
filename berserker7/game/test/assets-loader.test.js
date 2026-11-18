@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import { NoColorSpace, SRGBColorSpace } from 'three';
 import { createLoader } from '../src/assets/loader.js';
 import { assetByKey, groupAssets } from '../src/assets/manifest.js';
+import { withPoster } from '../src/scenes/poster.js';
 import { acquireTexture } from '../src/assets/textures.js';
 import { createAssetCache } from '../src/engine/asset-cache.js';
 
@@ -19,7 +20,8 @@ function fakeTexture(path) {
 }
 
 // Every load waits until the test settles it: gates[path].resolve() or .reject(error).
-function setup({ listGroup } = {}) {
+// The default listing is the real boot group plus the classic poster, as main.js builds it.
+function setup({ listGroup = withPoster(groupAssets, 'poster.classic') } = {}) {
   const gates = {};
   const loads = [];
   const gate = (path) => {
@@ -33,11 +35,11 @@ function setup({ listGroup } = {}) {
   const errors = [];
   const log = { error: (...args) => errors.push(args) };
   const assets = createAssetCache();
-  const loader = createLoader({ assets, music, loadTexture, log, ...(listGroup && { listGroup }) });
+  const loader = createLoader({ assets, music, loadTexture, log, listGroup });
   return { loader, assets, gates, loads, errors, loadTexture };
 }
 
-const BOOT_PATHS = groupAssets('boot').map((a) => a.path);
+const BOOT_PATHS = withPoster(groupAssets, 'poster.classic')('boot').map((a) => a.path);
 
 test('loader: progress steps forward per asset and reaches exactly 1 when done', async () => {
   const { loader, gates, loads } = setup();

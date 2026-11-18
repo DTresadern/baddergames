@@ -1,4 +1,5 @@
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene, WebGLRenderer } from 'three';
+import { groupAssets } from './assets/manifest.js';
 import { createLoader } from './assets/loader.js';
 import { mountInputPanel } from './debug/input-panel.js';
 import { mountPanel } from './debug/panel.js';
@@ -14,6 +15,7 @@ import { createMainMenu } from './scenes/main-menu.js';
 import { createNewGame } from './scenes/new-game.js';
 import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
+import { pickPoster, withPoster } from './scenes/poster.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
 import { createSlow } from './scenes/slow.js';
@@ -62,8 +64,12 @@ settings.subscribe((s) => music.setVolume(s.musicVolume));
 const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
 const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input, onInputs });
 const { assets } = harness;
+// The menu background, picked once per page load and used by the main menu and New Game. The pick
+// is not gameplay, so it uses Math.random, not the seeded generator. `?menubg=classic|thrash` forces one.
+const poster = pickPoster({ search: window.location.search });
 // Preloads manifest groups into the shared asset cache (and the music element); see assets/.
-const loader = createLoader({ assets, music });
+// Only the picked poster is downloaded: it is added to the boot group.
+const loader = createLoader({ assets, music, listGroup: withPoster(groupAssets, poster) });
 harness.register('backdrop', createBackdrop());
 harness.register('players', createPlayers());
 harness.register('sceneA', createSceneA());
@@ -83,8 +89,8 @@ const screens = {
 };
 harness.register('boot', createBoot({ loader, screens }));
 harness.register('intro', createIntro({ music, screens }));
-harness.register('mainMenu', createMainMenu({ music, screens }));
-harness.register('newGame', createNewGame({ screens, settings, session }));
+harness.register('mainMenu', createMainMenu({ music, screens, poster }));
+harness.register('newGame', createNewGame({ screens, settings, session, poster }));
 harness.register('loading', createLoading());
 harness.preload('loading');
 // The boot scene starts the same load on enter; starting it here saves a frame.
@@ -124,5 +130,5 @@ mountPanel({ harness, renderer, assets, settings, session });
 mountInputPanel({ input });
 
 // Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input, music,
-// settings and session. Not a game API.
-window.__b7 = { harness, renderer, assets, loader, input, music, settings, session };
+// settings, session and the picked menu poster key. Not a game API.
+window.__b7 = { harness, renderer, assets, loader, input, music, settings, session, poster };

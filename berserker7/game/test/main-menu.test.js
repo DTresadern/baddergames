@@ -53,7 +53,7 @@ test('main menu: music plays on enter and resume, stops on suspend and exit; sus
   const MUSIC_URL = assetByKey('music.title').path;
   const calls = [];
   const music = { play: (url) => calls.push(['play', url]), stop: () => calls.push(['stop']) };
-  const menu = createMainMenu({ music, screens: fakeScreens(calls) });
+  const menu = createMainMenu({ music, screens: fakeScreens(calls), poster: 'poster.classic' });
   menu.enter();
   menu.suspend();
   menu.resume();
@@ -65,7 +65,7 @@ test('main menu: music plays on enter and resume, stops on suspend and exit; sus
 
 test('main menu: selecting New Game opens the screen once; other items do not; it does not pause', () => {
   const calls = [];
-  const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls) });
+  const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls), poster: 'poster.classic' });
   assert.equal(menu.settings.pausable, false);
   const state = menu.enter();
   menu.tick(state, [frame(['jump'])]);
@@ -80,7 +80,7 @@ test('main menu: selecting New Game opens the screen once; other items do not; i
 
 test('main menu: a later selection by another player in the same tick does not cancel New Game', () => {
   const calls = [];
-  const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls) });
+  const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls), poster: 'poster.classic' });
   const state = menu.enter();
   menu.tick(state, [frame(['jump']), frame(['moveDown', 'jump'])]);
   assert.equal(state.selected, 'Multiplayer');

@@ -5,7 +5,8 @@ import { ASSETS, GROUPS, assetByKey, checkManifest, groupAssets } from '../src/a
 
 const PUBLIC = new URL('../public/', import.meta.url);
 const good = () => [{ key: 'a', path: 'content/x/a.png', type: 'texture', groups: ['boot'] }];
-const problemsWith = (fields) => checkManifest([{ ...good()[0], ...fields }]);
+const BOOT_ONLY = ['boot'];
+const problemsWith = (fields, groups = BOOT_ONLY) => checkManifest([{ ...good()[0], ...fields }], groups);
 
 test('manifest: the real list has no problems and is frozen', () => {
   assert.deepEqual(checkManifest(ASSETS), []);
@@ -14,7 +15,7 @@ test('manifest: the real list has no problems and is frozen', () => {
     assert.ok(Object.isFrozen(entry), entry.key);
     assert.ok(Object.isFrozen(entry.groups), entry.key);
   }
-  assert.deepEqual(GROUPS, ['boot']);
+  assert.deepEqual(GROUPS, ['boot', 'menubg']);
 });
 
 test('manifest: every path exists on disk under public/', () => {
@@ -26,12 +27,12 @@ test('manifest: every path exists on disk under public/', () => {
 });
 
 test('checkManifest: a valid list has no problems', () => {
-  assert.deepEqual(checkManifest(good()), []);
+  assert.deepEqual(checkManifest(good(), BOOT_ONLY), []);
 });
 
 test('checkManifest: duplicate keys and missing keys', () => {
   const list = [...good(), ...good()];
-  assert.deepEqual(checkManifest(list), ["'a': duplicate key"]);
+  assert.deepEqual(checkManifest(list, BOOT_ONLY), ["'a': duplicate key"]);
   assert.match(problemsWith({ key: '' })[0], /entry 0: missing key/);
 });
 
@@ -61,6 +62,8 @@ test('assetByKey and groupAssets: lookups, and loud errors naming the unknown ke
   assert.equal(assetByKey('music.title').path, 'content/audio/music/titlescreen-1.mp3');
   assert.equal(assetByKey('logo.w8omg').colorSpace, 'raw');
   assert.throws(() => assetByKey('logo.nope'), /unknown asset key 'logo.nope'/);
-  assert.deepEqual(groupAssets('boot').map((a) => a.key), ['logo.baddergames', 'logo.w8omg', 'poster.classic', 'music.title']);
+  assert.deepEqual(groupAssets('boot').map((a) => a.key), ['logo.baddergames', 'logo.w8omg', 'music.title']);
+  assert.deepEqual(groupAssets('menubg').map((a) => a.key), ['poster.classic', 'poster.thrash']);
+  assert.equal(assetByKey('poster.thrash').path, 'content/textures/menubg/berserkerguy-thrash-2-1.png');
   assert.throws(() => groupAssets('nope'), /unknown group 'nope'/);
 });
