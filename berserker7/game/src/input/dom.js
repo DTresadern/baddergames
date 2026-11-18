@@ -95,6 +95,12 @@ export function attachInput({
     moveMouse(devices, e.clientX - rect.left, e.clientY - rect.top);
   }, { signal });
 
+  // The surface size is otherwise only read on mouse moves, so a resize alone would leave it stale.
+  win.addEventListener('resize', () => {
+    const rect = canvas.getBoundingClientRect();
+    setSurface(devices, rect.width, rect.height);
+  }, { signal });
+
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     wheel(devices, e.deltaY, e.deltaMode, e.timeStamp);

@@ -11,7 +11,8 @@ function fakePage({ pads = [], storage } = {}) {
   win.document.visibilityState = 'visible';
   win.navigator = { getGamepads: () => pads };
   const canvas = new EventTarget();
-  canvas.getBoundingClientRect = () => ({ left: 10, top: 20, width: 800, height: 600 });
+  canvas.rect = { left: 10, top: 20, width: 800, height: 600 };
+  canvas.getBoundingClientRect = () => canvas.rect;
   const attached = attachInput({ window: win, canvas, storage });
   return { win, canvas, attached };
 }
@@ -80,6 +81,20 @@ test('dom: mouse buttons, side buttons, context menu, position and wheel', () =>
   attached.setAimOrigin(0, 400, 300);
   send(win, 'mousemove', { clientX: 10, clientY: 320 }); // (0, 300): left of the origin
   assert.equal(attached.sample()[0].aim, Math.PI);
+});
+
+test('dom: a window resize updates the pointer surface without a mouse move', () => {
+  const { win, canvas, attached } = fakePage();
+  send(win, 'mousemove', { clientX: 410, clientY: 120 });
+  assert.deepEqual([attached.sample()[0].pointer.width, attached.sample()[0].pointer.height], [800, 600]);
+  canvas.rect = { left: 10, top: 20, width: 500, height: 400 };
+  send(win, 'resize');
+  const { pointer } = attached.sample()[0];
+  assert.deepEqual([pointer.width, pointer.height], [500, 400]);
+  attached.detach();
+  canvas.rect = { left: 10, top: 20, width: 300, height: 200 };
+  send(win, 'resize');
+  assert.equal(attached.devices.surface.width, 500);
 });
 
 test('dom: gamepads are polled each sample; null entries and a missing API are fine', () => {
