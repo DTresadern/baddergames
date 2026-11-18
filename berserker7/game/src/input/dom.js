@@ -3,7 +3,7 @@
 // devices.js and sampler.js. Nothing else in the game listens to input events, except
 // audio/music.js, which only waits for the first gesture to unlock sound.
 
-import { loadBindings } from './bindings.js';
+import { resolveBindings } from './bindings.js';
 import {
   activate,
   createDevices,
@@ -26,15 +26,6 @@ function isEditable(target) {
   return Boolean(target && (EDITABLE_TAGS.has(target.tagName) || target.isContentEditable));
 }
 
-// Reading window.localStorage can itself throw (storage blocked); null then.
-export function browserStorage(win) {
-  try {
-    return win.localStorage ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function readPads(nav) {
   try {
     if (typeof nav?.getGamepads !== 'function') return [];
@@ -47,12 +38,12 @@ function readPads(nav) {
 export function attachInput({
   window: win,
   canvas,
-  storage = browserStorage(win),
+  bindings = null, // saved overrides (see settings/store.js), applied over the defaults
   navigator: nav = win.navigator,
   ...options // passed to createInput: players, deadZone, axisThreshold, triggerThreshold
 }) {
   const devices = createDevices();
-  const input = createInput({ ...options, bindings: loadBindings(storage) });
+  const input = createInput({ ...options, bindings: resolveBindings(bindings) });
   const controller = new AbortController();
   const { signal } = controller;
   const doc = win.document;

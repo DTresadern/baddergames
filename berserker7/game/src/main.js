@@ -17,8 +17,12 @@ import { createPlayers } from './scenes/players.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
 import { createSlow } from './scenes/slow.js';
+import { browserStorage, createSettingsStore } from './settings/store.js';
 
 document.getElementById('version').textContent = __BUILD_LABEL__;
+
+// The only code that reads or writes saved settings; created first so everything below can use them.
+const settings = createSettingsStore({ storage: browserStorage(window) });
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -38,8 +42,9 @@ function drawTransition(alpha) {
   renderer.render(fadeScene, fadeCamera);
 }
 
-// The only input reader (music.js listens only for the gesture that unlocks sound). Bindings overrides come from localStorage.
-const input = attachInput({ window, canvas: renderer.domElement });
+// The only input reader (music.js listens only for the gesture that unlocks sound). The saved
+// bindings overrides are read once, here; there is no live rebinding yet.
+const input = attachInput({ window, canvas: renderer.domElement, bindings: settings.get().bindings });
 
 const music = createMusic({ window });
 
