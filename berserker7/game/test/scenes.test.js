@@ -8,6 +8,7 @@ import { initMainMenu, tickMainMenu } from '../src/scenes/main-menu.js';
 import { initPause, tickPause } from '../src/scenes/pause.js';
 import { ARENA, RADIUS, SPEED, initPlayers, tickPlayers } from '../src/scenes/players.js';
 import { initSceneA, tickSceneA } from '../src/scenes/scene-a.js';
+import { initNewGame, tickNewGame } from '../src/scenes/new-game.js';
 import { initSceneB, tickSceneB } from '../src/scenes/scene-b.js';
 import { initSlow, tickSlow } from '../src/scenes/slow.js';
 
@@ -20,6 +21,7 @@ const SIMS = {
   loading: [initLoading, tickLoading],
   players: [initPlayers, tickPlayers],
   mainMenu: [initMainMenu, tickMainMenu],
+  newGame: [initNewGame, tickNewGame],
 };
 
 const NO_INPUTS = Object.freeze([]);

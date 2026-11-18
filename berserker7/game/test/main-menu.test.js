@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ACTIONS } from '../src/input/actions.js';
 import {
   ITEM_GAP,
   ITEM_HEIGHT,
@@ -15,6 +14,7 @@ import {
   tickMainMenu,
 } from '../src/scenes/main-menu.js';
 import { coverSize } from '../src/scenes/poster.js';
+import { frame } from './frames.js';
 
 const VIEWS = [[1000, 1000], [1280, 800], [800, 1280], [390, 844]];
 const IMAGES = [[1254, 1254], [1920, 1080], [1000, 2000]];
@@ -103,12 +103,6 @@ test('itemAt: item centres give their index; the gap and outside the panel give 
   assert.equal(itemAt(layout, 0, 0), -1);
 });
 
-const idle = () => ({ held: false, pressed: false, released: false });
-function frame(pressed = [], pointer = null, connected = true) {
-  const actions = Object.fromEntries(ACTIONS.map((a) => [a, idle()]));
-  for (const a of pressed) actions[a] = { held: true, pressed: true, released: false };
-  return { player: 0, connected, actions, aim: 0, wheel: 0, pointer };
-}
 const layout = menuLayout(1280, 800);
 const centre = (i) => ({ x: layout.items[i].x + 50, y: layout.items[i].y + 10 });
 const pointerAt = (p, moved = true) => ({ ...p, width: 1280, height: 800, moved });
