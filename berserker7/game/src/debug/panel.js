@@ -9,6 +9,7 @@
 //   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
 
 const ACTIONS = [
+  ['players', 'Players scene (input test)'],
   ['switch-ab', 'Switch A / B (fade)'],
   ['pause', 'Open pause'],
   ['suspend', 'Suspend main'],
@@ -114,6 +115,9 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
   }
 
   const handlers = {
+    players() {
+      harness.setMain('players', { fade: FADE });
+    },
     'switch-ab'() {
       const current = harness.transition?.to ?? harness.layers.main;
       harness.setMain(current === 'sceneA' ? 'sceneB' : 'sceneA', { fade: FADE });
@@ -142,12 +146,15 @@ export function mountPanel({ harness, renderer, assets, parent = document.body }
     },
   };
 
-  for (const [action] of ACTIONS) button(action).addEventListener('click', () => {
+  // Each button gives up focus after a click, so Space and other keys go to the game.
+  for (const [action] of ACTIONS) button(action).addEventListener('click', (e) => {
+    e.currentTarget.blur();
     handlers[action]();
     refresh();
   });
 
   toggle.addEventListener('click', () => {
+    toggle.blur();
     const open = body.hidden;
     body.hidden = !open;
     toggle.textContent = open ? 'Debug ▾' : 'Debug ▸';

@@ -1,9 +1,12 @@
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene, WebGLRenderer } from 'three';
+import { mountInputPanel } from './debug/input-panel.js';
 import { mountPanel } from './debug/panel.js';
 import { createHarness } from './engine/harness.js';
+import { attachInput } from './input/dom.js';
 import { createBackdrop } from './scenes/backdrop.js';
 import { createLoading } from './scenes/loading.js';
 import { createPause } from './scenes/pause.js';
+import { createPlayers } from './scenes/players.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
 import { createSlow } from './scenes/slow.js';
@@ -28,9 +31,20 @@ function drawTransition(alpha) {
   renderer.render(fadeScene, fadeCamera);
 }
 
-const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading' });
+// The only place that listens to input devices. Bindings overrides come from localStorage.
+const input = attachInput({ window, canvas: renderer.domElement });
+
+// Any player's pause press opens the pause overlay, or closes it when open.
+function onInputs(inputs) {
+  if (!inputs.some((frame) => frame.actions.pause.pressed)) return;
+  if (harness.layers.overlays.includes('pause')) harness.closeOverlay('pause');
+  else harness.openOverlay('pause');
+}
+
+const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input, onInputs });
 const { assets } = harness;
 harness.register('backdrop', createBackdrop());
+harness.register('players', createPlayers());
 harness.register('sceneA', createSceneA());
 harness.register('sceneB', createSceneB());
 harness.register('pause', createPause());
@@ -38,7 +52,7 @@ harness.register('slow', createSlow());
 harness.register('loading', createLoading());
 harness.preload('loading');
 harness.addBackground('backdrop');
-harness.setMain('sceneA');
+harness.setMain('players');
 
 function resize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -60,6 +74,7 @@ function loop(time) {
 requestAnimationFrame(loop);
 
 mountPanel({ harness, renderer, assets });
+mountInputPanel({ input });
 
-// Debug only: lets browser scripts read the harness, renderer and shared assets. Not a game API.
-window.__b7 = { harness, renderer, assets };
+// Debug only: lets browser scripts read the harness, renderer, shared assets and input. Not a game API.
+window.__b7 = { harness, renderer, assets, input };
