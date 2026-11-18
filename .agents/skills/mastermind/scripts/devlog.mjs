@@ -200,10 +200,11 @@ export function rollover(ctx, ledger) {
   // after the close were already sent to the thread one by one. Events without recordedAt (old data) never count.
   for (const d of days(ctx).filter((x) => x < day0)) {
     const meta = readMeta(ctx, d);
-    if (!meta.final || meta.finaliseSentAt || meta.summaryMissing || meta.finaliseSkipped) continue;
-    if (meta.summary) {
-      if (!meta.summaryAt || !meta.finalisedAt) continue;
-      if (!readEvents(ctx, d).some((e) => e.recordedAt && e.recordedAt > meta.summaryAt && e.recordedAt <= meta.finalisedAt)) continue;
+    if (!meta.final || meta.finaliseSentAt || meta.summaryMissing || meta.finaliseSkipped || meta.finaliseNotNeeded) continue;
+    // The window (summaryAt, finalisedAt] cannot gain events later, so a "not needed" result is stored and not checked again.
+    if (meta.summary && !(meta.summaryAt && meta.finalisedAt && readEvents(ctx, d).some((e) => e.recordedAt && e.recordedAt > meta.summaryAt && e.recordedAt <= meta.finalisedAt))) {
+      writeMeta(ctx, d, { ...meta, finaliseNotNeeded: true });
+      continue;
     }
     const id = ledger.dailyThreads[d];
     const st = threadState(id);

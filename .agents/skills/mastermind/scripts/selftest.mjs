@@ -676,6 +676,13 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   fs.mkdirSync(devlog("data"), { recursive: true });
   fs.writeFileSync(devlog(`data/${F}.jsonl`), JSON.stringify({ kind: "note", ns: "dev.baddergames", what: "F old event", at: T(F, "09:00:00") }) + "\n");
   fs.writeFileSync(devlog(`data/${F}.json`), JSON.stringify({ final: true, finalisedAt: T(F, "23:59:00"), summary: "F summary", summaryAt: T(F, "12:00:00") }));
+  // G: an event recorded after the day closed (already sent to the thread one by one) does not count.
+  // H: an event recorded after the summary, but the day has no Daily Update thread.
+  const G = "2027-02-27", H = "2027-02-28";
+  fs.writeFileSync(devlog(`data/${G}.jsonl`), JSON.stringify({ kind: "note", ns: "dev.baddergames", what: "G late", at: T(G, "09:00:00"), recordedAt: T("2027-03-01", "08:00:00") }) + "\n");
+  fs.writeFileSync(devlog(`data/${G}.json`), JSON.stringify({ final: true, finalisedAt: T("2027-03-01", "00:10:00"), summary: "G summary", summaryAt: T(G, "12:00:00") }));
+  fs.writeFileSync(devlog(`data/${H}.jsonl`), JSON.stringify({ kind: "note", ns: "dev.baddergames", what: "H late", at: T(H, "15:00:00"), recordedAt: T(H, "15:00:00") }) + "\n");
+  fs.writeFileSync(devlog(`data/${H}.json`), JSON.stringify({ final: true, finalisedAt: T("2027-03-01", "00:10:00"), summary: "H summary", summaryAt: T(H, "12:00:00") }));
   const r = mm(["rollover", "--json"], { at: "2027-03-06T09:00:00Z" });
   check("T27a a summary followed by a later event gets one finalise message", fins(A).length === 1 && !!metaOf(A).finaliseSentAt, JSON.stringify(fins(A).length) + JSON.stringify(metaOf(A)));
   const swept = lines(B).map((l) => JSON.parse(l)).find((e) => e.key === "pr:90");
@@ -687,6 +694,10 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T27e a second rollover sends no second finalise message", r2.json?.finaliseSent?.length === 0 && fins(A).length === 1 && fins(B).length === 1 && fins(D).length === 1, r2.out);
   const mf = metaOf(F);
   check("T27f a closed day whose events have no recordedAt gets no finalise message", !mf.finaliseSentAt && !mf.summaryMissing && !mf.finaliseSkipped, JSON.stringify(mf));
+  const mg = metaOf(G), mh = metaOf(H);
+  check("T27h an event recorded after the day closed does not trigger a finalise message", !mg.finaliseSentAt && !mg.finaliseSkipped && mg.finaliseNotNeeded === true && !r.json?.finaliseSent?.includes(G), JSON.stringify(mg));
+  check("T27i a day with a summary and no thread is marked finalise skipped, not summary missing", mh.finaliseSkipped === true && !mh.summaryMissing && !mh.finaliseSentAt, JSON.stringify(mh));
+  check("T27j a checked day with nothing new is not checked again", metaOf(C).finaliseNotNeeded === true && mf.finaliseNotNeeded === true, JSON.stringify(metaOf(C)));
   mm(["devlog", "summary", A, "--file", sumFile("A rewritten **final** summary\n")], { at: "2027-03-06T11:00:00Z" });
   check("T27g a new summary replaces the old one and the page shows it", metaOf(A).summary.startsWith("A rewritten") && read(devlog(`${A}.html`)).includes("<strong>final</strong>") && !read(devlog(`${A}.html`)).includes("A first summary"), metaOf(A).summary);
 }
