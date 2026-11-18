@@ -375,3 +375,11 @@ test('frames are new objects every tick', () => {
   assert.notEqual(a[0].actions, b[0].actions);
   assert.notEqual(a[0].actions.jump, b[0].actions.jump);
 });
+
+test('wheel: known limit, pixel-mode notches 150 ms apart merge until 250 ms after the step', () => {
+  const { devices } = setup();
+  wheel(devices, 100, 0, 0); // step
+  wheel(devices, 100, 0, 150); // 150 ms quiet, but under 250 ms since the step: merged
+  wheel(devices, 100, 0, 300); // 150 ms quiet and 300 ms since the step: a new step
+  assert.equal(devices.wheelSteps, 2);
+});
