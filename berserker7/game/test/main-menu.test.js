@@ -45,15 +45,36 @@ test('panelSize: capped at 480 x 560, else 90% width and 80% height', () => {
   assert.deepStrictEqual(panelSize(1280, 500), { width: 480, height: 400 });
 });
 
-test('main menu: music plays on enter and resume, stops on suspend and exit', () => {
+function fakeScreens(calls) {
+  return { openNewGame: () => calls.push(['open']), closeNewGame: () => calls.push(['close']) };
+}
+
+test('main menu: music plays on enter and resume, stops on suspend and exit; suspend and exit close New Game', () => {
   const calls = [];
   const music = { play: (url) => calls.push(['play', url]), stop: () => calls.push(['stop']) };
-  const menu = createMainMenu({ music });
+  const menu = createMainMenu({ music, screens: fakeScreens(calls) });
   menu.enter();
   menu.suspend();
   menu.resume();
   menu.exit();
-  assert.deepStrictEqual(calls, [['play', MUSIC_URL], ['stop'], ['play', MUSIC_URL], ['stop']]);
+  assert.deepStrictEqual(calls, [
+    ['play', MUSIC_URL], ['stop'], ['close'], ['play', MUSIC_URL], ['stop'], ['close'],
+  ]);
+});
+
+test('main menu: selecting New Game opens the screen once; other items do not; it does not pause', () => {
+  const calls = [];
+  const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls) });
+  assert.equal(menu.settings.pausable, false);
+  const state = menu.enter();
+  menu.tick(state, [frame(['jump'])]);
+  assert.deepStrictEqual(calls, [['open']]);
+  menu.tick(state, [frame([])]);
+  assert.equal(calls.length, 1, 'only on the tick that selects');
+  menu.tick(state, [frame(['moveDown', 'jump'])]);
+  menu.tick(state, [frame(['moveDown', 'jump'])]);
+  assert.deepStrictEqual(state.selected, 'Options');
+  assert.equal(calls.length, 1);
 });
 
 const EPS = 1e-9;

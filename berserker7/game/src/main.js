@@ -8,6 +8,7 @@ import { togglePauseOnPress } from './pause-toggle.js';
 import { createBackdrop } from './scenes/backdrop.js';
 import { createLoading } from './scenes/loading.js';
 import { createMainMenu } from './scenes/main-menu.js';
+import { createNewGame } from './scenes/new-game.js';
 import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
 import { createSceneA } from './scenes/scene-a.js';
@@ -48,7 +49,13 @@ harness.register('sceneA', createSceneA());
 harness.register('sceneB', createSceneB());
 harness.register('pause', createPause());
 harness.register('slow', createSlow());
-harness.register('mainMenu', createMainMenu({ music }));
+// New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
+const screens = {
+  openNewGame: () => harness.openOverlay('newGame'),
+  closeNewGame: () => harness.closeOverlay('newGame'),
+};
+harness.register('mainMenu', createMainMenu({ music, screens }));
+harness.register('newGame', createNewGame({ screens }));
 harness.register('loading', createLoading());
 harness.preload('loading');
 // The menu has no backdrop; the debug panel's test scene buttons add it.

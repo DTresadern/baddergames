@@ -81,13 +81,14 @@ export function tickMainMenu(state, inputs = []) {
 
 export function createMainMenu({
   music,
+  screens,
   loadTexture = defaultLoadTexture,
   createCanvas = () => document.createElement('canvas'),
 }) {
   let scene, camera, poster, panel, bar, imageWidth, imageHeight;
   let labels = []; // { mesh, material } per menu item
   return {
-    settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
+    settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend', pausable: false },
     async load({ track, acquire }) {
       const texture = await acquirePoster(acquire, loadTexture);
       imageWidth = texture.image.width;
@@ -123,9 +124,21 @@ export function createMainMenu({
       return initMainMenu();
     },
     resume: () => music.play(MUSIC_URL),
-    suspend: () => music.stop(),
-    exit: () => music.stop(),
-    tick: tickMainMenu,
+    // The New Game overlay never outlives the menu (for example when the debug panel switches scene).
+    suspend() {
+      music.stop();
+      screens.closeNewGame();
+    },
+    exit() {
+      music.stop();
+      screens.closeNewGame();
+    },
+    tick(state, inputs) {
+      const before = state.selections;
+      tickMainMenu(state, inputs);
+      if (state.selections > before && state.selected === 'New Game') screens.openNewGame();
+      return state;
+    },
     draw(state, view) {
       const { width, height } = view;
       fitOrtho(camera, view, height / 2); // world units are CSS px
