@@ -242,6 +242,7 @@ function main(argv) {
           result = { page: path.join(ctx.devlogDir, `${d}.html`), index: path.join(ctx.devlogDir, "index.html") };
         } else if (sub === "thread") {
           ledger.dailyThreads[day(ctx, pos[0])] = pos[1] || fail("give the thread id");
+          delete ledger.dailySettled[day(ctx, pos[0])];
           result = { day: day(ctx, pos[0]), thread: pos[1] };
         } else fail("usage: mm devlog event|summary|render|thread");
         break;

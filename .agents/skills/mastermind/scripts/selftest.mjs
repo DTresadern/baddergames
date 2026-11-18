@@ -868,6 +868,14 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   r = m(["status", "--json"], { at: T("30", "08:50:00"), extra: hub });
   check("T28l3 once it has answered, it is listed to settle again", days28(r.json?.settleThreads || []).includes("29"), JSON.stringify(r.json?.settleThreads));
 
+  // m. a thread recorded by hand for a day whose old thread was cached as gone is read again
+  { const x = fk(); x.threads["mcp:replace16"] = { title: "dev.baddergames · daily update · 2027-06-16", messages: [], settled: false, archived: false }; sv(x); }
+  const cached16 = ledger28().dailySettled["2027-06-16"];
+  m(["devlog", "thread", "2027-06-16", "mcp:replace16"], { at: T("30", "09:00:00"), extra: hub });
+  r = m(["rollover", "--json"], { at: T("30", "09:10:00"), extra: hub });
+  const listed16 = [...(r.json?.settleThreads || []), ...(r.json?.settleLater || [])].find((t) => t.day === "2027-06-16");
+  check("T28m a thread recorded with mm devlog thread replaces a cached gone thread and is listed", cached16 === "gone" && listed16?.threadId === "mcp:replace16" && ledger28().dailySettled["2027-06-16"] === undefined, JSON.stringify(listed16) + cached16);
+
   // j. the day check takes no lock
   const lockDir = path.join(E28.MM_STATE_DIR, ".lock");
   fs.mkdirSync(lockDir); fs.writeFileSync(path.join(lockDir, "pid"), String(process.pid));
