@@ -887,7 +887,11 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   r = m(["devlog", "thread", "2027-07-01", "mcp:hand01", "--json"], { at: J("02", "08:10:00"), extra: hub });
   const replaced01 = r.json?.replaced;
   r = m(["rollover", "--json"], { at: J("02", "08:20:00"), extra: hub });
-  check("T28n a replacement thread is listed to settle, and the replaced id is reported", replaced01 === old01 && (r.json?.settleThreads || []).some((t) => t.threadId === "mcp:hand01"), JSON.stringify(r.json?.settleThreads) + JSON.stringify(r.json?.settleLater) + replaced01);
+  const handMsgs = fk().threads["mcp:hand01"].messages;
+  check("T28n1 a replacement thread for a day without a summary is asked for it, and the replaced id is reported", replaced01 === old01 && r.json?.finaliseSent?.includes("2027-07-01") && handMsgs.some((x) => x.includes("[devlog finalise · 2027-07-01]")) && (r.json?.settleLater || []).some((t) => t.threadId === "mcp:hand01") && !(r.json?.settleThreads || []).some((t) => t.day === "2027-07-01"), JSON.stringify(r.json) + replaced01);
+  { const x = fk(); x.threads["mcp:hand01"].runCount = 3; sv(x); }
+  r = m(["rollover", "--json"], { at: J("02", "08:30:00"), extra: hub });
+  check("T28n2 once it has answered, it is listed to settle, not compared with the old thread's run count", (r.json?.settleThreads || []).some((t) => t.threadId === "mcp:hand01"), JSON.stringify(r.json?.settleThreads) + JSON.stringify(r.json?.settleLater));
 
   // o. recording today's thread by hand does not start an automatic one first
   m(["status"], { at: J("03", "08:00:00"), extra: { ...hub, FAKE_T3_DOWN: "1" } });

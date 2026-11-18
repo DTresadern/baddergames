@@ -318,13 +318,15 @@ export function dailyThreadsToSettle(ctx, ledger) {
   return { ready, later };
 }
 
-// Record a Daily Update thread made by hand. Run counts stored for the replaced thread do not apply to the new one.
+// Record a Daily Update thread made by hand. Run counts stored for the replaced thread do not apply to the new one,
+// and a closed day without a summary asks the new thread for it on the next rollover.
 export function setDailyThread(ctx, ledger, day, id) {
   const replaced = ledger.dailyThreads[day] && ledger.dailyThreads[day] !== id ? ledger.dailyThreads[day] : null;
   ledger.dailyThreads[day] = id;
   delete ledger.dailySettled[day];
   if (fs.existsSync(metaFile(ctx, day))) {
     const { finaliseRunCount, lateSentRunCount, ...meta } = readMeta(ctx, day);
+    if (meta.final && !meta.summary) for (const k of ["finaliseSentAt", "summaryMissing", "finaliseSkipped"]) delete meta[k];
     writeMeta(ctx, day, meta);
   }
   return { day, thread: id, replaced };
