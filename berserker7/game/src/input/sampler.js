@@ -181,7 +181,16 @@ export function sampleInput(input, devices, pads = []) {
     const pointer = keyboardMouse
       ? { x: devices.mouse.x, y: devices.mouse.y, width: devices.surface.width, height: devices.surface.height, moved: devices.mouse.moved }
       : null;
-    const frame = { player, connected, actions, aim: entry.aim, wheel: keyboardMouse ? devices.wheelSteps : 0, pointer };
+    const frame = {
+      player,
+      connected,
+      actions,
+      aim: entry.aim,
+      wheel: keyboardMouse ? devices.wheelSteps : 0,
+      pointer,
+      // A key, click or touch since the last tick that unlocks sound; gamepads never set it.
+      activated: keyboardMouse && devices.activations > 0,
+    };
 
     const debug = input.debug.players[player];
     debug.device = deviceLabel(config, pad);

@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { ACTIONS, WHEEL_SETTINGS } from '../src/input/actions.js';
 import {
+  activate,
   createDevices,
   moveMouse,
   press,
@@ -495,4 +496,17 @@ test('wheel: steps on consecutive ticks press nextWeapon on every tick; the fram
     [0, false, false, true],
   ]);
   assert.equal(input.debug.players[0].wheel, 8);
+});
+
+test('activated: true on the first tick after activate() only, for keyboard + mouse players only', () => {
+  const { devices, input } = setup();
+  assert.deepEqual(sampleInput(input, devices, [pad(0, { buttons: { 0: 1 } })]).map((f) => f.activated), [false, false]);
+  activate(devices);
+  activate(devices);
+  assert.deepEqual(sampleInput(input, devices, [pad(0)]).map((f) => f.activated), [true, false]);
+  assert.equal(devices.activations, 0);
+  assert.deepEqual(sampleInput(input, devices, [pad(0)]).map((f) => f.activated), [false, false]);
+  activate(devices);
+  releaseAll(devices); // blur does not cancel a press that already happened
+  assert.equal(sampleInput(input, devices)[0].activated, true);
 });
