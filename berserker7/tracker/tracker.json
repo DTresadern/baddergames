@@ -5509,6 +5509,24 @@
       "notes": "2026-11-18, project owner: decided. 2026-11-18: the four campaigns are data and placeholders on the New Game screen; only Megacity is available (issue #50). No campaign content yet."
     },
     {
+      "id": "D-128",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Art direction",
+      "title": "Don't use a menu background that is not 2:1",
+      "detail": "Every menu background is 2:1 (twice as wide as it is tall), so it scales correctly as a cover image on both desktop and phone screens. The original posters are square; new menu backgrounds are made by extending (outpainting) a poster to 2:1.",
+      "status": "ongoing",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "D-097",
+        "D-107"
+      ],
+      "notes": "2026-11-18, project owner: decided. Both current menu backgrounds (classic and thrash, issues #64 and #66) are 2508 x 1254."
+    },
+    {
       "id": "T-089",
       "list": "technical",
       "kind": "feature",
