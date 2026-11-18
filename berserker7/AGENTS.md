@@ -138,7 +138,7 @@ Version label and CI:
   - `state.selected` (label) and `state.selections` (count) are for debug checks only.
   - `state.request` (`'newGame'` or null, reset each tick) is what the scene's `tick` acts on.
 - Shared assets:
-  - There are two backgrounds, both in manifest group `menubg`: `poster.classic` (`content/textures/menubg/berserkerguy-classic-2-1.png`) and `poster.thrash` (`content/textures/menubg/berserkerguy-thrash-2-1.png`). `POSTERS` in `poster.js` lists them.
+  - There are two backgrounds, both in manifest group `menubg`: `poster.classic` (`content/textures/menubg/berserkerguy-classic-2-1.png`) and `poster.thrash` (`content/textures/menubg/berserkerguy-thrash-2-1.png`). `POSTERS` in `poster.js` is built from that group, so a new background needs only its manifest entry; its `?menubg=` name is the key without `poster.`.
   - `main.js` picks one once at start-up with `pickPoster` (equal chance; `Math.random`, not the seeded generator, since it is not gameplay) and passes the key as `poster` to `createMainMenu` and `createNewGame`; both throw if it is not in `POSTERS`.
   - `?menubg=classic` or `?menubg=thrash` forces one; any other value logs one warning and the pick is random.
   - Only the picked one is downloaded: `withPoster(groupAssets, poster)` is the loader's `listGroup` and adds it to the `boot` group, so it is preloaded with the boot group.

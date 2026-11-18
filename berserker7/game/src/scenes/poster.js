@@ -2,11 +2,12 @@
 // asset cache, so it is loaded once and stays loaded while any user holds it. One of POSTERS is
 // picked once at start-up (main.js) and passed to both scenes.
 
-import { assetByKey } from '../assets/manifest.js';
+import { assetByKey, groupAssets } from '../assets/manifest.js';
 
-export const POSTERS = Object.freeze(['poster.classic', 'poster.thrash']);
-// The short names `?menubg=` accepts.
-const SHORT_NAMES = Object.freeze({ classic: 'poster.classic', thrash: 'poster.thrash' });
+// Every asset in manifest group 'menubg', in manifest order (poster.classic, poster.thrash).
+export const POSTERS = Object.freeze(groupAssets('menubg').map((asset) => asset.key));
+// The short names `?menubg=` accepts: the key without its 'poster.' prefix (classic, thrash).
+const SHORT_NAMES = Object.freeze(Object.fromEntries(POSTERS.map((key) => [key.replace(/^poster\./, ''), key])));
 
 // `?menubg=classic` or `?menubg=thrash` forces one; an unknown value warns once and is ignored;
 // otherwise each poster has an equal chance.

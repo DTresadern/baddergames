@@ -18,13 +18,13 @@ import { createLoading } from '../src/scenes/loading.js';
 import { createMainMenu } from '../src/scenes/main-menu.js';
 import { createNewGame } from '../src/scenes/new-game.js';
 import { POSTERS } from '../src/scenes/poster.js';
-
-const MENU_POSTER = POSTERS[0];
 import { createPlayers, initPlayers } from '../src/scenes/players.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
 import { CHECKER } from '../src/scenes/shared.js';
 import { fakeSession, fakeSettings, settle, STEP } from './fakes.js';
+
+const MENU_POSTER = POSTERS[0];
 
 // Collects the GPU-backed objects of every rendered scene graph.
 function recordingRenderer() {
