@@ -224,6 +224,8 @@ function closePastDays(ctx, ledger, result) {
       meta.finaliseSentAt = now().toISOString();
       // The thread has answered once its run count is higher than this.
       meta.finaliseRunCount = info.thread.runCount ?? null;
+      // The message may wake a settled thread, so it has to be checked again.
+      delete ledger.dailySettled?.[d];
       result.finaliseSent.push(d);
     } else if (meta.summary) {
       meta.finaliseSkipped = true;

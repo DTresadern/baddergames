@@ -835,6 +835,19 @@ check("T18 Monday's page links forward to Tuesday", read(devlog("2026-11-16.html
   check("T28h1 a late event for a closed day is sent to its settled thread", fk().threads[t13[0]].settled === true && msgs13.length === before13 + 1 && /2027-06-13 is already closed; this event was recorded late/.test(msgs13.at(-1)), JSON.stringify(msgs13.slice(-1)));
   check("T28h2 and that day's settled entry is cleared so it is checked again", cached === "settled" && ledger28().dailySettled["2027-06-13"] === undefined, `${cached} → ${ledger28().dailySettled["2027-06-13"]}`);
 
+  // k. a finalise sent to a thread settled while its day stayed open clears the settled cache
+  m(["devlog", "event", "note", "k day"], { at: T("27", "10:00:00"), extra: hub });
+  m(["status"], { at: T("28", "08:00:00"), extra: { ...hub, FAKE_GH_FAIL: "1" } });
+  tune("27", { settled: true });
+  m(["status"], { at: T("28", "08:10:00"), extra: { ...hub, FAKE_GH_FAIL: "1" } });
+  const cached27 = ledger28().dailySettled["2027-06-27"];
+  tune("27", { settled: false, runCount: 1 });
+  r = m(["rollover", "--json"], { at: T("28", "08:20:00"), extra: hub });
+  check("T28k1 after the sweep recovers, the finalise goes to the thread and its settled entry is cleared", cached27 === "settled" && r.json?.finaliseSent?.includes("2027-06-27") && ledger28().dailySettled["2027-06-27"] === undefined, JSON.stringify(r.json) + cached27);
+  tune("27", { runCount: 2 });
+  r = m(["rollover", "--json"], { at: T("28", "08:30:00"), extra: hub });
+  check("T28k2 once it has answered, the thread is listed to settle again", days28(r.json?.settleThreads || []).includes("27"), JSON.stringify(r.json?.settleThreads));
+
   // j. the day check takes no lock
   const lockDir = path.join(E28.MM_STATE_DIR, ".lock");
   fs.mkdirSync(lockDir); fs.writeFileSync(path.join(lockDir, "pid"), String(process.pid));
