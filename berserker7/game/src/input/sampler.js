@@ -49,6 +49,7 @@ export function createInput({
     triggerThreshold,
     perPlayer: players.map(() => ({
       prevHeld: Object.fromEntries(ACTIONS.map((action) => [action, false])),
+      prevDown: Object.fromEntries(ACTIONS.map((action) => [action, false])), // a source was down at the last tick
       aim: 0,
       aimOrigin: null, // CSS px of the canvas; null = canvas centre
       padIndex: null, // gamepad.index of the pad this player holds
@@ -163,8 +164,15 @@ export function sampleInput(input, devices, pads = []) {
       }
       const held = downNow || tapped || pulsed;
       const prevHeld = entry.prevHeld[action];
-      actions[action] = { held, pressed: (held && !prevHeld) || pulsed, released: prevHeld && !held };
+      // Held last tick only by a tap, and a new press since: that tap ended, a new press starts.
+      const restarted = prevHeld && !entry.prevDown[action] && tapped;
+      actions[action] = {
+        held,
+        pressed: (held && !prevHeld) || restarted || pulsed,
+        released: (prevHeld && !held) || restarted,
+      };
       entry.prevHeld[action] = held;
+      entry.prevDown[action] = downNow;
     }
 
     if (keyboardMouse && devices.mouse.moved) entry.aim = mouseAim(entry, devices);

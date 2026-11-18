@@ -50,6 +50,24 @@ test('edges: a tap between two ticks gives pressed on one tick and released on t
   assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [false, false, false]);
 });
 
+test('edges: short taps on consecutive ticks each give a press', () => {
+  const { devices, input } = setup();
+  const tap = () => {
+    press(devices, 'key:Space');
+    release(devices, 'key:Space');
+  };
+  tap();
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, true, false]);
+  tap();
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, true, true]);
+  press(devices, 'key:Space'); // a press that stays down, after a tap
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, true, true]);
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, false, false]);
+  release(devices, 'key:Space');
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [false, false, true]);
+  assert.deepEqual(input.debug.players[0].totals.jump, { pressed: 3, released: 3 });
+});
+
 test('edges: holding for several ticks gives one pressed, then one released', () => {
   const { devices, input } = setup();
   press(devices, 'key:KeyD');

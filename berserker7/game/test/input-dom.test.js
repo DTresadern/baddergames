@@ -12,7 +12,7 @@ function fakePage({ pads = [], storage } = {}) {
   win.navigator = { getGamepads: () => pads };
   const canvas = new EventTarget();
   canvas.getBoundingClientRect = () => ({ left: 10, top: 20, width: 800, height: 600 });
-  const attached = attachInput({ window: win, canvas, storage, now: () => 0 });
+  const attached = attachInput({ window: win, canvas, storage });
   return { win, canvas, attached };
 }
 
@@ -106,7 +106,7 @@ test('dom: gamepads are polled each sample; null entries and a missing API are f
   bare.navigator = {};
   const canvas = new EventTarget();
   canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 100, height: 100 });
-  const noPads = attachInput({ window: bare, canvas, now: () => 0 });
+  const noPads = attachInput({ window: bare, canvas });
   assert.equal(noPads.sample()[1].connected, false);
 });
 

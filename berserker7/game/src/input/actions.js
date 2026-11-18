@@ -72,7 +72,5 @@ export const DEFAULT_BINDINGS = deepFreeze({
   },
 });
 
-// Wheel reading (devices.js): a pixel-mode deltaY that is a whole multiple of notchPixels
-// is mouse-wheel notches; any other distance is a touchpad swipe, one step per swipe once
-// it covers swipePixels in one direction; a swipe ends after swipeEndMs without distance.
+// Wheel reading settings: see wheel() in devices.js and berserker7/AGENTS.md, Input.
 export const WHEEL_SETTINGS = deepFreeze({ notchPixels: 120, swipePixels: 40, swipeEndMs: 120 });

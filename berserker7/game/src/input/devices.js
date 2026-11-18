@@ -63,7 +63,7 @@ export function setSurface(dev, width, height) {
   dev.surface.height = height;
 }
 
-function wheelSteps(dev, steps) {
+function addWheelSteps(dev, steps) {
   dev.wheelSteps += steps;
   pulse(dev, steps > 0 ? 'wheel:+' : 'wheel:-', Math.abs(steps));
 }
@@ -80,7 +80,7 @@ function swipeDistance(dev, deltaY, now) {
   swipe.distance += Math.abs(deltaY);
   if (swipe.distance >= swipePixels) {
     swipe.stepped = true;
-    wheelSteps(dev, sign);
+    addWheelSteps(dev, sign);
   }
 }
 
@@ -90,11 +90,11 @@ export function wheel(dev, deltaY, deltaMode, now) {
   if (!deltaY) return;
   if (deltaMode === 1 || deltaMode === 2) {
     const units = Math.abs(deltaY);
-    wheelSteps(dev, Math.sign(deltaY) * (Number.isInteger(units) && units > 1 ? units : 1));
+    addWheelSteps(dev, Math.sign(deltaY) * (Number.isInteger(units) && units > 1 ? units : 1));
     return;
   }
   const notches = deltaY / dev.wheelSettings.notchPixels;
-  if (Number.isInteger(notches)) wheelSteps(dev, notches);
+  if (Number.isInteger(notches)) addWheelSteps(dev, notches);
   else swipeDistance(dev, deltaY, now);
 }
 
