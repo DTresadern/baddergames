@@ -3,6 +3,7 @@ import { mountInputPanel } from './debug/input-panel.js';
 import { mountPanel } from './debug/panel.js';
 import { createHarness } from './engine/harness.js';
 import { attachInput } from './input/dom.js';
+import { togglePauseOnPress } from './pause-toggle.js';
 import { createBackdrop } from './scenes/backdrop.js';
 import { createLoading } from './scenes/loading.js';
 import { createPause } from './scenes/pause.js';
@@ -34,13 +35,7 @@ function drawTransition(alpha) {
 // The only place that listens to input devices. Bindings overrides come from localStorage.
 const input = attachInput({ window, canvas: renderer.domElement });
 
-// Any player's pause press opens the pause overlay, or closes it when open.
-function onInputs(inputs) {
-  if (!inputs.some((frame) => frame.actions.pause.pressed)) return;
-  if (harness.layers.overlays.includes('pause')) harness.closeOverlay('pause');
-  else harness.openOverlay('pause');
-}
-
+const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
 const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input, onInputs });
 const { assets } = harness;
 harness.register('backdrop', createBackdrop());
