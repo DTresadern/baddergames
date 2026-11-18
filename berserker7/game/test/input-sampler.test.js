@@ -324,6 +324,18 @@ test('frames are plain data: structuredClone and a JSON round trip give equal fr
   }
 });
 
+test('pointer: follows the mouse and surface; moved only on the tick after a move; null without keyboard + mouse', () => {
+  const { devices, input } = setup();
+  moveMouse(devices, 120, 340);
+  let [p1, p2] = sampleInput(input, devices, [pad(0)]);
+  assert.deepEqual(p1.pointer, { x: 120, y: 340, width: 800, height: 600, moved: true });
+  assert.equal(p2.pointer, null);
+  setSurface(devices, 1000, 500);
+  [p1] = sampleInput(input, devices);
+  assert.deepEqual(p1.pointer, { x: 120, y: 340, width: 1000, height: 500, moved: false });
+  assert.notEqual(p1.pointer, sampleInput(input, devices)[0].pointer);
+});
+
 test('frames are new objects every tick', () => {
   const { devices, input } = setup();
   const a = sampleInput(input, devices);
