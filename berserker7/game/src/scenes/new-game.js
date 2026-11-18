@@ -5,7 +5,8 @@
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
 import { CAMPAIGNS, DEFAULT_DIFFICULTY, DIFFICULTIES } from '../data/campaigns.js';
 import { labelTexture } from './labels.js';
-import { acquirePoster, coverSize, defaultLoadTexture } from './poster.js';
+import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
+import { POSTER, coverSize } from './poster.js';
 import { fitOrtho, inside, place } from './shared.js';
 
 export const LIST = Object.freeze([...DIFFICULTIES, 'back']);
@@ -135,7 +136,7 @@ export function createNewGame({
     // Closing unloads it, so each open starts fresh; the main menu keeps the shared poster loaded.
     settings: { tick: 'uncovered', drawCovered: true, leave: 'unload', pausable: false },
     async load({ track, acquire }) {
-      const texture = await acquirePoster(acquire, loadTexture);
+      const texture = await acquireTexture(acquire, POSTER, loadTexture);
       imageWidth = texture.image.width;
       imageHeight = texture.image.height;
       const geometry = track(new PlaneGeometry(1, 1));
