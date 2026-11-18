@@ -7,6 +7,7 @@ import {
   MmError, SCRIPTS_DIR, currentThreadId, dayKey, fail, git, localStamp, locate, lock, namespaces, now, nsFromPath,
   nsFromTitle, nsInfo, readLedger, threadInfo, threadState, writeLedger,
 } from "./core.mjs";
+import { dayCheck } from "./daycheck.mjs";
 import { NOTE_KINDS, devlogSummaryLine, recordEvent, renderPages, rollover, setSummary } from "./devlog.mjs";
 import {
   claim, gitPreflight, issueNew, laneAttach, laneCleanup, laneList, laneMerge, laneNew, laneNotify, laneSet, laneUpdate, nsAdd, owner, reconcile,
@@ -14,11 +15,12 @@ import {
   taskNew, taskStart,
 } from "./work.mjs";
 
-const HELP = `mm: mastermind bookkeeping. Every command except help, whoami and ns first closes past devlog days
+const HELP = `mm: mastermind bookkeeping. Every command except help, whoami, daycheck and ns first closes past devlog days
 and reads every open lane's thread, recording what it reports (HELD, WAITING, BLOCKED, …). A WORKING lane
 that stays idle past laneQuietMinutes gets a reminder in its thread, up to 3 in a row, then is reported as waiting.
 
   mm whoami [--ns <namespace>] [--json]      namespace, root, files to read, orchestrators, current time
+  mm daycheck                                run by the UserPromptSubmit hook: tells the hub orchestrator when the day has changed
   mm status [--json]                         rollover, lanes by state, what waits on the user, warnings
   mm claim [<namespace>] [--force]           this thread becomes the orchestrator of the namespace
   mm release [<namespace>]
@@ -45,7 +47,7 @@ that stays idle past laneQuietMinutes gets a reminder in its thread, up to 3 in 
   mm devlog summary <YYYY-MM-DD|today> (--file <f> | "<text>")
   mm devlog render [<YYYY-MM-DD>]
   mm devlog thread <YYYY-MM-DD> <thread-id>       record a Daily Update thread made by hand
-  mm rollover                                     close past days now
+  mm rollover                                     close past days, start today's Daily Update thread, list threads to settle
 
   mm owner <namespace>                            the running orchestrator responsible for a namespace
   mm preflight                                    the git checks a new lane must pass
@@ -119,7 +121,7 @@ function status(ctx, ledger, roll) {
   }
   return {
     now: localStamp(now(), ctx.config.timezone),
-    closedDays: roll.closed, finaliseSent: roll.finaliseSent, laneChanges: ledger.pendingChanges || [],
+    closedDays: roll.closed, finaliseSent: roll.finaliseSent, settleThreads: roll.settleThreads, settleLater: roll.settleLater, laneChanges: ledger.pendingChanges || [],
     waitingForUser: { approval: by(["held"]), answer: by(["waiting"]), blocked: by(["blocked"]) },
     running: by(["started", "running"]),
     // A lane that was just sent a reminder stays listed, so the orchestrator still schedules a check.
@@ -140,6 +142,11 @@ function main(argv) {
   if (cmd === "selftest") {
     const r = spawnSync(process.execPath, [path.join(SCRIPTS_DIR, "selftest.mjs"), ...argv.slice(1)], { stdio: "inherit" });
     process.exit(r.status ?? 1);
+  }
+  if (cmd === "daycheck") {
+    // Runs on every message: always exits 0 and prints nothing unless there is something to say.
+    try { const text = dayCheck(); if (text) process.stdout.write(`${text}\n`); } catch { /* stay silent */ }
+    return;
   }
   const ctx = locate();
   const { pos, opt } = parse(cmd === "whoami" || cmd === "status" || cmd === "rollover" || cmd === "claim" || cmd === "release" ? argv.slice(1) : rest);
