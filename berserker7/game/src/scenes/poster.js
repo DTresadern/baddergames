@@ -6,8 +6,11 @@ import { assetByKey, groupAssets } from '../assets/manifest.js';
 
 // Every asset in manifest group 'menubg', in manifest order (poster.classic, poster.thrash).
 export const POSTERS = Object.freeze(groupAssets('menubg').map((asset) => asset.key));
+const POSTER_KEY = /^poster\.([a-z0-9-]+)$/;
+const bad = POSTERS.filter((key) => !POSTER_KEY.test(key));
+if (bad.length > 0) throw new Error(`poster: menubg keys must look like poster.<name>: ${bad.join(', ')}`);
 // The short names `?menubg=` accepts: the key without its 'poster.' prefix (classic, thrash).
-const SHORT_NAMES = Object.freeze(Object.fromEntries(POSTERS.map((key) => [key.replace(/^poster\./, ''), key])));
+const SHORT_NAMES = Object.freeze(Object.fromEntries(POSTERS.map((key) => [POSTER_KEY.exec(key)[1], key])));
 
 // `?menubg=classic` or `?menubg=thrash` forces one; an unknown value warns once and is ignored;
 // otherwise each poster has an equal chance.
