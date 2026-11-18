@@ -46,11 +46,15 @@ export function panelSize(viewWidth, viewHeight) {
 export function menuLayout(viewWidth, viewHeight) {
   const size = panelSize(viewWidth, viewHeight);
   const panel = { x: (viewWidth - size.width) / 2, y: (viewHeight - size.height) / 2, ...size };
-  const width = Math.min(ITEM_WIDTH, panel.width - 32);
-  const stack = MENU_ITEMS.length * ITEM_HEIGHT + (MENU_ITEMS.length - 1) * ITEM_GAP;
+  const n = MENU_ITEMS.length;
+  const stack = n * ITEM_HEIGHT + (n - 1) * ITEM_GAP;
+  // The whole stack shrinks uniformly to keep 16 px of panel around it.
+  const k = Math.min(1, (panel.width - 32) / ITEM_WIDTH, (panel.height - 32) / stack);
+  const width = ITEM_WIDTH * k;
+  const height = ITEM_HEIGHT * k;
   const x = panel.x + (panel.width - width) / 2;
-  const top = panel.y + (panel.height - stack) / 2;
-  const items = MENU_ITEMS.map((_, i) => ({ x, y: top + i * (ITEM_HEIGHT + ITEM_GAP), width, height: ITEM_HEIGHT }));
+  const top = panel.y + (panel.height - stack * k) / 2;
+  const items = MENU_ITEMS.map((_, i) => ({ x, y: top + i * (height + ITEM_GAP * k), width, height }));
   return { panel, items };
 }
 
@@ -99,13 +103,17 @@ function place(mesh, rect, viewWidth, viewHeight) {
   mesh.scale.set(rect.width, rect.height, 1);
 }
 
-export function createMainMenu({ music }) {
+export function createMainMenu({
+  music,
+  loadTexture = (url) => new TextureLoader().loadAsync(url),
+  createCanvas = () => document.createElement('canvas'),
+}) {
   let scene, camera, poster, panel, bar, imageWidth, imageHeight;
   let labels = []; // { mesh, material } per menu item
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
     async load({ track }) {
-      const texture = track(await new TextureLoader().loadAsync(POSTER_URL));
+      const texture = track(await loadTexture(POSTER_URL));
       texture.colorSpace = SRGBColorSpace;
       imageWidth = texture.image.width;
       imageHeight = texture.image.height;
@@ -126,7 +134,7 @@ export function createMainMenu({ music }) {
       scene.add(poster, panel, bar);
       // The label canvases are never added to the page, so only the tracked textures need freeing.
       labels = MENU_ITEMS.map((label) => {
-        const canvas = document.createElement('canvas');
+        const canvas = createCanvas();
         canvas.width = ITEM_WIDTH * TEXT_SCALE;
         canvas.height = ITEM_HEIGHT * TEXT_SCALE;
         const g = canvas.getContext('2d');
@@ -164,8 +172,6 @@ export function createMainMenu({ music }) {
       layout.items.forEach((rect, i) => {
         const { mesh, material } = labels[i];
         place(mesh, rect, width, height);
-        const s = rect.width / ITEM_WIDTH;
-        mesh.scale.set(ITEM_WIDTH * s, ITEM_HEIGHT * s, 1);
         material.opacity = i === state.highlight ? 1 : DIM_OPACITY;
       });
       view.renderer.render(scene, camera);

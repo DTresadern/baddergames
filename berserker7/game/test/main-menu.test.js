@@ -4,6 +4,7 @@ import { ACTIONS } from '../src/input/actions.js';
 import {
   ITEM_GAP,
   ITEM_HEIGHT,
+  ITEM_WIDTH,
   MENU_ITEMS,
   MUSIC_URL,
   coverSize,
@@ -66,14 +67,28 @@ test('menuLayout: items sit inside the panel and view, in order, without overlap
       assert.ok(r.x >= panel.x - EPS && r.x + r.width <= panel.x + panel.width + EPS, `${label}: item ${i} inside panel x`);
       assert.ok(r.y >= panel.y - EPS && r.y + r.height <= panel.y + panel.height + EPS, `${label}: item ${i} inside panel y`);
       assert.ok(r.x >= 0 && r.y >= 0 && r.x + r.width <= vw && r.y + r.height <= vh, `${label}: item ${i} inside view`);
-      assert.equal(r.height, ITEM_HEIGHT);
-      if (i > 0) assert.ok(r.y >= items[i - 1].y + items[i - 1].height + ITEM_GAP - EPS, `${label}: item ${i} below item ${i - 1}`);
+      assert.ok(Math.abs(r.width / r.height - ITEM_WIDTH / ITEM_HEIGHT) < EPS, `${label}: item ${i} aspect`);
+      if (i > 0) assert.ok(r.y >= items[i - 1].y + items[i - 1].height + ITEM_GAP * (r.height / ITEM_HEIGHT) - EPS, `${label}: item ${i} below item ${i - 1}`);
     });
     const last = items[items.length - 1];
     const above = items[0].y - panel.y;
     const below = panel.y + panel.height - (last.y + last.height);
     assert.ok(Math.abs(above - below) < EPS, `${label}: vertically centred`);
     for (const r of items) assert.ok(Math.abs(r.x - panel.x - (panel.x + panel.width - r.x - r.width)) < EPS, `${label}: horizontally centred`);
+  }
+});
+
+test('menuLayout: the stack shrinks uniformly to fit tiny and extreme panels', () => {
+  for (const [vw, vh] of [[1280, 200], [300, 240], [200, 900]]) {
+    const { panel, items } = menuLayout(vw, vh);
+    const label = `${vw}x${vh}`;
+    items.forEach((r, i) => {
+      assert.ok(r.width > 0 && r.height > 0, `${label}: item ${i} has size`);
+      assert.ok(r.x >= panel.x - EPS && r.x + r.width <= panel.x + panel.width + EPS, `${label}: item ${i} inside panel x`);
+      assert.ok(r.y >= panel.y - EPS && r.y + r.height <= panel.y + panel.height + EPS, `${label}: item ${i} inside panel y`);
+      assert.ok(Math.abs(r.width / r.height - ITEM_WIDTH / ITEM_HEIGHT) < EPS, `${label}: item ${i} aspect`);
+      if (i > 0) assert.ok(r.y >= items[i - 1].y + items[i - 1].height - EPS, `${label}: item ${i} does not overlap item ${i - 1}`);
+    });
   }
 });
 
