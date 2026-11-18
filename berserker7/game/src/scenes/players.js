@@ -130,7 +130,7 @@ export function createPlayers() {
         // World position to CSS px of the canvas, for mouse aim.
         const px = ((player.x - camera.left) / (camera.right - camera.left)) * view.width;
         const py = ((camera.top - player.y) / (camera.top - camera.bottom)) * view.height;
-        view.setAimOrigin?.(player.index, px, py);
+        view.setAimOrigin(player.index, px, py);
       }
       view.renderer.render(scene, camera);
     },
