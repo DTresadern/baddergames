@@ -91,7 +91,6 @@ export function attachInput({
 
   win.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
-    setSurface(devices, rect.width, rect.height);
     moveMouse(devices, e.clientX - rect.left, e.clientY - rect.top);
   }, { signal });
 
