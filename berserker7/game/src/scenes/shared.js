@@ -1,4 +1,4 @@
-// Helpers shared by the test scenes.
+// Helpers shared by the scenes.
 
 import { DataTexture, NearestFilter, RepeatWrapping } from 'three';
 
@@ -59,6 +59,16 @@ export function fitPerspective(camera, view, distance) {
   camera.aspect = aspect;
   camera.position.setLength(distance * Math.max(1, 1 / aspect));
   camera.updateProjectionMatrix();
+}
+
+// True when (x, y) is in the rectangle: left and top edges inside, right and bottom outside.
+export const inside = (r, x, y) => x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
+
+// Puts a unit plane on a layout rectangle (CSS px, top-left origin, y down): centred, in y-up camera space.
+export function place(mesh, rect, viewWidth, viewHeight) {
+  mesh.position.x = rect.x + rect.width / 2 - viewWidth / 2;
+  mesh.position.y = viewHeight / 2 - (rect.y + rect.height / 2);
+  mesh.scale.set(rect.width, rect.height, 1);
 }
 
 export function wait(ms) {

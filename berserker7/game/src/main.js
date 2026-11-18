@@ -2,10 +2,13 @@ import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene, WebG
 import { mountInputPanel } from './debug/input-panel.js';
 import { mountPanel } from './debug/panel.js';
 import { createHarness } from './engine/harness.js';
+import { createMusic } from './audio/music.js';
 import { attachInput } from './input/dom.js';
 import { togglePauseOnPress } from './pause-toggle.js';
 import { createBackdrop } from './scenes/backdrop.js';
 import { createLoading } from './scenes/loading.js';
+import { createMainMenu } from './scenes/main-menu.js';
+import { createNewGame } from './scenes/new-game.js';
 import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
 import { createSceneA } from './scenes/scene-a.js';
@@ -32,8 +35,10 @@ function drawTransition(alpha) {
   renderer.render(fadeScene, fadeCamera);
 }
 
-// The only place that listens to input devices. Bindings overrides come from localStorage.
+// The only input reader (music.js listens only for the gesture that unlocks sound). Bindings overrides come from localStorage.
 const input = attachInput({ window, canvas: renderer.domElement });
+
+const music = createMusic({ window });
 
 const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
 const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input, onInputs });
@@ -44,10 +49,17 @@ harness.register('sceneA', createSceneA());
 harness.register('sceneB', createSceneB());
 harness.register('pause', createPause());
 harness.register('slow', createSlow());
+// New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
+const screens = {
+  openNewGame: () => harness.openOverlay('newGame'),
+  closeNewGame: () => harness.closeOverlay('newGame'),
+};
+harness.register('mainMenu', createMainMenu({ music, screens }));
+harness.register('newGame', createNewGame({ screens }));
 harness.register('loading', createLoading());
 harness.preload('loading');
-harness.addBackground('backdrop');
-harness.setMain('players');
+// The menu has no backdrop; the debug panel's test scene buttons add it.
+harness.setMain('mainMenu');
 
 function resize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -71,5 +83,5 @@ requestAnimationFrame(loop);
 mountPanel({ harness, renderer, assets });
 mountInputPanel({ input });
 
-// Debug only: lets browser scripts read the harness, renderer, shared assets and input. Not a game API.
-window.__b7 = { harness, renderer, assets, input };
+// Debug only: lets browser scripts read the harness, renderer, shared assets, input and music. Not a game API.
+window.__b7 = { harness, renderer, assets, input, music };

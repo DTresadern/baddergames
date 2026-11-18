@@ -1,6 +1,7 @@
 // Browser wiring for the input system: listens to keyboard, mouse, wheel and focus
 // events, polls gamepads each tick, and hands everything to the pure functions in
-// devices.js and sampler.js. Nothing else in the game listens to input events.
+// devices.js and sampler.js. Nothing else in the game listens to input events, except
+// audio/music.js, which only waits for the first gesture to unlock sound.
 
 import { loadBindings } from './bindings.js';
 import {
@@ -90,7 +91,6 @@ export function attachInput({
 
   win.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
-    setSurface(devices, rect.width, rect.height);
     moveMouse(devices, e.clientX - rect.left, e.clientY - rect.top);
   }, { signal });
 
@@ -106,11 +106,11 @@ export function attachInput({
   win.addEventListener('gamepadconnected', padEvent, { signal });
   win.addEventListener('gamepaddisconnected', padEvent, { signal });
 
+  // The canvas size is read on every sample: a resize event can arrive before the renderer
+  // has resized the canvas, so reading it in a resize listener would keep the old size.
   function sample() {
-    if (devices.surface.width === 0) {
-      const rect = canvas.getBoundingClientRect();
-      setSurface(devices, rect.width, rect.height);
-    }
+    const rect = canvas.getBoundingClientRect();
+    setSurface(devices, rect.width, rect.height);
     return sampleInput(input, devices, readPads(nav));
   }
 

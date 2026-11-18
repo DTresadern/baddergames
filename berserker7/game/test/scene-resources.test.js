@@ -1,15 +1,20 @@
-// Runs the three.js test scenes in a harness with a fake renderer (no WebGL) and
+// Runs the three.js scenes in a harness with a fake renderer (no WebGL) and
 // checks that every geometry, material and texture they draw with is disposed
 // when the harness unloads them. The pause scene (needs a DOM canvas) and the
-// slow scene (2 s load) are left out.
+// slow scene (2 s load) are left out. The main menu gets a fake texture loader,
+// canvas and music.
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { Texture } from 'three';
 import { createHarness } from '../src/engine/harness.js';
 import { createDevices, press, setSurface } from '../src/input/devices.js';
 import { createInput, sampleInput, setAimOrigin } from '../src/input/sampler.js';
 import { createBackdrop } from '../src/scenes/backdrop.js';
 import { createLoading } from '../src/scenes/loading.js';
+import { createMainMenu } from '../src/scenes/main-menu.js';
+import { createNewGame } from '../src/scenes/new-game.js';
+import { POSTER_KEY } from '../src/scenes/poster.js';
 import { createPlayers, initPlayers } from '../src/scenes/players.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
@@ -19,11 +24,16 @@ import { settle, STEP } from './fakes.js';
 // Collects the GPU-backed objects of every rendered scene graph.
 function recordingRenderer() {
   const used = new Set();
+  let renderedScene = null;
   return {
     used,
+    get scene() {
+      return renderedScene;
+    },
     clear() {},
     clearDepth() {},
     render(scene) {
+      renderedScene = scene;
       scene.traverse((obj) => {
         if (!obj.isMesh && !obj.isLine) return;
         used.add(obj.geometry);
@@ -63,12 +73,34 @@ function harnessFor(scenes, renderer = recordingRenderer()) {
   return { harness, renderer };
 }
 
+// The menu screens with fakes for what needs a DOM: the poster loader, the label canvases and the music.
+// `loads` counts poster loads.
+function fakeDeps(loads = { count: 0 }) {
+  const stub2d = { font: '', fillStyle: '', textAlign: '', textBaseline: '', fillText() {} };
+  return {
+    loadTexture: async () => {
+      loads.count += 1;
+      return new Texture({ width: 1254, height: 1254 });
+    },
+    createCanvas: () => ({ width: 0, height: 0, getContext: () => stub2d }),
+  };
+}
+const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), ...fakeDeps() });
+const fakeNewGame = () => createNewGame({ screens: fakeScreens(), ...fakeDeps() });
+function fakeScreens() {
+  return { openNewGame() {}, closeNewGame() {} };
+}
+
+const flush = () => new Promise((resolve) => setImmediate(resolve));
+
 const FACTORIES = {
   backdrop: createBackdrop,
   loading: createLoading,
   sceneA: createSceneA,
   sceneB: createSceneB,
   players: createPlayers,
+  mainMenu: fakeMenu,
+  newGame: fakeNewGame,
 };
 
 for (const [name, create] of Object.entries(FACTORIES)) {
@@ -82,6 +114,7 @@ for (const [name, create] of Object.entries(FACTORIES)) {
     for (const obj of renderer.used) obj.addEventListener('dispose', () => disposed.add(obj));
     harness.leave(name, 'unload');
     harness.frame(0);
+    await flush(); // the shared poster is disposed once its load promise has settled
     assert.equal(harness.records.get(name).life, 'unloaded');
     assert.equal(disposed.size, renderer.used.size);
     assert.deepEqual(harness.assets.keys(), []);
@@ -150,4 +183,83 @@ test('players: draw reports each connected marker to view.setAimOrigin in CSS px
   state.players[1].connected = false;
   scene.draw(state, { ...view, width: 600, height: 600 }); // square: y in [-6.5, 6.5]
   assert.deepEqual(calls, [[0, 300, 300]]);
+});
+
+test('main menu: after unload and a fresh load, the scene has 3 labels plus poster, panel and bar', async () => {
+  const { harness, renderer } = harnessFor({ mainMenu: fakeMenu() });
+  const meshCount = () => {
+    let n = 0;
+    renderer.scene.traverse((obj) => {
+      if (obj.isMesh) n += 1;
+    });
+    return n;
+  };
+  harness.setMain('mainMenu');
+  await settle(harness, STEP);
+  harness.frame(STEP);
+  assert.equal(meshCount(), 6);
+  harness.leave('mainMenu', 'unload');
+  harness.frame(0);
+  harness.setMain('mainMenu');
+  await settle(harness, STEP);
+  harness.frame(STEP);
+  assert.equal(meshCount(), 6);
+});
+
+test('main menu and New Game share one poster, disposed once after both unload; the rest is disposed per scene', async () => {
+  const loads = { count: 0 };
+  const deps = fakeDeps(loads);
+  const { harness, renderer } = harnessFor({
+    mainMenu: createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(), ...deps }),
+    newGame: createNewGame({ screens: fakeScreens(), ...deps }),
+  });
+  harness.setMain('mainMenu');
+  harness.openOverlay('newGame');
+  await settle(harness, STEP);
+  for (let i = 0; i < 3; i++) harness.frame(STEP);
+  assert.equal(loads.count, 1);
+  assert.equal(harness.assets.count(POSTER_KEY), 2);
+  const poster = (await harness.assets.acquire(POSTER_KEY, () => assert.fail('should exist')).ready);
+  harness.assets.release(POSTER_KEY);
+  const disposed = new Set();
+  for (const obj of renderer.used) obj.addEventListener('dispose', () => disposed.add(obj));
+  let posterDisposed = 0;
+  poster.addEventListener('dispose', () => (posterDisposed += 1));
+
+  harness.leave('newGame', 'unload');
+  harness.frame(0);
+  await flush();
+  assert.equal(harness.assets.count(POSTER_KEY), 1);
+  assert.equal(posterDisposed, 0);
+  const afterNewGame = disposed.size;
+  assert.ok(afterNewGame > 0, 'New Game own geometry, materials and label textures are disposed');
+
+  harness.leave('mainMenu', 'unload');
+  harness.frame(0);
+  await flush();
+  assert.equal(posterDisposed, 1);
+  assert.ok(disposed.size > afterNewGame);
+  assert.deepEqual(harness.assets.keys(), []);
+});
+
+test('new game: after unload and a fresh load the scene has the same meshes', async () => {
+  const { harness, renderer } = harnessFor({ newGame: fakeNewGame() });
+  const meshCount = () => {
+    let n = 0;
+    renderer.scene.traverse((obj) => {
+      if (obj.isMesh) n += 1;
+    });
+    return n;
+  };
+  harness.openOverlay('newGame');
+  await settle(harness, STEP);
+  harness.frame(STEP);
+  const first = meshCount();
+  assert.ok(first > 0);
+  harness.leave('newGame', 'unload');
+  harness.frame(0);
+  harness.openOverlay('newGame');
+  await settle(harness, STEP);
+  harness.frame(STEP);
+  assert.equal(meshCount(), first);
 });

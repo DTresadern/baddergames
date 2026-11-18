@@ -2465,7 +2465,7 @@
       "category": "Modes and difficulty",
       "title": "Four difficulty levels",
       "detail": "Easy, standard, hard and extreme.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Level ideas"
       ],
@@ -2476,7 +2476,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-18, project owner: Megacity difficulty names: easy Still Sedated, normal Inmate, hard Blood on the Visor, extreme Hunter. Each campaign gets its own names."
     },
     {
       "id": "D-090",
@@ -5489,6 +5489,24 @@
         "T-053"
       ],
       "notes": "2026-11-18, project owner: decided. The input system (issue #48) supports it: one input frame per player per tick, player 1 on keyboard + mouse, player 2 on the first gamepad, both players on gamepads when two are connected."
+    },
+    {
+      "id": "D-127",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Four campaigns: Megacity, Underbelly, Caverns, Infested Earth",
+      "detail": "The game has four campaigns. Only Megacity is available on the New Game screen; the other three are shown as coming later.",
+      "status": "accepted",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "D-101",
+        "D-089"
+      ],
+      "notes": "2026-11-18, project owner: decided."
     },
     {
       "id": "T-089",

@@ -178,7 +178,10 @@ export function sampleInput(input, devices, pads = []) {
     if (keyboardMouse && devices.mouse.moved) entry.aim = mouseAim(entry, devices);
     else if (pad) entry.aim = stickAim(input, pad) ?? entry.aim;
 
-    const frame = { player, connected, actions, aim: entry.aim, wheel: keyboardMouse ? devices.wheelSteps : 0 };
+    const pointer = keyboardMouse
+      ? { x: devices.mouse.x, y: devices.mouse.y, width: devices.surface.width, height: devices.surface.height, moved: devices.mouse.moved }
+      : null;
+    const frame = { player, connected, actions, aim: entry.aim, wheel: keyboardMouse ? devices.wheelSteps : 0, pointer };
 
     const debug = input.debug.players[player];
     debug.device = deviceLabel(config, pad);

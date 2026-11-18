@@ -34,11 +34,13 @@ test('illegal lifecycle changes throw', () => {
 });
 
 test('settings: defaults, and invalid values throw', () => {
-  assert.deepEqual({ ...readSettings({}) }, { tick: 'uncovered', drawCovered: true, leave: 'suspend' });
+  assert.deepEqual({ ...readSettings({}) }, { tick: 'uncovered', drawCovered: true, leave: 'suspend', pausable: true });
   assert.equal(readSettings({ settings: { leave: 'snapshot' } }).leave, 'snapshot');
   assert.throws(() => readSettings({ settings: { tick: 'sometimes' } }), /tick/);
   assert.throws(() => readSettings({ settings: { leave: 'vanish' } }), /leave/);
   assert.throws(() => readSettings({ settings: { drawCovered: 'yes' } }), /drawCovered/);
+  assert.throws(() => readSettings({ settings: { pausable: 'no' } }), /pausable/);
+  assert.equal(readSettings({ settings: { pausable: false } }).pausable, false);
 });
 
 test('coverage: background under main and overlays, main under overlays, overlays under higher overlays', () => {
