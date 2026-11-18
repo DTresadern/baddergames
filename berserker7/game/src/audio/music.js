@@ -1,14 +1,26 @@
 // Title music wiring: the only place that touches audio and listens for the unlock gesture.
-// One streamed HTMLAudioElement (a media element with `src`, never fetch + decode).
+// One streamed HTMLAudioElement (a media element with `src`, never fetch + decode), created on
+// the first play(url) or preload(url).
 // Browsers block playback until a user gesture, so play() is only called after one, and
 // while the tab is visible.
 
 // The one volume value for music (0 to 1).
 export const MUSIC_VOLUME = 0.35;
 
-const GESTURES = ['pointerdown', 'pointerup', 'keydown', 'touchend', 'click'];
+// preload() resolves without buffering after this long, and the music then streams on play.
+// Some mobile browsers ignore preload until a user gesture.
+export const MUSIC_PRELOAD_TIMEOUT_MS = 15000;
 
-export function createMusic({ window, createAudio = () => new window.Audio() }) {
+const GESTURES = ['pointerdown', 'pointerup', 'keydown', 'touchend', 'click'];
+const HAVE_ENOUGH_DATA = 4;
+
+export function createMusic({
+  window,
+  createAudio = () => new window.Audio(),
+  setTimer = (fn, ms) => setTimeout(fn, ms),
+  clearTimer = (id) => clearTimeout(id),
+  log = console,
+}) {
   let element = null;
   let created = 0;
   let wanted = null;
@@ -46,23 +58,66 @@ export function createMusic({ window, createAudio = () => new window.Audio() }) 
   for (const type of GESTURES) window.addEventListener(type, onGesture, { capture: true, passive: true });
   window.document.addEventListener('visibilitychange', update);
 
+  function ensureElement() {
+    if (element) return;
+    element = createAudio();
+    created += 1;
+    element.loop = true;
+    element.preload = 'auto';
+    element.volume = MUSIC_VOLUME;
+  }
+
+  // The element's own `src` is resolved to an absolute URL, so compare with the url we set.
+  function setSource(url) {
+    if (url === sourceUrl) return;
+    element.src = url;
+    sourceUrl = url;
+  }
+
+  // Buffers `url` without playing it (still streamed: the element loads it, no fetch + decode).
+  // Resolves once the element can play it through, or after MUSIC_PRELOAD_TIMEOUT_MS with a
+  // warning; rejects on the element's error event.
+  function preload(url) {
+    ensureElement();
+    setSource(url);
+    const audio = element;
+    return new Promise((resolve, reject) => {
+      if (audio.readyState >= HAVE_ENOUGH_DATA) {
+        resolve();
+        return;
+      }
+      let timer = null;
+      const finish = () => {
+        clearTimer(timer);
+        audio.removeEventListener('canplaythrough', onReady);
+        audio.removeEventListener('error', onError);
+      };
+      const onReady = () => {
+        finish();
+        resolve();
+      };
+      const onError = () => {
+        finish();
+        reject(new Error(`music: could not load ${url}`));
+      };
+      audio.addEventListener('canplaythrough', onReady);
+      audio.addEventListener('error', onError);
+      timer = setTimer(() => {
+        finish();
+        log.warn(`music: ${url} was not buffered within ${MUSIC_PRELOAD_TIMEOUT_MS} ms; it will stream when played`);
+        resolve();
+      }, MUSIC_PRELOAD_TIMEOUT_MS);
+    });
+  }
+
   return {
     play(url) {
-      if (!element) {
-        element = createAudio();
-        created += 1;
-        element.loop = true;
-        element.preload = 'auto';
-        element.volume = MUSIC_VOLUME;
-      }
+      ensureElement();
       wanted = url;
-      // The element's own `src` is resolved to an absolute URL, so compare with the url we set.
-      if (url !== sourceUrl) {
-        element.src = url;
-        sourceUrl = url;
-      }
+      setSource(url);
       update();
     },
+    preload,
     stop() {
       wanted = null;
       if (!element) return;

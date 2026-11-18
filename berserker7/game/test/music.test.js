@@ -2,13 +2,19 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MUSIC_VOLUME, createMusic } from '../src/audio/music.js';
+import { MUSIC_PRELOAD_TIMEOUT_MS, MUSIC_VOLUME, createMusic } from '../src/audio/music.js';
 
 const GESTURES = ['pointerdown', 'pointerup', 'keydown', 'touchend', 'click'];
 
-// A fake element. play() returns a promise the test settles with `settle(true|false)`.
+// A fake element. play() returns a promise the test settles with `settle(true|false)`;
+// `fire(type)` dispatches a media event (canplaythrough, error).
 function fakeAudio() {
+  const events = new EventTarget();
   const audio = {
+    readyState: 0,
+    addEventListener: (...args) => events.addEventListener(...args),
+    removeEventListener: (...args) => events.removeEventListener(...args),
+    fire: (type) => events.dispatchEvent(new Event(type)),
     paused: true,
     currentTime: 0,
     srcSets: 0,
@@ -38,13 +44,22 @@ function fakeAudio() {
   return audio;
 }
 
+// Timers are fake: `timers` holds { fn, ms, cleared }; the test runs fn itself.
 function setup() {
   const win = new EventTarget();
   win.document = new EventTarget();
   win.document.visibilityState = 'visible';
   const audios = [];
-  const music = createMusic({ window: win, createAudio: () => { const a = fakeAudio(); audios.push(a); return a; } });
-  return { win, music, audios };
+  const timers = [];
+  const warnings = [];
+  const music = createMusic({
+    window: win,
+    createAudio: () => { const a = fakeAudio(); audios.push(a); return a; },
+    setTimer: (fn, ms) => timers.push({ fn, ms, cleared: false }) - 1,
+    clearTimer: (id) => { if (timers[id]) timers[id].cleared = true; },
+    log: { warn: (message) => warnings.push(message) },
+  });
+  return { win, music, audios, timers, warnings };
 }
 
 const send = (win, type) => win.dispatchEvent(new Event(type));
@@ -160,4 +175,80 @@ test('music: listeners are removed after a resolved play', async () => {
   const plays = audios[0].playCalls;
   send(win, 'click');
   assert.equal(audios[0].playCalls, plays);
+});
+
+// Resolves to 'resolved', 'rejected: <message>' or 'pending' after pending callbacks run.
+async function outcome(promise) {
+  let result = 'pending';
+  promise.then(() => { result = 'resolved'; }, (error) => { result = `rejected: ${error.message}`; });
+  await tick();
+  return result;
+}
+
+test('music preload: creates the element with the play settings, sets src, does not play or set wanted', async () => {
+  const { win, music, audios } = setup();
+  send(win, 'click'); // even after a gesture, preload does not play
+  const promise = music.preload('a.mp3');
+  assert.equal(audios.length, 1);
+  assert.equal(audios[0].src, 'a.mp3');
+  assert.equal(audios[0].preload, 'auto');
+  assert.equal(audios[0].loop, true);
+  assert.equal(audios[0].volume, MUSIC_VOLUME);
+  assert.equal(audios[0].playCalls, 0);
+  assert.equal(music.debug.wanted, null);
+  assert.equal(await outcome(promise), 'pending');
+});
+
+test('music preload: resolves on canplaythrough and clears its timer', async () => {
+  const { music, audios, timers } = setup();
+  const promise = music.preload('a.mp3');
+  audios[0].fire('canplaythrough');
+  assert.equal(await outcome(promise), 'resolved');
+  assert.equal(timers[0].cleared, true);
+});
+
+test('music preload: rejects on the element error, naming the url', async () => {
+  const { music, audios, timers } = setup();
+  const promise = music.preload('content/audio/music/missing.mp3');
+  audios[0].fire('error');
+  assert.equal(await outcome(promise), 'rejected: music: could not load content/audio/music/missing.mp3');
+  assert.equal(timers[0].cleared, true);
+});
+
+test('music preload: resolves at once when the element already has enough data', async () => {
+  const { music, audios, timers } = setup();
+  music.preload('a.mp3');
+  audios[0].readyState = 4;
+  assert.equal(await outcome(music.preload('a.mp3')), 'resolved');
+  assert.equal(audios[0].srcSets, 1);
+  assert.equal(timers.length, 1, 'only the first call waited');
+});
+
+test('music preload: without canplaythrough it resolves after the timeout with a warning', async () => {
+  const { music, timers, warnings } = setup();
+  const promise = music.preload('a.mp3');
+  assert.equal(timers[0].ms, MUSIC_PRELOAD_TIMEOUT_MS);
+  assert.equal(MUSIC_PRELOAD_TIMEOUT_MS, 15000);
+  assert.equal(await outcome(promise), 'pending');
+  timers[0].fn();
+  assert.equal(await outcome(promise), 'resolved');
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /a\.mp3 was not buffered/);
+});
+
+test('music preload: play with the same url afterwards keeps src and does not restart', async () => {
+  const { win, music, audios } = setup();
+  const promise = music.preload('a.mp3');
+  audios[0].fire('canplaythrough');
+  await promise;
+  audios[0].currentTime = 3;
+  send(win, 'click');
+  music.play('a.mp3');
+  assert.equal(audios[0].srcSets, 1);
+  assert.equal(audios[0].currentTime, 3);
+  assert.equal(audios[0].playCalls, 1);
+  assert.equal(music.debug.created, 1);
+  music.play('a.mp3'); // a second play with the same url (the menu after the intro)
+  assert.equal(audios[0].srcSets, 1);
+  assert.equal(audios[0].currentTime, 3);
 });
