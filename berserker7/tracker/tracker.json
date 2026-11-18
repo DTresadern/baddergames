@@ -2542,7 +2542,7 @@
       "refs": [
         "TF-046"
       ],
-      "notes": "2026-11-18: the input system (issue #48) has the held action weaponMenu (Q, gamepad d-pad down); the radial menu itself is not built yet."
+      "notes": "2026-11-18: the input system (issue #48) has the held action weaponMenu (Q, gamepad View/Back); the radial menu itself is not built yet."
     },
     {
       "id": "D-092",
