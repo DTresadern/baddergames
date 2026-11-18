@@ -4,6 +4,7 @@ import { createDevices, moveMouse, press, release, setSurface } from '../src/inp
 import { createInput, sampleInput, setAimOrigin } from '../src/input/sampler.js';
 import { initBackdrop, tickBackdrop } from '../src/scenes/backdrop.js';
 import { initLoading, tickLoading } from '../src/scenes/loading.js';
+import { initMainMenu, tickMainMenu } from '../src/scenes/main-menu.js';
 import { initPause, tickPause } from '../src/scenes/pause.js';
 import { ARENA, RADIUS, SPEED, initPlayers, tickPlayers } from '../src/scenes/players.js';
 import { initSceneA, tickSceneA } from '../src/scenes/scene-a.js';
@@ -18,6 +19,7 @@ const SIMS = {
   slow: [initSlow, tickSlow],
   loading: [initLoading, tickLoading],
   players: [initPlayers, tickPlayers],
+  mainMenu: [initMainMenu, tickMainMenu],
 };
 
 const NO_INPUTS = Object.freeze([]);
