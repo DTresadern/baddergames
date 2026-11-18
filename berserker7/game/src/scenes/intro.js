@@ -6,8 +6,10 @@ import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
 import { STEP_SECONDS } from '../engine/clock.js';
 import { fitOrtho, place } from './shared.js';
 
-export const FADE_SECONDS = 1;
+export const FADE_SECONDS = 1.3;
 export const HOLD_SECONDS = 2;
+// The menu's fade-in from black after the logos end.
+export const MENU_FADE_IN_SECONDS = 2;
 export const TICKS_PER_SECOND = Math.round(1 / STEP_SECONDS);
 export const INTRO_LOGOS = Object.freeze(['logo.baddergames', 'logo.w8omg']);
 // Black text on white with no alpha, shown as white text on black (see invertedMaterial).
@@ -21,10 +23,11 @@ export const SKIP_DELAY_SECONDS = 0.25;
 export const LOGO_MAX_WIDTH = 0.8;
 export const LOGO_MAX_HEIGHT = 0.6;
 
-const FADE_TICKS = FADE_SECONDS * TICKS_PER_SECOND;
-const HOLD_TICKS = HOLD_SECONDS * TICKS_PER_SECOND;
+// Whole ticks (rounded: 1.3 * 60 is 78.00000000000001 in floating point).
+export const FADE_TICKS = Math.round(FADE_SECONDS * TICKS_PER_SECOND);
+const HOLD_TICKS = Math.round(HOLD_SECONDS * TICKS_PER_SECOND);
 const LOGO_TICKS = 2 * FADE_TICKS + HOLD_TICKS;
-const SKIP_DELAY_TICKS = SKIP_DELAY_SECONDS * TICKS_PER_SECOND;
+const SKIP_DELAY_TICKS = Math.round(SKIP_DELAY_SECONDS * TICKS_PER_SECOND);
 export const INTRO_TICKS = LOGO_TICKS * INTRO_LOGOS.length;
 
 // Where the timeline is at `tick` (ticks since enter): { logo (index or null), alpha, phase }.
@@ -48,6 +51,14 @@ export function logoRect(viewWidth, viewHeight, imageWidth, imageHeight, pixelRa
   const width = imageWidth * scale;
   const height = imageHeight * scale;
   return { x: (viewWidth - width) / 2, y: (viewHeight - height) / 2, width, height };
+}
+
+// The `harness.setMain` options for the menu. The harness fades out over fade/2 and in over fade/2.
+// From black (the logos ended): only the fade-in, MENU_FADE_IN_SECONDS. After a skip: the intro
+// fades out over FADE_SECONDS, then the menu fades in over FADE_SECONDS.
+export function menuFade({ fromBlack }) {
+  if (fromBlack) return { fade: 2 * MENU_FADE_IN_SECONDS, fromAlpha: 1 };
+  return { fade: 2 * FADE_SECONDS };
 }
 
 export function initIntro() {

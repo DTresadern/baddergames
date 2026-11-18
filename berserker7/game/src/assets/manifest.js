@@ -1,15 +1,17 @@
 // Every runtime asset, by key. See berserker7/AGENTS.md, Assets.
 
 export const TYPES = Object.freeze(['texture', 'music']);
-export const GROUPS = Object.freeze(['boot']);
+// 'menubg': the menu backgrounds. Nothing loads this group whole; start-up adds the picked one to the boot load.
+export const GROUPS = Object.freeze(['boot', 'menubg']);
 export const COLOR_SPACES = Object.freeze(['srgb', 'raw']);
 
 export const ASSETS = freezeList([
   { key: 'logo.baddergames', path: 'content/textures/logos/baddergames.png', type: 'texture', groups: ['boot'] },
   // Black text on white, no alpha: the intro shows it inverted, using the raw values as alpha.
   { key: 'logo.w8omg', path: 'content/textures/logos/w8omg.png', type: 'texture', groups: ['boot'], colorSpace: 'raw' },
-  { key: 'poster.classic', path: 'content/textures/menubg/berserkerguy-classic-2-1.png', type: 'texture', groups: ['boot'] },
   { key: 'music.title', path: 'content/audio/music/titlescreen-1.mp3', type: 'music', groups: ['boot'] },
+  { key: 'poster.classic', path: 'content/textures/menubg/berserkerguy-classic-2-1.png', type: 'texture', groups: ['menubg'] },
+  { key: 'poster.thrash', path: 'content/textures/menubg/berserkerguy-thrash-2-1.png', type: 'texture', groups: ['menubg'] },
 ]);
 
 function freezeList(list) {

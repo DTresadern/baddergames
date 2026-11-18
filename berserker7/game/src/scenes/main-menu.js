@@ -5,7 +5,7 @@ import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } fro
 import { labelTexture } from './labels.js';
 import { assetByKey } from '../assets/manifest.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
-import { POSTER, coverSize } from './poster.js';
+import { checkPoster, coverSize } from './poster.js';
 import { fitOrtho, inside, place } from './shared.js';
 
 export const PANEL_WIDTH = 480;
@@ -86,15 +86,17 @@ export function tickMainMenu(state, inputs = []) {
 export function createMainMenu({
   music,
   screens,
+  poster: posterKey,
   loadTexture = defaultLoadTexture,
   createCanvas = () => document.createElement('canvas'),
 }) {
+  checkPoster(posterKey);
   let scene, camera, poster, panel, bar, imageWidth, imageHeight;
   let labels = []; // { mesh, material } per menu item
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend', pausable: false },
     async load({ track, acquire }) {
-      const texture = await acquireTexture(acquire, POSTER, loadTexture);
+      const texture = await acquireTexture(acquire, posterKey, loadTexture);
       imageWidth = texture.image.width;
       imageHeight = texture.image.height;
       const geometry = track(new PlaneGeometry(1, 1));
