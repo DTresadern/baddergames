@@ -33,7 +33,7 @@ export function deepFreeze(value) {
 }
 
 // Standard gamepad mapping: 0 A/cross, 1 B/circle, 2 X/square, 3 Y/triangle,
-// 4 left bumper, 5 right bumper, 6 left trigger, 7 right trigger, 9 start,
+// 4 left bumper, 5 right bumper, 6 left trigger, 7 right trigger, 8 view/back, 9 start,
 // 12-15 d-pad up/down/left/right. Axes: 0/1 left stick x/y, 2/3 right stick x/y (y down).
 export const DEFAULT_BINDINGS = deepFreeze({
   keyboardMouse: {
@@ -67,7 +67,12 @@ export const DEFAULT_BINDINGS = deepFreeze({
     ...Object.fromEntries(weapons.map((action) => [action, []])),
     nextWeapon: ['button:5'],
     previousWeapon: ['button:3'],
-    weaponMenu: ['button:13'], // d-pad down is also moveDown (issue #48 bindings table)
+    weaponMenu: ['button:8'],
     pause: ['button:9'],
   },
 });
+
+// Wheel reading (devices.js): a pixel-mode deltaY that is a whole multiple of notchPixels
+// is mouse-wheel notches; any other distance is a touchpad swipe, one step per swipe once
+// it covers swipePixels in one direction; a swipe ends after swipeEndMs without distance.
+export const WHEEL_SETTINGS = deepFreeze({ notchPixels: 120, swipePixels: 40, swipeEndMs: 120 });

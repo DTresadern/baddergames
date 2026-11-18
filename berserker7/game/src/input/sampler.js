@@ -147,26 +147,23 @@ export function sampleInput(input, devices, pads = []) {
     const actions = {};
     for (const action of ACTIONS) {
       let downNow = false;
-      let tapped = false; // a bound source was pressed since the last tick
+      let tapped = false; // a bound source went down since the last tick
+      let pulsed = false; // a bound wheel source stepped since the last tick
       if (keyboardMouse) {
         for (const parsed of input.compiled.keyboardMouse[action]) {
           const latch = devices.sources[parsed.source];
           if (!latch) continue;
           downNow ||= latch.down;
           tapped ||= latch.presses > 0;
+          pulsed ||= latch.pulses > 0;
         }
       }
       if (pad) {
         for (const parsed of input.compiled.gamepad[action]) downNow ||= padSourceDown(input, pad, parsed);
       }
-      const held = downNow || tapped;
+      const held = downNow || tapped || pulsed;
       const prevHeld = entry.prevHeld[action];
-      // A new press while held counts as released + pressed on the same tick.
-      actions[action] = {
-        held,
-        pressed: held && (!prevHeld || tapped),
-        released: prevHeld && (!held || tapped),
-      };
+      actions[action] = { held, pressed: (held && !prevHeld) || pulsed, released: prevHeld && !held };
       entry.prevHeld[action] = held;
     }
 

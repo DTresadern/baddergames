@@ -1,32 +1,29 @@
 // Keyboard, mouse and wheel state as a plain object, changed only by these functions
 // (dom.js calls them from browser events). See berserker7/AGENTS.md, Input.
 
-// Wheel rule (see wheel()).
-export const WHEEL_STEP_PIXELS = 40;
-export const WHEEL_LOCK_MS = 250;
-export const WHEEL_QUIET_MS = 120;
+import { WHEEL_SETTINGS } from './actions.js';
 
-export function createDevices() {
+export function createDevices({ wheel = WHEEL_SETTINGS } = {}) {
   return {
-    // Latches keyed by source string ('key:Space', 'mouse:0', 'wheel:+'):
-    // { down, presses }; presses counts since the last sample.
+    // Latches keyed by source string ('key:Space', 'mouse:0', 'wheel:+'): { down, presses,
+    // pulses }; presses (key or button went down) and pulses (wheel steps) count since the last sample.
     sources: {},
     // Mouse position in CSS px relative to the canvas top-left; `moved` since the last sample.
     mouse: { x: 0, y: 0, moved: false },
     // Canvas size in CSS px, for the default aim origin (the canvas centre).
     surface: { width: 0, height: 0 },
     wheelSteps: 0, // whole wheel steps since the last sample, signed (+ = scroll down)
-    wheelAcc: 0, // pixel-mode distance not yet turned into a step
-    wheelLocked: false,
-    wheelStepAt: 0, // time (ms) of the last pixel-mode step
-    wheelLastAt: -Infinity, // time (ms) of the last wheel event
+    wheelSettings: wheel,
+    // The touchpad swipe in progress: direction (1, -1, 0 = none), distance, whether it
+    // has given its step, and the time (ms) of its last event with distance.
+    swipe: { sign: 0, distance: 0, stepped: false, lastAt: -Infinity },
   };
 }
 
 function latch(dev, source) {
   let entry = dev.sources[source];
   if (!entry) {
-    entry = { down: false, presses: 0 };
+    entry = { down: false, presses: 0, pulses: 0 };
     dev.sources[source] = entry;
   }
   return entry;
@@ -45,9 +42,9 @@ export function release(dev, source) {
   if (entry) entry.down = false;
 }
 
-// A press without being down (wheel steps).
-export function tap(dev, source) {
-  latch(dev, source).presses += 1;
+// Wheel steps: pressed for the tick they land in, without being down.
+function pulse(dev, source, count) {
+  latch(dev, source).pulses += count;
 }
 
 // Window blur, tab hidden: everything held is released.
@@ -66,36 +63,47 @@ export function setSurface(dev, width, height) {
   dev.surface.height = height;
 }
 
-function wheelStep(dev, sign) {
-  dev.wheelSteps += sign;
-  tap(dev, sign > 0 ? 'wheel:+' : 'wheel:-');
+function wheelSteps(dev, steps) {
+  dev.wheelSteps += steps;
+  pulse(dev, steps > 0 ? 'wheel:+' : 'wheel:-', Math.abs(steps));
 }
 
-// Line and page events: one step each. Pixel events accumulate to one step, then lock
-// until WHEEL_LOCK_MS after the step and WHEEL_QUIET_MS without any wheel event.
+function swipeDistance(dev, deltaY, now) {
+  const { swipePixels, swipeEndMs } = dev.wheelSettings;
+  const { swipe } = dev;
+  const sign = Math.sign(deltaY);
+  if (sign !== swipe.sign || now - swipe.lastAt >= swipeEndMs) {
+    Object.assign(swipe, { sign, distance: 0, stepped: false });
+  }
+  swipe.lastAt = now;
+  if (swipe.stepped) return;
+  swipe.distance += Math.abs(deltaY);
+  if (swipe.distance >= swipePixels) {
+    swipe.stepped = true;
+    wheelSteps(dev, sign);
+  }
+}
+
+// One wheel event. Zero distance is ignored. Line and page modes: one step per unit.
+// Pixel mode: whole notches step at once; other distances are a touchpad swipe.
 export function wheel(dev, deltaY, deltaMode, now) {
-  const quietSince = dev.wheelLastAt;
-  dev.wheelLastAt = now;
+  if (!deltaY) return;
   if (deltaMode === 1 || deltaMode === 2) {
-    if (deltaY !== 0) wheelStep(dev, Math.sign(deltaY));
+    const units = Math.abs(deltaY);
+    wheelSteps(dev, Math.sign(deltaY) * (Number.isInteger(units) && units > 1 ? units : 1));
     return;
   }
-  if (dev.wheelLocked) {
-    if (now - dev.wheelStepAt < WHEEL_LOCK_MS || now - quietSince < WHEEL_QUIET_MS) return;
-    dev.wheelLocked = false;
-  }
-  dev.wheelAcc += deltaY;
-  if (Math.abs(dev.wheelAcc) >= WHEEL_STEP_PIXELS) {
-    wheelStep(dev, Math.sign(dev.wheelAcc));
-    dev.wheelAcc = 0;
-    dev.wheelLocked = true;
-    dev.wheelStepAt = now;
-  }
+  const notches = deltaY / dev.wheelSettings.notchPixels;
+  if (Number.isInteger(notches)) wheelSteps(dev, notches);
+  else swipeDistance(dev, deltaY, now);
 }
 
 // Called by the sampler after each tick: counts and movement start again from zero.
 export function clearLatches(dev) {
-  for (const entry of Object.values(dev.sources)) entry.presses = 0;
+  for (const entry of Object.values(dev.sources)) {
+    entry.presses = 0;
+    entry.pulses = 0;
+  }
   dev.mouse.moved = false;
   dev.wheelSteps = 0;
 }

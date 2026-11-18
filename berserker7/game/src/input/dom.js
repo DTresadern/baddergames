@@ -97,7 +97,7 @@ export function attachInput({
 
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    wheel(devices, e.deltaY, e.deltaMode, now());
+    wheel(devices, e.deltaY, e.deltaMode, e.timeStamp ?? now());
   }, { passive: false, signal });
 
   // Polling in sample() is the source of truth; the events are only shown in the input panel.

@@ -63,7 +63,7 @@ test('dom: mouse buttons, side buttons, context menu, position and wheel', () =>
   assert.equal(send(canvas, 'mousedown', { button: 2 }).defaultPrevented, true);
   assert.equal(send(canvas, 'contextmenu').defaultPrevented, true);
   send(win, 'mousemove', { clientX: 410, clientY: 120 }); // (400, 100) on the canvas: straight up from its centre
-  assert.equal(send(canvas, 'wheel', { deltaY: 3, deltaMode: 1 }).defaultPrevented, true);
+  assert.equal(send(canvas, 'wheel', { deltaY: 120, deltaMode: 0 }).defaultPrevented, true);
   let [p1] = attached.sample();
   assert.equal(p1.actions.secondaryFire.pressed, true);
   assert.equal(p1.aim, Math.PI / 2);

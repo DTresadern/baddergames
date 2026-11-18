@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ACTIONS } from '../src/input/actions.js';
+import { readFileSync } from 'node:fs';
+import { ACTIONS, WHEEL_SETTINGS } from '../src/input/actions.js';
 import {
-  WHEEL_LOCK_MS,
   createDevices,
   moveMouse,
   press,
@@ -91,15 +91,6 @@ test('edges: two sources for one action count as one action', () => {
   assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveLeft'), [false, false, true]);
 });
 
-test('edges: known limit, pressing a second source of an action already held gives released + pressed', () => {
-  const { devices, input } = setup();
-  press(devices, 'key:ArrowLeft');
-  sampleInput(input, devices);
-  press(devices, 'key:KeyA');
-  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveLeft'), [true, true, true]);
-  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveLeft'), [true, false, false]);
-});
-
 test('edges: releaseAll gives released for everything held', () => {
   const { devices, input } = setup();
   press(devices, 'key:KeyW');
@@ -110,18 +101,6 @@ test('edges: releaseAll gives released for everything held', () => {
   assert.deepEqual(edge(frame, 'moveUp'), [false, false, true]);
   assert.deepEqual(edge(frame, 'primaryFire'), [false, false, true]);
   assert.equal(devices.sources['key:KeyW'].down, false);
-});
-
-test('edges: release and press again between two ticks while held gives released + pressed', () => {
-  const { devices, input } = setup();
-  press(devices, 'key:Space');
-  sampleInput(input, devices);
-  release(devices, 'key:Space');
-  press(devices, 'key:Space');
-  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, true, true]);
-  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, false, false]);
-  assert.equal(input.debug.players[0].totals.jump.pressed, 2);
-  assert.equal(input.debug.players[0].totals.jump.released, 1);
 });
 
 test('aim: mouse not moved keeps the angle; mouse moved computes it from the aim origin', () => {
@@ -185,7 +164,15 @@ test('gamepad: the left stick moves past the axis threshold; the d-pad moves too
   assert.equal(p2({ axes: [-0.6, 0.7, 0, 0] }).moveLeft.held, true);
   const down = p2({ buttons: { 13: 1 } });
   assert.equal(down.moveDown.held, true);
-  assert.equal(down.weaponMenu.held, true);
+  assert.equal(down.weaponMenu.held, false);
+});
+
+test('gamepad: the weapon menu is held on View/Back (button 8)', () => {
+  const { devices, input } = setup();
+  const p2 = (options) => sampleInput(input, devices, [pad(0, options)])[1].actions;
+  assert.deepEqual(Object.values(p2({ buttons: { 8: 1 } }).weaponMenu), [true, true, false]);
+  assert.deepEqual(Object.values(p2({ buttons: { 8: 1 } }).weaponMenu), [true, false, false]);
+  assert.deepEqual(Object.values(p2({}).weaponMenu), [false, false, true]);
 });
 
 test('gamepad: player 2 is not connected without a pad, connected when one appears, released on disconnect', () => {
@@ -278,48 +265,6 @@ test('gamepad: snapshotPad makes a plain copy of a Gamepad-like object', () => {
   });
 });
 
-test('wheel: a touchpad swipe of many small pixel deltas, momentum included, gives one step', () => {
-  const { devices, input } = setup();
-  let t = 1000;
-  for (let i = 0; i < 30; i++, t += 16) wheel(devices, 6, 0, t); // swipe: 180 px
-  for (let i = 0; i < 40; i++, t += 16) wheel(devices, 2, 0, t); // momentum, past 250 ms
-  assert.equal(devices.wheelSteps, 1);
-  const frame = sampleInput(input, devices)[0];
-  assert.equal(frame.wheel, 1);
-  assert.equal(input.debug.players[0].wheel, 1);
-});
-
-test('wheel: two pixel swipes separated by a pause give two steps', () => {
-  const { devices } = setup();
-  let t = 0;
-  for (let i = 0; i < 10; i++, t += 16) wheel(devices, -8, 0, t);
-  t += WHEEL_LOCK_MS; // pause
-  for (let i = 0; i < 10; i++, t += 16) wheel(devices, -8, 0, t);
-  assert.equal(devices.wheelSteps, -2);
-});
-
-test('wheel: the lock waits for 120 ms without wheel events', () => {
-  const { devices } = setup();
-  wheel(devices, 50, 0, 0); // step
-  wheel(devices, 50, 0, 200);
-  wheel(devices, 50, 0, 300); // past 250 ms since the step, but only 100 ms quiet: ignored
-  assert.equal(devices.wheelSteps, 1);
-  wheel(devices, 50, 0, 420); // 120 ms quiet: counts
-  assert.equal(devices.wheelSteps, 2);
-});
-
-test('wheel: line and page mode events give one step each; steps reset after a sample', () => {
-  const { devices, input } = setup();
-  wheel(devices, 3, 1, 0);
-  wheel(devices, 3, 1, 1);
-  wheel(devices, -1, 2, 2);
-  wheel(devices, 0, 1, 3);
-  assert.equal(devices.wheelSteps, 1);
-  assert.equal(sampleInput(input, devices)[0].wheel, 1);
-  assert.equal(devices.wheelSteps, 0);
-  assert.equal(sampleInput(input, devices)[0].wheel, 0);
-});
-
 test('wheel: steps press nextWeapon and previousWeapon for one tick', () => {
   const { devices, input } = setup();
   wheel(devices, 1, 1, 0);
@@ -332,24 +277,6 @@ test('wheel: steps press nextWeapon and previousWeapon for one tick', () => {
   assert.deepEqual(edge(frame, 'previousWeapon'), [true, true, false]);
   assert.equal(frame.wheel, -1);
   assert.equal(sampleInput(input, devices)[1].wheel, 0, 'a pad-only player gets no wheel');
-});
-
-test('wheel: 4 steps on 4 consecutive ticks give 4 pressed and 4 released', () => {
-  const { devices, input } = setup();
-  const seen = [];
-  for (let i = 0; i < 4; i++) {
-    wheel(devices, 1, 1, i * 16);
-    seen.push(edge(sampleInput(input, devices)[0], 'nextWeapon'));
-  }
-  seen.push(edge(sampleInput(input, devices)[0], 'nextWeapon'));
-  assert.deepEqual(seen, [
-    [true, true, false],
-    [true, true, true],
-    [true, true, true],
-    [true, true, true],
-    [false, false, true],
-  ]);
-  assert.deepEqual(input.debug.players[0].totals.nextWeapon, { pressed: 4, released: 4 });
 });
 
 test('frames are plain data: structuredClone and a JSON round trip give equal frames', () => {
@@ -376,10 +303,154 @@ test('frames are new objects every tick', () => {
   assert.notEqual(a[0].actions.jump, b[0].actions.jump);
 });
 
-test('wheel: known limit, pixel-mode notches 150 ms apart merge until 250 ms after the step', () => {
+test('edges: pressing a second source while the action is held gives no edge', () => {
+  const { devices, input } = setup();
+  press(devices, 'key:KeyD');
+  sampleInput(input, devices);
+  press(devices, 'key:ArrowRight');
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveRight'), [true, false, false]);
+});
+
+test('edges: releasing one of two held sources gives no edge; releasing the last gives released', () => {
+  const { devices, input } = setup();
+  press(devices, 'key:KeyD');
+  press(devices, 'key:ArrowRight');
+  sampleInput(input, devices);
+  release(devices, 'key:KeyD');
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveRight'), [true, false, false]);
+  release(devices, 'key:ArrowRight');
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveRight'), [false, false, true]);
+});
+
+test('edges: a short tap of a second source while the action is held gives no edge', () => {
+  const { devices, input } = setup();
+  press(devices, 'key:KeyD');
+  sampleInput(input, devices);
+  press(devices, 'key:ArrowRight');
+  release(devices, 'key:ArrowRight');
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveRight'), [true, false, false]);
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'moveRight'), [true, false, false]);
+  assert.deepEqual(input.debug.players[0].totals.moveRight, { pressed: 1, released: 0 });
+});
+
+test('edges: releasing and pressing the same key again between two ticks gives no edge', () => {
+  const { devices, input } = setup();
+  press(devices, 'key:Space');
+  sampleInput(input, devices);
+  release(devices, 'key:Space');
+  press(devices, 'key:Space');
+  assert.deepEqual(edge(sampleInput(input, devices)[0], 'jump'), [true, false, false]);
+});
+
+// Recorded in Chrome on Linux (mouse wheel and laptop touchpad); see the fixture's `source`.
+const RECORDINGS = JSON.parse(readFileSync(new URL('./fixtures/wheel-recordings.json', import.meta.url), 'utf8'));
+
+// Replays recorded events; returns the down steps and up steps (negative) separately.
+function replay(events) {
+  const devices = createDevices();
+  let down = 0;
+  let up = 0;
+  for (const { deltaY, deltaMode, t } of events) {
+    const before = devices.wheelSteps;
+    wheel(devices, deltaY, deltaMode, t);
+    const steps = devices.wheelSteps - before;
+    if (steps > 0) down += steps;
+    else up += steps;
+  }
+  return { down, up, steps: devices.wheelSteps };
+}
+
+test('wheel recordings: the notch size matches the settings', () => {
+  assert.equal(RECORDINGS.notchPixels, WHEEL_SETTINGS.notchPixels);
+});
+
+test('wheel recordings: slow mouse wheel gives 3 steps down and 3 up', () => {
+  const { down, up } = replay(RECORDINGS.sequences['mouse-slow']);
+  assert.equal(down, RECORDINGS.expected['mouse-slow'].down);
+  assert.equal(-up, RECORDINGS.expected['mouse-slow'].up);
+});
+
+test('wheel recordings: fast mouse spins count every notch (31 down, 38 up)', () => {
+  assert.equal(replay(RECORDINGS.sequences['mouse-fast-down']).steps, RECORDINGS.expected['mouse-fast-down'].steps);
+  assert.equal(replay(RECORDINGS.sequences['mouse-fast-up']).steps, RECORDINGS.expected['mouse-fast-up'].steps);
+});
+
+test('wheel recordings: a slow touchpad swipe gives one step', () => {
+  assert.equal(replay(RECORDINGS.sequences['touchpad-slow-swipe-up']).steps, RECORDINGS.expected['touchpad-slow-swipe-up'].steps);
+});
+
+test('wheel recordings: a fast touchpad swipe down then up gives one step each way', () => {
+  const { down, up } = replay(RECORDINGS.sequences['touchpad-fast-swipe-down-then-up']);
+  assert.equal(down, RECORDINGS.expected['touchpad-fast-swipe-down-then-up'].down);
+  assert.equal(-up, RECORDINGS.expected['touchpad-fast-swipe-down-then-up'].up);
+});
+
+test('wheel: zero-distance events are ignored and do not keep a swipe going', () => {
   const { devices } = setup();
-  wheel(devices, 100, 0, 0); // step
-  wheel(devices, 100, 0, 150); // 150 ms quiet, but under 250 ms since the step: merged
-  wheel(devices, 100, 0, 300); // 150 ms quiet and 300 ms since the step: a new step
+  wheel(devices, 0, 0, 0);
+  wheel(devices, -0, 0, 5);
+  wheel(devices, 0, 1, 6);
+  assert.equal(devices.wheelSteps, 0);
+  wheel(devices, 45.5, 0, 10); // swipe step
+  for (let t = 17; t < 400; t += 7) wheel(devices, -0, 0, t); // zero train, longer than 120 ms
+  wheel(devices, 45.5, 0, 400); // the swipe ended 120 ms after its last distance: a new swipe
   assert.equal(devices.wheelSteps, 2);
+});
+
+test('wheel: a swipe gives one step until it ends after 120 ms without distance', () => {
+  const { devices } = setup();
+  let t = 0;
+  for (let i = 0; i < 40; i++, t += 7) wheel(devices, 12.5, 0, t); // 500 px in one swipe
+  assert.equal(devices.wheelSteps, 1);
+  t += WHEEL_SETTINGS.swipeEndMs - 8; // 119 ms after the last event: still the same swipe
+  wheel(devices, 50.5, 0, t);
+  assert.equal(devices.wheelSteps, 1);
+  t += WHEEL_SETTINGS.swipeEndMs; // 120 ms: a new swipe
+  wheel(devices, 50.5, 0, t);
+  assert.equal(devices.wheelSteps, 2);
+});
+
+test('wheel: a direction reversal starts a new swipe at once', () => {
+  const { devices } = setup();
+  wheel(devices, 30.5, 0, 0);
+  wheel(devices, 30.5, 0, 7); // down step
+  wheel(devices, -20.25, 0, 14);
+  wheel(devices, -20.25, 0, 21); // up step, 7 ms later
+  wheel(devices, 10.5, 0, 28); // down again: new swipe, 10.5 px so far
+  assert.equal(devices.wheelSteps, 0);
+  assert.equal(devices.swipe.distance, 10.5);
+});
+
+test('wheel: whole notches step at once, two per 240; line and page modes count their units', () => {
+  const { devices, input } = setup();
+  wheel(devices, 240, 0, 0);
+  wheel(devices, -120, 0, 1);
+  assert.equal(devices.wheelSteps, 1);
+  wheel(devices, 3, 1, 2); // 3 lines
+  wheel(devices, -1, 2, 3); // 1 page
+  wheel(devices, 0.5, 1, 4); // fraction of a line: one step
+  assert.equal(devices.wheelSteps, 4);
+  assert.equal(sampleInput(input, devices)[0].wheel, 4);
+  assert.equal(devices.wheelSteps, 0);
+  assert.equal(sampleInput(input, devices)[0].wheel, 0);
+});
+
+test('wheel: steps on consecutive ticks press nextWeapon on every tick; the frame carries the full count', () => {
+  const { devices, input } = setup();
+  const seen = [];
+  for (let i = 0; i < 4; i++) {
+    wheel(devices, 240, 0, i * 16); // 2 notches per tick
+    const frame = sampleInput(input, devices)[0];
+    seen.push([frame.wheel, ...edge(frame, 'nextWeapon')]);
+  }
+  const last = sampleInput(input, devices)[0];
+  seen.push([last.wheel, ...edge(last, 'nextWeapon')]);
+  assert.deepEqual(seen, [
+    [2, true, true, false],
+    [2, true, true, false],
+    [2, true, true, false],
+    [2, true, true, false],
+    [0, false, false, true],
+  ]);
+  assert.equal(input.debug.players[0].wheel, 8);
 });
