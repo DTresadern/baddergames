@@ -34,7 +34,7 @@ export function tickMainMenu(state) {
 }
 
 export function createMainMenu({ music }) {
-  let scene, camera, poster, panel, imageWidth, imageHeight, viewWidth = 0, viewHeight = 0;
+  let scene, camera, poster, panel, imageWidth, imageHeight;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
     async load({ track }) {
@@ -63,19 +63,19 @@ export function createMainMenu({ music }) {
     exit: () => music.stop(),
     tick: tickMainMenu,
     draw(state, view) {
-      // CSS pixel units; the camera changes only when the view size does.
-      if (view.width !== viewWidth || view.height !== viewHeight) {
-        viewWidth = view.width;
-        viewHeight = view.height;
-        camera.left = -viewWidth / 2;
-        camera.right = viewWidth / 2;
-        camera.top = viewHeight / 2;
-        camera.bottom = -viewHeight / 2;
+      // CSS pixel units. Compared with the camera itself, not a cached size, because
+      // load() builds a new camera after an unload or snapshot leave.
+      const { width, height } = view;
+      if (camera.right !== width / 2 || camera.top !== height / 2) {
+        camera.left = -width / 2;
+        camera.right = width / 2;
+        camera.top = height / 2;
+        camera.bottom = -height / 2;
         camera.updateProjectionMatrix();
       }
-      const cover = coverSize(viewWidth, viewHeight, imageWidth, imageHeight);
+      const cover = coverSize(width, height, imageWidth, imageHeight);
       poster.scale.set(cover.width, cover.height, 1);
-      const box = panelSize(viewWidth, viewHeight);
+      const box = panelSize(width, height);
       panel.scale.set(box.width, box.height, 1);
       view.renderer.render(scene, camera);
     },
