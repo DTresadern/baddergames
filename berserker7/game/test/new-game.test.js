@@ -17,7 +17,7 @@ const layout = newGameLayout(1280, 800);
 const pointerAt = (rect, moved = true) => ({ x: rect.x + 5, y: rect.y + 5, width: 1280, height: 800, moved });
 
 test('initNewGame: Megacity, "Inmate" (normal) highlighted, nothing selected', () => {
-  assert.deepEqual(initNewGame(), { ticks: 0, campaign: 'megacity', highlight: 1, selected: null, selections: 0 });
+  assert.deepEqual(initNewGame(), { ticks: 0, campaign: 'megacity', highlight: 1, selected: null, selections: 0, request: null });
   assert.equal(LIST[initNewGame().highlight], 'normal');
   assert.deepEqual(LIST, ['easy', 'normal', 'hard', 'extreme', 'back']);
 });
@@ -76,10 +76,10 @@ test('tickNewGame: disconnected frames are ignored', () => {
 test('tickNewGame: selecting changes nothing else; state stays plain data with exactly its keys', () => {
   const state = initNewGame();
   tickNewGame(state, [frame(['jump'])]);
-  assert.deepEqual(state, { ticks: 1, campaign: 'megacity', highlight: 1, selected: 'normal', selections: 1 });
+  assert.deepEqual(state, { ticks: 1, campaign: 'megacity', highlight: 1, selected: 'normal', selections: 1, request: null });
   assert.deepStrictEqual(structuredClone(state), state);
   assert.deepStrictEqual(JSON.parse(JSON.stringify(state)), state);
-  assert.deepEqual(Object.keys(state).sort(), ['campaign', 'highlight', 'selected', 'selections', 'ticks']);
+  assert.deepEqual(Object.keys(state).sort(), ['campaign', 'highlight', 'request', 'selected', 'selections', 'ticks']);
 });
 
 test('tickNewGame: a moved pointer over a list item highlights it; an unmoved one does not', () => {
@@ -175,4 +175,15 @@ test('new game scene: closing unloads it, so each open starts fresh', () => {
 
 test('new game scene: does not pause', () => {
   assert.equal(createNewGame({ screens: {} }).settings.pausable, false);
+});
+
+test('new game: back in a tick wins over a later selection in the same tick', () => {
+  const calls = [];
+  const scene = createNewGame({ screens: { closeNewGame: () => calls.push('close') } });
+  const state = scene.enter();
+  scene.tick(state, [frame(['pause', 'jump'])]);
+  assert.equal(state.request, 'back');
+  assert.deepEqual(calls, ['close']);
+  scene.tick(state, []);
+  assert.equal(state.request, null);
 });

@@ -77,6 +77,15 @@ test('main menu: selecting New Game opens the screen once; other items do not; i
   assert.equal(calls.length, 1);
 });
 
+test('main menu: a later selection by another player in the same tick does not cancel New Game', () => {
+  const calls = [];
+  const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls) });
+  const state = menu.enter();
+  menu.tick(state, [frame(['jump']), frame(['moveDown', 'jump'])]);
+  assert.equal(state.selected, 'Multiplayer');
+  assert.deepStrictEqual(calls, [['open']]);
+});
+
 const EPS = 1e-9;
 
 test('menuLayout: items sit inside the panel and view, in order, without overlap, centred in the panel', () => {
@@ -179,5 +188,5 @@ test('tickMainMenu: state stays plain data with exactly its keys', () => {
   tickMainMenu(state, [frame(['moveDown', 'jump'])]);
   assert.deepStrictEqual(structuredClone(state), state);
   assert.deepStrictEqual(JSON.parse(JSON.stringify(state)), state);
-  assert.deepEqual(Object.keys(state).sort(), ['highlight', 'selected', 'selections', 'ticks']);
+  assert.deepEqual(Object.keys(state).sort(), ['highlight', 'request', 'selected', 'selections', 'ticks']);
 });

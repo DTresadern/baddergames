@@ -6,7 +6,7 @@ import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } fro
 import { CAMPAIGNS, DEFAULT_DIFFICULTY, DIFFICULTIES } from '../data/campaigns.js';
 import { labelTexture } from './labels.js';
 import { acquirePoster, coverSize, defaultLoadTexture } from './poster.js';
-import { fitOrtho, place } from './shared.js';
+import { fitOrtho, inside, place } from './shared.js';
 
 export const LIST = Object.freeze([...DIFFICULTIES, 'back']);
 export const CARD_WIDTH = 200;
@@ -60,8 +60,6 @@ export function newGameLayout(viewWidth, viewHeight) {
   return { cards, list: { panel, items } };
 }
 
-const inside = (r, x, y) => x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
-
 export function hitTest(layout, x, y) {
   const item = layout.list.items.findIndex((r) => inside(r, x, y));
   if (item >= 0) return { kind: 'item', index: item };
@@ -84,13 +82,16 @@ export function initNewGame() {
     highlight: LIST.indexOf(DEFAULT_DIFFICULTY),
     selected: null,
     selections: 0,
+    request: null,
   };
 }
 
-// `selected` and `selections` are only for debug checks; selecting does nothing else here.
+// `selected` and `selections` are for debug checks. `request` is 'back' when Back was selected
+// at any point in this tick (so a later selection in the same tick cannot cancel it), else null.
 function select(state, id) {
   state.selected = id;
   state.selections += 1;
+  if (id === 'back') state.request = 'back';
 }
 
 function applyFrame(state, { actions, pointer }) {
@@ -116,6 +117,7 @@ function applyFrame(state, { actions, pointer }) {
 
 export function tickNewGame(state, inputs = []) {
   state.ticks += 1;
+  state.request = null;
   for (const frame of inputs) if (frame.connected) applyFrame(state, frame);
   return state;
 }
@@ -159,6 +161,9 @@ export function createNewGame({
         fill: at(c.available ? fillAvailable : fillUnavailable, 2),
         ...text(c.available ? c.name : [c.name, 'Coming later'], CARD_WIDTH, CARD_HEIGHT, CARD_FONT, 4),
       }));
+      cards.forEach(({ material }, i) => {
+        material.opacity = CAMPAIGNS[i].available ? 1 : UNAVAILABLE_OPACITY;
+      });
       panel = at(flat(0x000000, 0.85), 2);
       bar = at(flat(0xffffff, 0.16), 3);
       lists = {};
@@ -170,9 +175,8 @@ export function createNewGame({
     },
     enter: () => initNewGame(),
     tick(state, inputs) {
-      const before = state.selections;
       tickNewGame(state, inputs);
-      if (state.selections > before && state.selected === 'back') screens.closeNewGame();
+      if (state.request === 'back') screens.closeNewGame();
       return state;
     },
     draw(state, view) {
@@ -183,10 +187,9 @@ export function createNewGame({
       const layout = newGameLayout(width, height);
       const chosen = CAMPAIGNS.findIndex((c) => c.id === state.campaign);
       layout.cards.forEach((rect, i) => {
-        const { fill, mesh, material } = cards[i];
+        const { fill, mesh } = cards[i];
         place(fill, rect, width, height);
         place(mesh, rect, width, height);
-        material.opacity = CAMPAIGNS[i].available ? 1 : UNAVAILABLE_OPACITY;
       });
       const r = layout.cards[chosen];
       place(outline, { x: r.x - OUTLINE, y: r.y - OUTLINE, width: r.width + 2 * OUTLINE, height: r.height + 2 * OUTLINE }, width, height);

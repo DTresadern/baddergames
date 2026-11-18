@@ -61,6 +61,9 @@ export function fitPerspective(camera, view, distance) {
   camera.updateProjectionMatrix();
 }
 
+// True when (x, y) is in the rectangle: left and top edges inside, right and bottom outside.
+export const inside = (r, x, y) => x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
+
 // Puts a unit plane on a layout rectangle (CSS px, top-left origin, y down): centred, in y-up camera space.
 export function place(mesh, rect, viewWidth, viewHeight) {
   mesh.position.x = rect.x + rect.width / 2 - viewWidth / 2;

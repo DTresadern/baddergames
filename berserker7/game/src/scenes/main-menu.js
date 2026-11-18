@@ -4,7 +4,7 @@
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
 import { labelTexture } from './labels.js';
 import { acquirePoster, coverSize, defaultLoadTexture } from './poster.js';
-import { fitOrtho, place } from './shared.js';
+import { fitOrtho, inside, place } from './shared.js';
 
 export const PANEL_WIDTH = 480;
 export const PANEL_HEIGHT = 560;
@@ -41,19 +41,21 @@ export function menuLayout(viewWidth, viewHeight) {
   return { panel, items };
 }
 
-// Index of the item containing the point (left and top edges inside, right and bottom outside), or -1.
+// Index of the item containing the point, or -1.
 export function itemAt(layout, x, y) {
-  return layout.items.findIndex((r) => x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height);
+  return layout.items.findIndex((r) => inside(r, x, y));
 }
 
 export function initMainMenu() {
-  return { ticks: 0, highlight: 0, selected: null, selections: 0 };
+  return { ticks: 0, highlight: 0, selected: null, selections: 0, request: null };
 }
 
-// `selected` and `selections` are only for debug checks; selecting does nothing else yet.
+// `selected` and `selections` are for debug checks. `request` is what the scene asks the
+// screens to do after this tick: 'newGame' when New Game was selected in it, else null.
 function select(state) {
   state.selected = MENU_ITEMS[state.highlight];
   state.selections += 1;
+  if (state.selected === 'New Game') state.request = 'newGame';
 }
 
 function applyFrame(state, { actions, pointer }) {
@@ -75,6 +77,7 @@ function applyFrame(state, { actions, pointer }) {
 
 export function tickMainMenu(state, inputs = []) {
   state.ticks += 1;
+  state.request = null;
   for (const frame of inputs) if (frame.connected) applyFrame(state, frame);
   return state;
 }
@@ -134,9 +137,8 @@ export function createMainMenu({
       screens.closeNewGame();
     },
     tick(state, inputs) {
-      const before = state.selections;
       tickMainMenu(state, inputs);
-      if (state.selections > before && state.selected === 'New Game') screens.openNewGame();
+      if (state.request === 'newGame') screens.openNewGame();
       return state;
     },
     draw(state, view) {
