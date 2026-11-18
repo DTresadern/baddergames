@@ -7,7 +7,6 @@ import {
   ITEM_WIDTH,
   MENU_ITEMS,
   MUSIC_URL,
-  coverSize,
   createMainMenu,
   initMainMenu,
   itemAt,
@@ -15,6 +14,7 @@ import {
   panelSize,
   tickMainMenu,
 } from '../src/scenes/main-menu.js';
+import { coverSize } from '../src/scenes/poster.js';
 
 const VIEWS = [[1000, 1000], [1280, 800], [800, 1280], [390, 844]];
 const IMAGES = [[1254, 1254], [1920, 1080], [1000, 2000]];

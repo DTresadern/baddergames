@@ -61,6 +61,13 @@ export function fitPerspective(camera, view, distance) {
   camera.updateProjectionMatrix();
 }
 
+// Puts a unit plane on a layout rectangle (CSS px, top-left origin, y down): centred, in y-up camera space.
+export function place(mesh, rect, viewWidth, viewHeight) {
+  mesh.position.x = rect.x + rect.width / 2 - viewWidth / 2;
+  mesh.position.y = viewHeight / 2 - (rect.y + rect.height / 2);
+  mesh.scale.set(rect.width, rect.height, 1);
+}
+
 export function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

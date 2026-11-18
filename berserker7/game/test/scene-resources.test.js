@@ -81,6 +81,8 @@ function fakeMenu() {
   });
 }
 
+const flush = () => new Promise((resolve) => setImmediate(resolve));
+
 const FACTORIES = {
   backdrop: createBackdrop,
   loading: createLoading,
@@ -101,6 +103,7 @@ for (const [name, create] of Object.entries(FACTORIES)) {
     for (const obj of renderer.used) obj.addEventListener('dispose', () => disposed.add(obj));
     harness.leave(name, 'unload');
     harness.frame(0);
+    await flush(); // the shared poster is disposed once its load promise has settled
     assert.equal(harness.records.get(name).life, 'unloaded');
     assert.equal(disposed.size, renderer.used.size);
     assert.deepEqual(harness.assets.keys(), []);
