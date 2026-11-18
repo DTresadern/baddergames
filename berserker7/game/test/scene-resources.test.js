@@ -1,16 +1,18 @@
 // Runs the three.js test scenes in a harness with a fake renderer (no WebGL) and
 // checks that every geometry, material and texture they draw with is disposed
 // when the harness unloads them. The pause scene (needs a DOM canvas), the
-// slow scene (2 s load) and the main menu (TextureLoader needs a DOM image) are
-// left out.
+// slow scene (2 s load) are left out. The main menu gets a fake texture loader,
+// canvas and music.
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { Texture } from 'three';
 import { createHarness } from '../src/engine/harness.js';
 import { createDevices, press, setSurface } from '../src/input/devices.js';
 import { createInput, sampleInput, setAimOrigin } from '../src/input/sampler.js';
 import { createBackdrop } from '../src/scenes/backdrop.js';
 import { createLoading } from '../src/scenes/loading.js';
+import { createMainMenu } from '../src/scenes/main-menu.js';
 import { createPlayers, initPlayers } from '../src/scenes/players.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
@@ -20,11 +22,16 @@ import { settle, STEP } from './fakes.js';
 // Collects the GPU-backed objects of every rendered scene graph.
 function recordingRenderer() {
   const used = new Set();
+  let renderedScene = null;
   return {
     used,
+    get scene() {
+      return renderedScene;
+    },
     clear() {},
     clearDepth() {},
     render(scene) {
+      renderedScene = scene;
       scene.traverse((obj) => {
         if (!obj.isMesh && !obj.isLine) return;
         used.add(obj.geometry);
@@ -64,12 +71,23 @@ function harnessFor(scenes, renderer = recordingRenderer()) {
   return { harness, renderer };
 }
 
+// The menu with fakes for what needs a DOM: the poster loader, the label canvases and the music.
+function fakeMenu() {
+  const stub2d = { font: '', fillStyle: '', textAlign: '', textBaseline: '', fillText() {} };
+  return createMainMenu({
+    music: { play() {}, stop() {} },
+    loadTexture: async () => new Texture({ width: 1254, height: 1254 }),
+    createCanvas: () => ({ width: 0, height: 0, getContext: () => stub2d }),
+  });
+}
+
 const FACTORIES = {
   backdrop: createBackdrop,
   loading: createLoading,
   sceneA: createSceneA,
   sceneB: createSceneB,
   players: createPlayers,
+  mainMenu: fakeMenu,
 };
 
 for (const [name, create] of Object.entries(FACTORIES)) {
@@ -151,4 +169,25 @@ test('players: draw reports each connected marker to view.setAimOrigin in CSS px
   state.players[1].connected = false;
   scene.draw(state, { ...view, width: 600, height: 600 }); // square: y in [-6.5, 6.5]
   assert.deepEqual(calls, [[0, 300, 300]]);
+});
+
+test('main menu: after unload and a fresh load, the scene has 3 labels plus poster, panel and bar', async () => {
+  const { harness, renderer } = harnessFor({ mainMenu: fakeMenu() });
+  const meshCount = () => {
+    let n = 0;
+    renderer.scene.traverse((obj) => {
+      if (obj.isMesh) n += 1;
+    });
+    return n;
+  };
+  harness.setMain('mainMenu');
+  await settle(harness, STEP);
+  harness.frame(STEP);
+  assert.equal(meshCount(), 6);
+  harness.leave('mainMenu', 'unload');
+  harness.frame(0);
+  harness.setMain('mainMenu');
+  await settle(harness, STEP);
+  harness.frame(STEP);
+  assert.equal(meshCount(), 6);
 });
