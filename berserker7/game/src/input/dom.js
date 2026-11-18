@@ -1,6 +1,7 @@
 // Browser wiring for the input system: listens to keyboard, mouse, wheel and focus
 // events, polls gamepads each tick, and hands everything to the pure functions in
-// devices.js and sampler.js. Nothing else in the game listens to input events.
+// devices.js and sampler.js. Nothing else in the game listens to input events, except
+// audio/music.js, which only waits for the first gesture to unlock sound.
 
 import { loadBindings } from './bindings.js';
 import {

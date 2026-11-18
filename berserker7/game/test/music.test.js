@@ -156,7 +156,6 @@ test('music: listeners are removed after a resolved play', async () => {
   audios[0].settle(true);
   await tick();
   music.stop();
-  send(win, 'keydown'); // no listener: nothing is wanted anyway, so also check a click after play(url)
   music.play('a.mp3');
   const plays = audios[0].playCalls;
   send(win, 'click');

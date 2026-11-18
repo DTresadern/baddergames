@@ -2,6 +2,7 @@
 // where the menu will go, and the title music. No menu items yet.
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene, SRGBColorSpace, TextureLoader } from 'three';
+import { fitOrtho } from './shared.js';
 
 export const PANEL_WIDTH = 480;
 export const PANEL_HEIGHT = 560;
@@ -63,16 +64,8 @@ export function createMainMenu({ music }) {
     exit: () => music.stop(),
     tick: tickMainMenu,
     draw(state, view) {
-      // CSS pixel units. Compared with the camera itself, not a cached size, because
-      // load() builds a new camera after an unload or snapshot leave.
       const { width, height } = view;
-      if (camera.right !== width / 2 || camera.top !== height / 2) {
-        camera.left = -width / 2;
-        camera.right = width / 2;
-        camera.top = height / 2;
-        camera.bottom = -height / 2;
-        camera.updateProjectionMatrix();
-      }
+      fitOrtho(camera, view, height / 2); // world units are CSS px
       const cover = coverSize(width, height, imageWidth, imageHeight);
       poster.scale.set(cover.width, cover.height, 1);
       const box = panelSize(width, height);

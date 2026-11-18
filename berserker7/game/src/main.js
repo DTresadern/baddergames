@@ -34,7 +34,7 @@ function drawTransition(alpha) {
   renderer.render(fadeScene, fadeCamera);
 }
 
-// The only place that listens to input devices. Bindings overrides come from localStorage.
+// The only input reader (music.js listens only for the gesture that unlocks sound). Bindings overrides come from localStorage.
 const input = attachInput({ window, canvas: renderer.domElement });
 
 // The only place that touches audio. Starts after the first click, key or touch.

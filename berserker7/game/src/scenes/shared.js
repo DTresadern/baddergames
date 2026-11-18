@@ -1,4 +1,4 @@
-// Helpers shared by the test scenes.
+// Helpers shared by the scenes.
 
 import { DataTexture, NearestFilter, RepeatWrapping } from 'three';
 
