@@ -256,11 +256,12 @@ Session (`createSession`, `createSessionHolder`):
 A test scene: a tile map and a box player that runs and jumps. Experimental.
 
 - Units: one world unit is one tile. Positions, sizes and speeds are in tiles (speeds tiles/s). x is right, y is up. The 64 px `tileSize` in the map file is art data; physics never uses it.
-- Map file (`public/content/maps/walkway.json`, manifest key `map.walkway`): `{ format: 1, name, tileSize, legend, grid, spawns }`.
+- Map files (`public/content/maps/`, manifest group `sandbox`): `{ format: 1, name, tileSize, legend, grid, spawns }`.
+  - `walkway.json` (`map.walkway`): a floor 2 tiles thick and 60 long, a wall 8 tiles tall (6 above the floor) at each end, 16 rows in all, the player spawn on the floor near the left end.
+  - `mvp-upper-1.json` (`map.mvp-upper-1`): the ground of the old MVP's first level (zone 0, seed 72, MVP columns 0 to 160), solid tiles only, 162 x 22 tiles: platforms, ladders, hazards, liquids, gates and entities dropped; breakable blocks set into the ground slab kept as solid; solid pieces not connected to the ground dropped; a full-height wall at each end. One-off conversion; no generator is kept in the repository. The Sandbox loads this one (`MAP_KEY` in `scenes/sandbox.js`).
   - `legend` maps one character to `{ type, color }`; `type: "solid"` blocks the player. A character not in the legend (use `.`) is empty.
   - `grid` is a list of strings written top to bottom; the loader flips it, so the last string is y = 0 and the column index is x.
   - `spawns` is a list of `{ type, x, y }` in tile coordinates with y up (the same coordinates the loader produces). A `player` spawn is the tile the player's feet stand in: the box is centred on tile column `x` and its bottom is at `y`.
-  - The walkway: a floor 2 tiles thick and 60 long, a wall 8 tiles tall (6 above the floor) at each end, 16 rows in all, the player spawn on the floor near the left end.
 - Tile map (`world/tilemap.js`, `createTileMap({ types })`): sparse chunks of 32 x 32 tiles (`CHUNK_SIZE`) in a `Map` keyed `"cx,cy"`; each chunk is `{ cx, cy, tiles: Uint16Array }`. Tile id 0 is empty; `types[id]` is `{ solid, color }`.
   - `setTile(x, y, id)`, `tileAt(x, y)` (a missing chunk reads 0 and is not created), `isSolid(x, y)`, `chunks()`, `chunkSize`. Coordinates are integers; negative ones work.
   - It knows nothing about files. The tile map is level data, not scene state: it is built in `load()` and passed to the tick function, and the scene state stays plain data (`{ ticks, map, player }`).

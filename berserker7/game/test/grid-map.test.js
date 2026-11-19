@@ -44,13 +44,15 @@ test('grid map: an unknown format throws', () => {
   assert.throws(() => loadGridMap(null), /unsupported format/);
 });
 
-test('walkway.json: the spawn and the space above it are empty and the floor below is solid', () => {
-  const json = JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'));
-  const { tiles, spawns, name } = loadGridMap(json);
-  assert.equal(name, 'walkway');
-  const spawn = spawns.find((s) => s.type === 'player');
-  assert.ok(spawn);
-  for (let dy = 0; dy < MOVE.height; dy++) assert.equal(tiles.isSolid(spawn.x, spawn.y + dy), false, `tile above spawn +${dy}`);
-  assert.equal(tiles.isSolid(spawn.x, spawn.y - 1), true, 'floor below the spawn');
-  assert.equal(tiles.isSolid(0, 0), true);
-});
+for (const file of ['walkway.json', 'mvp-upper-1.json']) {
+  test(`${file}: the spawn and the space above it are empty and the floor below is solid`, () => {
+    const json = JSON.parse(readFileSync(new URL(`../public/content/maps/${file}`, import.meta.url), 'utf8'));
+    const { tiles, spawns, name } = loadGridMap(json);
+    assert.equal(name + '.json', file);
+    const spawn = spawns.find((s) => s.type === 'player');
+    assert.ok(spawn);
+    for (let dy = 0; dy < MOVE.height; dy++) assert.equal(tiles.isSolid(spawn.x, spawn.y + dy), false, `tile above spawn +${dy}`);
+    assert.equal(tiles.isSolid(spawn.x, spawn.y - 1), true, 'floor below the spawn');
+    assert.equal(tiles.isSolid(0, 0), true);
+  });
+}
