@@ -171,9 +171,9 @@ test('loader: a map asset loads as JSON through the asset cache, once, and the c
   const loader = createLoader({ assets, music: {}, loadJson, log: { error() {} } });
   await loader.load('sandbox');
   await loader.load('sandbox');
-  assert.deepEqual(loads, ['content/maps/walkway.json', 'content/maps/mvp-upper-1.json', 'content/maps/moge3-cyberpunk.json']);
+  assert.deepEqual(loads, ['content/maps/walkway.json', 'content/maps/mvp-upper-1.json', 'content/maps/moge3-cyberpunk.json', 'content/maps/moge3-cyberpunk-blocks.json']);
   assert.equal(await acquireMap(assets.acquire, 'map.walkway', loadJson), json);
-  assert.equal(loads.length, 3);
+  assert.equal(loads.length, 4);
   assert.equal(assets.count('map.walkway'), 2);
   assert.deepEqual(loader.status('sandbox'), { progress: 1, done: true, error: null });
   assert.throws(() => acquireMap(assets.acquire, 'music.title', loadJson), /not a map/);

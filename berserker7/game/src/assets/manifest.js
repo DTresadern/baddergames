@@ -16,6 +16,7 @@ export const ASSETS = freezeList([
   { key: 'map.walkway', path: 'content/maps/walkway.json', type: 'map', groups: ['sandbox'] },
   { key: 'map.mvp-upper-1', path: 'content/maps/mvp-upper-1.json', type: 'map', groups: ['sandbox'] },
   { key: 'map.moge3-cyberpunk', path: 'content/maps/moge3-cyberpunk.json', type: 'map', groups: ['sandbox'] },
+  { key: 'map.moge3-cyberpunk-blocks', path: 'content/maps/moge3-cyberpunk-blocks.json', type: 'map', groups: ['sandbox'] },
 ]);
 
 function freezeList(list) {
