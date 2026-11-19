@@ -429,5 +429,6 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
     - `[data-field="aim"]` (degrees)
     - `[data-field="wheel"]` (running sum of `frame.wheel`: signed, steps down minus steps up)
     - One row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts)
+    - Each row also has `[data-field="key"]`: a coloured chip with the primary binding (first source of the resolved bindings) for the player's scheme (player 1 keyboard + mouse, player 2 gamepad), brighter while held, hidden when unbound; labels come from `debug/binding-labels.js`
   - Also `[data-field="ignored"]` (ignored gamepads) and `[data-field="pad-event"]`.
   - Refreshes every 100 ms.
