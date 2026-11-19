@@ -15,6 +15,7 @@ import { createMainMenu } from './scenes/main-menu.js';
 import { createNewGame } from './scenes/new-game.js';
 import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
+import { createSandbox } from './scenes/sandbox.js';
 import { pickPoster, withPoster } from './scenes/poster.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
@@ -76,8 +77,11 @@ harness.register('sceneA', createSceneA());
 harness.register('sceneB', createSceneB());
 harness.register('pause', createPause());
 harness.register('slow', createSlow());
+harness.register('sandbox', createSandbox());
 // Start-up: boot (loading, then "press any key") -> intro (logos) -> main menu.
 // New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
+// Starting a game closes it and fades to the Sandbox (the main menu leaves the main layer and stops the music).
+const GAME_FADE_SECONDS = 2; // total: 1 s to black, 1 s back in
 const screens = {
   startIntro: () => harness.setMain('intro'),
   // From black (the intro ended): the swap is at once and the menu fades in over MENU_FADE_IN_SECONDS.
@@ -85,6 +89,10 @@ const screens = {
   showMenu: ({ fromBlack }) => harness.setMain('mainMenu', menuFade({ fromBlack })),
   openNewGame: () => harness.openOverlay('newGame'),
   closeNewGame: () => harness.closeOverlay('newGame'),
+  startGame() {
+    harness.closeOverlay('newGame');
+    harness.setMain('sandbox', { fade: GAME_FADE_SECONDS });
+  },
 };
 harness.register('boot', createBoot({ loader, screens }));
 harness.register('intro', createIntro({ music, screens }));

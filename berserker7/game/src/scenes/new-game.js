@@ -1,7 +1,8 @@
 // New Game screen: the poster, four campaign cards and a difficulty list for the selected
 // campaign, plus a Back item. It opens on the last choice saved in the settings. Selecting a
-// difficulty creates the session and saves the last choice; nothing else happens yet. It is an
-// overlay over the main menu, so the title music is never interrupted.
+// difficulty creates the session, saves the last choice, then closes this overlay and fades to the
+// Sandbox (screens.startGame); difficulty has no effect yet. It is an overlay over the main menu,
+// so the title music is not interrupted while it is open.
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
 import { CAMPAIGNS, DEFAULT_DIFFICULTY, DIFFICULTIES } from '../data/campaigns.js';
@@ -196,6 +197,7 @@ export function createNewGame({
       if (state.start) {
         session.set(createSession(state.start));
         settings.set({ lastChoice: { ...state.start } });
+        screens.startGame();
       }
       if (state.request === 'back') screens.closeNewGame();
       return state;

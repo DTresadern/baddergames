@@ -158,16 +158,19 @@ test('hitTest: card and item centres, gaps and outside', () => {
   assert.equal(hitTest(layout, 0, 0), null);
 });
 
+// Screens that log their calls.
+const fakeScreens = (calls) => ({ closeNewGame: () => calls.push('close'), startGame: () => calls.push('start') });
+
 // The scene's tick with fakes: closeNewGame is called only when back is selected.
 test('new game scene: tick closes the overlay only when back is selected', () => {
   const calls = [];
-  const scene = createNewGame({ screens: { closeNewGame: () => calls.push('close') }, settings: fakeSettings(), session: fakeSession(), poster: 'poster.classic' });
+  const scene = createNewGame({ screens: fakeScreens(calls), settings: fakeSettings(), session: fakeSession(), poster: 'poster.classic' });
   const state = scene.enter();
   scene.tick(state, [frame(['jump'])]);
   for (let i = 0; i < 3; i++) scene.tick(state, [frame(['moveDown'])]);
-  assert.deepEqual(calls, []);
+  assert.deepEqual(calls, ['start']);
   scene.tick(state, [frame(['primaryFire'])]); // highlight is back (index 4)
-  assert.deepEqual(calls, ['close']);
+  assert.deepEqual(calls, ['start', 'close']);
   assert.equal(state.selected, 'back');
 });
 
@@ -181,11 +184,11 @@ test('new game scene: does not pause', () => {
 
 test('new game: back in a tick wins over a later selection in the same tick', () => {
   const calls = [];
-  const scene = createNewGame({ screens: { closeNewGame: () => calls.push('close') }, settings: fakeSettings(), session: fakeSession(), poster: 'poster.classic' });
+  const scene = createNewGame({ screens: fakeScreens(calls), settings: fakeSettings(), session: fakeSession(), poster: 'poster.classic' });
   const state = scene.enter();
   scene.tick(state, [frame(['pause', 'jump'])]);
   assert.equal(state.request, 'back');
-  assert.deepEqual(calls, ['close']);
+  assert.deepEqual(calls, ['start', 'close']);
   scene.tick(state, []);
   assert.equal(state.request, null);
 });
@@ -248,11 +251,11 @@ test('new game scene: enter uses the saved last choice from the settings', () =>
   assert.equal(LIST[state.highlight], 'extreme');
 });
 
-test('new game scene: selecting a difficulty creates the session and saves the last choice; nothing else happens', () => {
+test('new game scene: selecting a difficulty creates the session, saves the last choice, then starts the game', () => {
   const calls = [];
   const settings = fakeSettings();
   const session = fakeSession();
-  const scene = createNewGame({ screens: { closeNewGame: () => calls.push('close') }, settings, session, poster: 'poster.classic' });
+  const scene = createNewGame({ screens: fakeScreens(calls), settings, session, poster: 'poster.classic' });
   const state = scene.enter();
   scene.tick(state, [frame(['moveDown'])]);
   assert.deepEqual(session.sessions, []);
@@ -260,8 +263,9 @@ test('new game scene: selecting a difficulty creates the session and saves the l
   scene.tick(state, [frame(['jump'])]); // hard
   assert.deepEqual(session.sessions, [createSession({ campaign: 'megacity', difficulty: 'hard' })]);
   assert.deepEqual(settings.sets, [{ lastChoice: { campaign: 'megacity', difficulty: 'hard' } }]);
-  assert.deepEqual(calls, [], 'the overlay stays open');
+  assert.deepEqual(calls, ['start'], 'startGame once; the scene itself does not close the overlay');
   scene.tick(state, []);
+  assert.deepEqual(calls, ['start']);
   assert.equal(session.sessions.length, 1, 'once per selection, not per tick');
   assert.equal(settings.sets.length, 1);
 });
@@ -270,10 +274,10 @@ test('new game scene: selecting Back creates no session and saves nothing', () =
   const calls = [];
   const settings = fakeSettings();
   const session = fakeSession();
-  const scene = createNewGame({ screens: { closeNewGame: () => calls.push('close') }, settings, session, poster: 'poster.classic' });
+  const scene = createNewGame({ screens: fakeScreens(calls), settings, session, poster: 'poster.classic' });
   const state = scene.enter();
   scene.tick(state, [frame(['pause'])]);
-  assert.deepEqual(calls, ['close']);
+  assert.deepEqual(calls, ['close'], 'Back does not call startGame');
   assert.deepEqual(session.sessions, []);
   assert.deepEqual(settings.sets, []);
 });
@@ -282,9 +286,30 @@ test('new game scene: a selection and Back in the same tick creates the session 
   const calls = [];
   const settings = fakeSettings();
   const session = fakeSession();
-  const scene = createNewGame({ screens: { closeNewGame: () => calls.push('close') }, settings, session, poster: 'poster.classic' });
+  const scene = createNewGame({ screens: fakeScreens(calls), settings, session, poster: 'poster.classic' });
   const state = scene.enter();
   scene.tick(state, [frame(['jump', 'pause'])]);
   assert.equal(session.sessions.length, 1);
-  assert.deepEqual(calls, ['close']);
+  assert.deepEqual(calls, ['start', 'close']);
+});
+
+test('new game scene: every difficulty, by key or by mouse, calls startGame once, after the session and the save', () => {
+  const area = newGameLayout(1000, 800).list.items;
+  const click = (i) => frame(['primaryFire'], { x: area[i].x + 5, y: area[i].y + 5, width: 1000, height: 800, moved: false });
+  for (const [index, difficulty] of ['easy', 'normal', 'hard', 'extreme'].entries()) {
+    for (const how of ['key', 'mouse']) {
+      const order = [];
+      const settings = { get: () => fakeSettings().get(), set: () => order.push('settings') };
+      const session = { set: () => order.push('session') };
+      const screens = { closeNewGame: () => order.push('close'), startGame: () => order.push('start') };
+      const scene = createNewGame({ screens, settings, session, poster: 'poster.classic' });
+      const state = scene.enter();
+      if (how === 'key') {
+        state.highlight = index;
+        scene.tick(state, [frame(['jump'])]);
+      } else scene.tick(state, [click(index)]);
+      assert.deepEqual(order, ['session', 'settings', 'start'], `${difficulty} by ${how}`);
+      assert.equal(state.selected, difficulty);
+    }
+  }
 });

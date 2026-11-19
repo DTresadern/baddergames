@@ -12,6 +12,7 @@
 const ACTIONS = [
   ['main-menu', 'Main menu'],
   ['players', 'Players scene (input test)'],
+  ['sandbox', 'Sandbox'],
   ['switch-ab', 'Switch A / B (fade)'],
   ['pause', 'Open pause'],
   ['suspend', 'Suspend main'],
@@ -124,6 +125,11 @@ export function mountPanel({ harness, renderer, assets, settings, session, paren
       // The menu has no backdrop.
       if (harness.layers.background.includes('backdrop')) harness.leave('backdrop');
       harness.setMain('mainMenu', { fade: FADE });
+    },
+    sandbox() {
+      // The Sandbox has no backdrop.
+      if (harness.layers.background.includes('backdrop')) harness.leave('backdrop');
+      harness.setMain('sandbox', { fade: FADE });
     },
     players() {
       harness.addBackground('backdrop');
