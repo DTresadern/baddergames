@@ -149,6 +149,7 @@ export function createMainMenu({
     },
     enter: () => {
       music.play(assetByKey(MUSIC).path);
+      screens.checkVersion();
       return initMainMenu();
     },
     // Coming back after the game started (for example the debug panel's "Main menu" button) keeps
@@ -156,19 +157,22 @@ export function createMainMenu({
     // entry, so the next tick resets the animation (state is not available here).
     resume() {
       music.play(assetByKey(MUSIC).path);
+      screens.checkVersion();
       replay = true;
     },
-    // The New Game and Join overlays never outlive the menu (for example when the debug panel
-    // switches scene, or a join starts the game).
+    // The New Game and Join overlays and the outdated-version notice never outlive the menu (for
+    // example when the debug panel switches scene, or a join starts the game).
     suspend() {
       music.stop();
       screens.closeNewGame();
       screens.closeJoin();
+      screens.hideVersionNotice();
     },
     exit() {
       music.stop();
       screens.closeNewGame();
       screens.closeJoin();
+      screens.hideVersionNotice();
     },
     tick(state, inputs, dt) {
       if (replay) {

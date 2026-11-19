@@ -29,6 +29,14 @@ Version label and CI:
 
 - The version label (bottom-right) shows the short commit and UTC build time when built by CI (from `GITHUB_SHA`), and `dev` otherwise.
   - `main.js` hides it (`hidden` attribute) when the `showVersionLabel` setting is false, at start-up and on every change.
+- `vite.config.js` computes the build info once: `{ sha: GITHUB_SHA (full), builtAt: ISO time }`, or null without `GITHUB_SHA`. The label, the embedded `__BUILD_SHA__` / `__BUILD_AT__` (null in dev) and `dist/version.json` (`{"sha":...,"builtAt":...}`, written by a small inline plugin in `generateBundle`, none without build info) all come from that one object, so they cannot disagree.
+- Outdated-build check (`ui/version-check.js`, pure, never throws, tested):
+  - `isOutdated(running, published)` is true only when `published` is a plain object with string `sha` and `builtAt` (a valid date), a different `sha` and a later `builtAt` than `running`. Anything else, and no `running`, is false.
+  - `checkForNewerBuild({ running, fetch, now, url, timeoutMs, setTimeout, clearTimeout })` fetches `version.json?t=<now>` with `cache: 'no-store'` and an `AbortController` timeout (5 s) and resolves true or false. A reject, abort, non-OK response or bad JSON is false, silently. No `running` (dev) returns false with no fetch.
+  - The main menu runs it on every entry (`enter`, and `resume`, which is how the debug "Main menu" returns) through `screens.checkVersion()`. `suspend` and `exit` call `screens.hideVersionNotice()`. `main.js` ignores a result that is stale (a counter, bumped on each check and each hide) or arrives when the main menu is not the main scene.
+  - The notice (`createOutdatedNotice`, `#b7-outdated`, `role="status"`, `textContent` only, own element, separate from `#b7-notice`) stays until the menu is left: "You are on an old version. Hard refresh (Ctrl+Shift+R, or Cmd+Shift+R on Mac) to get the latest."
+  - Placement: bottom centre, 24 px up, 12 px monospace, `max-width: calc(100vw - 32px)`, `pointer-events: none`. The menu panel is centred, at most 560 px tall and 80% of the height, so the space below it is at least 10% of the height (60 px at 800x600, 80 at 1280x720, 142 at 390x844). One line plus the 24 px offset is about 54 px, so it clears the panel at those sizes and the bottom-right version label (about 19 px tall). On a window under about 540 px tall, or a narrow one where the text wraps to three lines, it can overlap the panel's bottom edge.
+  - Why "hard refresh": GitHub Pages serves `index.html` with `Cache-Control: max-age=600`, so a plain reload can keep the old build (and its asset names) for up to 10 minutes. `version.json` is fetched with a cache buster and `no-store`, so the check sees the new build at once even when the page does not.
 - CI (`.github/workflows/checks.yml`) runs:
   - `node --check` on every tracked `.js` file
   - JSON parse checks
@@ -143,7 +151,7 @@ Version label and CI:
   - Input (keys, hover, clicks) is ignored unless the phase was already `open` at the start of the tick.
   - It plays on every entry (`enter` gives a fresh state). `resume` (for example the debug panel's "Main menu") sets a flag and the next tick resets `open` to waiting.
 - Selecting "New Game" opens the New Game screen (see New Game screen); "Multiplayer" opens the Join screen (`screens.openJoin()`, see Join screen); "Options" does nothing.
-- The menu's `suspend` and `exit` close both the New Game and the Join overlays (`screens.closeNewGame()`, `screens.closeJoin()`).
+- The menu's `suspend` and `exit` close both the New Game and the Join overlays (`screens.closeNewGame()`, `screens.closeJoin()`) and hide the outdated-version notice (`screens.hideVersionNotice()`). `enter` and `resume` call `screens.checkVersion()` (see Version label and CI).
 - State fields:
   - `state.selected` (label) and `state.selections` (count) are for debug checks only.
   - `state.request` (`'newGame'`, `'multiplayer'` or null, reset each tick; the first selection in a tick wins) is what the scene's `tick` acts on.
