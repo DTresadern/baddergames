@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { loadGridMap } from '../src/world/grid-map.js';
-import { MOVE } from '../src/world/player.js';
+import { PLAYER_SIZE } from '../src/world/player.js';
 
 const small = (extra = {}) => ({
   format: 1,
@@ -51,7 +51,7 @@ for (const file of ['walkway.json', 'mvp-upper-1.json']) {
     assert.equal(name + '.json', file);
     const spawn = spawns.find((s) => s.type === 'player');
     assert.ok(spawn);
-    for (let dy = 0; dy < MOVE.height; dy++) assert.equal(tiles.isSolid(spawn.x, spawn.y + dy), false, `tile above spawn +${dy}`);
+    for (let dy = 0; dy < PLAYER_SIZE.height; dy++) assert.equal(tiles.isSolid(spawn.x, spawn.y + dy), false, `tile above spawn +${dy}`);
     assert.equal(tiles.isSolid(spawn.x, spawn.y - 1), true, 'floor below the spawn');
     assert.equal(tiles.isSolid(0, 0), true);
   });

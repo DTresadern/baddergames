@@ -10,13 +10,14 @@ import {
   MAP_KEY,
   snapCamera,
   initSandbox,
+  playerHead,
   tickSandbox,
 } from '../src/scenes/sandbox.js';
 import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/tile-texture.js';
 import { NearestFilter } from 'three';
 import { DEPTH_CUBE_SPACING, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { loadGridMap } from '../src/world/grid-map.js';
-import { MOVE } from '../src/world/player.js';
+import { PLAYER_SIZE, playerHeight } from '../src/world/player.js';
 import { frame } from './frames.js';
 import { STEP } from './fakes.js';
 
@@ -26,7 +27,7 @@ const map = loadGridMap(json());
 test('initSandbox: plain state, the player stands at the first player spawn', () => {
   const state = initSandbox(map);
   const spawn = map.spawns.find((s) => s.type === 'player');
-  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false }, pointer: null, aimSource: null, spawn: { x: spawn.x + 0.5, y: spawn.y }, fallY: -10, camera: { x: spawn.x + 0.5, y: spawn.y + MOVE.height } });
+  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE } }, pointer: null, aimSource: null, spawn: { x: spawn.x + 0.5, y: spawn.y }, fallY: -10, camera: { x: spawn.x + 0.5, y: spawn.y + PLAYER_SIZE.height } });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
 });
@@ -56,7 +57,7 @@ test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the pla
   scene.draw(state, { renderer, width: 800, height: 600, setAimOrigin: (...args) => origins.push(args) });
   assert.equal(rendered.top - rendered.bottom, CAMERA_TILES_HIGH);
   assert.equal(rendered.right - rendered.left, (CAMERA_TILES_HIGH * 800) / 600);
-  assert.deepEqual([rendered.position.x, rendered.position.y], [10, 5 + MOVE.height + OFFSET_DEFAULT.y]);
+  assert.deepEqual([rendered.position.x, rendered.position.y], [10, 5 + PLAYER_SIZE.height + OFFSET_DEFAULT.y]);
   // Aim origin: the head (top centre of the box), OFFSET_DEFAULT.y tiles below the view centre.
   const tilePx = 600 / CAMERA_TILES_HIGH;
   assert.equal(origins.length, 1);
@@ -70,7 +71,7 @@ test('sandbox scene: ticks while uncovered, draws when covered, suspends on leav
 });
 
 test('createCameraZoom: whole tiles, clamped to the limits, bad values ignored', () => {
-  assert.deepEqual([CAMERA_TILES_MIN, CAMERA_TILES_HIGH, CAMERA_TILES_MAX], [18, 22, 28]);
+  assert.deepEqual([CAMERA_TILES_MIN, CAMERA_TILES_HIGH, CAMERA_TILES_MAX], [8, 22, 28]);
   const zoom = createCameraZoom();
   assert.equal(zoom.get(), CAMERA_TILES_HIGH);
   assert.equal(zoom.set(25.4), 25);
@@ -177,14 +178,14 @@ test('camera offset: ±4 tiles in 0.25 steps; the camera moves with it in both v
     v.setMode(mode);
     scene.draw(state, view);
     assert.equal(rendered.position.x, state.player.x + 1.25, mode);
-    assert.equal(rendered.position.y, state.player.y + MOVE.height - 4, mode);
+    assert.equal(rendered.position.y, state.player.y + PLAYER_SIZE.height - 4, mode);
     assert.deepEqual([rendered.rotation.x, rendered.rotation.y, rendered.rotation.z], [0, 0, 0], mode);
   }
 });
 
-test('cameraShift: follow fraction, Min radius along the aim, Max after Min, then x / y scale', () => {
+test('cameraShift: follow fraction, Min radius along the aim, Max after Min, then x / y-up / y-down scale', () => {
   const head = { x: 0, y: 0 };
-  const base = { follow: 0.5, min: 0, max: 8, scaleX: 1, scaleY: 1 };
+  const base = { follow: 0.5, min: 0, max: 8, scaleX: 1, scaleYUp: 1, scaleYDown: 1 };
   const xy = ({ x, y }) => [Number(x.toFixed(9)), Number(y.toFixed(9))];
   assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, base)), [3, 4]);
   // Shorter than Min: lengthened to Min along head -> aim (here 0.5 * 10 = 5 < 6).
@@ -197,7 +198,12 @@ test('cameraShift: follow fraction, Min radius along the aim, Max after Min, the
   // Max after Min: Max wins when Max < Min.
   assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, min: 6, max: 5 })), [3, 4]);
   assert.deepEqual(xy(cameraShift(head, { x: 60, y: 80 }, { ...base, max: 5 })), [3, 4]);
-  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, scaleX: 2, scaleY: 0 })), [6, 0]);
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, scaleX: 2, scaleYUp: 0 })), [6, 0]);
+  // Aiming up takes Y scale up, aiming down takes Y scale down (after Min and Max).
+  const split = { ...base, scaleYUp: 0.5, scaleYDown: 2 };
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, split)), [3, 2]);
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: -8 }, split)), [3, -8]);
+  assert.deepEqual(xy(cameraShift(head, { x: 60, y: -80 }, { ...split, max: 5 })), [3, -8]);
 });
 
 test('aim follow: the camera is stable frame to frame (rest-camera projection) and the aim line hits the mouse', async () => {
@@ -206,7 +212,8 @@ test('aim follow: the camera is stable frame to frame (rest-camera projection) a
   const viewMode = createViewMode();
   viewMode.setFollow('follow', 1);
   viewMode.setFollow('max', 20);
-  viewMode.setFollow('scaleY', 1);
+  viewMode.setFollow('scaleYUp', 1);
+  viewMode.setFollow('scaleYDown', 1);
   viewMode.setOffset('y', 0);
   const scene = createSandbox({ viewMode, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
@@ -222,7 +229,7 @@ test('aim follow: the camera is stable frame to frame (rest-camera projection) a
     assert.deepEqual([rendered.position.x, rendered.position.y], first, `${mode}: no feedback`);
     // follow 1: the camera centres on the mouse's rest-camera aim point: 300 px right, 150 px up.
     const tilesPerPx = CAMERA_TILES_HIGH / 600;
-    const headY = state.player.y + MOVE.height;
+    const headY = state.player.y + PLAYER_SIZE.height;
     assert.ok(Math.abs(first[0] - (state.player.x + 300 * tilesPerPx)) < 1e-9, mode);
     assert.ok(Math.abs(first[1] - (headY + 150 * tilesPerPx)) < 1e-9, mode);
   }
@@ -275,7 +282,7 @@ test('camera smoothing: half-life 0 snaps to the head; above 0 it converges, ind
     for (let i = 0; i < ticks; i++) tickSandbox(state, [frame(held)], STEP, map.tiles, halfLife);
   };
   run(60, 0, ['moveRight']);
-  assert.deepEqual(state.camera, { x: state.player.x, y: state.player.y + MOVE.height });
+  assert.deepEqual(state.camera, { x: state.player.x, y: state.player.y + PLAYER_SIZE.height });
   run(10, 0.1, ['moveRight']);
   assert.ok(state.camera.x < state.player.x, 'lags behind while moving');
   run(120, 0.1);
@@ -283,5 +290,48 @@ test('camera smoothing: half-life 0 snaps to the head; above 0 it converges, ind
   state.camera = { x: -100, y: -100 };
   state.player.y = state.fallY - 1;
   run(1, 0.1);
-  assert.deepEqual(state.camera, { x: state.spawn.x, y: state.spawn.y + MOVE.height });
+  assert.deepEqual(state.camera, { x: state.spawn.x, y: state.spawn.y + PLAYER_SIZE.height });
+});
+
+test('initSandbox: the map\'s player size sets the height, crouch height and head; no field gives 2 / 1', () => {
+  const sized = loadGridMap({ ...json(), player: { width: 1, height: 1.5, crouchHeight: 0.75 } });
+  const state = initSandbox(sized);
+  assert.equal(playerHeight(state.player), 1.5);
+  state.player.crouching = true;
+  assert.equal(playerHeight(state.player), 0.75);
+  state.player.crouching = false;
+  assert.equal(playerHead(state.player).y, state.player.y + 1.5);
+  assert.deepEqual(state.camera, { x: state.player.x, y: state.player.y + 1.5 });
+  const plain = initSandbox(map);
+  assert.equal(playerHeight(plain.player), 2);
+  plain.player.crouching = true;
+  assert.equal(playerHeight(plain.player), 1);
+});
+
+test('grid: the toggle swaps the level textures from checkerboard to grid, in both views; grid pixels', async () => {
+  const { TILE_GRID, gridPixels } = await import('../src/scenes/tile-texture.js');
+  // 64 px: a 2 px light border on every edge, dark fill inside.
+  const px = gridPixels(64);
+  const at = (x, y) => [...px.slice((y * 64 + x) * 4, (y * 64 + x) * 4 + 3)];
+  const hex = (css) => [1, 3, 5].map((i) => parseInt(css.slice(i, i + 2), 16));
+  assert.deepEqual([at(0, 30), at(1, 30), at(63, 30), at(30, 62)], Array(4).fill(hex(TILE_GRID.line)));
+  assert.deepEqual([at(2, 30), at(30, 30), at(61, 61)], Array(3).fill(hex(TILE_GRID.fill)));
+  let rendered;
+  const renderer = { render: (scene) => (rendered = scene) };
+  const viewMode = createViewMode();
+  const scene = createSandbox({ viewMode, fetchJson: async () => json() });
+  await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
+  const state = scene.enter();
+  const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
+  const textures = () => new Set(rendered.children.filter((o) => o.isInstancedMesh && o.material.map).map((o) => o.material.map.name));
+  assert.equal(viewMode.grid(), false);
+  for (const mode of ['2d', '2.5d']) {
+    viewMode.setMode(mode);
+    viewMode.setGrid(false);
+    scene.draw(state, view);
+    assert.deepEqual(textures(), new Set(['checker']), mode);
+    viewMode.setGrid(true);
+    scene.draw(state, view);
+    assert.deepEqual(textures(), new Set(['grid']), mode);
+  }
 });

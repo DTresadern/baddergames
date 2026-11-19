@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
 import { loadGridMap } from '../src/world/grid-map.js';
-import { MOVE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
+import { MOVE, PLAYER_SIZE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
 
 const DT = 1 / 60;
 const json = JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'));
@@ -28,10 +28,12 @@ const run = (player, makeFrame, ticks) => {
   for (let i = 0; i < ticks; i++) stepPlayer(player, makeFrame(i), tiles, DT);
 };
 
-test('MOVE: one frozen object with the box size', () => {
+test('MOVE and PLAYER_SIZE: frozen; PLAYER_SIZE is the default box size', () => {
   assert.ok(Object.isFrozen(MOVE));
-  assert.equal(MOVE.width, 1);
-  assert.equal(MOVE.height, 2);
+  assert.ok(Object.isFrozen(PLAYER_SIZE));
+  assert.equal(PLAYER_SIZE.width, 1);
+  assert.equal(PLAYER_SIZE.crouchHeight, 1);
+  assert.equal(PLAYER_SIZE.height, 2);
 });
 
 test('player: dropped above the floor, it lands exactly on the floor top and is on the ground', () => {
@@ -58,8 +60,8 @@ test('player: a missing or unconnected frame is no input but gravity still appli
 test('player: holding moveRight stops at the right wall with vx 0', () => {
   const player = createPlayer(spawn.x + 0.5, floorTop);
   run(player, () => frame(['moveRight']), 600);
-  assert.ok(player.x + MOVE.width / 2 <= wallLeft + 1e-9, `x ${player.x}`);
-  assert.ok(player.x + MOVE.width / 2 > wallLeft - 1e-6, 'touches the wall');
+  assert.ok(player.x + PLAYER_SIZE.width / 2 <= wallLeft + 1e-9, `x ${player.x}`);
+  assert.ok(player.x + PLAYER_SIZE.width / 2 > wallLeft - 1e-6, 'touches the wall');
   assert.equal(player.vx, 0);
   assert.equal(player.onGround, true);
 });
@@ -67,7 +69,7 @@ test('player: holding moveRight stops at the right wall with vx 0', () => {
 test('player: holding moveLeft stops at the left wall', () => {
   const player = createPlayer(spawn.x + 0.5, floorTop);
   run(player, () => frame(['moveLeft']), 600);
-  assert.ok(player.x - MOVE.width / 2 >= 1 - 1e-9, `x ${player.x}`);
+  assert.ok(player.x - PLAYER_SIZE.width / 2 >= 1 - 1e-9, `x ${player.x}`);
   assert.equal(player.vx, 0);
 });
 
@@ -150,7 +152,7 @@ test('crouch: down in mid-air does nothing', () => {
   stepPlayer(player, frame(['moveDown'], ['moveDown']), tiles, DT);
   assert.equal(player.onGround, false);
   assert.equal(player.crouching, false);
-  assert.equal(playerHeight(player), MOVE.height);
+  assert.equal(playerHeight(player), PLAYER_SIZE.height);
 });
 
 test('crouch: under a low ceiling the player stays crouched until there is room, also when jumping', () => {
@@ -180,4 +182,31 @@ test('crouch: under a low ceiling the player stays crouched until there is room,
   for (let i = 0; i < 60; i++) stepPlayer(player, frame(['moveRight']), low, DT);
   assert.ok(player.x > 10.5, `out from under the ceiling at x ${player.x}`);
   assert.equal(player.crouching, false, 'stands up once out from under the ceiling');
+});
+
+test('per-player size: a 1.5-tall player crouched under a 1-tile ceiling stands up where the gap is 2', () => {
+  // Floor at y 0; ceiling tiles at y 2 over x 5..9 (gap 1), then a ceiling at y 3 over x 10..14 (gap 2).
+  const map = loadGridMap({
+    format: 1,
+    name: 'steps',
+    tileSize: 64,
+    legend: { '#': { type: 'solid', color: '#888888' } },
+    grid: ['..........#####', '.....#####.....', '...............', '###############'],
+    spawns: [{ type: 'player', x: 2, y: 1 }],
+    player: { width: 1, height: 1.5, crouchHeight: 0.75 },
+  });
+  assert.deepEqual(map.player, { width: 1, height: 1.5, crouchHeight: 0.75 });
+  const player = createPlayer(2.5, 1, map.player);
+  stepPlayer(player, frame(), map.tiles, DT);
+  stepPlayer(player, frame(['moveDown'], ['moveDown']), map.tiles, DT);
+  assert.equal(playerHeight(player), 0.75);
+  for (let i = 0; i < 400 && player.x < 7.5; i++) stepPlayer(player, frame(['moveDown', 'moveRight']), map.tiles, DT);
+  player.vx = 0;
+  stepPlayer(player, frame(), map.tiles, DT);
+  assert.equal(player.crouching, true, '1 tile of headroom: 1.5 does not fit');
+  for (let i = 0; i < 400 && player.x < 11.5; i++) stepPlayer(player, frame(['moveDown', 'moveRight']), map.tiles, DT);
+  player.vx = 0;
+  stepPlayer(player, frame(), map.tiles, DT);
+  assert.equal(player.crouching, false, '2 tiles of headroom: 1.5 fits');
+  assert.equal(playerHeight(player), 1.5);
 });

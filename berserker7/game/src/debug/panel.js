@@ -13,11 +13,12 @@
 //     #b7-zoom (range), [data-value="zoom"]  camera view height in tiles; [ and ] change it by 2
 //     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
 //     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
+//     #b7-grid (checkbox)                    level tiles and cubes with the grid texture, off by default
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
 //     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
 //                                       camera offset from the followed point, tiles
 //     #b7-follow-<key> (range), [data-value="follow-<key>"]  camera aim-follow settings
-//                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleY)
+//                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleYUp, scaleYDown)
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
@@ -129,6 +130,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
           <input id="b7-zoom" type="range" min="${CAMERA_TILES_MIN}" max="${CAMERA_TILES_MAX}" step="1">
           <span data-value="zoom"></span></label>
         <label class="b7-check"><input id="b7-city" type="checkbox"> City backdrop (2.5D)</label>
+        <label class="b7-check"><input id="b7-grid" type="checkbox"> Grid</label>
         <label>FOV
           <input id="b7-fov" type="range" min="${FOV_MIN}" max="${FOV_MAX}" step="1">
           <span data-value="fov"></span></label>
@@ -240,6 +242,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
   const modeButtons = [...root.querySelectorAll('[data-view-mode]')];
   const offsetSliders = [...root.querySelectorAll('[data-axis]')];
   const cityCheck = root.querySelector('#b7-city');
+  const gridCheck = root.querySelector('#b7-grid');
   const followSliders = [...root.querySelectorAll('[data-follow]')];
   function showZoom() {
     if (sandboxZoom) {
@@ -250,6 +253,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
       const mode = sandboxViewMode.mode();
       for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
       cityCheck.checked = sandboxViewMode.backdrop();
+      gridCheck.checked = sandboxViewMode.grid();
       fovSlider.value = String(sandboxViewMode.fov());
       fovSlider.disabled = mode !== '2.5d';
       setValue('fov', `${sandboxViewMode.fov()}°`);
@@ -295,6 +299,11 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
     cityCheck.addEventListener('change', () => {
       cityCheck.blur();
       sandboxViewMode.setBackdrop(cityCheck.checked);
+      showZoom();
+    });
+    gridCheck.addEventListener('change', () => {
+      gridCheck.blur();
+      sandboxViewMode.setGrid(gridCheck.checked);
       showZoom();
     });
     for (const slider of offsetSliders) {

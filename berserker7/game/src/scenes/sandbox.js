@@ -6,9 +6,9 @@
 import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
-import { MOVE, createPlayer, playerHeight, stepPlayer } from '../world/player.js';
+import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
-import { createTileTexture } from './tile-texture.js';
+import { createGridTexture, createTileTexture } from './tile-texture.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
 import {
   DEPTH_MARGIN,
@@ -25,7 +25,7 @@ import {
 } from './sandbox-3d.js';
 
 // The maps the Sandbox can load (manifest keys), and the default: the MoGe-3 blockout.
-export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk', 'map.mvp-upper-1', 'map.walkway']);
+export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk', 'map.moge3-cyberpunk-blocks', 'map.mvp-upper-1', 'map.walkway']);
 export const MAP_KEY = SANDBOX_MAPS[0];
 // Below the lowest solid tile by this many tiles, the player goes back to the spawn.
 export const FALL_MARGIN = 10;
@@ -74,8 +74,9 @@ function lowestTileY(tiles) {
 }
 // Default view height: tiles shown from the bottom of the view to the top. The game camera is
 // expected to vary between 18 and 28 tiles high (adjusted per area later), with 22 as the default.
+// The debug range reaches down to 8 to try close views.
 export const CAMERA_TILES_HIGH = 22;
-export const CAMERA_TILES_MIN = 18; // closest zoom
+export const CAMERA_TILES_MIN = 8; // closest zoom
 export const CAMERA_TILES_MAX = 28; // furthest zoom
 
 // The camera's view height in tiles, changed live by the debug tools (slider, [ and ]) and read by
@@ -123,7 +124,7 @@ export function initSandbox(map, key = MAP_KEY) {
   const state = {
     ticks: 0,
     map: key,
-    player: createPlayer(spawn.x + 0.5, spawn.y),
+    player: createPlayer(spawn.x + 0.5, spawn.y, map.player),
     pointer: null,
     aimSource: null,
     spawn: { x: spawn.x + 0.5, y: spawn.y },
@@ -176,6 +177,14 @@ function addInstanced(scene, track, geometry, material, positions) {
   positions.forEach(([x, y, z = 0], i) => mesh.setMatrixAt(i, matrix.makeTranslation(x + 0.5, y + 0.5, z)));
   mesh.instanceMatrix.needsUpdate = true;
   scene.add(mesh);
+  return mesh;
+}
+
+// One level group: the instanced mesh plus its checkerboard and grid materials; draw picks the
+// material by the Grid setting (nothing is created per frame).
+function addLevelGroup(scene, track, level, geometry, materials, positions) {
+  const mesh = addInstanced(scene, track, geometry, materials.checker, positions);
+  level.push({ mesh, ...materials });
 }
 
 // The player box and the aim line, one pair per view (an object belongs to one three.js scene).
@@ -204,20 +213,23 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       mapKey = mapChoice.get();
       map = loadMap(await acquireMap(acquire, mapKey, fetchJson));
       tiles = map.tiles;
-      // One checkerboard texture per tile type (see tile-texture.js), mapped once per tile (2D) or
-      // per cube face (2.5D) by the 0..1 UVs, so the squares line up across neighbouring tiles.
-      const flatMaterials = new Map(); // tile id -> material
+      // One checkerboard and one grid texture per tile type (see tile-texture.js), mapped once per
+      // tile (2D) or per cube face (2.5D) by the 0..1 UVs, so the squares line up across
+      // neighbouring tiles. Each view gets both materials; draw picks one by the Grid setting.
+      const flatMaterials = new Map(); // tile id -> { checker, grid }
       const cubeMaterials = new Map();
       tiles.types.forEach((type, id) => {
         if (id === 0 || type.color === undefined) return;
-        const texture = track(createTileTexture(map.tileSize, type.color));
-        flatMaterials.set(id, track(new MeshBasicMaterial({ map: texture })));
-        cubeMaterials.set(id, track(new MeshBasicMaterial({ map: texture, vertexColors: true })));
+        const checker = track(createTileTexture(map.tileSize, type.color));
+        const grid = track(createGridTexture(map.tileSize));
+        const material = (map, vertexColors) => track(new MeshBasicMaterial({ map, vertexColors }));
+        flatMaterials.set(id, { checker: material(checker, false), grid: material(grid, false) });
+        cubeMaterials.set(id, { checker: material(checker, true), grid: material(grid, true) });
       });
       const geometries = {
         tile: track(new PlaneGeometry(1, 1)),
         cube: track(shadedCubeGeometry()),
-        player: track(new PlaneGeometry(MOVE.width, MOVE.height)),
+        player: track(new PlaneGeometry(map.player.width, map.player.height)),
         // A thin plane from the head along +x, rotated to the aim angle.
         aim: track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
       };
@@ -229,8 +241,10 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
 
       // 2D: flat tiles, orthographic camera.
       const flatScene = new Scene();
-      for (const [id, positions] of groups) addInstanced(flatScene, track, geometries.tile, flatMaterials.get(id), positions);
+      const flatLevel = []; // { mesh, checker, grid } per group
+      for (const [id, positions] of groups) addLevelGroup(flatScene, track, flatLevel, geometries.tile, flatMaterials.get(id), positions);
       flat = {
+        level: flatLevel,
         scene: flatScene,
         camera: new OrthographicCamera(-1, 1, 1, -1, -10, 10),
         player: addPlayer(flatScene, geometries, materials, { player: PLAYER_Z, aim: AIM_Z }),
@@ -238,7 +252,8 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
 
       // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera.
       const deepScene = new Scene();
-      for (const [id, positions] of groups) addInstanced(deepScene, track, geometries.cube, cubeMaterials.get(id), positions);
+      const deepLevel = [];
+      for (const [id, positions] of groups) addLevelGroup(deepScene, track, deepLevel, geometries.cube, cubeMaterials.get(id), positions);
       const decor = new Map(); // tile id -> [[x, y, z], ...]
       // Off-plane cubes: a cells map's own cells, or decorative depth cubes for a flat map.
       for (const cube of map.cells ?? depthCubes(tiles)) {
@@ -246,7 +261,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         if (!decor.has(cube.id)) decor.set(cube.id, []);
         decor.get(cube.id).push([cube.x, cube.y, cube.z]);
       }
-      for (const [id, positions] of decor) addInstanced(deepScene, track, geometries.cube, cubeMaterials.get(id), positions);
+      for (const [id, positions] of decor) addLevelGroup(deepScene, track, deepLevel, geometries.cube, cubeMaterials.get(id), positions);
       // Background city blocks: wide enough for the widest normal view (FOV 50, the furthest
       // zoom, a 21:9 window) anywhere the camera can go (the level plus the largest offset and
       // aim-follow Max).
@@ -260,6 +275,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         view: { fovDegrees: FOV_DEFAULT, tilesHigh: CAMERA_TILES_MAX, aspect: 21 / 9 },
       });
       deep = {
+        level: deepLevel,
         city,
         scene: deepScene,
         camera: new PerspectiveCamera(FOV_DEFAULT, 1, 0.1, 100),
@@ -274,7 +290,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
     draw(state, view) {
       const { player } = state;
       const tilesHigh = zoom.get();
-      const height = playerHeight(player); // 1 while crouched, else 2
+      const height = playerHeight(player); // crouchHeight while crouched, else height
       const centreY = player.y + height / 2;
       const headY = player.y + height; // top centre of the box
       const active = viewMode.mode() === '2d' ? flat : deep;
@@ -314,9 +330,11 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         camera.position.set(camX, camY, distance);
       }
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
+      const grid = viewMode.grid();
+      for (const group of active.level) group.mesh.material = grid ? group.grid : group.checker;
       const { body, aim } = active.player;
       body.position.set(player.x, centreY, body.position.z);
-      body.scale.y = height / MOVE.height; // the body geometry is MOVE.height tall
+      body.scale.y = height / map.player.height; // the body geometry is the standing height tall
       aim.position.set(player.x, headY, aim.position.z);
       // The aim line points at the mouse's true world position: the pointer projected through the
       // actual camera. With a stick (or before the mouse moves) it uses the input's aim angle.
