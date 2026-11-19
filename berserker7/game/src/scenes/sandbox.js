@@ -14,7 +14,7 @@ export const MAP_KEY = 'map.mvp-upper-1';
 // expected to vary between 18 and 28 tiles high (adjusted per area later), with 22 as the default.
 export const CAMERA_TILES_HIGH = 22;
 export const CAMERA_TILES_MIN = 18; // closest zoom
-export const CAMERA_TILES_MAX = 60; // furthest zoom
+export const CAMERA_TILES_MAX = 28; // furthest zoom
 
 // The camera's view height in tiles, changed live by the debug tools (slider, [ and ]) and read by
 // the scene in draw. Whole tiles, clamped to CAMERA_TILES_MIN..CAMERA_TILES_MAX. Not saved.

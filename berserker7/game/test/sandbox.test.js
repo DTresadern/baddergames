@@ -65,9 +65,10 @@ test('sandbox scene: ticks while uncovered, draws when covered, suspends on leav
 });
 
 test('createCameraZoom: whole tiles, clamped to the limits, bad values ignored', () => {
+  assert.deepEqual([CAMERA_TILES_MIN, CAMERA_TILES_HIGH, CAMERA_TILES_MAX], [18, 22, 28]);
   const zoom = createCameraZoom();
   assert.equal(zoom.get(), CAMERA_TILES_HIGH);
-  assert.equal(zoom.set(30.4), 30);
+  assert.equal(zoom.set(25.4), 25);
   assert.equal(zoom.set(5), CAMERA_TILES_MIN);
   assert.equal(zoom.set(500), CAMERA_TILES_MAX);
   assert.equal(zoom.set(NaN), CAMERA_TILES_MAX);
@@ -83,7 +84,7 @@ test('sandbox draw: the camera follows the zoom holder live', async () => {
   const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
   scene.draw(state, view);
   assert.equal(rendered.top - rendered.bottom, CAMERA_TILES_HIGH);
-  zoom.set(40);
+  zoom.set(26);
   scene.draw(state, view);
-  assert.equal(rendered.top - rendered.bottom, 40);
+  assert.equal(rendered.top - rendered.bottom, 26);
 });
