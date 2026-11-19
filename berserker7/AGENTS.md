@@ -46,10 +46,11 @@ Version label and CI:
   3. End failed loads, apply queued requests in request order, and activate scenes whose load finished.
   4. Advance the fade and swap the main scene at its midpoint.
 - Requests (`setMain`, `openOverlay`, `closeOverlay`, `addBackground`, `leave`, `preload`, `setPlayMode`) are always queued. Nothing changes mid-frame, including requests from scene hooks.
-- `setMain(id, { params, fade, fromAlpha })`:
+- `setMain(id, { params, fade, fadeOut, fadeIn, fromAlpha })`:
   - `fade` is the fade duration in seconds (0 = swap at once). The screen darkens over the first half, the scene swaps at the midpoint, and the new scene shows over the second half.
+  - `fadeOut` and `fadeIn` (seconds) set the two parts separately: to black over `fadeOut`, swap, back in over `fadeIn`. They must be given together (both positive, finite) and not with `fade`, else `setMain` throws. The transition stores `fadeOut`, `fadeIn` and `duration = fadeOut + fadeIn`; `fade` is the same as `fadeOut = fadeIn = fade / 2`.
   - `fromAlpha` (0 to 1) is the darkness the fade starts at; by default the darkness of the fade it replaces, else 0.
-  - With `fromAlpha: 1` the screen is taken as already black: the swap happens in the frame the request applies and the new scene fades in over `fade / 2`.
+  - With `fromAlpha: 1` the screen is taken as already black: the swap happens in the frame the request applies and the new scene fades in over `fadeIn` (`fade / 2` with `fade`).
 - Play modes: `local` and `online`. In `online`, overlays never pause the main scene.
 - While the main scene loads, the loading scene is drawn in its place. A fade with nothing to show stays black at its midpoint until the scene is ready.
 
@@ -133,6 +134,13 @@ Version label and CI:
   - `jump` and `interact` select the highlighted item.
   - `primaryFire` selects the item under the pointer for a mouse player (a click elsewhere does nothing) and the highlighted item for a gamepad player.
   - Player 1's frame always has a pointer (keyboard + mouse), so a trigger on player 1's gamepad selects only when the mouse is over an item; its A (`jump`) and X (`interact`) still select the highlight.
+- Panel animation (shared with New Game, `scenes/panel-anim.js`, pure; `PANEL_ANIM`: width 0.3 s, height 0.3 s, items 0.2 s, line height 4 px; cubic ease-out):
+  - Opening (`openingAt`, `OPEN_SECONDS` 0.8): the panel is a 4 px line that widens (0.3 s), grows to full height (0.3 s), then the labels and highlight bar fade in (0.2 s). Closing (`closingAt`, `CLOSE_SECONDS` 0.8) is the reverse: items fade out, height shrinks to the line, width shrinks to 0.
+  - `animRect(rect, { width, height })` keeps the centre; a width of 0 means the mesh is hidden (`visible = false`), never scaled to 0.
+- Opening state: `state.open = { phase, t }`, phase `'waiting'` (nothing shown), `'opening'`, `'open'`.
+  - `tickMainMenu(state, inputs, dt, { fading })`: `waiting` becomes `opening` on the first tick where `fading` is false (the menu's fade-in from black has ended; `screens.fading()` is `harness.transition !== null`). `opening` adds `dt` to `t` and becomes `open` at 0.8 s.
+  - Input (keys, hover, clicks) is ignored unless the phase was already `open` at the start of the tick.
+  - It plays on every entry (`enter` gives a fresh state). `resume` (for example the debug panel's "Main menu") sets a flag and the next tick resets `open` to waiting.
 - Selecting "New Game" opens the New Game screen (see New Game screen); the other items do nothing.
 - State fields:
   - `state.selected` (label) and `state.selections` (count) are for debug checks only.
@@ -153,7 +161,7 @@ Version label and CI:
 - Opening and closing:
   - An overlay over the main menu, opened by `harness.openOverlay('newGame')` through the `screens` object `main.js` passes to both scenes.
   - It is an overlay so the main menu never leaves its layer: the title music is not interrupted and there is no fade.
-  - The menu's `suspend` and `exit` close it.
+  - The menu's `suspend` (at the game fade's midpoint) and `exit` close it.
 - The menu while it is open:
   - The menu does not tick (it ignores input) but still draws underneath.
   - In `online` play mode (set only from the debug panel) a covered main scene still ticks, so the hidden menu would react to input there.
@@ -166,16 +174,22 @@ Version label and CI:
   - `jump`, `interact` and a click select.
   - A click on an available card sets the campaign.
   - Back keys: the Back item, Escape and gamepad Start (`pause`), V and gamepad B (`melee`).
-  - Selecting a difficulty (any of the four, by mouse or keys) creates the session and saves the last choice (see below), then calls `screens.startGame()`: `main.js` closes the overlay and fades to the Sandbox as the main scene (`GAME_FADE_SECONDS` 2, the total: 1 s to black, 1 s back in). Difficulty has no effect yet.
+  - Selecting a difficulty (any of the four, by mouse or keys) creates the session and saves the last choice (see below), then closes its boxes and, 0.5 s later, calls `screens.startGame()`: `main.js` fades to the Sandbox as the main scene (`GAME_FADE_OUT_SECONDS` 2 to black, `GAME_FADE_IN_SECONDS` 1 back in). `startGame` does not close the overlay: it stays on top (boxes already closed) so the menu's panel is not shown during the fade. Difficulty has no effect yet.
   - The main menu leaves the main layer at the fade's midpoint (leave `suspend`), and its `suspend` calls `music.stop()`, so the title music stops there.
   - Selecting Back closes the overlay; it creates no session and saves nothing.
 - State fields:
   - `state.selected` (`easy`, `normal`, `hard`, `extreme` or `back`) and `state.selections` are for debug checks only.
   - `state.start` is `{ campaign, difficulty }` when a difficulty was selected in the tick (the last one wins), else null; it is reset each tick.
-  - `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection in the same tick cannot cancel it), and the scene's `tick` closes the overlay on it.
+  - `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection cannot cancel it; a selection in the same tick does cancel the Back), `'startGame'` once at the end of the closing delay; the scene's `tick` acts on it.
+  - `state.closing` is null, or `{ t, started }` after a selection.
+- Closing on a difficulty selection:
+  - In the selection tick the session and last choice are saved (below) but `screens.startGame()` is not called; `state.closing = { t: 0, started: false }`. A selection wins over a Back in the same tick.
+  - From then on all input is ignored and `closing.t` counts up by `dt`. Drawing: the four card fills, the chosen card's outline (its card's rect grown by 3 px) and the difficulty panel close with `closingAt` (items fade out, height to the line, width to 0, 0.8 s); card labels, difficulty labels, Back and the highlight bar fade with the items.
+  - At `closing.t >= CLOSE_SECONDS + START_DELAY_SECONDS` (0.8 + 0.5 s) `state.request` becomes `'startGame'` once (`started` is then true) and the scene's `tick` calls `screens.startGame()`.
+  - The Back path is unchanged: the overlay closes at once, with no animation.
 - Opening and saving (`createNewGame({ screens, settings, session, poster })`):
   - `enter` calls `initNewGame(settings.get().lastChoice)`: the saved campaign if it is an available campaign, else the first available one (Megacity); the saved difficulty if it is one of `DIFFICULTIES`, else `DEFAULT_DIFFICULTY`.
-  - The scene's `tick`, when `state.start` is set: `session.set(createSession(state.start))`, `settings.set({ lastChoice: { ...state.start } })`, then `screens.startGame()`; then the Back handling (a Back in the same tick also closes the overlay).
+  - The scene's `tick`, when `state.start` is set (the selection tick): `session.set(createSession(state.start))`, `settings.set({ lastChoice: { ...state.start } })`; later, on `state.request === 'startGame'`, `screens.startGame()`; on `'back'`, `screens.closeNewGame()`.
 - Its leave setting is `unload`, so closing frees its labels and each open starts fresh. The poster stays loaded because the main menu still holds it.
 
 ## Settings and session (`game/src/settings/store.js`, `game/src/session.js`)

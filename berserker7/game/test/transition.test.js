@@ -184,3 +184,61 @@ test('fromAlpha outside 0..1 is rejected', () => {
     assert.throws(() => harness.setMain('a', { fade: 1, fromAlpha: bad }), /fromAlpha must be 0..1/);
   }
 });
+
+test('asymmetric fade: alpha, swap point, duration', () => {
+  const tr = createTransition({ fadeOut: 4, fadeIn: 1, to: 'b' });
+  assert.equal(tr.duration, 5);
+  const at = (t) => transitionAlpha({ ...tr, t });
+  assert.deepEqual([0, 2, 4, 4.5, 5].map(at), [0, 0.5, 1, 0.5, 0]);
+  assert.equal(swapDue({ ...tr, t: 3.9 }), false);
+  assert.equal(swapDue({ ...tr, t: 4 }), true);
+  const held = advanceTransition(markSwapped({ ...tr, t: 4 }), 1, true);
+  assert.equal(held.t, 4);
+  assert.equal(transitionDone(markSwapped({ ...tr, t: 5 })), true);
+});
+
+test('asymmetric fade with fromAlpha 1 starts at t = fadeOut', () => {
+  const tr = createTransition({ fadeOut: 4, fadeIn: 1, to: 'b', fromAlpha: 1 });
+  assert.equal(tr.t, 4);
+  assert.equal(swapDue(tr), true);
+});
+
+test('hand-built transitions without fadeOut/fadeIn stay symmetric', () => {
+  const tr = { duration: 2, t: 1, swapped: false };
+  assert.equal(transitionAlpha(tr), 1);
+  assert.equal(swapDue(tr), true);
+});
+
+test('harness: fadeOut 4 / fadeIn 1 swaps after 4 s and ends after 5 s', async () => {
+  const { harness } = harnessWith([['a'], ['b']]);
+  harness.setMain('a');
+  harness.preload('b');
+  await settle(harness);
+  harness.setMain('b', { fadeOut: 4, fadeIn: 1 });
+  harness.frame(0.25); // applied; t = 0.25 (frame time is capped at 0.25 s)
+  let swapAt = null;
+  let endAt = null;
+  for (let i = 1; i <= 24 && endAt === null; i++) {
+    harness.frame(0.25);
+    const t = 0.25 + i * 0.25;
+    if (swapAt === null && harness.layers.main === 'b') swapAt = t;
+    if (harness.transition === null) endAt = t;
+  }
+  assert.equal(swapAt, 4);
+  assert.equal(endAt, 5);
+});
+
+test('setMain rejects bad fadeOut / fadeIn combinations', () => {
+  const { harness } = harnessWith([['a']]);
+  const bad = [
+    { fadeOut: 4 },
+    { fadeIn: 1 },
+    { fadeOut: 4, fadeIn: 1, fade: 2 },
+    { fadeOut: 0, fadeIn: 1 },
+    { fadeOut: 4, fadeIn: -1 },
+    { fadeOut: Infinity, fadeIn: 1 },
+    { fadeOut: NaN, fadeIn: 1 },
+    { fadeOut: '4', fadeIn: 1 },
+  ];
+  for (const opts of bad) assert.throws(() => harness.setMain('a', opts), /fade/, JSON.stringify(opts));
+});

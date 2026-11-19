@@ -2,10 +2,12 @@
 // holding three no-op menu items, and the title music.
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
+import { STEP_SECONDS } from '../engine/clock.js';
 import { labelTexture } from './labels.js';
 import { assetByKey } from '../assets/manifest.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
 import { checkPoster, coverSize } from './poster.js';
+import { OPEN_SECONDS, animRect, openingAt } from './panel-anim.js';
 import { fitOrtho, inside, place } from './shared.js';
 
 export const PANEL_WIDTH = 480;
@@ -16,6 +18,7 @@ export const ITEM_WIDTH = 320;
 export const ITEM_HEIGHT = 56;
 export const ITEM_GAP = 8;
 const DIM_OPACITY = 0.6;
+const BAR_OPACITY = 0.16;
 export const MUSIC = 'music.title'; // manifest key
 
 // Size of the black panel: at most 480 x 560, and at most 90% of the width and 80% of the height.
@@ -48,7 +51,7 @@ export function itemAt(layout, x, y) {
 }
 
 export function initMainMenu() {
-  return { ticks: 0, highlight: 0, selected: null, selections: 0, request: null };
+  return { ticks: 0, highlight: 0, selected: null, selections: 0, request: null, open: { phase: 'waiting', t: 0 } };
 }
 
 // `selected` and `selections` are for debug checks. `request` is what the scene asks the
@@ -76,9 +79,20 @@ function applyFrame(state, { actions, pointer }) {
   }
 }
 
-export function tickMainMenu(state, inputs = []) {
+// The panel opens in phases (see panel-anim.js): 'waiting' (nothing shown; held while the menu's
+// fade-in from black runs, `fading`), 'opening' (t counts up to OPEN_SECONDS), 'open'.
+// Input counts only if the menu was already open at the start of the tick.
+export function tickMainMenu(state, inputs = [], dt = STEP_SECONDS, { fading = false } = {}) {
   state.ticks += 1;
   state.request = null;
+  const wasOpen = state.open.phase === 'open';
+  if (state.open.phase === 'waiting') {
+    if (!fading) state.open = { phase: 'opening', t: 0 };
+  } else if (state.open.phase === 'opening') {
+    state.open.t += dt;
+    if (state.open.t >= OPEN_SECONDS) state.open = { phase: 'open', t: OPEN_SECONDS };
+  }
+  if (!wasOpen) return state;
   for (const frame of inputs) if (frame.connected) applyFrame(state, frame);
   return state;
 }
@@ -93,6 +107,8 @@ export function createMainMenu({
   checkPoster(posterKey);
   let scene, camera, poster, panel, bar, imageWidth, imageHeight;
   let labels = []; // { mesh, material } per menu item
+  // Set by resume(); the next tick restarts the opening animation (see resume).
+  let replay = false;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend', pausable: false },
     async load({ track, acquire }) {
@@ -108,7 +124,7 @@ export function createMainMenu({
       panel = new Mesh(geometry, panelMaterial);
       panel.position.z = 1; // in front of the poster
       const barMaterial = track(
-        new MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false }),
+        new MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: BAR_OPACITY, depthWrite: false }),
       );
       bar = new Mesh(geometry, barMaterial);
       bar.position.z = 2;
@@ -129,7 +145,13 @@ export function createMainMenu({
       music.play(assetByKey(MUSIC).path);
       return initMainMenu();
     },
-    resume: () => music.play(assetByKey(MUSIC).path),
+    // Coming back after the game started (for example the debug panel's "Main menu" button) keeps
+    // the old state, which is already 'open'. The panel should animate in again, as on every
+    // entry, so the next tick resets the animation (state is not available here).
+    resume() {
+      music.play(assetByKey(MUSIC).path);
+      replay = true;
+    },
     // The New Game overlay never outlives the menu (for example when the debug panel switches scene).
     suspend() {
       music.stop();
@@ -139,8 +161,12 @@ export function createMainMenu({
       music.stop();
       screens.closeNewGame();
     },
-    tick(state, inputs) {
-      tickMainMenu(state, inputs);
+    tick(state, inputs, dt) {
+      if (replay) {
+        replay = false;
+        state.open = { phase: 'waiting', t: 0 };
+      }
+      tickMainMenu(state, inputs, dt, { fading: screens.fading() });
       if (state.request === 'newGame') screens.openNewGame();
       return state;
     },
@@ -150,12 +176,25 @@ export function createMainMenu({
       const cover = coverSize(width, height, imageWidth, imageHeight);
       poster.scale.set(cover.width, cover.height, 1);
       const layout = menuLayout(width, height);
-      place(panel, layout.panel, width, height);
-      place(bar, layout.items[state.highlight], width, height);
+      const { phase, t } = state.open;
+      const anim = phase === 'open' ? { width: 1, height: 1, items: 1 } : phase === 'opening' ? openingAt(t) : null;
+      const shown = (rect) => rect.width > 0 && rect.height > 0;
+      const panelRect = anim ? animRect(layout.panel, anim) : null;
+      panel.visible = panelRect !== null && shown(panelRect);
+      if (panel.visible) place(panel, panelRect, width, height);
+      const itemsAlpha = anim ? anim.items : 0;
+      const itemsVisible = panel.visible && itemsAlpha > 0;
+      bar.visible = itemsVisible;
+      if (itemsVisible) {
+        place(bar, layout.items[state.highlight], width, height);
+        bar.material.opacity = BAR_OPACITY * itemsAlpha;
+      }
       layout.items.forEach((rect, i) => {
         const { mesh, material } = labels[i];
+        mesh.visible = itemsVisible;
+        if (!itemsVisible) return;
         place(mesh, rect, width, height);
-        material.opacity = i === state.highlight ? 1 : DIM_OPACITY;
+        material.opacity = (i === state.highlight ? 1 : DIM_OPACITY) * itemsAlpha;
       });
       view.renderer.render(scene, camera);
     },
