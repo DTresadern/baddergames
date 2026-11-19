@@ -249,7 +249,7 @@ Session (`createSession`, `createSessionHolder`):
   - The loader never releases what it acquired, so preloaded assets stay loaded for the page's life and a scene's later acquire gets them at once; a scene releasing them does not dispose them.
   - `status(group)` gives `{ progress, done, error }`: `progress` is loaded assets / group size, only moves forward, and is exactly 1 when `done`.
   - Loud failure: the first asset that fails rejects the group's promise, sets `error` to `Could not load <path>`, and is logged once with `console.error`; the group never becomes done and there is no retry.
-- Adding an asset: put the file under `game/public/content/...`, add an entry to `ASSETS` with its groups, and in code use `acquireTexture(context.acquire, key)` for a texture or `assetByKey(key).path` for music.
+- Adding an asset: put the file under `game/public/content/...`, add an entry to `ASSETS` with its groups, and in code use `acquireTexture(context.acquire, key)` for a texture, `acquireMap(context.acquire, key)` for a map or `assetByKey(key).path` for music.
 
 ## Sandbox (`scenes/sandbox.js`, `world/`)
 
