@@ -16,7 +16,7 @@
 import { ACTIONS } from '../input/actions.js';
 import { SANDBOX_MAPS } from '../scenes/sandbox.js';
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2; // 2: MessagePack bytes (1 was JSON text)
 // Largest message accepted or sent, in MessagePack bytes. The largest message (a two-player snap)
 // is 172 bytes at worst (every field at full-precision extremes); 2048 leaves wide margin.
 export const MAX_MESSAGE_BYTES = 2048;
@@ -32,7 +32,7 @@ export function loadCodec(load = () => import('./online-libs.js')) {
   if (loading === null) {
     loading = load().then(
       ({ Packr }) => {
-        packr = new Packr({ useRecords: false, structures: undefined, moreTypes: false, structuredClone: false, mapsAsObjects: true });
+        packr = new Packr({ useRecords: false, structures: undefined, moreTypes: false, structuredClone: false, mapsAsObjects: true, variableMapSize: true });
       },
       (err) => {
         loading = null;
