@@ -235,7 +235,7 @@ def main():
         help='marked block square at one depth (repeatable); cell columns line up with their edges; default: the walkway face squares',
     )
     blocks.add_argument('--remove', help='JSON file of cells to remove after voxelising ({"cells": [[x, y, z], ...]})')
-    blocks.add_argument('--player', default='1,1.5,0.75', help='player width,height,crouchHeight, blocks')
+    blocks.add_argument('--player', default='0.55,1.2,0.6', help='player width,height,crouchHeight, blocks')
     args = parser.parse_args()
     if args.min_points is None:
         args.min_points = 100 if args.mode == 'blocks' else 20

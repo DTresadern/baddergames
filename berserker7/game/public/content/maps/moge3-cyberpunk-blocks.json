@@ -5,7 +5,7 @@
   "tileSize": 64,
   "tile": {"type": "solid", "color": "#6b7a8f"},
   "source": {"tool": "tools/moge_blockout.py --mode blocks", "principalPx": [995.0, 415.0], "focalPx": 400.0, "blocksPerMetre": 0.21, "maxBlocks": 7.25, "minPoints": 100, "cameraHeightBlocks": 0.75, "playPlaneDepthBlocks": 4.479, "columnShiftBlocks": 0.51, "imageBlocksHighAtPlayPlane": 9.17, "removedCells": 28, "removeFile": "tools/moge3-cyberpunk-blocks.remove.json"},
-  "player": {"width": 1.0, "height": 1.5, "crouchHeight": 0.75},
+  "player": {"width": 0.55, "height": 1.2, "crouchHeight": 0.6},
   "spawns": [{"type": "player", "x": -4, "y": 0}],
   "cells": [
     [-9,6,-3],
