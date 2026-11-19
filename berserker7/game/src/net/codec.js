@@ -1,6 +1,8 @@
-// Wire messages: the only code that builds or parses them. encode(msg) -> string,
-// decode(text) -> msg | null. JSON inside for now; a later step may move to MessagePack and
-// quantised integers, which only changes this file.
+// Wire messages: the only code that builds or parses them. encode(msg) -> Uint8Array,
+// decode(bytes) -> msg | null. The bytes are plain MessagePack (msgpackr 2.1.4, no records or
+// extensions). msgpackr loads lazily with PeerJS (online-libs.js): await loadCodec() before the
+// first encode or decode; both throw until then. A later step may add quantised integers, which
+// only changes this file.
 //
 // Every message is flat: `t` (its type) plus the fields listed for that type in MESSAGES, each a
 // number, boolean or short string. No nested objects or arrays; player fields are per slot
@@ -15,11 +17,38 @@ import { ACTIONS } from '../input/actions.js';
 import { SANDBOX_MAPS } from '../scenes/sandbox.js';
 
 export const PROTOCOL_VERSION = 1;
-// Largest message accepted or sent, in UTF-8 bytes. The largest message (a two-player snap) is
-// about 300 bytes.
+// Largest message accepted or sent, in MessagePack bytes. The largest message (a two-player snap)
+// is about SNAPBYTES bytes.
 export const MAX_MESSAGE_BYTES = 2048;
 // Players a snapshot can carry (slot 0 is the host, slot 1 the guest).
 export const MAX_PLAYERS = 2;
+
+// msgpackr, once loaded. loadCodec() takes the loader as an argument so tests can pass their own.
+let packr = null;
+let loading = null;
+
+// Loads msgpackr once (the promise is kept; a failed load is forgotten so a retry can work).
+export function loadCodec(load = () => import('./online-libs.js')) {
+  if (loading === null) {
+    loading = load().then(
+      ({ Packr }) => {
+        packr = new Packr({ useRecords: false, structures: undefined, moreTypes: false, structuredClone: false, mapsAsObjects: true });
+      },
+      (err) => {
+        loading = null;
+        throw err;
+      },
+    );
+  }
+  return loading;
+}
+
+export const codecLoaded = () => packr !== null;
+
+function requireCodec() {
+  if (packr === null) throw new Error('codec: not loaded (call loadCodec first)');
+  return packr;
+}
 
 // Bit masks over ACTIONS index order must fit in a 32-bit signed integer.
 if (ACTIONS.length >= 31) throw new Error(`codec: ${ACTIONS.length} actions do not fit an input bit mask`);
@@ -77,21 +106,6 @@ export const MESSAGES = Object.freeze({
   bye: Object.freeze({}),
 });
 
-// UTF-8 length of a string, without allocating.
-export function byteLength(str) {
-  let bytes = 0;
-  for (let i = 0; i < str.length; i++) {
-    const c = str.charCodeAt(i);
-    if (c < 0x80) bytes += 1;
-    else if (c < 0x800) bytes += 2;
-    else if (c >= 0xd800 && c <= 0xdbff) {
-      bytes += 4;
-      i += 1;
-    } else bytes += 3;
-  }
-  return bytes;
-}
-
 const INVALID = Symbol('invalid');
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
@@ -134,16 +148,19 @@ export function encode(msg) {
   for (const name of Object.keys(msg)) {
     if (name !== 't' && !Object.hasOwn(MESSAGES[msg.t], name)) throw new Error(`codec: cannot encode: unknown field ${msg.t}.${name}`);
   }
-  const textOut = JSON.stringify(out);
-  if (byteLength(textOut) > MAX_MESSAGE_BYTES) throw new Error(`codec: ${msg.t} message over ${MAX_MESSAGE_BYTES} bytes`);
-  return textOut;
+  // pack returns a view into msgpackr's shared buffer, which the next pack overwrites: copy it
+  // into a Uint8Array of its own.
+  const bytes = new Uint8Array(requireCodec().pack(out));
+  if (bytes.byteLength > MAX_MESSAGE_BYTES) throw new Error(`codec: ${msg.t} message over ${MAX_MESSAGE_BYTES} bytes`);
+  return bytes;
 }
 
-export function decode(textIn) {
-  if (typeof textIn !== 'string' || byteLength(textIn) > MAX_MESSAGE_BYTES) return null;
+export function decode(bytes) {
+  const codec = requireCodec();
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength > MAX_MESSAGE_BYTES) return null;
   let parsed;
   try {
-    parsed = JSON.parse(textIn);
+    parsed = codec.unpack(bytes); // throws on truncated input and on trailing bytes
   } catch {
     return null;
   }

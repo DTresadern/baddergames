@@ -1,17 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MAX_MESSAGE_BYTES, encode } from '../src/net/codec.js';
+import { MAX_MESSAGE_BYTES, decode, encode, loadCodec } from '../src/net/codec.js';
 import { MAX_MESSAGES_PER_SECOND, TIMEOUT_MS, clampLag, createLink, createRawChannel } from '../src/net/link.js';
 import { createFakeClock } from './fake-net.js';
 
-// A link over a channel that records what is sent; `push(text)` delivers a received text.
+await loadCodec();
+
+// A link over a channel that records what is sent; the wire holds the sent bytes.
 function setup({ lagMs = 0 } = {}) {
   const clock = createFakeClock();
   const wire = [];
   const got = [];
   const closes = [];
   let channelClosed = 0;
-  const channel = createRawChannel({ send: (t) => wire.push({ time: clock.now(), text: t }), close: () => (channelClosed += 1) });
+  const channel = createRawChannel({ send: (t) => wire.push({ time: clock.now(), bytes: t }), close: () => (channelClosed += 1) });
   const link = createLink({
     channel,
     now: clock.now,
@@ -26,12 +28,14 @@ function setup({ lagMs = 0 } = {}) {
 
 const ping = (id) => encode({ t: 'ping', id, time: 1 });
 
-test('link: decodes received texts; drops malformed and oversize ones', () => {
+test('link: decodes received bytes; drops strings, malformed and oversize ones', () => {
   const { channel, got } = setup();
   channel.deliver(ping(1));
-  channel.deliver('{"t":"ping"}');
+  channel.deliver(JSON.stringify({ t: 'ping', id: 1, time: 1 })); // a string, even valid JSON
+  channel.deliver(new Uint8Array([0xc1]));
   channel.deliver(42);
-  channel.deliver(`{"t":"bye","pad":"${'x'.repeat(MAX_MESSAGE_BYTES)}"}`);
+  channel.deliver(null);
+  channel.deliver(new Uint8Array(MAX_MESSAGE_BYTES + 1));
   assert.deepEqual(got, [{ t: 'ping', id: 1, time: 1 }]);
 });
 
@@ -58,9 +62,9 @@ test('link: lag delays sends and keeps their order', () => {
   clock.advance(149);
   assert.equal(wire.length, 0);
   clock.advance(1);
-  assert.deepEqual(wire.map((w) => JSON.parse(w.text).id), [1]);
+  assert.deepEqual(wire.map((w) => decode(w.bytes).id), [1]);
   clock.advance(50);
-  assert.deepEqual(wire.map((w) => JSON.parse(w.text).id), [1, 2, 3]);
+  assert.deepEqual(wire.map((w) => decode(w.bytes).id), [1, 2, 3]);
   assert.deepEqual(wire.map((w) => w.time), [1200, 1250, 1250]);
   assert.deepEqual([clampLag(-5), clampLag(5000), clampLag('x'), clampLag('150')], [0, 2000, 0, 150]);
 });
@@ -74,14 +78,16 @@ test('link: no lag sends at once; encode errors throw', () => {
 
 test('link: messages and bytes per second, in and out; lastReceived', () => {
   const { link, channel, clock } = setup();
-  const text = ping(1);
-  channel.deliver(text);
-  channel.deliver(text);
+  const bytes = ping(1);
+  channel.deliver(bytes);
+  channel.deliver(bytes);
   link.send({ t: 'bye' });
-  assert.deepEqual(link.stats(), { msgsOut: 1, bytesOut: '{"t":"bye"}'.length, msgsIn: 2, bytesIn: 2 * text.length, lastReceived: 1000 });
+  assert.deepEqual(link.stats(), { msgsOut: 1, bytesOut: encode({ t: 'bye' }).byteLength, msgsIn: 2, bytesIn: 2 * bytes.byteLength, lastReceived: 1000 });
+  channel.deliver('not bytes');
+  assert.equal(link.stats().bytesIn, 2 * bytes.byteLength, 'a non-bytes delivery counts 0 bytes');
   clock.advance(500);
-  channel.deliver(text);
-  assert.equal(link.stats().msgsIn, 3);
+  channel.deliver(bytes);
+  assert.equal(link.stats().msgsIn, 4);
   clock.advance(500);
   assert.deepEqual([link.stats().msgsIn, link.stats().msgsOut, link.stats().lastReceived], [1, 0, 1500]);
 });
@@ -116,13 +122,13 @@ test('link: close once, onClose once; a remote close gives closed; lagged sends 
   assert.equal(b.link.closed(), true);
 });
 
-test('raw channel: texts before listen are kept; nothing after close', () => {
+test('raw channel: data before listen is kept; nothing after close', () => {
   const sent = [];
-  const ch = createRawChannel({ send: (t) => sent.push(t), close() {} });
+  const ch = createRawChannel({ send: (b) => sent.push(b), close() {} });
   ch.deliver('a');
   ch.deliver('b');
   const got = [];
-  ch.listen({ text: (t) => got.push(t), close: () => got.push('closed') });
+  ch.listen({ data: (d) => got.push(d), close: () => got.push('closed') });
   assert.deepEqual(got, ['a', 'b']);
   ch.close();
   ch.send('x');

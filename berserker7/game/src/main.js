@@ -25,6 +25,7 @@ import { createSlow } from './scenes/slow.js';
 import { createSessionHolder } from './session.js';
 import { browserStorage, createSettingsStore } from './settings/store.js';
 import { createNetSession, parseNetOptions } from './net/session.js';
+import { withCodec } from './net/lazy-transport.js';
 import { createLocalTransport } from './net/transport-local.js';
 import { createPeerTransport } from './net/transport-peer.js';
 import { createJoinForm, joinMessage, submitJoinCode } from './ui/join-form.js';
@@ -75,13 +76,16 @@ settings.subscribe((s) => music.setVolume(s.musicVolume));
 const netOptions = parseNetOptions(window.location.search);
 const timers = { setTimeout: (fn, ms) => window.setTimeout(fn, ms), clearTimeout: (id) => window.clearTimeout(id) };
 const randomUint32s = (n) => crypto.getRandomValues(new Uint32Array(n));
-const transport = netOptions.local
-  ? createLocalTransport({
-    BroadcastChannel: window.BroadcastChannel,
-    ...timers,
-    randomId: () => Array.from(randomUint32s(4), (n) => n.toString(36)).join(''),
-  })
-  : createPeerTransport(timers);
+// withCodec loads the lazy online chunk (msgpackr, and PeerJS for the default transport) on host or join.
+const transport = withCodec(
+  netOptions.local
+    ? createLocalTransport({
+      BroadcastChannel: window.BroadcastChannel,
+      ...timers,
+      randomId: () => Array.from(randomUint32s(4), (n) => n.toString(36)).join(''),
+    })
+    : createPeerTransport(timers),
+);
 // The Sandbox map; the debug panel changes it and reloads the scene; a guest takes the host's.
 const sandboxMap = createMapChoice();
 // The net session, outside the scenes. The harness samples input through it (a guest's input

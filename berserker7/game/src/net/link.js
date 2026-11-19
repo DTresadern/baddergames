@@ -1,15 +1,15 @@
-// A checked link over a raw string channel. Pure: time and timers are passed in.
+// A checked link over a raw byte channel. Pure: time and timers are passed in.
 //
-// Raw channel (made by a transport with createRawChannel): { send(text), close(), listen(handlers),
-// getStats() }, strings only. getStats() is for the debug panel: a promise of an RTCStatsReport, or null. The link adds:
-//   receive: drop texts over MAX_MESSAGE_BYTES, drop beyond MAX_MESSAGES_PER_SECOND in a 1 s window,
+// Raw channel (made by a transport with createRawChannel): { send(bytes), close(), listen(handlers),
+// getStats() }, bytes (Uint8Array) only. getStats() is for the debug panel: a promise of an RTCStatsReport, or null. The link adds:
+//   receive: drop anything that is not a Uint8Array or is over MAX_MESSAGE_BYTES, drop beyond MAX_MESSAGES_PER_SECOND in a 1 s window,
 //            decode with the codec and drop what it rejects; the rest go to onMessage(msg)
 //   send:    encode (throws on a malformed message), then an optional `lagMs` delay, in order
 //   stats:   messages and bytes sent and received in the last second, lastReceived time
 //   silence: no message for `timeoutMs` closes the link as 'dropped'
 //   close(reason) once, onClose(reason) once. A remote close gives 'closed'.
 
-import { MAX_MESSAGE_BYTES, byteLength, decode, encode } from './codec.js';
+import { MAX_MESSAGE_BYTES, decode, encode } from './codec.js';
 
 export const MAX_MESSAGES_PER_SECOND = 200;
 export const TIMEOUT_MS = 5000;
@@ -17,16 +17,16 @@ export const MAX_LAG_MS = 2000;
 const WINDOW_MS = 1000;
 
 // The transports' side of a channel. `send` and `close` go to the network; the transport calls
-// deliver(text) for each received string and remoteClosed() when the other side closed. Texts
-// that arrive before listen() are kept and handed over by it. `getStats` (optional) returns the
+// deliver(data) for each received message and remoteClosed() when the other side closed. Data
+// that arrives before listen() are kept and handed over by it. `getStats` (optional) returns the
 // connection's stats (a promise) or null.
 export function createRawChannel({ send, close, getStats = null }) {
   let handlers = null;
   let closed = false;
   const early = [];
   return {
-    send(text) {
-      if (!closed) send(text);
+    send(bytes) {
+      if (!closed) send(bytes);
     },
     close() {
       if (closed) return;
@@ -35,13 +35,13 @@ export function createRawChannel({ send, close, getStats = null }) {
     },
     listen(h) {
       handlers = h;
-      for (const text of early.splice(0)) handlers.text(text);
+      for (const data of early.splice(0)) handlers.data(data);
       if (closed) handlers.close();
     },
-    deliver(text) {
+    deliver(data) {
       if (closed) return;
-      if (handlers) handlers.text(text);
-      else early.push(text);
+      if (handlers) handlers.data(data);
+      else early.push(data);
     },
     remoteClosed() {
       if (closed) return;
@@ -89,7 +89,7 @@ export function createLink({
   const lag = clampLag(lagMs);
   const sent = rollingCounter();
   const received = rollingCounter();
-  const queue = []; // lagged texts: { due, text }
+  const queue = []; // lagged messages: { due, bytes }
   let queueTimer = null;
   let silenceTimer = null;
   let windowStart = now();
@@ -97,15 +97,15 @@ export function createLink({
   let lastReceived = now();
   let closed = false;
 
-  function transmit(text) {
-    channel.send(text);
-    sent.add(now(), byteLength(text));
+  function transmit(bytes) {
+    channel.send(bytes);
+    sent.add(now(), bytes.byteLength);
   }
 
   function flushDue() {
     queueTimer = null;
     const t = now();
-    while (queue.length > 0 && queue[0].due <= t) transmit(queue.shift().text);
+    while (queue.length > 0 && queue[0].due <= t) transmit(queue.shift().bytes);
     if (queue.length > 0) queueTimer = setTimer(flushDue, queue[0].due - t);
   }
 
@@ -115,18 +115,19 @@ export function createLink({
     else silenceTimer = setTimer(watchSilence, left);
   }
 
-  function receive(text) {
+  function receive(data) {
     if (closed) return;
     const t = now();
-    received.add(t, typeof text === 'string' ? byteLength(text) : 0);
-    if (typeof text !== 'string' || byteLength(text) > MAX_MESSAGE_BYTES) return;
+    const isBytes = data instanceof Uint8Array;
+    received.add(t, isBytes ? data.byteLength : 0);
+    if (!isBytes || data.byteLength > MAX_MESSAGE_BYTES) return;
     if (t - windowStart >= WINDOW_MS) {
       windowStart = t;
       windowCount = 0;
     }
     windowCount += 1;
     if (windowCount > MAX_MESSAGES_PER_SECOND) return;
-    const msg = decode(text);
+    const msg = decode(data);
     if (msg === null) return;
     lastReceived = t;
     onMessage(msg);
@@ -134,12 +135,12 @@ export function createLink({
 
   function send(msg) {
     if (closed) return;
-    const text = encode(msg);
+    const bytes = encode(msg);
     if (lag === 0) {
-      transmit(text);
+      transmit(bytes);
       return;
     }
-    queue.push({ due: now() + lag, text });
+    queue.push({ due: now() + lag, bytes });
     if (queueTimer === null) queueTimer = setTimer(flushDue, lag);
   }
 
@@ -149,12 +150,12 @@ export function createLink({
     closed = true;
     if (queueTimer !== null) clearTimer(queueTimer);
     if (silenceTimer !== null) clearTimer(silenceTimer);
-    if (!channel.closed?.()) for (const { text } of queue.splice(0)) transmit(text);
+    if (!channel.closed?.()) for (const { bytes } of queue.splice(0)) transmit(bytes);
     channel.close();
     onClose(reason);
   }
 
-  channel.listen({ text: receive, close: () => close('closed') });
+  channel.listen({ data: receive, close: () => close('closed') });
   if (!closed) silenceTimer = setTimer(watchSilence, timeoutMs);
 
   return {
