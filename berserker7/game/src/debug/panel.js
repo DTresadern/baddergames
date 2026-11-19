@@ -68,6 +68,7 @@ const STYLE = `
 #b7-debug .b7-dim { color: #999; }
 #b7-debug .b7-zoom { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 #b7-debug .b7-zoom input { flex: 1; min-width: 0; }
+#b7-debug .b7-zoom[hidden] { display: none; }
 `;
 
 // True for elements that take typed text ([ and ] are left alone there). A range slider is not one.
