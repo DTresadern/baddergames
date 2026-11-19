@@ -10,7 +10,24 @@ import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 
 export const MAP_KEY = 'map.mvp-upper-1';
-export const CAMERA_TILES_HIGH = 18; // tiles shown from the bottom of the view to the top
+export const CAMERA_TILES_HIGH = 18; // default view height: tiles shown from the bottom of the view to the top
+export const CAMERA_TILES_MIN = 18; // closest zoom (never closer than the default)
+export const CAMERA_TILES_MAX = 60; // furthest zoom
+
+// The camera's view height in tiles, changed live by the debug tools (slider, [ and ]) and read by
+// the scene in draw. Whole tiles, clamped to CAMERA_TILES_MIN..CAMERA_TILES_MAX. Not saved.
+export function createCameraZoom(tilesHigh = CAMERA_TILES_HIGH) {
+  const clamp = (v) => Math.min(CAMERA_TILES_MAX, Math.max(CAMERA_TILES_MIN, Math.round(v)));
+  let value = clamp(tilesHigh);
+  return {
+    get: () => value,
+    // Ignores a value that is not a finite number. Returns the value now in use.
+    set(v) {
+      if (Number.isFinite(v)) value = clamp(v);
+      return value;
+    },
+  };
+}
 const PLAYER_COLOR = 0xf2c14e;
 const PLAYER_Z = 0.1; // in front of the tiles
 export const AIM_LENGTH = 2; // aim line length, tiles
@@ -53,8 +70,8 @@ function buildTileMeshes(tiles, geometry, materials, track, scene) {
   }
 }
 
-// `fetchJson` is for tests.
-export function createSandbox({ fetchJson = defaultFetchJson } = {}) {
+// `zoom` is the camera view height holder (createCameraZoom), passed at registration. `fetchJson` is for tests.
+export function createSandbox({ zoom = createCameraZoom(), fetchJson = defaultFetchJson } = {}) {
   let scene, camera, playerMesh, aimLine, map, tiles;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
@@ -88,7 +105,7 @@ export function createSandbox({ fetchJson = defaultFetchJson } = {}) {
     tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles),
     draw(state, view) {
       const { player } = state;
-      fitOrtho(camera, view, CAMERA_TILES_HIGH / 2);
+      fitOrtho(camera, view, zoom.get() / 2);
       const centreY = player.y + MOVE.height / 2;
       camera.position.set(player.x, centreY, 0);
       playerMesh.position.set(player.x, centreY, PLAYER_Z);

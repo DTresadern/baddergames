@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { createSandbox, CAMERA_TILES_HIGH, MAP_KEY, initSandbox, tickSandbox } from '../src/scenes/sandbox.js';
+import {
+  createSandbox,
+  createCameraZoom,
+  CAMERA_TILES_HIGH,
+  CAMERA_TILES_MAX,
+  CAMERA_TILES_MIN,
+  MAP_KEY,
+  initSandbox,
+  tickSandbox,
+} from '../src/scenes/sandbox.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { MOVE } from '../src/world/player.js';
 import { frame } from './frames.js';
@@ -53,4 +62,28 @@ test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the pla
 
 test('sandbox scene: ticks while uncovered, draws when covered, suspends on leave', () => {
   assert.deepEqual(createSandbox().settings, { tick: 'uncovered', drawCovered: true, leave: 'suspend' });
+});
+
+test('createCameraZoom: whole tiles, clamped to the limits, bad values ignored', () => {
+  const zoom = createCameraZoom();
+  assert.equal(zoom.get(), CAMERA_TILES_HIGH);
+  assert.equal(zoom.set(30.4), 30);
+  assert.equal(zoom.set(5), CAMERA_TILES_MIN);
+  assert.equal(zoom.set(500), CAMERA_TILES_MAX);
+  assert.equal(zoom.set(NaN), CAMERA_TILES_MAX);
+});
+
+test('sandbox draw: the camera follows the zoom holder live', async () => {
+  let rendered;
+  const renderer = { render: (scene, camera) => (rendered = camera) };
+  const zoom = createCameraZoom();
+  const scene = createSandbox({ zoom, fetchJson: async () => json() });
+  await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
+  const state = scene.enter();
+  const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
+  scene.draw(state, view);
+  assert.equal(rendered.top - rendered.bottom, CAMERA_TILES_HIGH);
+  zoom.set(40);
+  scene.draw(state, view);
+  assert.equal(rendered.top - rendered.bottom, 40);
 });

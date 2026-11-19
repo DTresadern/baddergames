@@ -8,6 +8,10 @@
 //                                       layers, transition, geometries, textures, assets,
 //                                       settings (JSON of settings.get()), session (JSON or none)
 //   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
+//   #b7-zoom (range), [data-value="zoom"]    Sandbox camera view height in tiles (shown while the
+//                                       Sandbox is the main scene); [ and ] change it by 2
+
+import { CAMERA_TILES_MAX, CAMERA_TILES_MIN } from '../scenes/sandbox.js';
 
 const ACTIONS = [
   ['main-menu', 'Main menu'],
@@ -44,6 +48,7 @@ const FIELDS = ['layer', 'life', 'settings', 'ticks', 'left', 'back', 'error'];
 const SLOW_FRAME_MS = 1000;
 const REFRESH_MS = 250;
 const FADE = 0.6;
+const ZOOM_STEP_KEYS = 2; // tiles per [ or ] press
 
 const STYLE = `
 #b7-debug { position: fixed; top: 8px; right: 8px; z-index: 2; width: min(360px, calc(100vw - 16px));
@@ -61,7 +66,17 @@ const STYLE = `
 #b7-debug dd { margin: 0; overflow-wrap: anywhere; }
 #b7-debug .b7-scenes > div { padding: 3px 0; border-top: 1px solid #333; overflow-wrap: anywhere; }
 #b7-debug .b7-dim { color: #999; }
+#b7-debug .b7-zoom { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+#b7-debug .b7-zoom input { flex: 1; min-width: 0; }
 `;
+
+// True for elements that take typed text ([ and ] are left alone there). A range slider is not one.
+const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password', 'number', 'date', 'time', 'datetime-local', 'month', 'week']);
+function takesText(target) {
+  if (!target) return false;
+  if (target.isContentEditable || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return true;
+  return target.tagName === 'INPUT' && TEXT_INPUT_TYPES.has((target.type || 'text').toLowerCase());
+}
 
 // Short hash of a state's JSON, to compare states at a glance.
 function hash(text) {
@@ -71,7 +86,8 @@ function hash(text) {
   return h.toString(16).padStart(8, '0');
 }
 
-export function mountPanel({ harness, renderer, assets, settings, session, parent = document.body }) {
+// `sandboxZoom` (optional) is the Sandbox camera's view height holder (createCameraZoom).
+export function mountPanel({ harness, renderer, assets, settings, session, sandboxZoom = null, parent = document.body }) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.append(style);
@@ -85,6 +101,9 @@ export function mountPanel({ harness, renderer, assets, settings, session, paren
       <div class="b7-actions">
         ${ACTIONS.map(([action, label]) => `<button type="button" data-action="${action}">${label}</button>`).join('')}
       </div>
+      <label class="b7-zoom" hidden>Sandbox view
+        <input id="b7-zoom" type="range" min="${CAMERA_TILES_MIN}" max="${CAMERA_TILES_MAX}" step="1">
+        <span data-value="zoom"></span></label>
       <dl>${VALUES.map(([key, label]) => `<dt>${label}</dt><dd data-value="${key}"></dd>`).join('')}</dl>
       <div class="b7-scenes">${ids
         .map(
@@ -173,6 +192,31 @@ export function mountPanel({ harness, renderer, assets, settings, session, paren
     refresh();
   });
 
+  // Sandbox camera zoom: the slider and the [ / ] keys. Debug tooling, not game input.
+  const zoomRow = root.querySelector('.b7-zoom');
+  const zoomSlider = root.querySelector('#b7-zoom');
+  function showZoom() {
+    if (!sandboxZoom) return;
+    zoomSlider.value = String(sandboxZoom.get());
+    setValue('zoom', `${sandboxZoom.get()} tiles high`);
+  }
+  if (sandboxZoom) {
+    zoomSlider.addEventListener('input', () => {
+      sandboxZoom.set(Number(zoomSlider.value));
+      showZoom();
+    });
+    // Give up focus once the drag ends, so arrow keys go to the game.
+    zoomSlider.addEventListener('change', () => zoomSlider.blur());
+    window.addEventListener('keydown', (e) => {
+      if (takesText(e.target)) return;
+      const step = { BracketLeft: ZOOM_STEP_KEYS, BracketRight: -ZOOM_STEP_KEYS }[e.code];
+      if (step === undefined) return;
+      sandboxZoom.set(sandboxZoom.get() + step);
+      showZoom();
+    });
+    showZoom();
+  }
+
   toggle.addEventListener('click', () => {
     toggle.blur();
     const open = body.hidden;
@@ -200,6 +244,8 @@ export function mountPanel({ harness, renderer, assets, settings, session, paren
 
   function refresh() {
     refreshButtons();
+    zoomRow.hidden = !sandboxZoom || harness.layers.main !== 'sandbox';
+    showZoom();
     const { layers, lastLongFrame: long, transition: tr } = harness;
     setValue('frame-ms', `${(harness.lastFrameSeconds * 1000).toFixed(1)} ms`);
     setValue('work-ms', `${harness.lastWorkMs.toFixed(2)} ms`);
