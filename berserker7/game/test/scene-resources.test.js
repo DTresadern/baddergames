@@ -5,6 +5,7 @@
 // canvas and music.
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { Texture } from 'three';
 import { createHarness } from '../src/engine/harness.js';
@@ -19,6 +20,7 @@ import { createMainMenu } from '../src/scenes/main-menu.js';
 import { createNewGame } from '../src/scenes/new-game.js';
 import { POSTERS } from '../src/scenes/poster.js';
 import { createPlayers, initPlayers } from '../src/scenes/players.js';
+import { createSandbox } from '../src/scenes/sandbox.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
 import { CHECKER } from '../src/scenes/shared.js';
@@ -95,7 +97,7 @@ const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens
 const fakeNewGame = () =>
   createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), poster: MENU_POSTER, ...fakeDeps() });
 function fakeScreens() {
-  return { openNewGame() {}, closeNewGame() {}, startIntro() {}, showMenu() {} };
+  return { openNewGame() {}, closeNewGame() {}, startGame() {}, startIntro() {}, showMenu() {} };
 }
 // Boot with a fake loader whose status the test sets.
 function fakeBoot(status = { progress: 0.5, done: false, error: null }) {
@@ -105,6 +107,10 @@ function fakeBoot(status = { progress: 0.5, done: false, error: null }) {
 const fakeIntro = (deps = fakeDeps()) =>
   createIntro({ music: { play() {}, stop() {} }, screens: fakeScreens(), loadTexture: deps.loadTexture });
 
+// The Sandbox with the real walkway file instead of a download.
+const walkwayJson = () => JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'));
+const fakeSandbox = () => createSandbox({ fetchJson: async () => walkwayJson() });
+
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
 const FACTORIES = {
@@ -113,6 +119,7 @@ const FACTORIES = {
   sceneA: createSceneA,
   sceneB: createSceneB,
   players: createPlayers,
+  sandbox: fakeSandbox,
   mainMenu: fakeMenu,
   newGame: fakeNewGame,
   boot: fakeBoot,
