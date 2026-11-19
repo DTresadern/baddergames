@@ -422,7 +422,7 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - The settings store (`window.__b7.settings`) and the session holder (`window.__b7.session`)
   - The picked menu poster key (`window.__b7.poster`, `poster.classic` or `poster.thrash`)
 - Input panel (`game/src/debug/input-panel.js`):
-  - `#b7-input`: top-left; bottom-left (24 px up, clear of the bottom-right version label) on windows up to 760 px wide; collapsed by default at every width.
+  - `#b7-input`: 340 px wide (at most the window width less 16 px); top-left; bottom-left (24 px up, clear of the bottom-right version label) on windows up to 760 px wide; collapsed by default at every width.
   - Toggled by `#b7-input-toggle`.
   - Per player `[data-player="0"]` and `[data-player="1"]`:
     - `[data-field="device"]`

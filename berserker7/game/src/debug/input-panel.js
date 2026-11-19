@@ -17,7 +17,7 @@ import { primaryLabel, schemeFor } from './binding-labels.js';
 const REFRESH_MS = 100;
 
 const STYLE = `
-#b7-input { position: fixed; top: 8px; left: 8px; z-index: 2; width: min(300px, calc(100vw - 16px));
+#b7-input { position: fixed; top: 8px; left: 8px; z-index: 2; width: min(340px, calc(100vw - 16px));
   max-height: calc(100vh - 40px); overflow: auto; box-sizing: border-box; font: 11px/1.35 monospace;
   color: #ddd; background: rgba(10, 12, 18, 0.85); border: 1px solid #444; border-radius: 4px; }
 /* On narrow windows: bottom-left, 24 px up, so it does not cover the version label (bottom-right, about 17 px tall). */
@@ -29,7 +29,7 @@ const STYLE = `
 #b7-input-body { padding: 4px 6px 6px; }
 #b7-input section { padding-top: 3px; border-top: 1px solid #333; margin-top: 3px; }
 #b7-input .b7-dim { color: #999; }
-#b7-input .b7-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+#b7-input .b7-rows { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 8px; }
 #b7-input [data-action-row] { display: flex; gap: 4px; white-space: nowrap; }
 #b7-input [data-action-row] .b7-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 #b7-input .b7-key { flex: none; font-size: 10px; padding: 0 4px; border-radius: 3px; color: #ffd27a;
