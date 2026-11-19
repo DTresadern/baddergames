@@ -43,6 +43,7 @@ export function createInput({
 } = {}) {
   return {
     players,
+    bindings, // the resolved table as passed in; read by the input panel to label actions
     compiled: compile(bindings),
     deadZone,
     axisThreshold,

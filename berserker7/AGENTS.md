@@ -436,12 +436,13 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
   - The settings store (`window.__b7.settings`) and the session holder (`window.__b7.session`)
   - The picked menu poster key (`window.__b7.poster`, `poster.classic` or `poster.thrash`)
 - Input panel (`game/src/debug/input-panel.js`):
-  - `#b7-input`: top-left; bottom-left (24 px up, clear of the bottom-right version label) on windows up to 760 px wide; collapsed by default at every width.
+  - `#b7-input`: 340 px wide (at most the window width less 16 px); top-left; bottom-left (24 px up, clear of the bottom-right version label) on windows up to 760 px wide; collapsed by default at every width.
   - Toggled by `#b7-input-toggle`.
   - Per player `[data-player="0"]` and `[data-player="1"]`:
     - `[data-field="device"]`
     - `[data-field="aim"]` (degrees)
     - `[data-field="wheel"]` (running sum of `frame.wheel`: signed, steps down minus steps up)
     - One row per action `[data-action-row="<action>"]` with attributes `data-held` (`true` or `false`), `data-pressed` and `data-released` (running counts)
+    - Each row also has `[data-field="key"]`: a coloured chip with the primary binding (first source of the resolved bindings) for the player's scheme (player 1 keyboard + mouse, player 2 gamepad), brighter while held, hidden when unbound; labels come from `debug/binding-labels.js`
   - Also `[data-field="ignored"]` (ignored gamepads) and `[data-field="pad-event"]`.
   - Refreshes every 100 ms.

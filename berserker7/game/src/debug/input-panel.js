@@ -8,13 +8,16 @@
 //   [data-player="0"|"1"] [data-field="device"|"aim"|"wheel"]
 //   [data-player="..."] [data-action-row="<action>"] with attributes
 //     data-held ("true" | "false"), data-pressed, data-released (running counts)
+//     and [data-field="key"]: chip with the primary binding for the player's scheme (set once at
+//     mount; hidden and empty when the action is unbound)
 
 import { ACTIONS } from '../input/actions.js';
+import { primaryLabel, schemeFor } from './binding-labels.js';
 
 const REFRESH_MS = 100;
 
 const STYLE = `
-#b7-input { position: fixed; top: 8px; left: 8px; z-index: 2; width: min(300px, calc(100vw - 16px));
+#b7-input { position: fixed; top: 8px; left: 8px; z-index: 2; width: min(340px, calc(100vw - 16px));
   max-height: calc(100vh - 40px); overflow: auto; box-sizing: border-box; font: 11px/1.35 monospace;
   color: #ddd; background: rgba(10, 12, 18, 0.85); border: 1px solid #444; border-radius: 4px; }
 /* On narrow windows: bottom-left, 24 px up, so it does not cover the version label (bottom-right, about 17 px tall). */
@@ -26,9 +29,12 @@ const STYLE = `
 #b7-input-body { padding: 4px 6px 6px; }
 #b7-input section { padding-top: 3px; border-top: 1px solid #333; margin-top: 3px; }
 #b7-input .b7-dim { color: #999; }
-#b7-input .b7-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+#b7-input .b7-rows { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 8px; }
 #b7-input [data-action-row] { display: flex; gap: 4px; white-space: nowrap; }
 #b7-input [data-action-row] .b7-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+#b7-input .b7-key { flex: none; font-size: 10px; padding: 0 4px; border-radius: 3px; color: #ffd27a;
+  background: #3b3220; border: 1px solid #6b5a2e; }
+#b7-input [data-action-row][data-held="true"] .b7-key { color: #1a1405; background: #ffc83d; border-color: #ffe08a; }
 #b7-input [data-action-row][data-held="true"] { color: #fff; background: #3a5a3a; }
 `;
 
@@ -62,6 +68,7 @@ export function mountInputPanel({ input, parent = document.body, win = window })
             <span class="b7-dim">action: held pressed/released</span>
             <div class="b7-rows">${ACTIONS.map(
               (action) => `<div data-action-row="${action}"><span class="b7-name">${action}</span>` +
+                `<span class="b7-key" data-field="key"></span>` +
                 `<span data-field="held"></span><span data-field="counts"></span></div>`,
             ).join('')}</div>
           </section>`,
@@ -87,6 +94,10 @@ export function mountInputPanel({ input, parent = document.body, win = window })
     const field = (name) => section.querySelector(`[data-field="${name}"]`);
     const rows = ACTIONS.map((action) => {
       const row = section.querySelector(`[data-action-row="${action}"]`);
+      const keyChip = row.querySelector('[data-field="key"]');
+      const label = primaryLabel(input.input.bindings, schemeFor(input.input.players[player]), action);
+      keyChip.textContent = label ?? '';
+      keyChip.hidden = !label;
       return { action, row, held: row.querySelector('[data-field="held"]'), counts: row.querySelector('[data-field="counts"]') };
     });
     return { device: field('device'), aim: field('aim'), wheel: field('wheel'), rows };
