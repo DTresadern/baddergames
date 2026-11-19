@@ -183,9 +183,9 @@ test('camera offset: ±4 tiles in 0.25 steps; the camera moves with it in both v
   }
 });
 
-test('cameraShift: follow fraction, Min radius along the aim, Max after Min, then x / y scale', () => {
+test('cameraShift: follow fraction, Min radius along the aim, Max after Min, then x / y-up / y-down scale', () => {
   const head = { x: 0, y: 0 };
-  const base = { follow: 0.5, min: 0, max: 8, scaleX: 1, scaleY: 1 };
+  const base = { follow: 0.5, min: 0, max: 8, scaleX: 1, scaleYUp: 1, scaleYDown: 1 };
   const xy = ({ x, y }) => [Number(x.toFixed(9)), Number(y.toFixed(9))];
   assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, base)), [3, 4]);
   // Shorter than Min: lengthened to Min along head -> aim (here 0.5 * 10 = 5 < 6).
@@ -198,7 +198,12 @@ test('cameraShift: follow fraction, Min radius along the aim, Max after Min, the
   // Max after Min: Max wins when Max < Min.
   assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, min: 6, max: 5 })), [3, 4]);
   assert.deepEqual(xy(cameraShift(head, { x: 60, y: 80 }, { ...base, max: 5 })), [3, 4]);
-  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, scaleX: 2, scaleY: 0 })), [6, 0]);
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, scaleX: 2, scaleYUp: 0 })), [6, 0]);
+  // Aiming up takes Y scale up, aiming down takes Y scale down (after Min and Max).
+  const split = { ...base, scaleYUp: 0.5, scaleYDown: 2 };
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, split)), [3, 2]);
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: -8 }, split)), [3, -8]);
+  assert.deepEqual(xy(cameraShift(head, { x: 60, y: -80 }, { ...split, max: 5 })), [3, -8]);
 });
 
 test('aim follow: the camera is stable frame to frame (rest-camera projection) and the aim line hits the mouse', async () => {
@@ -207,7 +212,8 @@ test('aim follow: the camera is stable frame to frame (rest-camera projection) a
   const viewMode = createViewMode();
   viewMode.setFollow('follow', 1);
   viewMode.setFollow('max', 20);
-  viewMode.setFollow('scaleY', 1);
+  viewMode.setFollow('scaleYUp', 1);
+  viewMode.setFollow('scaleYDown', 1);
   viewMode.setOffset('y', 0);
   const scene = createSandbox({ viewMode, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });

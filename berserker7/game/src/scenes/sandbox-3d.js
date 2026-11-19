@@ -17,7 +17,8 @@ export const FOLLOW_SETTINGS = Object.freeze([
   ['min', 'Min (tiles)', 0, 10, 0.25, 0], // minimum radius: a shorter shift is lengthened to this
   ['max', 'Max (tiles)', 0, 20, 0.25, 8], // a longer shift is scaled down to this length
   ['scaleX', 'X scale', 0, 2, 0.05, 1], // applied after the clamp
-  ['scaleY', 'Y scale', 0, 2, 0.05, 0.5],
+  ['scaleYUp', 'Y scale up', 0, 2, 0.05, 0.5], // y scale when the shift's y is above 0 (aiming up)
+  ['scaleYDown', 'Y scale down', 0, 2, 0.05, 0.5], // y scale when the shift's y is below 0 (aiming down)
   ['smoothing', 'Smoothing half-life (s)', 0, 0.5, 0.01, 0.05], // camera source smoothing; 0 = snap
 ].map((row) => Object.freeze(row)));
 // Depth range kept around the play plane by the near and far planes, tiles (cubes reach z ±1.5).
@@ -101,7 +102,7 @@ export function smerp(source, target, dt, halfLife) {
 // through the shifted camera, or the camera chases itself. `lastDir` (a unit vector or null) is the
 // direction used when the aim point is exactly at the head. Returns { x, y, dir }: `dir` is the
 // unit aim direction used (keep it as the next `lastDir`), or null when there was none.
-export function cameraShift(head, aim, { follow, min, max, scaleX, scaleY }, lastDir = null) {
+export function cameraShift(head, aim, { follow, min, max, scaleX, scaleYUp, scaleYDown }, lastDir = null) {
   const dx = aim.x - head.x;
   const dy = aim.y - head.y;
   const distance = Math.hypot(dx, dy);
@@ -110,7 +111,8 @@ export function cameraShift(head, aim, { follow, min, max, scaleX, scaleY }, las
   let length = distance * follow;
   if (length < min) length = min;
   if (length > max) length = max;
-  return { x: dir.x * length * scaleX, y: dir.y * length * scaleY, dir };
+  const y = dir.y * length;
+  return { x: dir.x * length * scaleX, y: y * (y > 0 ? scaleYUp : scaleYDown), dir };
 }
 
 // A point in canvas CSS px (top-left origin, y down) on the play plane (z = 0) seen by a camera

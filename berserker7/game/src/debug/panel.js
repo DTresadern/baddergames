@@ -18,7 +18,7 @@
 //     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
 //                                       camera offset from the followed point, tiles
 //     #b7-follow-<key> (range), [data-value="follow-<key>"]  camera aim-follow settings
-//                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleY)
+//                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleYUp, scaleYDown)
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
