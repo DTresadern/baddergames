@@ -10,6 +10,7 @@ import { togglePauseOnPress } from './pause-toggle.js';
 import { createBackdrop } from './scenes/backdrop.js';
 import { createBoot } from './scenes/boot.js';
 import { createIntro, menuFade } from './scenes/intro.js';
+import { createJoin } from './scenes/join.js';
 import { createLoading } from './scenes/loading.js';
 import { createMainMenu } from './scenes/main-menu.js';
 import { createNewGame } from './scenes/new-game.js';
@@ -23,6 +24,11 @@ import { createSceneB } from './scenes/scene-b.js';
 import { createSlow } from './scenes/slow.js';
 import { createSessionHolder } from './session.js';
 import { browserStorage, createSettingsStore } from './settings/store.js';
+import { createNetSession, parseNetOptions } from './net/session.js';
+import { createLocalTransport } from './net/transport-local.js';
+import { createPeerTransport } from './net/transport-peer.js';
+import { JOIN_MESSAGES, createJoinForm, joinMessage } from './ui/join-form.js';
+import { createNotice } from './ui/notice.js';
 
 const versionLabel = document.getElementById('version');
 versionLabel.textContent = __BUILD_LABEL__;
@@ -63,8 +69,38 @@ const input = attachInput({ window, canvas: renderer.domElement, bindings: setti
 const music = createMusic({ window, volume: settings.get().musicVolume });
 settings.subscribe((s) => music.setVolume(s.musicVolume));
 
+// Networking (see net/session.js): read once at start-up. `?net=local` uses a BroadcastChannel
+// between tabs of this browser instead of PeerJS; `?lag=ms` (0..2000) delays every send;
+// `?room=CODE` is an invite link (see screens.startIntro).
+const netOptions = parseNetOptions(window.location.search);
+const timers = { setTimeout: (fn, ms) => window.setTimeout(fn, ms), clearTimeout: (id) => window.clearTimeout(id) };
+const randomUint32s = (n) => crypto.getRandomValues(new Uint32Array(n));
+const transport = netOptions.local
+  ? createLocalTransport({
+    BroadcastChannel: window.BroadcastChannel,
+    ...timers,
+    randomId: () => Array.from(randomUint32s(4), (n) => n.toString(36)).join(''),
+  })
+  : createPeerTransport(timers);
+// The Sandbox map; the debug panel changes it and reloads the scene; a guest takes the host's.
+const sandboxMap = createMapChoice();
+// The net session, outside the scenes. The harness samples input through it (a guest's input
+// becomes the host's player 2 frame); the Sandbox gets its read-only view.
+const net = createNetSession({
+  now: () => performance.now(),
+  ...timers,
+  randomUint32s,
+  lagMs: netOptions.lagMs,
+  mapKey: () => sandboxMap.get(),
+  // Read from the harness record (outside any scene) while the Sandbox is the active main scene.
+  sandboxState() {
+    const record = harness.records.get('sandbox');
+    return harness.layers.main === 'sandbox' && record.life === 'active' ? record.state : null;
+  },
+});
+
 const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
-const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input, onInputs });
+const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input: net.wrapInput(input), onInputs });
 const { assets } = harness;
 // The menu background, picked once per page load and used by the main menu and New Game. The pick
 // is not gameplay, so it uses Math.random, not the seeded generator. `?menubg=classic|thrash` forces one.
@@ -82,21 +118,38 @@ harness.register('slow', createSlow());
 const sandboxZoom = createCameraZoom();
 // The Sandbox view mode (2D / 2.5D) and the 2.5D FOV; the debug panel changes them live.
 const sandboxViewMode = createViewMode();
-// The Sandbox map; the debug panel changes it and reloads the scene.
-const sandboxMap = createMapChoice();
-harness.register('sandbox', createSandbox({ zoom: sandboxZoom, viewMode: sandboxViewMode, mapChoice: sandboxMap }));
+harness.register('sandbox', createSandbox({ zoom: sandboxZoom, viewMode: sandboxViewMode, mapChoice: sandboxMap, net: net.netView() }));
 // Start-up: boot (loading, then "press any key") -> intro (logos) -> main menu.
 // New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
 // Starting a game fades to the Sandbox (the main menu leaves the main layer and stops the music).
 const GAME_FADE_OUT_SECONDS = 2; // to black
 const GAME_FADE_IN_SECONDS = 1; // back in
+const NET_FADE_SECONDS = 1.2; // joining a game, and back to the menu when it ends
+// An invite link (`?room=CODE`) is used once: after the boot press it skips the intro and opens
+// the Join screen with the code filled in, joining at once.
+let inviteRoom = netOptions.room;
 const screens = {
-  startIntro: () => harness.setMain('intro'),
+  startIntro() {
+    if (inviteRoom === null) {
+      harness.setMain('intro');
+      return;
+    }
+    joinForm.prefill(inviteRoom);
+    inviteRoom = null;
+    harness.setMain('mainMenu', menuFade({ fromBlack: false }));
+    harness.openOverlay('join');
+  },
   // From black (the intro ended): the swap is at once and the menu fades in over MENU_FADE_IN_SECONDS.
   // After a skip: the intro fades to black over FADE_SECONDS, then the menu fades in over FADE_SECONDS.
   showMenu: ({ fromBlack }) => harness.setMain('mainMenu', menuFade({ fromBlack })),
   openNewGame: () => harness.openOverlay('newGame'),
   closeNewGame: () => harness.closeOverlay('newGame'),
+  openJoin: () => harness.openOverlay('join'),
+  // Closing the Join screen cancels a join still connecting (a connected one carries on).
+  closeJoin() {
+    if (net.role() === 'guest' && net.state() === 'connecting') net.leave();
+    harness.closeOverlay('join');
+  },
   // True while a fade runs; the main menu waits for its fade-in from black to end before opening its panel.
   fading: () => harness.transition !== null,
   // New Game stays open (its boxes already closed) so the menu's panel is not shown during the fade;
@@ -107,6 +160,17 @@ harness.register('boot', createBoot({ loader, screens }));
 harness.register('intro', createIntro({ music, screens }));
 harness.register('mainMenu', createMainMenu({ music, screens, poster }));
 harness.register('newGame', createNewGame({ screens, settings, session, poster }));
+// The Join screen's DOM form; the `join` overlay scene shows and hides it.
+const joinForm = createJoinForm({
+  document,
+  onJoin(code) {
+    joinForm.setMessage(JOIN_MESSAGES.connecting);
+    net.join(code, { transport });
+  },
+  onBack: () => screens.closeJoin(),
+});
+harness.register('join', createJoin({ form: joinForm, screens }));
+const notice = createNotice({ document, ...timers });
 harness.register('loading', createLoading());
 harness.preload('loading');
 // The boot scene starts the same load on enter; starting it here saves a frame.
@@ -133,18 +197,79 @@ resize();
 // Upload the fade quad now, so the GPU memory counts do not change at the first fade.
 drawTransition(0);
 
+// The net session's events: a guest's join starts the game on the host's map; a guest's game
+// that ends goes back to the main menu with a notice; a join that fails says why on the Join
+// screen; the host's map change reloads the guest's Sandbox.
+const NOTICES = { 'host-left': 'The host left the game.', dropped: 'Connection to the host was lost.' };
+net.subscribe((event) => {
+  if (event.type === 'connected') {
+    harness.closeOverlay('join');
+    sandboxMap.set(event.map);
+    harness.setPlayMode('online');
+    harness.leave('sandbox', 'unload'); // a fresh Sandbox on the host's map, as player 2
+    harness.setMain('sandbox', { fade: NET_FADE_SECONDS });
+  } else if (event.type === 'ended') {
+    if (event.wasConnected) {
+      harness.setPlayMode('local');
+      harness.closeOverlay('pause');
+      harness.setMain('mainMenu', { fade: NET_FADE_SECONDS });
+      if (event.reason !== 'left') notice.show(NOTICES[event.reason] ?? 'Connection to the host was lost.');
+    } else if (event.reason !== 'left') {
+      joinForm.setMessage(joinMessage(event.reason));
+    }
+  } else if (event.type === 'map') {
+    sandboxMap.set(event.map);
+    if (harness.layers.main === 'sandbox') {
+      harness.leave('sandbox', 'unload');
+      harness.setMain('sandbox');
+    }
+  } else if (event.type === 'host-failed') {
+    harness.setPlayMode('local');
+  }
+  backgroundTimer();
+});
+// A guest closing or reloading its page says bye first; so does a host.
+window.addEventListener('pagehide', () => net.leave());
+
 let last = performance.now();
-function loop(time) {
+function runFrame(time) {
   const seconds = Math.max(0, time - last) / 1000;
   last = time;
   harness.frame(seconds);
+  net.afterFrame(time);
+}
+function loop(time) {
+  runFrame(time);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-mountPanel({ harness, renderer, assets, settings, session, sandboxZoom, sandboxViewMode, sandboxMap });
+// Browsers stop requestAnimationFrame in a hidden tab, which would freeze a host (or guest) whose
+// tab is in the background. While a session is active and the tab is hidden, a tiny worker's
+// 60 Hz timer drives the frames instead (worker timers are not throttled like the page's).
+let worker = null;
+function backgroundTimer() {
+  const want = document.hidden && net.active();
+  if (want && worker === null) {
+    try {
+      const url = URL.createObjectURL(new Blob([`setInterval(() => postMessage(0), ${1000 / 60});`], { type: 'text/javascript' }));
+      worker = new Worker(url);
+      URL.revokeObjectURL(url);
+      worker.onmessage = () => runFrame(performance.now());
+    } catch (error) {
+      console.warn('Background timer unavailable:', error);
+    }
+  } else if (!want && worker !== null) {
+    worker.terminate();
+    worker = null;
+  }
+}
+document.addEventListener('visibilitychange', backgroundTimer);
+
+mountPanel({ harness, renderer, assets, settings, session, sandboxZoom, sandboxViewMode, sandboxMap, net, transport });
 mountInputPanel({ input });
 
-// Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input, music,
-// settings, session and the picked menu poster key. Not a game API.
-window.__b7 = { harness, renderer, assets, loader, input, music, settings, session, poster };
+// Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input (raw,
+// before the net session), music, settings, session, the picked menu poster key and the net
+// session. Not a game API.
+window.__b7 = { harness, renderer, assets, loader, input, music, settings, session, poster, net };
