@@ -17,10 +17,24 @@ the source image) and writes a Sandbox cells map (content/maps/*.json):
   5. Voxelise: a 1 x 1 x 1 cell is solid when at least --min-points points fall in it (a surface
      shell, not filled). Cells at z = 0 are the collision layer in the game.
 
+Mode "blocks" (--mode blocks) builds the map from block markup on the source image instead of
+MoGe's camera estimate:
+
+  1. Camera: a level pinhole camera with principal point --principal and focal length --focal
+     (px). Each vertex keeps only its pixel and its MoGe depth d.
+  2. Depth to blocks: Z = --blocks-per-metre * d (linear; fitted to the marked block squares).
+     X = (px - cx) * Z / f, Y = -(py - cy) * Z / f.
+  3. Keep the playfield: drop points with Z beyond --max-blocks and points in --exclude boxes.
+  4. Place: the walkway top (--top-box) is y = 0 (its 98th percentile of Y); the play plane z = 0
+     is the median Z of --plane-box; x is shifted so that cell boundaries fall nearest the edges
+     of the --column-box squares (marked blocks at one depth).
+  5. Voxelise as above (1 cell = 1 marked block) and write a `player` size.
+
 Needs Python 3 and numpy only. Image boxes are in source image pixels: x0,x1,y0,y1 (y down).
 The defaults are the values used for the "moge3-cyberpunk" mockup.
 
 Usage: moge_blockout.py MESH.glb --out public/content/maps/NAME.json [options]
+       moge_blockout.py MESH.glb --mode blocks --name moge3-cyberpunk-blocks --out ... [options]
 """
 
 import argparse
@@ -66,6 +80,109 @@ def box_arg(text):
     return values
 
 
+def voxelise(points, min_points):
+    """Cells [x, y, z] holding at least min_points of the (n, 3) integer cell indices, sorted by z, y, x."""
+    unique, counts = np.unique(points, axis=0, return_counts=True)
+    solid = unique[counts >= min_points]
+    return solid[np.lexsort((solid[:, 0], solid[:, 1], solid[:, 2]))]
+
+
+def write_map(path, out):
+    """One line per top-level field, one line per cell."""
+    with open(path, 'w') as f:
+        f.write('{\n')
+        for key, value in out.items():
+            if key != 'cells':
+                f.write(f'  {json.dumps(key)}: {json.dumps(value)},\n')
+        f.write('  "cells": [\n')
+        f.write(',\n'.join('    ' + json.dumps(c, separators=(',', ':')) for c in out['cells']))
+        f.write('\n  ]\n}\n')
+
+
+def column_offset(edges):
+    """Shift (0..1) that puts integer cell boundaries nearest the given x positions, blocks."""
+    shifts = np.arange(0, 1, 0.005)
+    cost = [np.abs((edges + o + 0.5) % 1 - 0.5).sum() for o in shifts]
+    return float(shifts[int(np.argmin(cost))])
+
+
+def blocks_mode(args, depth, px, py, excludes):
+    """The map from block markup: a level pinhole camera and depth scaled linearly to blocks."""
+    cx, cy = (float(v) for v in args.principal.split(','))
+    f = args.focal
+    Z = args.blocks_per_metre * depth
+    X = (px - cx) * Z / f
+    Y = -(py - cy) * Z / f
+
+    def in_box(b):
+        return (px >= b[0]) & (px < b[1]) & (py >= b[2]) & (py < b[3])
+
+    top = in_box(args.top_box)
+    camera_height = -float(np.median(Y[top]))
+    # The 98th percentile of the top surface, so almost all its points fall in the row below y = 0.
+    top_y = float(np.percentile(Y[top], 98))
+    plane_z = float(np.median(Z[in_box(args.plane_box)]))
+    columns = args.column_box or [[802, 919, 500, 617], [932, 1049, 500, 617], [1057, 1174, 500, 617], [1182, 1299, 500, 617]]
+    column_z = float(np.median(Z[np.any([in_box(b) for b in columns], axis=0)]))
+    # Edges at the squares' depth: the outer edges and the middle of each gap between neighbours.
+    xs = sorted(columns)
+    edges = [xs[0][0]] + [(a[1] + b[0]) / 2 for a, b in zip(xs, xs[1:])] + [xs[-1][1]]
+    x_shift = column_offset((np.array(edges) - cx) * column_z / f)
+
+    keep = Z < args.max_blocks
+    for b in excludes:
+        keep &= ~in_box(b)
+    cells = np.stack(
+        [np.floor(X[keep] + x_shift), np.floor(Y[keep] - top_y), np.floor(plane_z - Z[keep] + 0.5)], axis=1
+    ).astype(np.int64)
+    solid = voxelise(cells, args.min_points)
+
+    # Spawn: the figure's column at the play plane, standing on the walkway (y = 0).
+    figure_px = float(np.median(px[in_box(args.figure_box)]))
+    spawn_x = int(np.floor((figure_px - cx) * plane_z / f + x_shift))
+    width, height, crouch = (float(v) for v in args.player.split(','))
+    image_high = float(args.image_size.split(',')[1]) * plane_z / f
+    report = {
+        'points': int(len(depth)),
+        'kept': int(keep.sum()),
+        'fovYDeg': round(float(2 * np.degrees(np.arctan(float(args.image_size.split(',')[1]) / 2 / f))), 1),
+        'cameraHeightBlocks': round(camera_height, 3),
+        'walkwayTopY': round(top_y, 3),
+        'playPlaneDepthBlocks': round(plane_z, 3),
+        'columnSquaresDepthBlocks': round(column_z, 3),
+        'columnShiftBlocks': round(x_shift, 3),
+        'imageBlocksHighAtPlayPlane': round(image_high, 2),
+        'cells': int(len(solid)),
+        'playPlaneCells': int((solid[:, 2] == 0).sum()),
+        'bounds': {'min': solid.min(0).tolist(), 'max': solid.max(0).tolist()},
+        'spawn': [spawn_x, 0],
+    }
+    out = {
+        'format': 1,
+        'kind': 'cells',
+        'name': args.name,
+        'tileSize': 64,
+        'tile': {'type': 'solid', 'color': args.color},
+        'source': {
+            'tool': 'tools/moge_blockout.py --mode blocks',
+            'principalPx': [cx, cy],
+            'focalPx': f,
+            'blocksPerMetre': args.blocks_per_metre,
+            'maxBlocks': args.max_blocks,
+            'minPoints': args.min_points,
+            'cameraHeightBlocks': report['cameraHeightBlocks'],
+            'playPlaneDepthBlocks': report['playPlaneDepthBlocks'],
+            'columnShiftBlocks': report['columnShiftBlocks'],
+            'imageBlocksHighAtPlayPlane': report['imageBlocksHighAtPlayPlane'],
+        },
+        'player': {'width': width, 'height': height, 'crouchHeight': crouch},
+        'spawns': [{'type': 'player', 'x': spawn_x, 'y': 0}],
+        'cells': solid.tolist(),
+    }
+    write_map(args.out, out)
+    print(json.dumps(report, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('glb', help='MoGe-3 mesh in camera space (.glb)')
@@ -87,9 +204,26 @@ def main():
         action='append',
         help='image box to drop (repeatable); default: the cyberpunk characters, creatures, drones and shots',
     )
-    parser.add_argument('--min-points', type=int, default=20, help='points needed for a solid cell')
+    parser.add_argument('--min-points', type=int, help='points needed for a solid cell (default 20; 100 in blocks mode)')
     parser.add_argument('--color', default='#6b7a8f', help='cell colour')
+    blocks = parser.add_argument_group('blocks mode (--mode blocks)')
+    parser.add_argument('--mode', choices=('moge', 'blocks'), default='moge', help="camera from MoGe ('moge') or from block markup ('blocks')")
+    blocks.add_argument('--principal', default='995,415', help='principal point cx,cy, px (the vanishing point of the markup)')
+    blocks.add_argument('--focal', type=float, default=400.0, help='focal length, px (from the marked floor tiles)')
+    blocks.add_argument('--blocks-per-metre', type=float, default=0.21, help='blocks per MoGe metre of depth')
+    blocks.add_argument('--max-blocks', type=float, default=7.25, help='drop points deeper than this, blocks (far background)')
+    blocks.add_argument('--top-box', type=box_arg, default=[520, 1250, 466, 499], help='walkway top surface (y = 0)')
+    blocks.add_argument('--plane-box', type=box_arg, default=[520, 1250, 474, 490], help='ground the characters stand on (z = 0)')
+    blocks.add_argument(
+        '--column-box',
+        type=box_arg,
+        action='append',
+        help='marked block square at one depth (repeatable); cell columns line up with their edges; default: the walkway face squares',
+    )
+    blocks.add_argument('--player', default='1,1.5,0.75', help='player width,height,crouchHeight, blocks')
     args = parser.parse_args()
+    if args.min_points is None:
+        args.min_points = 100 if args.mode == 'blocks' else 20
     excludes = args.exclude or [
         # Characters stop above the walkway (y 466) so its far top surface, the play plane, stays.
         [510, 680, 340, 466],  # hunter
@@ -106,6 +240,8 @@ def main():
 
     positions, uv = read_glb(args.glb)
     px, py = uv[:, 0] * width, uv[:, 1] * height
+    if args.mode == 'blocks':
+        return blocks_mode(args, -positions[:, 2], px, py, excludes)
 
     # 1. Depth scale along each ray.
     depth = -positions[:, 2]
@@ -142,9 +278,7 @@ def main():
     ty = (y[keep] - floor_top) * tiles_per_metre
     tz = (z[keep] + figure_depth) * tiles_per_metre
     cells = np.stack([np.floor(tx), np.floor(ty), np.floor(tz + 0.5)], axis=1).astype(np.int64)
-    unique, counts = np.unique(cells, axis=0, return_counts=True)
-    solid = unique[counts >= args.min_points]
-    solid = solid[np.lexsort((solid[:, 0], solid[:, 1], solid[:, 2]))]
+    solid = voxelise(cells, args.min_points)
 
     # Spawn: the figure's column, standing on the floor (y = 0).
     spawn_x = int(np.floor(np.median(x[figure]) * tiles_per_metre))
@@ -181,13 +315,7 @@ def main():
         'spawns': [{'type': 'player', 'x': spawn_x, 'y': 0}],
         'cells': solid.tolist(),
     }
-    with open(args.out, 'w') as f:
-        f.write('{\n')
-        for key in ('format', 'kind', 'name', 'tileSize', 'tile', 'source', 'spawns'):
-            f.write(f'  {json.dumps(key)}: {json.dumps(out[key])},\n')
-        f.write('  "cells": [\n')
-        f.write(',\n'.join('    ' + json.dumps(c, separators=(',', ':')) for c in out['cells']))
-        f.write('\n  ]\n}\n')
+    write_map(args.out, out)
     print(json.dumps(report, indent=2))
 
 
