@@ -167,8 +167,10 @@ harness.register('newGame', createNewGame({ screens, settings, session, poster }
 const joinForm = createJoinForm({
   document,
   onJoin(code) {
-    // An invalid code changes nothing (a host keeps hosting).
+    // An invalid code changes nothing (a host keeps hosting, a connected guest stays), except
+    // that a join still connecting is cancelled, as Back does: the screen no longer asks for it.
     if (!isRoomCode(cleanRoomCode(code))) {
+      if (net.role() === 'guest' && net.state() === 'connecting') net.leave();
       joinForm.setMessage(joinMessage('invalid'));
       return;
     }
