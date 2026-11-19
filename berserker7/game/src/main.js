@@ -214,8 +214,10 @@ net.subscribe((event) => {
       harness.closeOverlay('pause');
       harness.setMain('mainMenu', { fade: NET_FADE_SECONDS });
       if (event.reason !== 'left') notice.show(NOTICES[event.reason] ?? 'Connection to the host was lost.');
-    } else if (event.reason !== 'left') {
-      joinForm.setMessage(joinMessage(event.reason));
+    } else {
+      // A join that failed: no session is active (a host that started joining stopped hosting).
+      harness.setPlayMode('local');
+      if (event.reason !== 'left') joinForm.setMessage(joinMessage(event.reason));
     }
   } else if (event.type === 'map') {
     sandboxMap.set(event.map);

@@ -93,7 +93,9 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
           send: (text) => conn.send(text),
           close: () => {
             if (guest?.conn === conn) guest = null;
-            conn.close({ flush: true }); // a last message (a bye) leaves first
+            // PeerJS 1.5.5 ignores close({ flush }) on a raw connection (it only sends a marker
+            // object), so close after a delay that lets a last message (a bye) leave first.
+            setTimer(() => conn.close(), REJECT_CLOSE_MS);
           },
         });
         guest = { conn, channel };
@@ -153,7 +155,8 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
             channel = createRawChannel({
               send: (text) => conn.send(text),
               close: () => {
-                conn.close({ flush: true });
+                // As on the host: a delayed plain close, so a last message (a bye) leaves first.
+                setTimer(() => conn.close(), REJECT_CLOSE_MS);
                 end();
               },
             });

@@ -45,7 +45,9 @@ function world({ delayMs = 0, lagMs = 0 } = {}) {
     session.subscribe((e) => e.type !== 'state' && events.push(e));
     return { session, input, wrapped: session.wrapInput(input), events, lastFrames: null };
   };
-  const host = make({ sandboxState: () => sandbox });
+  // `inSandbox` false: the host is on another screen (menus), so sandboxState() is null.
+  const world_ = { inSandbox: true };
+  const host = make({ sandboxState: () => (world_.inSandbox ? sandbox : null) });
   const guest = make();
   const peers = [host, guest];
   // One 60 Hz tick for every session: sample (as the harness does), advance time, afterFrame.
@@ -62,7 +64,7 @@ function world({ delayMs = 0, lagMs = 0 } = {}) {
     guest.session.join(host.session.code(), { transport });
     tick(3);
   };
-  return { clock, bus, transport, sandbox, host, guest, peers, make, tick, connect };
+  return { clock, bus, transport, sandbox, host, guest, peers, make, tick, connect, world: world_ };
 }
 
 test('parseNetOptions: net=local, lag clamped, room', () => {
@@ -109,6 +111,20 @@ test('session: guest inputs reach the host as inputs[1], after a 2-entry jitter 
   w.tick(4);
   assert.equal(w.host.lastFrames[1].actions.pause.pressed, false);
   assert.equal(w.host.lastFrames[1].actions.moveRight.held, true);
+});
+
+test('session: outside the Sandbox the host gets slot 1 as a disconnected frame (no menu control)', () => {
+  const w = world();
+  w.connect();
+  w.world.inSandbox = false;
+  w.guest.input.held = ['jump', 'interact'];
+  w.tick(4);
+  const f = w.host.lastFrames[1];
+  assert.equal(f.connected, false);
+  assert.equal(f.actions.jump.held, true); // the queue still advances; the frame is just not connected
+  w.world.inSandbox = true;
+  w.tick(1);
+  assert.equal(w.host.lastFrames[1].connected, true);
 });
 
 test('session: snapshots reach the guest with the ack; the host player is interpolated', () => {

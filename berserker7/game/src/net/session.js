@@ -362,8 +362,11 @@ export function createNetSession({
         const frames = input.sample();
         localTick += 1;
         if (role === 'host' && guestReady) {
+          // The guest's frame drives player 2 in the Sandbox only. On any other screen (menus,
+          // New Game, Join) slot 1 is a disconnected frame, so a guest cannot select items there.
           const out = [...frames];
-          out[1] = guestInputs.next();
+          const guestFrame = guestInputs.next();
+          out[1] = sandboxState() ? guestFrame : { ...guestFrame, connected: false };
           return out;
         }
         if (role === 'guest' && state === 'connected' && link) {
