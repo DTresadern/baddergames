@@ -88,7 +88,7 @@ harness.register('sandbox', createSandbox({ zoom: sandboxZoom, viewMode: sandbox
 // Start-up: boot (loading, then "press any key") -> intro (logos) -> main menu.
 // New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
 // Starting a game fades to the Sandbox (the main menu leaves the main layer and stops the music).
-const GAME_FADE_OUT_SECONDS = 4; // to black
+const GAME_FADE_OUT_SECONDS = 2; // to black
 const GAME_FADE_IN_SECONDS = 1; // back in
 const screens = {
   startIntro: () => harness.setMain('intro'),

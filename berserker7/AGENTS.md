@@ -174,7 +174,7 @@ Version label and CI:
   - `jump`, `interact` and a click select.
   - A click on an available card sets the campaign.
   - Back keys: the Back item, Escape and gamepad Start (`pause`), V and gamepad B (`melee`).
-  - Selecting a difficulty (any of the four, by mouse or keys) creates the session and saves the last choice (see below), then closes its boxes and, 0.5 s later, calls `screens.startGame()`: `main.js` fades to the Sandbox as the main scene (`GAME_FADE_OUT_SECONDS` 4 to black, `GAME_FADE_IN_SECONDS` 1 back in). `startGame` does not close the overlay: it stays on top (boxes already closed) so the menu's panel is not shown during the fade. Difficulty has no effect yet.
+  - Selecting a difficulty (any of the four, by mouse or keys) creates the session and saves the last choice (see below), then closes its boxes and, 0.5 s later, calls `screens.startGame()`: `main.js` fades to the Sandbox as the main scene (`GAME_FADE_OUT_SECONDS` 2 to black, `GAME_FADE_IN_SECONDS` 1 back in). `startGame` does not close the overlay: it stays on top (boxes already closed) so the menu's panel is not shown during the fade. Difficulty has no effect yet.
   - The main menu leaves the main layer at the fade's midpoint (leave `suspend`), and its `suspend` calls `music.stop()`, so the title music stops there.
   - Selecting Back closes the overlay; it creates no session and saves nothing.
 - State fields:
