@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
-import { PROTOCOL_VERSION, decode, encode } from '../src/net/codec.js';
+import { PROTOCOL_VERSION, decode, encode, loadCodec } from '../src/net/codec.js';
 import { TIMEOUT_MS } from '../src/net/link.js';
 import { JITTER_MAX, createGuestInputQueue, createNetSession, parseNetOptions } from '../src/net/session.js';
 import { createLocalTransport } from '../src/net/transport-local.js';
 import { createFakeBroadcast, createFakeClock } from './fake-net.js';
 import { frame } from './frames.js';
+
+await loadCodec();
 
 const STEP_MS = 1000 / 60;
 const bit = (action) => 1 << ACTIONS.indexOf(action);
@@ -222,7 +224,7 @@ test('session: a guest with another protocol version is rejected', () => {
   w.transport.join(w.host.session.code(), { onOpen: (c) => (channel = c), onError: assert.fail });
   w.tick(2);
   const got = [];
-  channel.listen({ text: (t) => got.push(decode(t)), close: () => got.push('closed') });
+  channel.listen({ data: (d) => got.push(decode(d)), close: () => got.push('closed') });
   channel.send(encode({ t: 'hello', v: PROTOCOL_VERSION + 1 }));
   w.tick(3);
   assert.deepEqual(got, [{ t: 'reject', reason: 'version' }, 'closed']);

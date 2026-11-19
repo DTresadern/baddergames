@@ -18,7 +18,7 @@ import { SANDBOX_MAPS } from '../scenes/sandbox.js';
 
 export const PROTOCOL_VERSION = 1;
 // Largest message accepted or sent, in MessagePack bytes. The largest message (a two-player snap)
-// is about SNAPBYTES bytes.
+// is 172 bytes at worst (every field at full-precision extremes); 2048 leaves wide margin.
 export const MAX_MESSAGE_BYTES = 2048;
 // Players a snapshot can carry (slot 0 is the host, slot 1 the guest).
 export const MAX_PLAYERS = 2;

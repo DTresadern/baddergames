@@ -5,16 +5,21 @@ import {
   MAX_MESSAGE_BYTES,
   MESSAGES,
   PROTOCOL_VERSION,
-  byteLength,
   decode,
   encode,
   frameFromMasks,
   frameMasks,
   inputMessage,
+  loadCodec,
   snapMessage,
   snapshotFromMessage,
 } from '../src/net/codec.js';
+import { Packr } from 'msgpackr';
 import { frame } from './frames.js';
+
+await loadCodec();
+// A plain msgpackr instance, to craft raw input the codec itself would never produce.
+const plain = new Packr({ useRecords: false, moreTypes: false, mapsAsObjects: true });
 
 const player = (x, extra = {}) => ({ x, y: 2.5, vx: -3, vy: 0.25, onGround: true, crouching: false, aim: 1.5, ...extra });
 
@@ -30,54 +35,118 @@ const SAMPLES = {
   bye: { t: 'bye' },
 };
 
-test('codec: every message type round-trips unchanged', () => {
+test('codec: every message type round-trips unchanged, as Uint8Array bytes', () => {
   assert.deepEqual(Object.keys(SAMPLES).sort(), Object.keys(MESSAGES).sort());
   for (const [type, msg] of Object.entries(SAMPLES)) {
-    const text = encode(msg);
-    assert.equal(typeof text, 'string', type);
-    assert.deepEqual(decode(text), msg, type);
+    const bytes = encode(msg);
+    assert.ok(bytes instanceof Uint8Array, type);
+    assert.equal(Buffer.isBuffer(bytes), false, type);
+    assert.deepEqual(decode(bytes), msg, type);
   }
 });
 
-test('codec: messages are flat (no field spec is an object or array of values)', () => {
-  for (const [type, fields] of Object.entries(MESSAGES)) {
-    for (const [name, spec] of Object.entries(fields)) {
-      assert.ok(['int', 'number', 'boolean', 'enum', 'string'].includes(spec.kind), `${type}.${name}`);
-    }
+test('codec: loadCodec is cached; a failed load is forgotten so a retry works; encode and decode throw before load', async () => {
+  const fresh = await import('../src/net/codec.js?fresh');
+  assert.equal(fresh.codecLoaded(), false);
+  assert.throws(() => fresh.encode({ t: 'bye' }), /not loaded \(call loadCodec first\)/);
+  assert.throws(() => fresh.decode(new Uint8Array([0x80])), /not loaded \(call loadCodec first\)/);
+  let calls = 0;
+  await assert.rejects(fresh.loadCodec(() => (calls++, Promise.reject(new Error('offline')))), /offline/);
+  assert.equal(fresh.codecLoaded(), false);
+  const first = fresh.loadCodec(() => (calls++, Promise.resolve({ Packr })));
+  assert.equal(fresh.loadCodec(() => assert.fail('loaded twice')), first);
+  await first;
+  assert.equal(calls, 2);
+  assert.equal(fresh.codecLoaded(), true);
+  assert.deepEqual(fresh.decode(fresh.encode({ t: 'bye' })), { t: 'bye' });
+});
+
+test('encode: output is a fresh buffer of its own, not msgpackr\'s shared one', () => {
+  const a = encode(SAMPLES.snap);
+  const aCopy = Uint8Array.from(a);
+  const b = encode(SAMPLES.ping);
+  assert.notEqual(a.buffer, b.buffer);
+  for (const bytes of [a, b]) {
+    assert.equal(bytes.byteOffset, 0);
+    assert.equal(bytes.buffer.byteLength, bytes.byteLength);
   }
+  assert.deepEqual(a, aCopy, 'a later encode did not change an earlier one');
+});
+
+test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
+  const extreme = (x) => ({ x, y: -12345.678901234, vx: -777.123456789, vy: 0.25123456789, onGround: true, crouching: true, aim: -3.14159265358979 });
+  const snap = snapMessage({ tick: 2 ** 31 - 1, ack: 2 ** 31 - 1, players: [extreme(99999.123456789), extreme(-99999.123456789)] });
+  assert.ok(encode(snap).byteLength <= 172);
+  assert.equal(MAX_MESSAGE_BYTES, 2048);
 });
 
 test('decode: unknown fields dropped, numbers clamped, integers rounded; a new object', () => {
-  const raw = JSON.stringify({ t: 'input', tick: 7.6, held: -4, pressed: 1, aim: 99, extra: { a: 1 } });
-  assert.deepEqual(decode(raw), { t: 'input', tick: 8, held: 0, pressed: 1, aim: Math.PI });
-  const snap = decode(JSON.stringify({ ...SAMPLES.snap, x0: 1e9, vx1: -5000 }));
+  const raw = plain.pack({ t: 'input', tick: 7.6, held: -4, pressed: 1, aim: 99, extra: { a: 1 } });
+  assert.deepEqual(decode(Uint8Array.from(raw)), { t: 'input', tick: 8, held: 0, pressed: 1, aim: Math.PI });
+  const snap = decode(Uint8Array.from(plain.pack({ ...SAMPLES.snap, x0: 1e9, vx1: -5000 })));
   assert.equal(snap.x0, 100000);
   assert.equal(snap.vx1, -1000);
+  const extra = decode(Uint8Array.from(plain.pack({ t: 'bye', junk: 'x' })));
+  assert.deepEqual(extra, { t: 'bye' });
 });
 
-test('decode: malformed input gives null', () => {
+test('decode: malformed bytes give null', () => {
   const ok = { t: 'ping', id: 1, time: 5 };
+  const packed = (v) => Uint8Array.from(plain.pack(v));
+  const good = packed(ok);
   const bad = [
     42,
     null,
-    'not json',
-    '[1,2]',
-    'null',
-    '"text"',
-    JSON.stringify({ t: 'nope' }),
-    JSON.stringify({ id: 1, time: 5 }),
-    JSON.stringify({ t: 'ping', id: 1 }), // missing field
-    JSON.stringify({ t: 'ping', id: '1', time: 5 }), // wrong type
-    JSON.stringify({ t: 'ping', id: { n: 1 }, time: 5 }), // nested object
-    JSON.stringify({ t: 'ping', id: [1], time: 5 }), // array
-    '{"t":"ping","id":1,"time":1e999}', // Infinity
-    JSON.stringify({ t: 'reject', reason: 'bored' }), // not in the enum
-    JSON.stringify({ t: 'snap', ...SAMPLES.snap, g0: 1 }), // boolean as number
-    JSON.stringify({ t: 'toString' }),
-    JSON.stringify({ ...ok, pad: 'x'.repeat(MAX_MESSAGE_BYTES) }), // oversize
+    undefined,
+    'not bytes',
+    JSON.stringify(ok), // a JSON string, even a valid one
+    [1, 2],
+    new ArrayBuffer(4), // not a Uint8Array
+    new Uint8Array(0), // empty
+    good.slice(0, good.length - 2), // truncated
+    new Uint8Array([0xc1]), // never-used MessagePack byte
+    Uint8Array.from([...good, 0]), // trailing byte
+    Uint8Array.from([...good, ...good]), // two messages
+    packed([1, 2]), // not a map
+    packed(7),
+    packed(null),
+    packed('ping'),
+    packed({ t: 'nope' }),
+    packed({ id: 1, time: 5 }),
+    packed({ t: 'toString' }),
+    packed({ t: 'ping', id: 1 }), // missing field
+    packed({ t: 'ping', id: '1', time: 5 }), // wrong type
+    packed({ t: 'ping', id: { n: 1 }, time: 5 }), // nested object
+    packed({ t: 'ping', id: [1], time: 5 }), // array
+    packed({ t: 'ping', id: 1, time: NaN }),
+    packed({ t: 'ping', id: 1, time: Infinity }),
+    packed({ t: 'ping', id: 1, time: -Infinity }),
+    packed({ t: 'reject', reason: 'bored' }), // not in the enum
+    packed({ ...SAMPLES.snap, g0: 1 }), // boolean as number
+    packed(new Date(0)), // an extension type decoded to a non-plain object
+    packed(new Set([1])),
   ];
-  for (const text of bad) assert.equal(decode(text), null, String(text).slice(0, 60));
-  assert.deepEqual(decode(JSON.stringify(ok)), ok);
+  for (const bytes of bad) assert.equal(decode(bytes), null, String(bytes).slice(0, 60));
+  assert.deepEqual(decode(good), ok);
+});
+
+test('decode: over MAX_MESSAGE_BYTES gives null, even when otherwise valid; the limit is exact', () => {
+  const ok = { t: 'ping', id: 1, time: 5 };
+  const padded = (n) => Uint8Array.from(plain.pack({ ...ok, pad: 'x'.repeat(n) }));
+  assert.deepEqual(decode(padded(100)), ok);
+  const over = padded(MAX_MESSAGE_BYTES);
+  assert.ok(over.byteLength > MAX_MESSAGE_BYTES);
+  assert.equal(decode(over), null);
+  assert.equal(decode(new Uint8Array(MAX_MESSAGE_BYTES + 1)), null);
+  // The limit is exact: a message of MAX_MESSAGE_BYTES bytes decodes, one byte more does not.
+  let n = 0;
+  while (padded(n).byteLength < MAX_MESSAGE_BYTES) n += 1;
+  assert.equal(padded(n).byteLength, MAX_MESSAGE_BYTES);
+  assert.deepEqual(decode(padded(n)), ok);
+  assert.equal(decode(padded(n + 1)), null);
+  // encode's size check cannot be reached with a valid message: every field is a short number,
+  // boolean or pattern-limited string, so the largest message is far below the limit.
+  assert.throws(() => encode({ t: 'map', map: 'x'.repeat(MAX_MESSAGE_BYTES + 1) }), /map/);
 });
 
 test('encode: throws on a malformed message', () => {
@@ -87,13 +156,6 @@ test('encode: throws on a malformed message', () => {
   assert.throws(() => encode({ t: 'wat' }), /unknown type/);
   assert.throws(() => encode({ t: 'bye', extra: 1 }), /unknown field/);
   assert.throws(() => encode([]), /plain object/);
-});
-
-test('byteLength: UTF-8 bytes', () => {
-  assert.equal(byteLength('abc'), 3);
-  assert.equal(byteLength('é'), 2);
-  assert.equal(byteLength('€'), 3);
-  assert.equal(byteLength('😀'), 4);
 });
 
 test('input frames: masks round-trip; released derived from the previous held mask', () => {

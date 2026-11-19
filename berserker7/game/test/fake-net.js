@@ -76,7 +76,7 @@ export async function rawPair(clock, delayMs = 0) {
   let a = null;
   let b = null;
   const later = (fn) => clock.setTimeout(fn, delayMs);
-  a = createRawChannel({ send: (t) => later(() => b.deliver(t)), close: () => later(() => b.remoteClosed()) });
-  b = createRawChannel({ send: (t) => later(() => a.deliver(t)), close: () => later(() => a.remoteClosed()) });
+  a = createRawChannel({ send: (d) => later(() => b.deliver(d)), close: () => later(() => b.remoteClosed()) });
+  b = createRawChannel({ send: (d) => later(() => a.deliver(d)), close: () => later(() => a.remoteClosed()) });
   return [a, b];
 }

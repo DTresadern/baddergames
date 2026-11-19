@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { test } from 'node:test';
-import { decode } from '../src/net/codec.js';
+import { decode, encode, loadCodec } from '../src/net/codec.js';
 import { LOCAL_JOIN_TIMEOUT_MS, createLocalTransport } from '../src/net/transport-local.js';
+import { createLink, createRawChannel } from '../src/net/link.js';
 import { HOST_RETRIES, JOIN_TIMEOUT_MS, PEER_ID_PREFIX, createPeerTransport, peerErrorReason } from '../src/net/transport-peer.js';
 import { createFakeBroadcast, createFakeClock } from './fake-net.js';
+
+await loadCodec();
 
 function localSetup() {
   const clock = createFakeClock();
@@ -14,9 +17,13 @@ function localSetup() {
   return { clock, bus, transport };
 }
 
-const listen = (channel, log) => channel.listen({ text: (t) => log.push(t), close: () => log.push('closed') });
+const HI = new Uint8Array([1, 2]);
+const YO = new Uint8Array([3, 4, 5]);
+const HELLO = encode({ t: 'hello', v: 1 });
+const BYE = encode({ t: 'bye' });
+const listen = (channel, log) => channel.listen({ data: (d) => log.push(d), close: () => log.push('closed') });
 
-test('local transport: host and guest open a channel and exchange strings both ways', () => {
+test('local transport: host and guest open a channel and exchange bytes both ways', () => {
   const { clock, transport } = localSetup();
   const events = [];
   let hostChannel;
@@ -31,13 +38,13 @@ test('local transport: host and guest open a channel and exchange strings both w
   const atGuest = [];
   listen(hostChannel, atHost);
   listen(guestChannel, atGuest);
-  guestChannel.send('hi');
-  hostChannel.send('yo');
+  guestChannel.send(HI);
+  hostChannel.send(YO);
   clock.advance(0);
-  assert.deepEqual([atHost, atGuest], [['hi'], ['yo']]);
+  assert.deepEqual([atHost, atGuest], [[HI], [YO]]);
   guestChannel.close();
   clock.advance(0);
-  assert.deepEqual(atHost, ['hi', 'closed']);
+  assert.deepEqual(atHost, [HI, 'closed']);
 });
 
 test('local transport: a second joiner gets reject full and nothing else; no host gives not-found', () => {
@@ -181,9 +188,9 @@ test('peer transport: host retries a taken code; guest joins with raw serializat
   assert.deepEqual(anon.lastOptions, { reliable: true, serialization: 'raw' });
   const got = [];
   listen(hostChannel, got);
-  guestChannel.send('hello');
+  guestChannel.send(HELLO);
   await run();
-  assert.deepEqual(got, ['hello']);
+  assert.deepEqual(got, [HELLO]);
   let third;
   transport.join('CCCCCC', { onOpen: (ch) => (third = ch), onError: assert.fail });
   for (let i = 0; i < 5; i++) await run();
@@ -204,11 +211,11 @@ test('peer transport: the host bye reaches the guest before the connection close
   assert.ok(hostChannel && guestChannel);
   const got = [];
   listen(guestChannel, got);
-  hostChannel.send('bye');
+  hostChannel.send(BYE);
   hostChannel.close();
   hostHandle.close();
   await run(1000);
-  assert.deepEqual(got, ['bye', 'closed']);
+  assert.deepEqual(got, [BYE, 'closed']);
 });
 
 test('peer transport: an unknown code is not-found; no answer is timeout', async () => {
@@ -223,4 +230,28 @@ test('peer transport: an unknown code is not-found; no answer is timeout', async
   stuck.join('ABCDEF', { onOpen: assert.fail, onError: (r) => late.push(r) });
   clock.advance(JOIN_TIMEOUT_MS);
   assert.deepEqual(late, ['timeout']);
+});
+
+test('peer transport: an ArrayBuffer from the connection reaches the link as a Uint8Array; a string is dropped', async () => {
+  const { clock, lib, transport, run } = await peerSetup();
+  let hostChannel;
+  transport.host({ makeCode: () => 'CCCCCC', onReady() {}, onGuest: (ch) => (hostChannel = ch), onError: assert.fail });
+  for (let i = 0; i < 5; i++) await run();
+  transport.join('CCCCCC', { onOpen() {}, onError: assert.fail });
+  for (let i = 0; i < 5; i++) await run();
+  const raw = [];
+  const messages = [];
+  hostChannel.listen({ data: (d) => raw.push(d), close() {} });
+  const conn = lib.peers.get(PEER_ID_PREFIX + 'CCCCCC').conns[0];
+  const sent = encode({ t: 'ping', id: 9, time: 3 });
+  conn.emit('data', sent.buffer.slice(sent.byteOffset, sent.byteOffset + sent.byteLength));
+  assert.equal(raw.length, 1);
+  assert.ok(raw[0] instanceof Uint8Array);
+  assert.deepEqual(decode(raw[0]), { t: 'ping', id: 9, time: 3 });
+  // The same delivery through a link: bytes decode, a string is dropped.
+  const channel2 = createRawChannel({ send() {}, close() {} });
+  createLink({ channel: channel2, now: clock.now, setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout, onMessage: (m) => messages.push(m) });
+  channel2.deliver(raw[0]);
+  channel2.deliver(JSON.stringify({ t: 'ping', id: 9, time: 3 }));
+  assert.deepEqual(messages, [{ t: 'ping', id: 9, time: 3 }]);
 });
