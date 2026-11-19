@@ -15,6 +15,7 @@ export const ASSETS = freezeList([
   { key: 'poster.thrash', path: 'content/textures/menubg/berserkerguy-thrash-2-1.png', type: 'texture', groups: ['menubg'] },
   { key: 'map.walkway', path: 'content/maps/walkway.json', type: 'map', groups: ['sandbox'] },
   { key: 'map.mvp-upper-1', path: 'content/maps/mvp-upper-1.json', type: 'map', groups: ['sandbox'] },
+  { key: 'map.moge3-cyberpunk', path: 'content/maps/moge3-cyberpunk.json', type: 'map', groups: ['sandbox'] },
 ]);
 
 function freezeList(list) {

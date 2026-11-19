@@ -5,7 +5,7 @@
 
 import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
-import { loadGridMap } from '../world/grid-map.js';
+import { loadMap } from '../world/load-map.js';
 import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createTileTexture } from './tile-texture.js';
@@ -20,7 +20,36 @@ import {
   shadedCubeGeometry,
 } from './sandbox-3d.js';
 
-export const MAP_KEY = 'map.mvp-upper-1';
+// The maps the Sandbox can load (manifest keys), and the default: the MoGe-3 blockout.
+export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk', 'map.mvp-upper-1', 'map.walkway']);
+export const MAP_KEY = SANDBOX_MAPS[0];
+// Below the lowest solid tile by this many tiles, the player goes back to the spawn.
+export const FALL_MARGIN = 10;
+
+// The map the Sandbox loads, chosen in the debug panel; the panel reloads the scene after a
+// change. Unknown keys are ignored. Not saved.
+export function createMapChoice(key = MAP_KEY) {
+  let current = SANDBOX_MAPS.includes(key) ? key : MAP_KEY;
+  return {
+    get: () => current,
+    set(k) {
+      if (SANDBOX_MAPS.includes(k)) current = k;
+      return current;
+    },
+  };
+}
+
+// Lowest y of any solid tile, or 0 for an empty map.
+function lowestTileY(tiles) {
+  let lowest = Infinity;
+  const size = tiles.chunkSize;
+  for (const chunk of tiles.chunks()) {
+    chunk.tiles.forEach((id, index) => {
+      if (id !== 0) lowest = Math.min(lowest, chunk.cy * size + Math.floor(index / size));
+    });
+  }
+  return Number.isFinite(lowest) ? lowest : 0;
+}
 // Default view height: tiles shown from the bottom of the view to the top. The game camera is
 // expected to vary between 18 and 28 tiles high (adjusted per area later), with 22 as the default.
 export const CAMERA_TILES_HIGH = 22;
@@ -49,14 +78,23 @@ const AIM_COLOR = 0xffffff;
 const AIM_Z = 0.2; // in front of the player (2D)
 const AIM_Z_DEEP = 0.02; // just in front of the player plane (2.5D)
 
-// `map` is the result of loadGridMap. The player starts at the first `player` spawn: its x is the
+// `map` is the result of loadMap. The player starts at the first `player` spawn: its x is the
 // tile column (the box is centred on that tile) and its y the tile row the feet are at.
 export function initSandbox(map, key = MAP_KEY) {
   const spawn = map.spawns.find((s) => s.type === 'player');
   if (!spawn) throw new Error(`sandbox: map '${map.name}' has no player spawn`);
   // `pointer`: player 1's last mouse position ({ x, y }, canvas CSS px) or null. `aimSource`: what
   // last changed player 1's aim, 'mouse' (the pointer moved) or 'stick', or null before either.
-  return { ticks: 0, map: key, player: createPlayer(spawn.x + 0.5, spawn.y), pointer: null, aimSource: null };
+  // `spawn` and `fallY`: a player below fallY goes back to the spawn (maps can have open ends).
+  return {
+    ticks: 0,
+    map: key,
+    player: createPlayer(spawn.x + 0.5, spawn.y),
+    pointer: null,
+    aimSource: null,
+    spawn: { x: spawn.x + 0.5, y: spawn.y },
+    fallY: lowestTileY(map.tiles) - FALL_MARGIN,
+  };
 }
 
 // `tiles` is the tile map (not part of the state).
@@ -68,6 +106,7 @@ export function tickSandbox(state, inputs, dt, tiles) {
     else if (Number.isFinite(frame.aim) && frame.aim !== state.player.aim) state.aimSource = 'stick';
   }
   stepPlayer(state.player, frame, tiles, dt);
+  if (state.player.y < state.fallY) Object.assign(state.player, { ...state.spawn, vx: 0, vy: 0, onGround: false });
   state.ticks += 1;
   return state;
 }
@@ -109,7 +148,9 @@ function addPlayer(scene, geometries, materials, z) {
 
 // `zoom` is the camera view height holder (createCameraZoom) and `viewMode` the 2D / 2.5D and FOV
 // holder (createViewMode), both passed at registration. `fetchJson` is for tests.
-export function createSandbox({ zoom = createCameraZoom(), viewMode = createViewMode(), fetchJson = defaultFetchJson } = {}) {
+// `mapChoice` (createMapChoice) picks the map at load.
+export function createSandbox({ zoom = createCameraZoom(), viewMode = createViewMode(), mapChoice = createMapChoice(), fetchJson = defaultFetchJson } = {}) {
+  let mapKey;
   let map, tiles;
   let flat, deep; // { scene, camera, player } for the 2D and the 2.5D view
   // Last non-zero aim direction for the camera's Min radius when the mouse is exactly at the head.
@@ -118,7 +159,8 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
     async load({ track, acquire }) {
-      map = loadGridMap(await acquireMap(acquire, MAP_KEY, fetchJson));
+      mapKey = mapChoice.get();
+      map = loadMap(await acquireMap(acquire, mapKey, fetchJson));
       tiles = map.tiles;
       // One checkerboard texture per tile type (see tile-texture.js), mapped once per tile (2D) or
       // per cube face (2.5D) by the 0..1 UVs, so the squares line up across neighbouring tiles.
@@ -156,7 +198,8 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       const deepScene = new Scene();
       for (const [id, positions] of groups) addInstanced(deepScene, track, geometries.cube, cubeMaterials.get(id), positions);
       const decor = new Map(); // tile id -> [[x, y, z], ...]
-      for (const cube of depthCubes(tiles)) {
+      // Off-plane cubes: a cells map's own cells, or decorative depth cubes for a flat map.
+      for (const cube of map.cells ?? depthCubes(tiles)) {
         if (!cubeMaterials.has(cube.id)) continue;
         if (!decor.has(cube.id)) decor.set(cube.id, []);
         decor.get(cube.id).push([cube.x, cube.y, cube.z]);
@@ -170,7 +213,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       };
     },
     enter() {
-      return initSandbox(map);
+      return initSandbox(map, mapKey);
     },
     tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles),
     draw(state, view) {

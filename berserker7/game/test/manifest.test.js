@@ -65,7 +65,7 @@ test('assetByKey and groupAssets: lookups, and loud errors naming the unknown ke
   assert.deepEqual(groupAssets('boot').map((a) => a.key), ['logo.baddergames', 'logo.w8omg', 'music.title']);
   assert.deepEqual(groupAssets('menubg').map((a) => a.key), ['poster.classic', 'poster.thrash']);
   assert.equal(assetByKey('poster.thrash').path, 'content/textures/menubg/berserkerguy-thrash-2-1.png');
-  assert.deepEqual(groupAssets('sandbox').map((a) => a.key), ['map.walkway', 'map.mvp-upper-1']);
+  assert.deepEqual(groupAssets('sandbox').map((a) => a.key), ['map.walkway', 'map.mvp-upper-1', 'map.moge3-cyberpunk']);
   assert.deepEqual(assetByKey('map.walkway'), { key: 'map.walkway', path: 'content/maps/walkway.json', type: 'map', groups: ['sandbox'] });
   assert.throws(() => groupAssets('nope'), /unknown group 'nope'/);
 });

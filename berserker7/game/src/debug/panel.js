@@ -9,6 +9,7 @@
 //                                       settings (JSON of settings.get()), session (JSON or none)
 //   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
 //   .b7-sandbox (shown while the Sandbox is the main scene):
+//     #b7-map (select)                       Sandbox map; a change reloads the scene
 //     #b7-zoom (range), [data-value="zoom"]  camera view height in tiles; [ and ] change it by 2
 //     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
@@ -17,7 +18,7 @@
 //     #b7-follow-<key> (range), [data-value="follow-<key>"]  camera aim-follow settings
 //                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleY)
 
-import { CAMERA_TILES_MAX, CAMERA_TILES_MIN } from '../scenes/sandbox.js';
+import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
 
 const ACTIONS = [
@@ -75,7 +76,7 @@ const STYLE = `
 #b7-debug .b7-dim { color: #999; }
 #b7-debug .b7-sandbox[hidden] { display: none; }
 #b7-debug .b7-sandbox label, #b7-debug .b7-modes { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-#b7-debug .b7-sandbox input { flex: 1; min-width: 0; }
+#b7-debug .b7-sandbox input, #b7-debug .b7-sandbox select { flex: 1; min-width: 0; }
 #b7-debug .b7-sandbox input:disabled { opacity: 0.4; }
 #b7-debug .b7-modes button { flex: 1; padding: 4px; font: inherit; color: #eee; background: #333b50;
   border: 1px solid #556; border-radius: 3px; cursor: pointer; }
@@ -100,7 +101,8 @@ function hash(text) {
 
 // `sandboxZoom` and `sandboxViewMode` (optional) are the Sandbox camera's view height holder
 // (createCameraZoom) and its view mode and FOV holder (createViewMode).
-export function mountPanel({ harness, renderer, assets, settings, session, sandboxZoom = null, sandboxViewMode = null, parent = document.body }) {
+// `sandboxMap` (optional) is the Sandbox map choice (createMapChoice).
+export function mountPanel({ harness, renderer, assets, settings, session, sandboxZoom = null, sandboxViewMode = null, sandboxMap = null, parent = document.body }) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.append(style);
@@ -115,6 +117,8 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
         ${ACTIONS.map(([action, label]) => `<button type="button" data-action="${action}">${label}</button>`).join('')}
       </div>
       <div class="b7-sandbox" hidden>
+        <label>Map
+          <select id="b7-map">${SANDBOX_MAPS.map((key) => `<option value="${key}">${key.replace(/^map\./, '')}</option>`).join('')}</select></label>
         <div class="b7-modes">
           <button type="button" data-view-mode="2d">2D (ortho)</button>
           <button type="button" data-view-mode="2.5d">2.5D (perspective)</button>
@@ -256,6 +260,19 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
         setValue(`follow-${slider.dataset.follow}`, follow[slider.dataset.follow].toFixed(2));
       }
     }
+  }
+  const mapSelect = root.querySelector('#b7-map');
+  if (sandboxMap) {
+    mapSelect.value = sandboxMap.get();
+    // A new map reloads the scene: leave it unloaded, then make it the main scene again.
+    mapSelect.addEventListener('change', () => {
+      mapSelect.blur();
+      sandboxMap.set(mapSelect.value);
+      if (harness.layers.main === 'sandbox') {
+        harness.leave('sandbox', 'unload');
+        harness.setMain('sandbox');
+      }
+    });
   }
   if (sandboxViewMode) {
     for (const b of modeButtons) {
