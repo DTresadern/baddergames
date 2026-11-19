@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.agents/skills/mastermind/scripts/day-check hook 2>/dev/null || true", "timeout": 10 } ] }
+    ]
+  }
+}
