@@ -29,6 +29,8 @@ MoGe's camera estimate:
      is the median Z of --plane-box; x is shifted so that cell boundaries fall nearest the edges
      of the --column-box squares (marked blocks at one depth).
   5. Voxelise as above (1 cell = 1 marked block) and write a `player` size.
+  6. Remove cells listed in --remove (a JSON file { "cells": [[x, y, z], ...] }: manual edits,
+     e.g. tools/moge3-cyberpunk-blocks.remove.json). A listed cell that is not in the map is an error.
 
 Needs Python 3 and numpy only. Image boxes are in source image pixels: x0,x1,y0,y1 (y down).
 The defaults are the values used for the "moge3-cyberpunk" mockup.
@@ -136,6 +138,16 @@ def blocks_mode(args, depth, px, py, excludes):
         [np.floor(X[keep] + x_shift), np.floor(Y[keep] - top_y), np.floor(plane_z - Z[keep] + 0.5)], axis=1
     ).astype(np.int64)
     solid = voxelise(cells, args.min_points)
+    removed = []
+    if args.remove:
+        with open(args.remove) as edits:
+            removed = [tuple(c) for c in json.load(edits)['cells']]
+        present = {tuple(c) for c in solid.tolist()}
+        missing = [c for c in removed if c not in present]
+        if missing:
+            raise SystemExit(f'{args.remove}: cells not in the map: {missing}')
+        drop = set(removed)
+        solid = solid[[tuple(c) not in drop for c in solid.tolist()]]
 
     # Spawn: the figure's column at the play plane, standing on the walkway (y = 0).
     figure_px = float(np.median(px[in_box(args.figure_box)]))
@@ -152,6 +164,7 @@ def blocks_mode(args, depth, px, py, excludes):
         'columnSquaresDepthBlocks': round(column_z, 3),
         'columnShiftBlocks': round(x_shift, 3),
         'imageBlocksHighAtPlayPlane': round(image_high, 2),
+        'removedCells': len(removed),
         'cells': int(len(solid)),
         'playPlaneCells': int((solid[:, 2] == 0).sum()),
         'bounds': {'min': solid.min(0).tolist(), 'max': solid.max(0).tolist()},
@@ -174,6 +187,7 @@ def blocks_mode(args, depth, px, py, excludes):
             'playPlaneDepthBlocks': report['playPlaneDepthBlocks'],
             'columnShiftBlocks': report['columnShiftBlocks'],
             'imageBlocksHighAtPlayPlane': report['imageBlocksHighAtPlayPlane'],
+            **({'removedCells': len(removed), 'removeFile': 'tools/' + args.remove.replace('\\', '/').split('/')[-1]} if removed else {}),
         },
         'player': {'width': width, 'height': height, 'crouchHeight': crouch},
         'spawns': [{'type': 'player', 'x': spawn_x, 'y': 0}],
@@ -220,6 +234,7 @@ def main():
         action='append',
         help='marked block square at one depth (repeatable); cell columns line up with their edges; default: the walkway face squares',
     )
+    blocks.add_argument('--remove', help='JSON file of cells to remove after voxelising ({"cells": [[x, y, z], ...]})')
     blocks.add_argument('--player', default='1,1.5,0.75', help='player width,height,crouchHeight, blocks')
     args = parser.parse_args()
     if args.min_points is None:
