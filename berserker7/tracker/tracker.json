@@ -4436,9 +4436,10 @@
         }
       ],
       "refs": [
-        "TF-067"
+        "TF-067",
+        "T-109"
       ],
-      "notes": ""
+      "notes": "2026-11-19: the netcode model is chosen in T-109."
     },
     {
       "id": "T-046",
@@ -4589,7 +4590,7 @@
       "category": "Networking",
       "title": "Lobby flow: room code, invite link, ready, start, drop-in",
       "detail": "Carry over the MVP lobby: host opens a lobby with a room code and invite link, guest toggles Ready, host presses Start, drop-in allowed.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "MVP retro"
       ],
@@ -4602,7 +4603,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": ""
+      "notes": "2026-11-19: the room code, the Join screen and the invite link are built (#81); Ready, Start and drop-in are not yet."
     },
     {
       "id": "T-053",
@@ -5115,7 +5116,7 @@
       "category": "Debug and testing",
       "title": "Local-transport and lag test options",
       "detail": "Carry over ?net=local (two tabs without PeerJS) and ?lag=ms, which reproduced the stale-packet bug.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "MVP retro"
       ],
@@ -5132,7 +5133,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": ""
+      "notes": "2026-11-19: ?net=local and ?lag are built (#81)."
     },
     {
       "id": "T-075",
@@ -5525,6 +5526,24 @@
         "D-107"
       ],
       "notes": "2026-11-18, project owner: decided. Both current menu backgrounds (classic and thrash, issues #64 and #66) are 2508 x 1254."
+    },
+    {
+      "id": "D-129",
+      "list": "design",
+      "kind": "advisory",
+      "category": "Enemies",
+      "title": "Don't design enemies and level objects that ignore network delay",
+      "detail": "Attack wind-ups clearly longer than the worst supported delay; no instant, unannounced enemy attacks. Spawns off-screen or behind a spawn animation. Generous hitboxes for fast enemies. Platforms and hazards move on scripted, tick-driven paths. Contested pickups are decided by the host, with a short \"claimed\" animation.",
+      "status": "accepted",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-109",
+        "T-110"
+      ],
+      "notes": ""
     },
     {
       "id": "T-089",
@@ -6026,6 +6045,78 @@
         "T-107"
       ],
       "notes": "2026-11-19, project owner: the direction came from blocking out the moge3-cyberpunk mockup in cubes and editing cells against an overlay of the art (#75). Details to come."
+    },
+    {
+      "id": "T-109",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Host-authoritative snapshots with prediction",
+      "detail": "The host runs the game and sends snapshots; the guest sends per-tick inputs; each player's own movement is predicted, with reconciliation; the other player is interpolated; a shared clock is estimated from pings. Chosen over lockstep and rollback because it does not need bit-exact determinism: each snapshot corrects the guest.",
+      "status": "accepted",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-045",
+        "T-110",
+        "T-111"
+      ],
+      "notes": "2026-11-19: built in #81 for the Sandbox players."
+    },
+    {
+      "id": "T-110",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Predict the world by re-simulating from snapshots",
+      "detail": "Once enemies and projectiles exist, the guest re-runs the game code forward from the latest snapshot to the present, capped at about 250 ms. Corrections are eased over about 100 to 200 ms. Projectiles spawn advanced by the delay. Beyond the cap the guest stops predicting and shows a poor-connection indicator.",
+      "status": "accepted",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-109"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-111",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Every feature is testable with two players",
+      "detail": "New features are built and checked with a host and a guest (?net=local at least), so networking problems are found when the feature is built.",
+      "status": "ongoing",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-109",
+        "T-074"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "T-112",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Networking",
+      "title": "Hit decisions under delay",
+      "detail": "Decide between lag compensation on the host and letting the guest's browser decide hits on the guest, before weapons and enemies hit each other over the network.",
+      "status": "open",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-109",
+        "T-110"
+      ],
+      "notes": ""
     }
   ]
 }
