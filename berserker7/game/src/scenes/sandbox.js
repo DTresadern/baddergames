@@ -8,6 +8,7 @@ import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadGridMap } from '../world/grid-map.js';
 import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
+import { createTileTexture } from './tile-texture.js';
 
 export const MAP_KEY = 'map.mvp-upper-1';
 // Default view height: tiles shown from the bottom of the view to the top. The game camera is
@@ -82,9 +83,13 @@ export function createSandbox({ zoom = createCameraZoom(), fetchJson = defaultFe
       tiles = map.tiles;
       scene = new Scene();
       const tileGeometry = track(new PlaneGeometry(1, 1));
+      // One checkerboard texture and material per tile type (see tile-texture.js), mapped once per
+      // tile by the plane's 0..1 UVs, so the squares line up across neighbouring tiles.
       const materials = new Map(); // tile id -> material
       tiles.types.forEach((type, id) => {
-        if (id !== 0 && type.color !== undefined) materials.set(id, track(new MeshBasicMaterial({ color: type.color })));
+        if (id === 0 || type.color === undefined) return;
+        const texture = track(createTileTexture(map.tileSize, type.color));
+        materials.set(id, track(new MeshBasicMaterial({ map: texture })));
       });
       buildTileMeshes(tiles, tileGeometry, materials, track, scene);
       playerMesh = new Mesh(

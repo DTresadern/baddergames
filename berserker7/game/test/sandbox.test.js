@@ -11,6 +11,8 @@ import {
   initSandbox,
   tickSandbox,
 } from '../src/scenes/sandbox.js';
+import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/tile-texture.js';
+import { NearestFilter } from 'three';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { MOVE } from '../src/world/player.js';
 import { frame } from './frames.js';
@@ -87,4 +89,20 @@ test('sandbox draw: the camera follows the zoom holder live', async () => {
   zoom.set(26);
   scene.draw(state, view);
   assert.equal(rendered.top - rendered.bottom, 26);
+});
+
+test('tile texture: 8 px checker of the legend colour and a slightly lighter shade, nearest filtering, no mipmaps', () => {
+  const data = checkerPixels(64, '#6b7a8f');
+  const at = (x, y) => [...data.slice((y * 64 + x) * 4, (y * 64 + x) * 4 + 4)];
+  assert.equal(TILE_CHECKER.square, 8);
+  assert.deepEqual(at(0, 0), [0x6b, 0x7a, 0x8f, 255]);
+  assert.deepEqual(at(7, 7), at(0, 0));
+  assert.deepEqual(at(8, 0), at(0, 8));
+  assert.deepEqual(at(8, 8), at(0, 0));
+  const lighter = at(8, 0);
+  for (let i = 0; i < 3; i++) assert.ok(lighter[i] > at(0, 0)[i] && lighter[i] - at(0, 0)[i] < 20, `channel ${i}`);
+  const texture = createTileTexture(64, '#6b7a8f');
+  assert.equal(texture.magFilter, NearestFilter);
+  assert.equal(texture.minFilter, NearestFilter);
+  assert.equal(texture.generateMipmaps, false);
 });
