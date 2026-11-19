@@ -10,7 +10,7 @@ import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 
 export const MAP_KEY = 'map.walkway';
-export const CAMERA_TILES_HIGH = 12; // tiles shown from the bottom of the view to the top
+export const CAMERA_TILES_HIGH = 18; // tiles shown from the bottom of the view to the top
 const PLAYER_COLOR = 0xf2c14e;
 const PLAYER_Z = 0.1; // in front of the tiles
 export const AIM_LENGTH = 2; // aim line length, tiles
