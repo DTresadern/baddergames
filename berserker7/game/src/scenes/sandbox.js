@@ -10,8 +10,10 @@ import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 
 export const MAP_KEY = 'map.mvp-upper-1';
-export const CAMERA_TILES_HIGH = 18; // default view height: tiles shown from the bottom of the view to the top
-export const CAMERA_TILES_MIN = 18; // closest zoom (never closer than the default)
+// Default view height: tiles shown from the bottom of the view to the top. The game camera is
+// expected to vary between 18 and 28 tiles high (adjusted per area later), with 22 as the default.
+export const CAMERA_TILES_HIGH = 22;
+export const CAMERA_TILES_MIN = 18; // closest zoom
 export const CAMERA_TILES_MAX = 60; // furthest zoom
 
 // The camera's view height in tiles, changed live by the debug tools (slider, [ and ]) and read by
