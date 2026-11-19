@@ -129,3 +129,11 @@ test('raw channel: texts before listen are kept; nothing after close', () => {
   ch.deliver('c');
   assert.deepEqual([sent, got], [[], ['a', 'b']]);
 });
+
+test('createRawChannel: getStats is null without one, passes it through, and is null once closed', () => {
+  assert.equal(createRawChannel({ send() {}, close() {} }).getStats(), null);
+  const ch = createRawChannel({ send() {}, close() {}, getStats: () => 'stats' });
+  assert.equal(ch.getStats(), 'stats');
+  ch.close();
+  assert.equal(ch.getStats(), null);
+});

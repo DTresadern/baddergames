@@ -8,7 +8,8 @@
 // gets a `reject full` codec message and is closed. A join that has not opened after
 // JOIN_TIMEOUT_MS fails with 'timeout'. When the signalling server connection is lost after the
 // peer opened, the peer reconnects; open data connections carry on without it.
-// Same interface as transport-local.js.
+// Channels give getStats() (the data connection's RTCPeerConnection stats). Same interface as
+// transport-local.js.
 
 import { encode, rejectMessage } from './codec.js';
 import { createRawChannel } from './link.js';
@@ -91,6 +92,7 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
         }
         const channel = createRawChannel({
           send: (text) => conn.send(text),
+          getStats: () => conn.peerConnection?.getStats() ?? null,
           close: () => {
             if (guest?.conn === conn) guest = null;
             // PeerJS 1.5.5 ignores close({ flush }) on a raw connection (it only sends a marker
@@ -157,6 +159,7 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
             clearTimer(timer);
             channel = createRawChannel({
               send: (text) => conn.send(text),
+              getStats: () => conn.peerConnection?.getStats() ?? null,
               close: () => {
                 // As on the host: a delayed plain close, so a last message (a bye) leaves first.
                 setTimer(() => conn.close(), REJECT_CLOSE_MS);

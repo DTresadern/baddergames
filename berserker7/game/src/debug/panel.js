@@ -24,11 +24,14 @@
 //     [data-value="room-code"]               the room code while hosting
 //     button[data-action="copy-invite"]      copies the invite link (shown while hosting)
 //     [data-value="invite-link"]             the invite link text (selected when copying fails)
-//     [data-value="net-<key>"]               role, code, state, ping, offset, msgs-in, msgs-out,
+//     [data-value="net-<key>"]               role, code, state, connection, ping, offset, msgs-in, msgs-out,
 //                                            bytes-in, bytes-out (per second), lag
+//                                            (connection: how the WebRTC link travels, from the
+//                                            selected ICE pair, e.g. `srflx ↔ srflx udp`; refreshed every 3 s)
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
+import { connectionTypeLabel } from '../net/connection-type.js';
 import { inviteUrl } from '../net/room-code.js';
 
 const ACTIONS = [
@@ -67,6 +70,7 @@ const NET_VALUES = [
   ['role', 'role'],
   ['code', 'room code'],
   ['state', 'state'],
+  ['connection', 'connection'],
   ['ping', 'ping'],
   ['offset', 'tick offset'],
   ['msgs-in', 'msgs in /s'],
@@ -81,6 +85,7 @@ const NET_STATES = { idle: 'offline', creating: 'creating room', waiting: 'waiti
 const FIELDS = ['layer', 'life', 'settings', 'ticks', 'left', 'back', 'error'];
 const SLOW_FRAME_MS = 1000;
 const REFRESH_MS = 250;
+const CONNECTION_REFRESH_MS = 3000; // getStats is async and heavier than the rest, so it runs less often
 const FADE = 0.6;
 const ZOOM_STEP_KEYS = 2; // tiles per [ or ] press
 
@@ -451,6 +456,42 @@ export function mountPanel({
     button('go-online').disabled = !net;
   }
 
+  // The connection line. Not connected: a dash, and the cache is reset so a new connection asks at
+  // once. Connected over PeerJS: the last label from getStats, asked every CONNECTION_REFRESH_MS;
+  // an answer that arrives after a disconnect or reconnect is ignored.
+  const connection = { generation: 0, connected: false, label: '…', askedAt: -Infinity };
+  function connectionText(stats) {
+    const dash = '—';
+    const connected = stats?.state === 'joined' || stats?.state === 'connected';
+    if (!connected) {
+      if (connection.connected) {
+        connection.generation += 1;
+        connection.connected = false;
+        connection.label = '…';
+        connection.askedAt = -Infinity;
+      }
+      return dash;
+    }
+    connection.connected = true;
+    if (transport?.kind === 'local') return 'local (BroadcastChannel)';
+    const t = performance.now();
+    if (t - connection.askedAt >= CONNECTION_REFRESH_MS) {
+      connection.askedAt = t;
+      const gen = connection.generation;
+      const apply = (label) => {
+        if (gen === connection.generation) connection.label = label;
+      };
+      try {
+        const asked = net.connectionStats();
+        if (asked) asked.then((report) => apply(connectionTypeLabel(report) ?? dash), () => apply(dash));
+        else apply(dash);
+      } catch {
+        apply(dash);
+      }
+    }
+    return connection.label;
+  }
+
   function refreshNet() {
     const stats = net?.stats() ?? null;
     const hosting = stats?.role === 'host' && stats.code !== null;
@@ -462,6 +503,7 @@ export function mountPanel({
       role: stats?.role ?? 'none',
       code: stats?.code ?? dash,
       state: stats ? `${NET_STATES[stats.state] ?? stats.state}${stats.reason ? ` (${stats.reason})` : ''}` : dash,
+      connection: connectionText(stats),
       ping: stats?.pingMs != null ? `${stats.pingMs.toFixed(0)} ms` : dash,
       offset: stats?.pingMs != null ? `${stats.offsetTicks.toFixed(1)} ticks` : dash,
       'msgs-in': stats ? String(stats.msgsIn) : dash,

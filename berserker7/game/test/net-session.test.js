@@ -269,3 +269,26 @@ test('session: an invalid code typed while hosting changes nothing', () => {
   assert.equal(w.guest.session.state(), 'connected');
   assert.equal(w.guest.events.some((e) => e.type === 'ended'), false);
 });
+
+test('session: connectionStats is null when idle, and the channel stats only while connected', () => {
+  const w = world();
+  // A transport whose channels have getStats, to see the session pass it through.
+  const withStats = {
+    ...w.transport,
+    host: (opts) => w.transport.host({ ...opts, onGuest: (ch) => opts.onGuest(Object.assign(ch, { getStats: () => 'host-stats' })) }),
+    join: (code, opts) => w.transport.join(code, { ...opts, onOpen: (ch) => opts.onOpen(Object.assign(ch, { getStats: () => 'guest-stats' })) }),
+  };
+  assert.equal(w.host.session.connectionStats(), null);
+  w.host.session.host({ transport: withStats });
+  w.tick(1);
+  assert.equal(w.host.session.connectionStats(), null); // waiting, no guest yet
+  w.guest.session.join(w.host.session.code(), { transport: withStats });
+  assert.equal(w.guest.session.connectionStats(), null); // connecting
+  w.tick(3);
+  assert.equal(w.host.session.connectionStats(), 'host-stats');
+  assert.equal(w.guest.session.connectionStats(), 'guest-stats');
+  w.guest.session.leave();
+  assert.equal(w.guest.session.connectionStats(), null);
+  w.tick(3);
+  assert.equal(w.host.session.connectionStats(), null); // guest left
+});
