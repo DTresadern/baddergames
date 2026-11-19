@@ -7,6 +7,7 @@
 export const MOVE = Object.freeze({
   width: 1, // box width, tiles
   height: 2, // box height, tiles
+  crouchHeight: 1, // box height while crouched, tiles (feet stay put)
   maxSpeed: 8, // top horizontal speed, tiles/s
   groundAccel: 60, // horizontal acceleration towards the input direction on the ground, tiles/s^2
   groundFriction: 50, // horizontal slowing with no input on the ground, tiles/s^2
@@ -21,7 +22,7 @@ export const MOVE = Object.freeze({
 const EPSILON = 1e-6;
 
 export function createPlayer(x, y) {
-  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0 };
+  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false };
 }
 
 // Moves `value` towards `target` by at most `amount`, never past it.
@@ -29,13 +30,18 @@ function approach(value, target, amount) {
   return value < target ? Math.min(value + amount, target) : Math.max(value - amount, target);
 }
 
-// Tile ranges the box overlaps at (x, y), inclusive.
-function overlap(x, y) {
+// The box's current height: MOVE.crouchHeight while crouched, else MOVE.height.
+export function playerHeight(player) {
+  return player.crouching ? MOVE.crouchHeight : MOVE.height;
+}
+
+// Tile ranges a box of `height` overlaps at (x, y), inclusive.
+function overlap(x, y, height) {
   return {
     x0: Math.floor(x - MOVE.width / 2 + EPSILON),
     x1: Math.floor(x + MOVE.width / 2 - EPSILON),
     y0: Math.floor(y + EPSILON),
-    y1: Math.floor(y + MOVE.height - EPSILON),
+    y1: Math.floor(y + height - EPSILON),
   };
 }
 
@@ -67,15 +73,24 @@ export function stepPlayer(player, frame, tiles, dt) {
   } else {
     player.vx = approach(player.vx, 0, (player.onGround ? MOVE.groundFriction : MOVE.airFriction) * dt);
   }
+  // Crouch: holding moveDown on the ground makes the box MOVE.crouchHeight tall, feet in place
+  // (down in mid-air does nothing). Releasing it, or jumping, stands back up only when the full
+  // height fits; under a low ceiling the box stays crouched until there is room.
+  const roomToStand = () => !solidSpan(tiles, overlap(player.x, player.y, MOVE.height), 'y');
+  const downHeld = Boolean(actions?.moveDown?.held);
+  if (downHeld && player.onGround) player.crouching = true;
   // For now moveUp (W, up arrow, stick up) also jumps; DEFAULT_BINDINGS stay unchanged so W does not select menu items.
   const jumpPressed = actions?.jump?.pressed || actions?.moveUp?.pressed;
-  if (jumpPressed && player.onGround) player.vy = MOVE.jumpSpeed;
+  const jumping = jumpPressed && player.onGround;
+  if (player.crouching && (!downHeld || jumping) && roomToStand()) player.crouching = false;
+  if (jumping) player.vy = MOVE.jumpSpeed;
   if (frame?.connected && Number.isFinite(frame.aim)) player.aim = frame.aim;
   player.vy = Math.max(player.vy - MOVE.gravity * dt, -MOVE.maxFallSpeed);
 
   // One axis at a time: move, then push out of any solid tile it now overlaps.
   player.x += player.vx * dt;
-  const sideSpan = solidSpan(tiles, overlap(player.x, player.y), 'x');
+  const height = playerHeight(player);
+  const sideSpan = solidSpan(tiles, overlap(player.x, player.y, height), 'x');
   if (sideSpan) {
     if (player.vx > 0) player.x = sideSpan.min - MOVE.width / 2;
     else if (player.vx < 0) player.x = sideSpan.max + 1 + MOVE.width / 2;
@@ -84,13 +99,13 @@ export function stepPlayer(player, frame, tiles, dt) {
 
   player.onGround = false;
   player.y += player.vy * dt;
-  const vertSpan = solidSpan(tiles, overlap(player.x, player.y), 'y');
+  const vertSpan = solidSpan(tiles, overlap(player.x, player.y, height), 'y');
   if (vertSpan) {
     if (player.vy < 0) {
       player.y = vertSpan.max + 1;
       player.onGround = true;
     } else if (player.vy > 0) {
-      player.y = vertSpan.min - MOVE.height;
+      player.y = vertSpan.min - height;
     }
     player.vy = 0;
   }

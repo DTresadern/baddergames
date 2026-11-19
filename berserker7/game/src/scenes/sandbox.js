@@ -6,7 +6,7 @@
 import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
-import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
+import { MOVE, createPlayer, playerHeight, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createTileTexture } from './tile-texture.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
@@ -127,7 +127,7 @@ export function tickSandbox(state, inputs, dt, tiles) {
     else if (Number.isFinite(frame.aim) && frame.aim !== state.player.aim) state.aimSource = 'stick';
   }
   stepPlayer(state.player, frame, tiles, dt);
-  if (state.player.y < state.fallY) Object.assign(state.player, { ...state.spawn, vx: 0, vy: 0, onGround: false });
+  if (state.player.y < state.fallY) Object.assign(state.player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false });
   state.ticks += 1;
   return state;
 }
@@ -253,8 +253,9 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
     draw(state, view) {
       const { player } = state;
       const tilesHigh = zoom.get();
-      const centreY = player.y + MOVE.height / 2;
-      const headY = player.y + MOVE.height; // top centre of the box
+      const height = playerHeight(player); // 1 while crouched, else 2
+      const centreY = player.y + height / 2;
+      const headY = player.y + height; // top centre of the box
       const active = viewMode.mode() === '2d' ? flat : deep;
       const { camera } = active;
       // Camera: rest = head + offset; with a mouse aim, plus the aim-follow shift. The aim point is
@@ -292,6 +293,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
       const { body, aim } = active.player;
       body.position.set(player.x, centreY, body.position.z);
+      body.scale.y = height / MOVE.height; // the body geometry is MOVE.height tall
       aim.position.set(player.x, headY, aim.position.z);
       // The aim line points at the mouse's true world position: the pointer projected through the
       // actual camera. With a stick (or before the mouse moves) it uses the input's aim angle.

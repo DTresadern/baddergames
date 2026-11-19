@@ -25,7 +25,7 @@ const map = loadGridMap(json());
 test('initSandbox: plain state, the player stands at the first player spawn', () => {
   const state = initSandbox(map);
   const spawn = map.spawns.find((s) => s.type === 'player');
-  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0 }, pointer: null, aimSource: null, spawn: { x: spawn.x + 0.5, y: spawn.y }, fallY: -10 });
+  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false }, pointer: null, aimSource: null, spawn: { x: spawn.x + 0.5, y: spawn.y }, fallY: -10 });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
 });

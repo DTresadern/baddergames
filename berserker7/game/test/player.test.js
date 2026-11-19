@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
 import { loadGridMap } from '../src/world/grid-map.js';
-import { MOVE, createPlayer, stepPlayer } from '../src/world/player.js';
+import { MOVE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
 
 const DT = 1 / 60;
 const json = JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'));
@@ -123,4 +123,61 @@ test('player: moveUp also jumps for now, and the aim follows the frame', () => {
   stepPlayer(player, up, tiles, DT);
   assert.ok(player.vy > 0);
   assert.equal(player.aim, 1.2);
+});
+
+test('crouch: down on the ground makes the box 1 tall with the feet in place; release stands up', () => {
+  const player = createPlayer(10.5, 2);
+  run(player, () => frame(), 30);
+  assert.equal(player.onGround, true);
+  const feet = player.y;
+  stepPlayer(player, frame(['moveDown'], ['moveDown']), tiles, DT);
+  assert.equal(player.crouching, true);
+  assert.equal(playerHeight(player), 1);
+  assert.equal(player.y, feet);
+  // Same speed while crouched.
+  const x0 = player.x;
+  run(player, () => frame(['moveDown', 'moveRight']), 60);
+  const crouchedRun = player.x - x0;
+  stepPlayer(player, frame(), tiles, DT);
+  assert.equal(player.crouching, false);
+  const x1 = player.x;
+  run(player, () => frame(['moveRight']), 60);
+  assert.ok(Math.abs(player.x - x1 - crouchedRun) < 0.5, 'same speed crouched and standing');
+});
+
+test('crouch: down in mid-air does nothing', () => {
+  const player = createPlayer(10.5, 6);
+  stepPlayer(player, frame(['moveDown'], ['moveDown']), tiles, DT);
+  assert.equal(player.onGround, false);
+  assert.equal(player.crouching, false);
+  assert.equal(playerHeight(player), MOVE.height);
+});
+
+test('crouch: under a low ceiling the player stays crouched until there is room, also when jumping', () => {
+  // Floor at y 0, a ceiling tile at y 2 over x 5..9: 1 tile of headroom there.
+  const low = loadGridMap({
+    format: 1,
+    name: 'low',
+    tileSize: 64,
+    legend: { '#': { type: 'solid', color: '#888888' } },
+    grid: ['.....#####.....', '...............', '###############'],
+    spawns: [{ type: 'player', x: 2, y: 1 }],
+  }).tiles;
+  const player = createPlayer(2.5, 1);
+  stepPlayer(player, frame(), low, DT);
+  stepPlayer(player, frame(['moveDown'], ['moveDown']), low, DT);
+  assert.equal(player.crouching, true);
+  // Crawl right under the ceiling, then let go of down.
+  for (let i = 0; i < 300 && player.x < 7.5; i++) stepPlayer(player, frame(['moveDown', 'moveRight']), low, DT);
+  assert.ok(player.x >= 7.5 && player.x < 9, `under the ceiling at x ${player.x}`);
+  player.vx = 0;
+  stepPlayer(player, frame(), low, DT);
+  assert.equal(player.crouching, true, 'no headroom: stays crouched');
+  stepPlayer(player, frame(['jump'], ['jump']), low, DT);
+  assert.equal(player.crouching, true, 'a jump under the ceiling stays crouched');
+  for (let i = 0; i < 60; i++) stepPlayer(player, frame(), low, DT);
+  assert.equal(player.crouching, true);
+  for (let i = 0; i < 60; i++) stepPlayer(player, frame(['moveRight']), low, DT);
+  assert.ok(player.x > 10.5, `out from under the ceiling at x ${player.x}`);
+  assert.equal(player.crouching, false, 'stands up once out from under the ceiling');
 });
