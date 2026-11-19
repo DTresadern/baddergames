@@ -13,6 +13,7 @@ import {
 } from '../src/scenes/sandbox.js';
 import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/tile-texture.js';
 import { NearestFilter } from 'three';
+import { DEPTH_CUBE_SPACING, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { MOVE } from '../src/world/player.js';
 import { frame } from './frames.js';
@@ -44,7 +45,7 @@ test('tickSandbox: player 1 input moves the player, ticks count, the state stays
 test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the player centre', async () => {
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = camera) };
-  const scene = createSandbox({ fetchJson: async () => json() });
+  const scene = createSandbox({ viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   state.player.x = 10;
@@ -80,7 +81,7 @@ test('sandbox draw: the camera follows the zoom holder live', async () => {
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = camera) };
   const zoom = createCameraZoom();
-  const scene = createSandbox({ zoom, fetchJson: async () => json() });
+  const scene = createSandbox({ zoom, viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
@@ -105,4 +106,55 @@ test('tile texture: 8 px checker of the legend colour and a slightly lighter sha
   assert.equal(texture.magFilter, NearestFilter);
   assert.equal(texture.minFilter, NearestFilter);
   assert.equal(texture.generateMipmaps, false);
+});
+
+test('createViewMode: 2.5D and FOV 15 by default; unknown modes ignored; FOV whole degrees, 1 to 60', () => {
+  const v = createViewMode();
+  assert.deepEqual([v.mode(), v.fov()], ['2.5d', 15]);
+  assert.equal(v.setMode('2d'), '2d');
+  assert.equal(v.setMode('3d'), '2d');
+  assert.equal(v.setFov(0), 1);
+  assert.equal(v.setFov(90), 60);
+  assert.equal(v.setFov(29.6), 30);
+});
+
+test('sandbox draw 2.5D: the play plane shows the zoom height at any FOV, live mode switch', async () => {
+  let rendered;
+  const renderer = { render: (scene, camera) => (rendered = camera) };
+  const viewMode = createViewMode();
+  const zoom = createCameraZoom();
+  const scene = createSandbox({ zoom, viewMode, fetchJson: async () => json() });
+  await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
+  const state = scene.enter();
+  const origins = [];
+  const view = { renderer, width: 800, height: 600, setAimOrigin: (...a) => origins.push(a) };
+  for (const fov of [1, 15, 60]) {
+    viewMode.setFov(fov);
+    scene.draw(state, view);
+    assert.equal(rendered.isPerspectiveCamera, true);
+    const d = rendered.position.z;
+    assert.ok(Math.abs(d - perspectiveDistance(zoom.get(), fov)) < 1e-9);
+    // Height of the view at z = 0.
+    assert.ok(Math.abs(2 * d * Math.tan((rendered.fov * Math.PI) / 360) - zoom.get()) < 1e-9, `fov ${fov}`);
+    assert.ok(rendered.near < d - 1.5 && rendered.far > d + 1.5, 'cubes at z ±1.5 not clipped');
+  }
+  // Same aim origin as in 2D: head MOVE.height / 2 above the view centre.
+  assert.deepEqual(origins.at(-1).slice(0, 2), [0, 400]);
+  assert.ok(Math.abs(origins.at(-1)[2] - (300 - (MOVE.height / 2) * (600 / zoom.get()))) < 1e-9);
+  viewMode.setMode('2d');
+  scene.draw(state, view);
+  assert.equal(rendered.isOrthographicCamera, true);
+});
+
+test('depthCubes: deterministic, every few columns, on the ground surface, off the play plane', () => {
+  const a = depthCubes(map.tiles);
+  assert.deepEqual(depthCubes(map.tiles), a);
+  assert.ok(a.length > 10);
+  assert.ok(a.some((c) => c.z === 1) && a.some((c) => c.z === -1));
+  for (const c of a) {
+    assert.equal(c.x % DEPTH_CUBE_SPACING, 0);
+    assert.ok(c.z === 1 || c.z === -1);
+    assert.equal(map.tiles.isSolid(c.x, c.y), false, `cube at ${c.x},${c.y} is in empty space`);
+    assert.equal(map.tiles.isSolid(c.x, c.y - 1), true, `cube at ${c.x},${c.y} sits on ground`);
+  }
 });

@@ -8,10 +8,13 @@
 //                                       layers, transition, geometries, textures, assets,
 //                                       settings (JSON of settings.get()), session (JSON or none)
 //   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
-//   #b7-zoom (range), [data-value="zoom"]    Sandbox camera view height in tiles (shown while the
-//                                       Sandbox is the main scene); [ and ] change it by 2
+//   .b7-sandbox (shown while the Sandbox is the main scene):
+//     #b7-zoom (range), [data-value="zoom"]  camera view height in tiles; [ and ] change it by 2
+//     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
+//     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN } from '../scenes/sandbox.js';
+import { FOV_MAX, FOV_MIN } from '../scenes/sandbox-3d.js';
 
 const ACTIONS = [
   ['main-menu', 'Main menu'],
@@ -66,9 +69,13 @@ const STYLE = `
 #b7-debug dd { margin: 0; overflow-wrap: anywhere; }
 #b7-debug .b7-scenes > div { padding: 3px 0; border-top: 1px solid #333; overflow-wrap: anywhere; }
 #b7-debug .b7-dim { color: #999; }
-#b7-debug .b7-zoom { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-#b7-debug .b7-zoom input { flex: 1; min-width: 0; }
-#b7-debug .b7-zoom[hidden] { display: none; }
+#b7-debug .b7-sandbox[hidden] { display: none; }
+#b7-debug .b7-sandbox label, #b7-debug .b7-modes { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+#b7-debug .b7-sandbox input { flex: 1; min-width: 0; }
+#b7-debug .b7-sandbox input:disabled { opacity: 0.4; }
+#b7-debug .b7-modes button { flex: 1; padding: 4px; font: inherit; color: #eee; background: #333b50;
+  border: 1px solid #556; border-radius: 3px; cursor: pointer; }
+#b7-debug .b7-modes button[aria-pressed="true"] { background: #4f6290; border-color: #8aa; }
 `;
 
 // True for elements that take typed text ([ and ] are left alone there). A range slider is not one.
@@ -87,8 +94,9 @@ function hash(text) {
   return h.toString(16).padStart(8, '0');
 }
 
-// `sandboxZoom` (optional) is the Sandbox camera's view height holder (createCameraZoom).
-export function mountPanel({ harness, renderer, assets, settings, session, sandboxZoom = null, parent = document.body }) {
+// `sandboxZoom` and `sandboxViewMode` (optional) are the Sandbox camera's view height holder
+// (createCameraZoom) and its view mode and FOV holder (createViewMode).
+export function mountPanel({ harness, renderer, assets, settings, session, sandboxZoom = null, sandboxViewMode = null, parent = document.body }) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.append(style);
@@ -102,9 +110,18 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
       <div class="b7-actions">
         ${ACTIONS.map(([action, label]) => `<button type="button" data-action="${action}">${label}</button>`).join('')}
       </div>
-      <label class="b7-zoom" hidden>Sandbox view
-        <input id="b7-zoom" type="range" min="${CAMERA_TILES_MIN}" max="${CAMERA_TILES_MAX}" step="1">
-        <span data-value="zoom"></span></label>
+      <div class="b7-sandbox" hidden>
+        <div class="b7-modes">
+          <button type="button" data-view-mode="2d">2D (ortho)</button>
+          <button type="button" data-view-mode="2.5d">2.5D (perspective)</button>
+        </div>
+        <label>Sandbox view
+          <input id="b7-zoom" type="range" min="${CAMERA_TILES_MIN}" max="${CAMERA_TILES_MAX}" step="1">
+          <span data-value="zoom"></span></label>
+        <label>FOV
+          <input id="b7-fov" type="range" min="${FOV_MIN}" max="${FOV_MAX}" step="1">
+          <span data-value="fov"></span></label>
+      </div>
       <dl>${VALUES.map(([key, label]) => `<dt>${label}</dt><dd data-value="${key}"></dd>`).join('')}</dl>
       <div class="b7-scenes">${ids
         .map(
@@ -194,12 +211,36 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
   });
 
   // Sandbox camera zoom: the slider and the [ / ] keys. Debug tooling, not game input.
-  const zoomRow = root.querySelector('.b7-zoom');
+  const sandboxRow = root.querySelector('.b7-sandbox');
   const zoomSlider = root.querySelector('#b7-zoom');
+  const fovSlider = root.querySelector('#b7-fov');
+  const modeButtons = [...root.querySelectorAll('[data-view-mode]')];
   function showZoom() {
-    if (!sandboxZoom) return;
-    zoomSlider.value = String(sandboxZoom.get());
-    setValue('zoom', `${sandboxZoom.get()} tiles high`);
+    if (sandboxZoom) {
+      zoomSlider.value = String(sandboxZoom.get());
+      setValue('zoom', `${sandboxZoom.get()} tiles high`);
+    }
+    if (sandboxViewMode) {
+      const mode = sandboxViewMode.mode();
+      for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
+      fovSlider.value = String(sandboxViewMode.fov());
+      fovSlider.disabled = mode !== '2.5d';
+      setValue('fov', `${sandboxViewMode.fov()}°`);
+    }
+  }
+  if (sandboxViewMode) {
+    for (const b of modeButtons) {
+      b.addEventListener('click', () => {
+        b.blur();
+        sandboxViewMode.setMode(b.dataset.viewMode);
+        showZoom();
+      });
+    }
+    fovSlider.addEventListener('input', () => {
+      sandboxViewMode.setFov(Number(fovSlider.value));
+      showZoom();
+    });
+    fovSlider.addEventListener('change', () => fovSlider.blur());
   }
   if (sandboxZoom) {
     zoomSlider.addEventListener('input', () => {
@@ -245,7 +286,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
 
   function refresh() {
     refreshButtons();
-    zoomRow.hidden = !sandboxZoom || harness.layers.main !== 'sandbox';
+    sandboxRow.hidden = !sandboxZoom || harness.layers.main !== 'sandbox';
     showZoom();
     const { layers, lastLongFrame: long, transition: tr } = harness;
     setValue('frame-ms', `${(harness.lastFrameSeconds * 1000).toFixed(1)} ms`);

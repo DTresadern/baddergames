@@ -3,12 +3,13 @@
 // The tile map is static level data, built in load() and kept outside the state; the state is
 // plain data: { ticks, map (manifest key), player }.
 
-import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
+import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadGridMap } from '../world/grid-map.js';
 import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createTileTexture } from './tile-texture.js';
+import { DEPTH_MARGIN, FOV_DEFAULT, createViewMode, depthCubes, perspectiveDistance, shadedCubeGeometry } from './sandbox-3d.js';
 
 export const MAP_KEY = 'map.mvp-upper-1';
 // Default view height: tiles shown from the bottom of the view to the top. The game camera is
@@ -36,7 +37,8 @@ const PLAYER_Z = 0.1; // in front of the tiles
 export const AIM_LENGTH = 2; // aim line length, tiles
 const AIM_WIDTH = 0.06; // aim line thickness, tiles
 const AIM_COLOR = 0xffffff;
-const AIM_Z = 0.2; // in front of the player
+const AIM_Z = 0.2; // in front of the player (2D)
+const AIM_Z_DEEP = 0.02; // just in front of the player plane (2.5D)
 
 // `map` is the result of loadGridMap. The player starts at the first `player` spawn: its x is the
 // tile column (the box is centred on that tile) and its y the tile row the feet are at.
@@ -53,58 +55,99 @@ export function tickSandbox(state, inputs, dt, tiles) {
   return state;
 }
 
-// One InstancedMesh per chunk and tile type present in it, one instance per tile.
-function buildTileMeshes(tiles, geometry, materials, track, scene) {
+// Tile positions grouped per chunk and tile type: [[id, [[x, y], ...]], ...], one group per InstancedMesh.
+function tileGroups(tiles, ids) {
   const size = tiles.chunkSize;
-  const matrix = new Matrix4();
+  const groups = [];
   for (const chunk of tiles.chunks()) {
     const byId = new Map(); // tile id -> list of [x, y]
     chunk.tiles.forEach((id, index) => {
-      if (id === 0 || !materials.has(id)) return;
+      if (id === 0 || !ids.has(id)) return;
       if (!byId.has(id)) byId.set(id, []);
       byId.get(id).push([chunk.cx * size + (index % size), chunk.cy * size + Math.floor(index / size)]);
     });
-    for (const [id, positions] of byId) {
-      const mesh = track(new InstancedMesh(geometry, materials.get(id), positions.length));
-      positions.forEach(([x, y], i) => mesh.setMatrixAt(i, matrix.makeTranslation(x + 0.5, y + 0.5, 0)));
-      mesh.instanceMatrix.needsUpdate = true;
-      scene.add(mesh);
-    }
+    groups.push(...byId);
   }
+  return groups;
 }
 
-// `zoom` is the camera view height holder (createCameraZoom), passed at registration. `fetchJson` is for tests.
-export function createSandbox({ zoom = createCameraZoom(), fetchJson = defaultFetchJson } = {}) {
-  let scene, camera, playerMesh, aimLine, map, tiles;
+// One InstancedMesh per group, each instance a translation to the tile centre (x + 0.5, y + 0.5, z).
+function addInstanced(scene, track, geometry, material, positions) {
+  const matrix = new Matrix4();
+  const mesh = track(new InstancedMesh(geometry, material, positions.length));
+  positions.forEach(([x, y, z = 0], i) => mesh.setMatrixAt(i, matrix.makeTranslation(x + 0.5, y + 0.5, z)));
+  mesh.instanceMatrix.needsUpdate = true;
+  scene.add(mesh);
+}
+
+// The player box and the aim line, one pair per view (an object belongs to one three.js scene).
+function addPlayer(scene, geometries, materials, z) {
+  const body = new Mesh(geometries.player, materials.player);
+  const aim = new Mesh(geometries.aim, materials.aim);
+  body.position.z = z.player;
+  aim.position.z = z.aim;
+  scene.add(body, aim);
+  return { body, aim, z };
+}
+
+// `zoom` is the camera view height holder (createCameraZoom) and `viewMode` the 2D / 2.5D and FOV
+// holder (createViewMode), both passed at registration. `fetchJson` is for tests.
+export function createSandbox({ zoom = createCameraZoom(), viewMode = createViewMode(), fetchJson = defaultFetchJson } = {}) {
+  let map, tiles;
+  let flat, deep; // { scene, camera, player } for the 2D and the 2.5D view
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
     async load({ track, acquire }) {
       map = loadGridMap(await acquireMap(acquire, MAP_KEY, fetchJson));
       tiles = map.tiles;
-      scene = new Scene();
-      const tileGeometry = track(new PlaneGeometry(1, 1));
-      // One checkerboard texture and material per tile type (see tile-texture.js), mapped once per
-      // tile by the plane's 0..1 UVs, so the squares line up across neighbouring tiles.
-      const materials = new Map(); // tile id -> material
+      // One checkerboard texture per tile type (see tile-texture.js), mapped once per tile (2D) or
+      // per cube face (2.5D) by the 0..1 UVs, so the squares line up across neighbouring tiles.
+      const flatMaterials = new Map(); // tile id -> material
+      const cubeMaterials = new Map();
       tiles.types.forEach((type, id) => {
         if (id === 0 || type.color === undefined) return;
         const texture = track(createTileTexture(map.tileSize, type.color));
-        materials.set(id, track(new MeshBasicMaterial({ map: texture })));
+        flatMaterials.set(id, track(new MeshBasicMaterial({ map: texture })));
+        cubeMaterials.set(id, track(new MeshBasicMaterial({ map: texture, vertexColors: true })));
       });
-      buildTileMeshes(tiles, tileGeometry, materials, track, scene);
-      playerMesh = new Mesh(
-        track(new PlaneGeometry(MOVE.width, MOVE.height)),
-        track(new MeshBasicMaterial({ color: PLAYER_COLOR })),
-      );
-      playerMesh.position.z = PLAYER_Z;
-      scene.add(playerMesh);
-      // A thin plane from the head along +x, rotated to the aim angle.
-      aimLine = new Mesh(
-        track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
-        track(new MeshBasicMaterial({ color: AIM_COLOR })),
-      );
-      scene.add(aimLine);
-      camera = new OrthographicCamera(-1, 1, 1, -1, -10, 10);
+      const geometries = {
+        tile: track(new PlaneGeometry(1, 1)),
+        cube: track(shadedCubeGeometry()),
+        player: track(new PlaneGeometry(MOVE.width, MOVE.height)),
+        // A thin plane from the head along +x, rotated to the aim angle.
+        aim: track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
+      };
+      const materials = {
+        player: track(new MeshBasicMaterial({ color: PLAYER_COLOR })),
+        aim: track(new MeshBasicMaterial({ color: AIM_COLOR })),
+      };
+      const groups = tileGroups(tiles, flatMaterials);
+
+      // 2D: flat tiles, orthographic camera.
+      const flatScene = new Scene();
+      for (const [id, positions] of groups) addInstanced(flatScene, track, geometries.tile, flatMaterials.get(id), positions);
+      flat = {
+        scene: flatScene,
+        camera: new OrthographicCamera(-1, 1, 1, -1, -10, 10),
+        player: addPlayer(flatScene, geometries, materials, { player: PLAYER_Z, aim: AIM_Z }),
+      };
+
+      // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera.
+      const deepScene = new Scene();
+      for (const [id, positions] of groups) addInstanced(deepScene, track, geometries.cube, cubeMaterials.get(id), positions);
+      const decor = new Map(); // tile id -> [[x, y, z], ...]
+      for (const cube of depthCubes(tiles)) {
+        if (!cubeMaterials.has(cube.id)) continue;
+        if (!decor.has(cube.id)) decor.set(cube.id, []);
+        decor.get(cube.id).push([cube.x, cube.y, cube.z]);
+      }
+      for (const [id, positions] of decor) addInstanced(deepScene, track, geometries.cube, cubeMaterials.get(id), positions);
+      deep = {
+        scene: deepScene,
+        camera: new PerspectiveCamera(FOV_DEFAULT, 1, 0.1, 100),
+        // The player is a flat plane on the play plane, facing the camera; the aim line just in front.
+        player: addPlayer(deepScene, geometries, materials, { player: 0, aim: AIM_Z_DEEP }),
+      };
     },
     enter() {
       return initSandbox(map);
@@ -112,19 +155,36 @@ export function createSandbox({ zoom = createCameraZoom(), fetchJson = defaultFe
     tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles),
     draw(state, view) {
       const { player } = state;
-      fitOrtho(camera, view, zoom.get() / 2);
+      const tilesHigh = zoom.get();
       const centreY = player.y + MOVE.height / 2;
-      camera.position.set(player.x, centreY, 0);
-      playerMesh.position.set(player.x, centreY, PLAYER_Z);
-      // The head: top centre of the box. The aim line starts there, and mouse aim is measured from it.
-      const headY = player.y + MOVE.height;
-      aimLine.position.set(player.x, headY, AIM_Z);
-      aimLine.rotation.z = player.aim;
-      // World to CSS px of the canvas (camera space is relative to the camera position).
-      const px = ((player.x - camera.position.x - camera.left) / (camera.right - camera.left)) * view.width;
-      const py = ((camera.top - (headY - camera.position.y)) / (camera.top - camera.bottom)) * view.height;
-      view.setAimOrigin(0, px, py);
-      view.renderer.render(scene, camera);
+      const headY = player.y + MOVE.height; // top centre of the box
+      const active = viewMode.mode() === '2d' ? flat : deep;
+      const { camera } = active;
+      if (active === flat) {
+        fitOrtho(camera, view, tilesHigh / 2);
+        camera.position.set(player.x, centreY, 0);
+      } else {
+        // The play plane (z = 0) shows exactly `tilesHigh` tiles, as in 2D, at any FOV.
+        const fov = viewMode.fov();
+        const distance = perspectiveDistance(tilesHigh, fov);
+        const aspect = view.width / view.height;
+        const near = Math.max(0.1, distance - DEPTH_MARGIN);
+        const far = distance + DEPTH_MARGIN;
+        if (camera.fov !== fov || camera.aspect !== aspect || camera.near !== near || camera.far !== far) {
+          Object.assign(camera, { fov, aspect, near, far });
+          camera.updateProjectionMatrix();
+        }
+        camera.position.set(player.x, centreY, distance);
+      }
+      const { body, aim } = active.player;
+      body.position.set(player.x, centreY, body.position.z);
+      aim.position.set(player.x, headY, aim.position.z);
+      aim.rotation.z = player.aim;
+      // Mouse aim is measured from the head. The camera is centred on the player's centre and the
+      // play plane shows `tilesHigh` tiles in both views, so this mapping holds for both.
+      const pxPerTile = view.height / tilesHigh;
+      view.setAimOrigin(0, view.width / 2 + (player.x - camera.position.x) * pxPerTile, view.height / 2 - (headY - camera.position.y) * pxPerTile);
+      view.renderer.render(active.scene, camera);
     },
   };
 }

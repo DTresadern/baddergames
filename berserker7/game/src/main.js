@@ -16,6 +16,7 @@ import { createNewGame } from './scenes/new-game.js';
 import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
 import { createSandbox, createCameraZoom } from './scenes/sandbox.js';
+import { createViewMode } from './scenes/sandbox-3d.js';
 import { pickPoster, withPoster } from './scenes/poster.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
@@ -79,7 +80,9 @@ harness.register('pause', createPause());
 harness.register('slow', createSlow());
 // The Sandbox camera's view height; the debug panel changes it live (slider, [ and ]).
 const sandboxZoom = createCameraZoom();
-harness.register('sandbox', createSandbox({ zoom: sandboxZoom }));
+// The Sandbox view mode (2D / 2.5D) and the 2.5D FOV; the debug panel changes them live.
+const sandboxViewMode = createViewMode();
+harness.register('sandbox', createSandbox({ zoom: sandboxZoom, viewMode: sandboxViewMode }));
 // Start-up: boot (loading, then "press any key") -> intro (logos) -> main menu.
 // New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
 // Starting a game closes it and fades to the Sandbox (the main menu leaves the main layer and stops the music).
@@ -135,7 +138,7 @@ function loop(time) {
 }
 requestAnimationFrame(loop);
 
-mountPanel({ harness, renderer, assets, settings, session, sandboxZoom });
+mountPanel({ harness, renderer, assets, settings, session, sandboxZoom, sandboxViewMode });
 mountInputPanel({ input });
 
 // Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input, music,
