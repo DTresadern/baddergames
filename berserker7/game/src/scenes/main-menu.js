@@ -1,5 +1,6 @@
 // Main menu placeholder: the poster drawn like CSS `cover`, a mostly-opaque black panel
-// holding three no-op menu items, and the title music.
+// holding three menu items (New Game, Multiplayer, Options; Options does nothing yet), and the
+// title music.
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
 import { STEP_SECONDS } from '../engine/clock.js';
@@ -54,12 +55,16 @@ export function initMainMenu() {
   return { ticks: 0, highlight: 0, selected: null, selections: 0, request: null, open: { phase: 'waiting', t: 0 } };
 }
 
+// Menu item -> the request it makes.
+const REQUESTS = Object.freeze({ 'New Game': 'newGame', Multiplayer: 'multiplayer' });
+
 // `selected` and `selections` are for debug checks. `request` is what the scene asks the
-// screens to do after this tick: 'newGame' when New Game was selected in it, else null.
+// screens to do after this tick: 'newGame' (New Game) or 'multiplayer' (Multiplayer: the Join
+// screen) for the first such selection in the tick, else null.
 function select(state) {
   state.selected = MENU_ITEMS[state.highlight];
   state.selections += 1;
-  if (state.selected === 'New Game') state.request = 'newGame';
+  if (state.request === null) state.request = REQUESTS[state.selected] ?? null;
 }
 
 function applyFrame(state, { actions, pointer }) {
@@ -152,14 +157,17 @@ export function createMainMenu({
       music.play(assetByKey(MUSIC).path);
       replay = true;
     },
-    // The New Game overlay never outlives the menu (for example when the debug panel switches scene).
+    // The New Game and Join overlays never outlive the menu (for example when the debug panel
+    // switches scene, or a join starts the game).
     suspend() {
       music.stop();
       screens.closeNewGame();
+      screens.closeJoin();
     },
     exit() {
       music.stop();
       screens.closeNewGame();
+      screens.closeJoin();
     },
     tick(state, inputs, dt) {
       if (replay) {
@@ -168,6 +176,7 @@ export function createMainMenu({
       }
       tickMainMenu(state, inputs, dt, { fading: screens.fading() });
       if (state.request === 'newGame') screens.openNewGame();
+      if (state.request === 'multiplayer') screens.openJoin();
       return state;
     },
     draw(state, view) {

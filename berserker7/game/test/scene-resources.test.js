@@ -97,7 +97,7 @@ const fakeMenu = () => createMainMenu({ music: { play() {}, stop() {} }, screens
 const fakeNewGame = () =>
   createNewGame({ screens: fakeScreens(), settings: fakeSettings(), session: fakeSession(), poster: MENU_POSTER, ...fakeDeps() });
 function fakeScreens() {
-  return { openNewGame() {}, closeNewGame() {}, startGame() {}, startIntro() {}, showMenu() {}, fading: () => false };
+  return { openNewGame() {}, closeNewGame() {}, openJoin() {}, closeJoin() {}, startGame() {}, startIntro() {}, showMenu() {}, fading: () => false };
 }
 // Boot with a fake loader whose status the test sets.
 function fakeBoot(status = { progress: 0.5, done: false, error: null }) {
