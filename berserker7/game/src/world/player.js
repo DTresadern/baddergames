@@ -1,7 +1,7 @@
 // The Sandbox player: a box moved by input and collided with solid tiles. Pure logic, no three.js.
 // One world unit is one tile; x is right, y is up. The position is the bottom-centre of the box:
 // the box covers x - width / 2 .. x + width / 2 and y .. y + height.
-// Player data is plain: { x, y, vx, vy, onGround }.
+// Player data is plain: { x, y, vx, vy, onGround, aim } (aim in radians, y up, 0 = right).
 
 // Every movement number. Units: tiles, tiles/s, tiles/s^2.
 export const MOVE = Object.freeze({
@@ -21,7 +21,7 @@ export const MOVE = Object.freeze({
 const EPSILON = 1e-6;
 
 export function createPlayer(x, y) {
-  return { x, y, vx: 0, vy: 0, onGround: false };
+  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0 };
 }
 
 // Moves `value` towards `target` by at most `amount`, never past it.
@@ -67,7 +67,10 @@ export function stepPlayer(player, frame, tiles, dt) {
   } else {
     player.vx = approach(player.vx, 0, (player.onGround ? MOVE.groundFriction : MOVE.airFriction) * dt);
   }
-  if (actions?.jump?.pressed && player.onGround) player.vy = MOVE.jumpSpeed;
+  // For now moveUp (W, up arrow, stick up) also jumps; DEFAULT_BINDINGS stay unchanged so W does not select menu items.
+  const jumpPressed = actions?.jump?.pressed || actions?.moveUp?.pressed;
+  if (jumpPressed && player.onGround) player.vy = MOVE.jumpSpeed;
+  if (frame?.connected && Number.isFinite(frame.aim)) player.aim = frame.aim;
   player.vy = Math.max(player.vy - MOVE.gravity * dt, -MOVE.maxFallSpeed);
 
   // One axis at a time: move, then push out of any solid tile it now overlaps.

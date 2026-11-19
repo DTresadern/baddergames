@@ -13,6 +13,10 @@ export const MAP_KEY = 'map.walkway';
 export const CAMERA_TILES_HIGH = 12; // tiles shown from the bottom of the view to the top
 const PLAYER_COLOR = 0xf2c14e;
 const PLAYER_Z = 0.1; // in front of the tiles
+export const AIM_LENGTH = 2; // aim line length, tiles
+const AIM_WIDTH = 0.06; // aim line thickness, tiles
+const AIM_COLOR = 0xffffff;
+const AIM_Z = 0.2; // in front of the player
 
 // `map` is the result of loadGridMap. The player starts at the first `player` spawn: its x is the
 // tile column (the box is centred on that tile) and its y the tile row the feet are at.
@@ -51,7 +55,7 @@ function buildTileMeshes(tiles, geometry, materials, track, scene) {
 
 // `fetchJson` is for tests.
 export function createSandbox({ fetchJson = defaultFetchJson } = {}) {
-  let scene, camera, playerMesh, map, tiles;
+  let scene, camera, playerMesh, aimLine, map, tiles;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
     async load({ track, acquire }) {
@@ -70,6 +74,12 @@ export function createSandbox({ fetchJson = defaultFetchJson } = {}) {
       );
       playerMesh.position.z = PLAYER_Z;
       scene.add(playerMesh);
+      // A thin plane from the head along +x, rotated to the aim angle.
+      aimLine = new Mesh(
+        track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
+        track(new MeshBasicMaterial({ color: AIM_COLOR })),
+      );
+      scene.add(aimLine);
       camera = new OrthographicCamera(-1, 1, 1, -1, -10, 10);
     },
     enter() {
@@ -82,6 +92,14 @@ export function createSandbox({ fetchJson = defaultFetchJson } = {}) {
       const centreY = player.y + MOVE.height / 2;
       camera.position.set(player.x, centreY, 0);
       playerMesh.position.set(player.x, centreY, PLAYER_Z);
+      // The head: top centre of the box. The aim line starts there, and mouse aim is measured from it.
+      const headY = player.y + MOVE.height;
+      aimLine.position.set(player.x, headY, AIM_Z);
+      aimLine.rotation.z = player.aim;
+      // World to CSS px of the canvas (camera space is relative to the camera position).
+      const px = ((player.x - camera.position.x - camera.left) / (camera.right - camera.left)) * view.width;
+      const py = ((camera.top - (headY - camera.position.y)) / (camera.top - camera.bottom)) * view.height;
+      view.setAimOrigin(0, px, py);
       view.renderer.render(scene, camera);
     },
   };

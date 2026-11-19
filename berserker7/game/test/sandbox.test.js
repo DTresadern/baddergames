@@ -13,7 +13,7 @@ const map = loadGridMap(json());
 test('initSandbox: plain state, the player stands at the first player spawn', () => {
   const state = initSandbox(map);
   const spawn = map.spawns.find((s) => s.type === 'player');
-  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false } });
+  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0 } });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
 });
@@ -38,10 +38,14 @@ test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the pla
   const state = scene.enter();
   state.player.x = 10;
   state.player.y = 5;
-  scene.draw(state, { renderer, width: 800, height: 600 });
+  const origins = [];
+  scene.draw(state, { renderer, width: 800, height: 600, setAimOrigin: (...args) => origins.push(args) });
   assert.equal(rendered.top - rendered.bottom, CAMERA_TILES_HIGH);
   assert.equal(rendered.right - rendered.left, (CAMERA_TILES_HIGH * 800) / 600);
   assert.deepEqual([rendered.position.x, rendered.position.y], [10, 5 + MOVE.height / 2]);
+  // Aim origin: the head (top centre of the box), MOVE.height / 2 tiles above the view centre.
+  const tilePx = 600 / CAMERA_TILES_HIGH;
+  assert.deepEqual(origins, [[0, 400, 300 - (MOVE.height / 2) * tilePx]]);
 });
 
 test('sandbox scene: ticks while uncovered, draws when covered, suspends on leave', () => {

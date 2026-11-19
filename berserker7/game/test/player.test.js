@@ -112,3 +112,15 @@ test('player: a fall never exceeds maxFallSpeed', () => {
   run(player, () => frame(), 200);
   assert.ok(player.vy >= -MOVE.maxFallSpeed);
 });
+
+test('player: moveUp also jumps for now, and the aim follows the frame', () => {
+  const tiles = loadGridMap(JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'))).tiles;
+  const player = createPlayer(10.5, 2);
+  for (let i = 0; i < 5; i++) stepPlayer(player, frame(), tiles, DT);
+  assert.equal(player.onGround, true);
+  const up = frame(['moveUp'], ['moveUp']);
+  up.aim = 1.2;
+  stepPlayer(player, up, tiles, DT);
+  assert.ok(player.vy > 0);
+  assert.equal(player.aim, 1.2);
+});
