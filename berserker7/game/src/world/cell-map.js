@@ -2,6 +2,7 @@
 // tools/moge_blockout.py. One world unit is one tile; x right, y up, z towards the camera.
 // Cells at z = 0 (the play plane) go into the tile map and collide; the others are visual only.
 
+import { playerSize } from './player.js';
 import { createTileMap } from './tilemap.js';
 
 export function loadCellMap(json) {
@@ -13,5 +14,5 @@ export function loadCellMap(json) {
     if (z === 0) tiles.setTile(x, y, 1);
     else cells.push({ x, y, z, id: 1 });
   }
-  return { name: json.name, tileSize: json.tileSize, tiles, spawns: json.spawns.map((s) => ({ ...s })), cells };
+  return { name: json.name, tileSize: json.tileSize, tiles, spawns: json.spawns.map((s) => ({ ...s })), cells, player: playerSize(json.player) };
 }

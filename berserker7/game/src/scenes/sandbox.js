@@ -6,7 +6,7 @@
 import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
-import { MOVE, createPlayer, playerHeight, stepPlayer } from '../world/player.js';
+import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createTileTexture } from './tile-texture.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
@@ -25,7 +25,7 @@ import {
 } from './sandbox-3d.js';
 
 // The maps the Sandbox can load (manifest keys), and the default: the MoGe-3 blockout.
-export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk', 'map.mvp-upper-1', 'map.walkway']);
+export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk', 'map.moge3-cyberpunk-blocks', 'map.mvp-upper-1', 'map.walkway']);
 export const MAP_KEY = SANDBOX_MAPS[0];
 // Below the lowest solid tile by this many tiles, the player goes back to the spawn.
 export const FALL_MARGIN = 10;
@@ -73,9 +73,9 @@ function lowestTileY(tiles) {
   return Number.isFinite(lowest) ? lowest : 0;
 }
 // Default view height: tiles shown from the bottom of the view to the top. The game camera is
-// expected to vary between 18 and 28 tiles high (adjusted per area later), with 22 as the default.
+// expected to vary between 8 and 28 tiles high (adjusted per area later), with 22 as the default.
 export const CAMERA_TILES_HIGH = 22;
-export const CAMERA_TILES_MIN = 18; // closest zoom
+export const CAMERA_TILES_MIN = 8; // closest zoom
 export const CAMERA_TILES_MAX = 28; // furthest zoom
 
 // The camera's view height in tiles, changed live by the debug tools (slider, [ and ]) and read by
@@ -123,7 +123,7 @@ export function initSandbox(map, key = MAP_KEY) {
   const state = {
     ticks: 0,
     map: key,
-    player: createPlayer(spawn.x + 0.5, spawn.y),
+    player: createPlayer(spawn.x + 0.5, spawn.y, map.player),
     pointer: null,
     aimSource: null,
     spawn: { x: spawn.x + 0.5, y: spawn.y },
@@ -217,7 +217,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       const geometries = {
         tile: track(new PlaneGeometry(1, 1)),
         cube: track(shadedCubeGeometry()),
-        player: track(new PlaneGeometry(MOVE.width, MOVE.height)),
+        player: track(new PlaneGeometry(map.player.width, map.player.height)),
         // A thin plane from the head along +x, rotated to the aim angle.
         aim: track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
       };
@@ -274,7 +274,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
     draw(state, view) {
       const { player } = state;
       const tilesHigh = zoom.get();
-      const height = playerHeight(player); // 1 while crouched, else 2
+      const height = playerHeight(player); // crouchHeight while crouched, else height
       const centreY = player.y + height / 2;
       const headY = player.y + height; // top centre of the box
       const active = viewMode.mode() === '2d' ? flat : deep;
@@ -316,7 +316,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
       const { body, aim } = active.player;
       body.position.set(player.x, centreY, body.position.z);
-      body.scale.y = height / MOVE.height; // the body geometry is MOVE.height tall
+      body.scale.y = height / map.player.height; // the body geometry is the standing height tall
       aim.position.set(player.x, headY, aim.position.z);
       // The aim line points at the mouse's true world position: the pointer projected through the
       // actual camera. With a stick (or before the mouse moves) it uses the input's aim angle.

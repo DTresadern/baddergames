@@ -5,7 +5,7 @@ import { ACTIONS } from '../src/input/actions.js';
 import { initSandbox, tickSandbox } from '../src/scenes/sandbox.js';
 import { loadCellMap } from '../src/world/cell-map.js';
 import { loadMap } from '../src/world/load-map.js';
-import { MOVE } from '../src/world/player.js';
+import { PLAYER_SIZE } from '../src/world/player.js';
 
 const small = {
   format: 1,
@@ -31,7 +31,7 @@ test('moge3-cyberpunk.json: the spawn is on the walkway, and a fall goes back to
   const json = JSON.parse(readFileSync(new URL('../public/content/maps/moge3-cyberpunk.json', import.meta.url), 'utf8'));
   const map = loadMap(json);
   const spawn = map.spawns.find((s) => s.type === 'player');
-  for (let dy = 0; dy < MOVE.height; dy++) assert.equal(map.tiles.isSolid(spawn.x, spawn.y + dy), false);
+  for (let dy = 0; dy < PLAYER_SIZE.height; dy++) assert.equal(map.tiles.isSolid(spawn.x, spawn.y + dy), false);
   assert.equal(map.tiles.isSolid(spawn.x, spawn.y - 1), true, 'walkway under the spawn');
   const state = initSandbox(map, 'map.moge3-cyberpunk');
   const actions = Object.fromEntries(ACTIONS.map((a) => [a, { held: false, pressed: false, released: false }]));

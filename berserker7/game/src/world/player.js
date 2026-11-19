@@ -1,13 +1,19 @@
 // The Sandbox player: a box moved by input and collided with solid tiles. Pure logic, no three.js.
 // One world unit is one tile; x is right, y is up. The position is the bottom-centre of the box:
 // the box covers x - width / 2 .. x + width / 2 and y .. y + height.
-// Player data is plain: { x, y, vx, vy, onGround, aim } (aim in radians, y up, 0 = right).
+// Player data is plain: { x, y, vx, vy, onGround, aim, crouching, size } (aim in radians, y up, 0 = right).
+
+// Default box size, tiles. A map may override it (top-level `player` field); the player carries its
+// own copy in `player.size`. crouchHeight: box height while crouched (feet stay put).
+export const PLAYER_SIZE = Object.freeze({ width: 1, height: 2, crouchHeight: 1 });
+
+// The map's size over the defaults: { width, height, crouchHeight } (plain data).
+export function playerSize(overrides) {
+  return { ...PLAYER_SIZE, ...overrides };
+}
 
 // Every movement number. Units: tiles, tiles/s, tiles/s^2.
 export const MOVE = Object.freeze({
-  width: 1, // box width, tiles
-  height: 2, // box height, tiles
-  crouchHeight: 1, // box height while crouched, tiles (feet stay put)
   maxSpeed: 8, // top horizontal speed, tiles/s
   groundAccel: 60, // horizontal acceleration towards the input direction on the ground, tiles/s^2
   groundFriction: 50, // horizontal slowing with no input on the ground, tiles/s^2
@@ -21,8 +27,8 @@ export const MOVE = Object.freeze({
 // Gap that stops a box resting exactly on a tile edge from counting as overlapping it, tiles.
 const EPSILON = 1e-6;
 
-export function createPlayer(x, y) {
-  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false };
+export function createPlayer(x, y, size = PLAYER_SIZE) {
+  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...size } };
 }
 
 // Moves `value` towards `target` by at most `amount`, never past it.
@@ -30,16 +36,16 @@ function approach(value, target, amount) {
   return value < target ? Math.min(value + amount, target) : Math.max(value - amount, target);
 }
 
-// The box's current height: MOVE.crouchHeight while crouched, else MOVE.height.
+// The box's current height: the player's size.crouchHeight while crouched, else size.height.
 export function playerHeight(player) {
-  return player.crouching ? MOVE.crouchHeight : MOVE.height;
+  return player.crouching ? player.size.crouchHeight : player.size.height;
 }
 
 // Tile ranges a box of `height` overlaps at (x, y), inclusive.
-function overlap(x, y, height) {
+function overlap(x, y, width, height) {
   return {
-    x0: Math.floor(x - MOVE.width / 2 + EPSILON),
-    x1: Math.floor(x + MOVE.width / 2 - EPSILON),
+    x0: Math.floor(x - width / 2 + EPSILON),
+    x1: Math.floor(x + width / 2 - EPSILON),
     y0: Math.floor(y + EPSILON),
     y1: Math.floor(y + height - EPSILON),
   };
@@ -73,10 +79,10 @@ export function stepPlayer(player, frame, tiles, dt) {
   } else {
     player.vx = approach(player.vx, 0, (player.onGround ? MOVE.groundFriction : MOVE.airFriction) * dt);
   }
-  // Crouch: holding moveDown on the ground makes the box MOVE.crouchHeight tall, feet in place
+  // Crouch: holding moveDown on the ground makes the box size.crouchHeight tall, feet in place
   // (down in mid-air does nothing). Releasing it, or jumping, stands back up only when the full
   // height fits; under a low ceiling the box stays crouched until there is room.
-  const roomToStand = () => !solidSpan(tiles, overlap(player.x, player.y, MOVE.height), 'y');
+  const roomToStand = () => !solidSpan(tiles, overlap(player.x, player.y, player.size.width, player.size.height), 'y');
   const downHeld = Boolean(actions?.moveDown?.held);
   if (downHeld && player.onGround) player.crouching = true;
   // For now moveUp (W, up arrow, stick up) also jumps; DEFAULT_BINDINGS stay unchanged so W does not select menu items.
@@ -90,16 +96,16 @@ export function stepPlayer(player, frame, tiles, dt) {
   // One axis at a time: move, then push out of any solid tile it now overlaps.
   player.x += player.vx * dt;
   const height = playerHeight(player);
-  const sideSpan = solidSpan(tiles, overlap(player.x, player.y, height), 'x');
+  const sideSpan = solidSpan(tiles, overlap(player.x, player.y, player.size.width, height), 'x');
   if (sideSpan) {
-    if (player.vx > 0) player.x = sideSpan.min - MOVE.width / 2;
-    else if (player.vx < 0) player.x = sideSpan.max + 1 + MOVE.width / 2;
+    if (player.vx > 0) player.x = sideSpan.min - player.size.width / 2;
+    else if (player.vx < 0) player.x = sideSpan.max + 1 + player.size.width / 2;
     player.vx = 0;
   }
 
   player.onGround = false;
   player.y += player.vy * dt;
-  const vertSpan = solidSpan(tiles, overlap(player.x, player.y, height), 'y');
+  const vertSpan = solidSpan(tiles, overlap(player.x, player.y, player.size.width, height), 'y');
   if (vertSpan) {
     if (player.vy < 0) {
       player.y = vertSpan.max + 1;
