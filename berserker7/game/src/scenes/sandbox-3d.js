@@ -18,6 +18,7 @@ export const FOLLOW_SETTINGS = Object.freeze([
   ['max', 'Max (tiles)', 0, 20, 0.25, 8], // a longer shift is scaled down to this length
   ['scaleX', 'X scale', 0, 2, 0.05, 1], // applied after the clamp
   ['scaleY', 'Y scale', 0, 2, 0.05, 0.5],
+  ['smoothing', 'Smoothing half-life (s)', 0, 0.5, 0.01, 0.1], // camera source smoothing; 0 = snap
 ].map((row) => Object.freeze(row)));
 // Depth range kept around the play plane by the near and far planes, tiles (cubes reach z ±1.5).
 export const DEPTH_MARGIN = 4;
@@ -75,6 +76,15 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
       return { ...follow };
     },
   };
+}
+
+// Frame-rate independent exponential smoothing ("smerp"): moves `source` towards `target` so that
+// half the remaining distance is covered every `halfLife` seconds, whatever the step `dt`.
+// halfLife 0 (or less) snaps. Returns a new { x, y }.
+export function smerp(source, target, dt, halfLife) {
+  if (!(halfLife > 0)) return { x: target.x, y: target.y };
+  const k = 1 - Math.exp((-Math.LN2 * dt) / halfLife);
+  return { x: source.x + (target.x - source.x) * k, y: source.y + (target.y - source.y) * k };
 }
 
 // Camera aim-follow shift (tiles): (aim - head) * follow; if shorter than `min`, lengthened to

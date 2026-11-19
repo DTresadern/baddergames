@@ -20,6 +20,7 @@ import {
   depthCubes,
   perspectiveDistance,
   screenToPlane,
+  smerp,
   shadedCubeGeometry,
 } from './sandbox-3d.js';
 
@@ -99,6 +100,17 @@ const AIM_COLOR = 0xffffff;
 const AIM_Z = 0.2; // in front of the player (2D)
 const AIM_Z_DEEP = 0.02; // just in front of the player plane (2.5D)
 
+// The player's head: the top centre of the current box (crouched or standing).
+export function playerHead(player) {
+  return { x: player.x, y: player.y + playerHeight(player) };
+}
+
+// Puts the camera's smoothed source on the player's head at once (spawn, respawn, map change).
+export function snapCamera(state) {
+  state.camera = playerHead(state.player);
+  return state;
+}
+
 // `map` is the result of loadMap. The player starts at the first `player` spawn: its x is the
 // tile column (the box is centred on that tile) and its y the tile row the feet are at.
 export function initSandbox(map, key = MAP_KEY) {
@@ -107,7 +119,8 @@ export function initSandbox(map, key = MAP_KEY) {
   // `pointer`: player 1's last mouse position ({ x, y }, canvas CSS px) or null. `aimSource`: what
   // last changed player 1's aim, 'mouse' (the pointer moved) or 'stick', or null before either.
   // `spawn` and `fallY`: a player below fallY goes back to the spawn (maps can have open ends).
-  return {
+  // `camera`: the camera's smoothed source point ({ x, y }, tiles), following the head.
+  const state = {
     ticks: 0,
     map: key,
     player: createPlayer(spawn.x + 0.5, spawn.y),
@@ -115,11 +128,14 @@ export function initSandbox(map, key = MAP_KEY) {
     aimSource: null,
     spawn: { x: spawn.x + 0.5, y: spawn.y },
     fallY: lowestTileY(map.tiles) - FALL_MARGIN,
+    camera: null,
   };
+  return snapCamera(state);
 }
 
-// `tiles` is the tile map (not part of the state).
-export function tickSandbox(state, inputs, dt, tiles) {
+// `tiles` is the tile map (not part of the state). `halfLife` (seconds) smooths the camera's
+// source towards the head (smerp); 0 snaps. A respawn snaps it too.
+export function tickSandbox(state, inputs, dt, tiles, halfLife = 0) {
   const frame = inputs[0];
   if (frame?.connected) {
     if (frame.pointer) state.pointer = { x: frame.pointer.x, y: frame.pointer.y };
@@ -127,7 +143,12 @@ export function tickSandbox(state, inputs, dt, tiles) {
     else if (Number.isFinite(frame.aim) && frame.aim !== state.player.aim) state.aimSource = 'stick';
   }
   stepPlayer(state.player, frame, tiles, dt);
-  if (state.player.y < state.fallY) Object.assign(state.player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false });
+  if (state.player.y < state.fallY) {
+    Object.assign(state.player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false });
+    snapCamera(state);
+  } else {
+    state.camera = smerp(state.camera, playerHead(state.player), dt, halfLife);
+  }
   state.ticks += 1;
   return state;
 }
@@ -249,7 +270,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
     enter() {
       return initSandbox(map, mapKey);
     },
-    tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles),
+    tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles, viewMode.follow().smoothing),
     draw(state, view) {
       const { player } = state;
       const tilesHigh = zoom.get();
@@ -263,8 +284,10 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       // would chase itself). No smoothing: the camera snaps there every frame and always looks
       // straight along -z (no rotation), so its look target moves with it.
       const offset = viewMode.offset();
+      // The camera rests on its smoothed source (state.camera); the aim shift is still measured
+      // from the actual head.
       const head = { x: player.x, y: headY };
-      const rest = { x: head.x + offset.x, y: head.y + offset.y };
+      const rest = { x: state.camera.x + offset.x, y: state.camera.y + offset.y };
       const mouse = state.aimSource === 'mouse' && state.pointer ? state.pointer : null;
       let shift = { x: 0, y: 0 };
       if (mouse) {

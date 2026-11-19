@@ -8,6 +8,7 @@ import {
   CAMERA_TILES_MAX,
   CAMERA_TILES_MIN,
   MAP_KEY,
+  snapCamera,
   initSandbox,
   tickSandbox,
 } from '../src/scenes/sandbox.js';
@@ -25,7 +26,7 @@ const map = loadGridMap(json());
 test('initSandbox: plain state, the player stands at the first player spawn', () => {
   const state = initSandbox(map);
   const spawn = map.spawns.find((s) => s.type === 'player');
-  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false }, pointer: null, aimSource: null, spawn: { x: spawn.x + 0.5, y: spawn.y }, fallY: -10 });
+  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false }, pointer: null, aimSource: null, spawn: { x: spawn.x + 0.5, y: spawn.y }, fallY: -10, camera: { x: spawn.x + 0.5, y: spawn.y + MOVE.height } });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
 });
@@ -50,6 +51,7 @@ test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the pla
   const state = scene.enter();
   state.player.x = 10;
   state.player.y = 5;
+  snapCamera(state);
   const origins = [];
   scene.draw(state, { renderer, width: 800, height: 600, setAimOrigin: (...args) => origins.push(args) });
   assert.equal(rendered.top - rendered.bottom, CAMERA_TILES_HIGH);
@@ -251,4 +253,35 @@ test('city backdrop: deterministic, denser and darker with distance, inside the 
   viewMode.setBackdrop(false);
   scene.draw(state, view);
   assert.ok(rendered.far < rendered.position.z + 5);
+});
+
+test('camera smoothing: half-life 0 snaps to the head; above 0 it converges, independent of the step', async () => {
+  const { smerp } = await import('../src/scenes/sandbox-3d.js');
+  const head = { x: 10, y: 4 };
+  assert.deepEqual(smerp({ x: 0, y: 0 }, head, 1 / 60, 0), head);
+  // Half the distance per half-life.
+  const half = smerp({ x: 0, y: 0 }, head, 0.1, 0.1);
+  assert.ok(Math.abs(half.x - 5) < 1e-9 && Math.abs(half.y - 2) < 1e-9);
+  // Frame-step independent: 60 steps of 1/60 s = 1 step of 1 s.
+  let a = { x: 0, y: 0 };
+  for (let i = 0; i < 60; i++) a = smerp(a, head, 1 / 60, 0.1);
+  const b = smerp({ x: 0, y: 0 }, head, 1, 0.1);
+  assert.ok(Math.abs(a.x - b.x) < 1e-9 && Math.abs(a.y - b.y) < 1e-9);
+  assert.ok(Math.abs(a.x - 10) < 0.01, 'converges to the head');
+  // In the scene: at 0 the source stays on the head as the player moves; above 0 it lags, then
+  // catches up; a fall respawn snaps it.
+  const state = initSandbox(map);
+  const run = (ticks, halfLife, held = []) => {
+    for (let i = 0; i < ticks; i++) tickSandbox(state, [frame(held)], STEP, map.tiles, halfLife);
+  };
+  run(60, 0, ['moveRight']);
+  assert.deepEqual(state.camera, { x: state.player.x, y: state.player.y + MOVE.height });
+  run(10, 0.1, ['moveRight']);
+  assert.ok(state.camera.x < state.player.x, 'lags behind while moving');
+  run(120, 0.1);
+  assert.ok(Math.abs(state.camera.x - state.player.x) < 1e-3, 'catches up when the player stops');
+  state.camera = { x: -100, y: -100 };
+  state.player.y = state.fallY - 1;
+  run(1, 0.1);
+  assert.deepEqual(state.camera, { x: state.spawn.x, y: state.spawn.y + MOVE.height });
 });
