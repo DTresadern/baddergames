@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "Berserker 7",
-  "updated": "2026-11-18",
+  "updated": "2026-11-19",
   "statuses": [
     "open",
     "accepted",
@@ -5988,6 +5988,44 @@
         "T-049"
       ],
       "notes": "2026-11-18: issue #62 sets it up from the New Game screen only; there is no game to start yet."
+    },
+    {
+      "id": "T-107",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Maps set their own base camera values",
+      "detail": "Each map can define base camera values that override the game defaults: field of view, camera offset, zoom (view height in tiles) and aim follow (follow, min, max, x and y scale, smoothing). They are the map's starting constants. Events, triggers and other systems change the camera at run time by layering on top of these base values, never by replacing them.",
+      "status": "accepted",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-013",
+        "T-014",
+        "T-006",
+        "T-108"
+      ],
+      "notes": "2026-11-19, project owner: decided while comparing the moge3-cyberpunk blockouts (#75). See T-108 for the map editor draft."
+    },
+    {
+      "id": "T-108",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Levels and editor",
+      "title": "Map editor (draft)",
+      "detail": "A first draft of a map editor. Details to be decided.",
+      "status": "open",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-042",
+        "T-107"
+      ],
+      "notes": "2026-11-19, project owner: the direction came from blocking out the moge3-cyberpunk mockup in cubes and editing cells against an overlay of the art (#75). Details to come."
     }
   ]
 }
