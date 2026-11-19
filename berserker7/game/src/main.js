@@ -87,8 +87,9 @@ const sandboxMap = createMapChoice();
 harness.register('sandbox', createSandbox({ zoom: sandboxZoom, viewMode: sandboxViewMode, mapChoice: sandboxMap }));
 // Start-up: boot (loading, then "press any key") -> intro (logos) -> main menu.
 // New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
-// Starting a game closes it and fades to the Sandbox (the main menu leaves the main layer and stops the music).
-const GAME_FADE_SECONDS = 2; // total: 1 s to black, 1 s back in
+// Starting a game fades to the Sandbox (the main menu leaves the main layer and stops the music).
+const GAME_FADE_OUT_SECONDS = 4; // to black
+const GAME_FADE_IN_SECONDS = 1; // back in
 const screens = {
   startIntro: () => harness.setMain('intro'),
   // From black (the intro ended): the swap is at once and the menu fades in over MENU_FADE_IN_SECONDS.
@@ -96,10 +97,11 @@ const screens = {
   showMenu: ({ fromBlack }) => harness.setMain('mainMenu', menuFade({ fromBlack })),
   openNewGame: () => harness.openOverlay('newGame'),
   closeNewGame: () => harness.closeOverlay('newGame'),
-  startGame() {
-    harness.closeOverlay('newGame');
-    harness.setMain('sandbox', { fade: GAME_FADE_SECONDS });
-  },
+  // True while a fade runs; the main menu waits for its fade-in from black to end before opening its panel.
+  fading: () => harness.transition !== null,
+  // New Game stays open (its boxes already closed) so the menu's panel is not shown during the fade;
+  // the menu's suspend at the fade's midpoint closes it.
+  startGame: () => harness.setMain('sandbox', { fadeOut: GAME_FADE_OUT_SECONDS, fadeIn: GAME_FADE_IN_SECONDS }),
 };
 harness.register('boot', createBoot({ loader, screens }));
 harness.register('intro', createIntro({ music, screens }));

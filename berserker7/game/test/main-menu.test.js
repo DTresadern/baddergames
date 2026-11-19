@@ -14,6 +14,7 @@ import {
 } from '../src/scenes/main-menu.js';
 import { coverSize } from '../src/scenes/poster.js';
 import { assetByKey } from '../src/assets/manifest.js';
+import { OPEN_SECONDS } from '../src/scenes/panel-anim.js';
 import { frame } from './frames.js';
 
 const VIEWS = [[1000, 1000], [1280, 800], [800, 1280], [390, 844]];
@@ -45,8 +46,14 @@ test('panelSize: capped at 480 x 560, else 90% width and 80% height', () => {
   assert.deepStrictEqual(panelSize(1280, 500), { width: 480, height: 400 });
 });
 
-function fakeScreens(calls) {
-  return { openNewGame: () => calls.push(['open']), closeNewGame: () => calls.push(['close']) };
+function fakeScreens(calls, fading = () => false) {
+  return { openNewGame: () => calls.push(['open']), closeNewGame: () => calls.push(['close']), fading };
+}
+
+// A menu state whose panel has finished opening.
+function openState(state = initMainMenu()) {
+  state.open = { phase: 'open', t: OPEN_SECONDS };
+  return state;
 }
 
 test('main menu: music plays on enter and resume, stops on suspend and exit; suspend and exit close New Game', () => {
@@ -67,7 +74,7 @@ test('main menu: selecting New Game opens the screen once; other items do not; i
   const calls = [];
   const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls), poster: 'poster.classic' });
   assert.equal(menu.settings.pausable, false);
-  const state = menu.enter();
+  const state = openState(menu.enter());
   menu.tick(state, [frame(['jump'])]);
   assert.deepStrictEqual(calls, [['open']]);
   menu.tick(state, [frame([])]);
@@ -81,7 +88,7 @@ test('main menu: selecting New Game opens the screen once; other items do not; i
 test('main menu: a later selection by another player in the same tick does not cancel New Game', () => {
   const calls = [];
   const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls), poster: 'poster.classic' });
-  const state = menu.enter();
+  const state = openState(menu.enter());
   menu.tick(state, [frame(['jump']), frame(['moveDown', 'jump'])]);
   assert.equal(state.selected, 'Multiplayer');
   assert.deepStrictEqual(calls, [['open']]);
@@ -140,7 +147,7 @@ const pointerAt = (p, moved = true) => ({ ...p, width: 1280, height: 800, moved 
 const gap = { x: layout.items[0].x + 50, y: layout.items[0].y + ITEM_HEIGHT + ITEM_GAP / 2 };
 
 test('tickMainMenu: moveDown and moveUp wrap', () => {
-  const state = initMainMenu();
+  const state = openState();
   const seen = [];
   for (let i = 0; i < 3; i++) seen.push(tickMainMenu(state, [frame(['moveDown'])]).highlight);
   assert.deepEqual(seen, [1, 2, 0]);
@@ -149,7 +156,7 @@ test('tickMainMenu: moveDown and moveUp wrap', () => {
 });
 
 test('tickMainMenu: disconnected frames are ignored; every connected player counts', () => {
-  const state = initMainMenu();
+  const state = openState();
   tickMainMenu(state, [frame(['moveDown'], null, false)]);
   assert.equal(state.highlight, 0);
   tickMainMenu(state, [frame(['moveDown']), frame(['moveDown'])]);
@@ -157,7 +164,7 @@ test('tickMainMenu: disconnected frames are ignored; every connected player coun
 });
 
 test('tickMainMenu: a moved pointer over an item highlights it; unmoved or over a gap does nothing', () => {
-  const state = initMainMenu();
+  const state = openState();
   tickMainMenu(state, [frame([], pointerAt(centre(2), false))]);
   assert.equal(state.highlight, 0);
   tickMainMenu(state, [frame([], pointerAt(centre(2)))]);
@@ -167,7 +174,7 @@ test('tickMainMenu: a moved pointer over an item highlights it; unmoved or over 
 });
 
 test('tickMainMenu: jump and interact select the highlighted item', () => {
-  const state = initMainMenu();
+  const state = openState();
   tickMainMenu(state, [frame(['moveDown', 'jump'])]);
   assert.deepEqual([state.selected, state.selections], ['Multiplayer', 1]);
   tickMainMenu(state, [frame(['moveDown', 'interact'])]);
@@ -175,7 +182,7 @@ test('tickMainMenu: jump and interact select the highlighted item', () => {
 });
 
 test('tickMainMenu: a click selects only on an item; a trigger without a pointer selects the highlight', () => {
-  const state = initMainMenu();
+  const state = openState();
   tickMainMenu(state, [frame(['primaryFire'], pointerAt(centre(1), false))]);
   assert.deepEqual([state.highlight, state.selected, state.selections], [1, 'Multiplayer', 1]);
   tickMainMenu(state, [frame(['primaryFire'], pointerAt(gap, false))]);
@@ -185,9 +192,75 @@ test('tickMainMenu: a click selects only on an item; a trigger without a pointer
 });
 
 test('tickMainMenu: state stays plain data with exactly its keys', () => {
-  const state = initMainMenu();
+  const state = openState();
   tickMainMenu(state, [frame(['moveDown', 'jump'])]);
   assert.deepStrictEqual(structuredClone(state), state);
   assert.deepStrictEqual(JSON.parse(JSON.stringify(state)), state);
-  assert.deepEqual(Object.keys(state).sort(), ['highlight', 'request', 'selected', 'selections', 'ticks']);
+  assert.deepEqual(Object.keys(state).sort(), ['highlight', 'open', 'request', 'selected', 'selections', 'ticks']);
+});
+
+const quiet = () => createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens([]), poster: 'poster.classic' });
+
+test('main menu: input is ignored while waiting and while opening', () => {
+  const state = initMainMenu();
+  assert.deepEqual(state.open, { phase: 'waiting', t: 0 });
+  const press = [frame(['moveDown', 'jump'])];
+  tickMainMenu(state, press, 1 / 60, { fading: true });
+  assert.deepEqual([state.highlight, state.selections, state.request], [0, 0, null]);
+  tickMainMenu(state, press); // fade over: becomes opening, still ignores input
+  assert.equal(state.open.phase, 'opening');
+  assert.deepEqual([state.highlight, state.selections, state.request], [0, 0, null]);
+  tickMainMenu(state, press);
+  assert.deepEqual([state.highlight, state.selections, state.request], [0, 0, null]);
+  assert.equal(state.ticks, 3);
+});
+
+test('main menu: waiting holds while fading is true', () => {
+  const state = initMainMenu();
+  for (let i = 0; i < 120; i++) tickMainMenu(state, [], 1 / 60, { fading: true });
+  assert.deepEqual(state.open, { phase: 'waiting', t: 0 });
+  tickMainMenu(state, [], 1 / 60, { fading: false });
+  assert.equal(state.open.phase, 'opening');
+});
+
+test('main menu: opening takes 0.8 s at 60 Hz, then input works', () => {
+  const state = initMainMenu();
+  tickMainMenu(state, []); // waiting -> opening
+  let ticks = 0;
+  while (state.open.phase === 'opening') {
+    tickMainMenu(state, [frame(['moveDown'])]);
+    ticks += 1;
+    assert.ok(ticks <= 48, 'ends within 48 ticks');
+  }
+  assert.equal(ticks, 48);
+  assert.equal(state.highlight, 0, 'input during opening ignored');
+  tickMainMenu(state, [frame(['moveDown'])]);
+  assert.equal(state.highlight, 1);
+});
+
+test('main menu: resume replays the opening on the next tick', () => {
+  const menu = quiet();
+  const state = openState(menu.enter());
+  menu.resume();
+  assert.equal(state.open.phase, 'open', 'not reset until the next tick');
+  menu.tick(state, [frame(['moveDown'])], 1 / 60);
+  assert.equal(state.open.phase, 'opening');
+  assert.equal(state.highlight, 0, 'input ignored on the replay tick');
+  menu.tick(state, [], 1 / 60);
+  assert.ok(state.open.t > 0 && state.open.t < OPEN_SECONDS);
+  for (let i = 0; i < 60; i++) menu.tick(state, [], 1 / 60);
+  assert.equal(state.open.phase, 'open');
+  menu.tick(state, [], 1 / 60);
+  assert.equal(state.open.phase, 'open', 'the flag is cleared: no second replay');
+});
+
+test('main menu: the scene tick passes screens.fading()', () => {
+  let fading = true;
+  const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens([], () => fading), poster: 'poster.classic' });
+  const state = menu.enter();
+  menu.tick(state, [], 1 / 60);
+  assert.equal(state.open.phase, 'waiting');
+  fading = false;
+  menu.tick(state, [], 1 / 60);
+  assert.equal(state.open.phase, 'opening');
 });
