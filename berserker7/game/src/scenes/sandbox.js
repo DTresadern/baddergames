@@ -112,6 +112,9 @@ function addPlayer(scene, geometries, materials, z) {
 export function createSandbox({ zoom = createCameraZoom(), viewMode = createViewMode(), fetchJson = defaultFetchJson } = {}) {
   let map, tiles;
   let flat, deep; // { scene, camera, player } for the 2D and the 2.5D view
+  // Last non-zero aim direction for the camera's Min radius when the mouse is exactly at the head.
+  // Presentation only (draw-side, like the camera itself), so it is not in the state.
+  let lastAimDir = null;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
     async load({ track, acquire }) {
@@ -186,7 +189,10 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       const rest = { x: head.x + offset.x, y: head.y + offset.y };
       const mouse = state.aimSource === 'mouse' && state.pointer ? state.pointer : null;
       let shift = { x: 0, y: 0 };
-      if (mouse) shift = cameraShift(head, screenToPlane(rest, mouse, view.width, view.height, tilesHigh), viewMode.follow());
+      if (mouse) {
+        shift = cameraShift(head, screenToPlane(rest, mouse, view.width, view.height, tilesHigh), viewMode.follow(), lastAimDir);
+        lastAimDir = shift.dir;
+      }
       const camX = rest.x + shift.x;
       const camY = rest.y + shift.y;
       if (active === flat) {

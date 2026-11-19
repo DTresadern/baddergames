@@ -13,7 +13,7 @@ export const OFFSET_STEP = 0.25; // camera offset step, tiles
 // Camera aim-follow settings: [key, label, min, max, step, default]. See cameraShift.
 export const FOLLOW_SETTINGS = Object.freeze([
   ['follow', 'Follow', 0, 1, 0.05, 0.5], // fraction of head-to-aim the camera moves
-  ['min', 'Min (tiles)', 0, 10, 0.25, 0], // dead zone: a shift shorter than this is 0
+  ['min', 'Min (tiles)', 0, 10, 0.25, 0], // minimum radius: a shorter shift is lengthened to this
   ['max', 'Max (tiles)', 0, 20, 0.25, 8], // a longer shift is scaled down to this length
   ['scaleX', 'X scale', 0, 2, 0.05, 1], // applied after the clamp
   ['scaleY', 'Y scale', 0, 2, 0.05, 1],
@@ -69,19 +69,23 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   };
 }
 
-// Camera aim-follow shift (tiles): (aim - head) * follow, its length clamped (below `min`: 0, above
-// `max`: scaled down to `max`), then x and y scaled. `aim` must be the mouse projected through the
-// camera at its rest position, never through the shifted camera, or the camera chases itself.
-export function cameraShift(head, aim, { follow, min, max, scaleX, scaleY }) {
-  let x = (aim.x - head.x) * follow;
-  let y = (aim.y - head.y) * follow;
-  const length = Math.hypot(x, y);
-  if (length < min || length === 0) return { x: 0, y: 0 };
-  if (length > max) {
-    x *= max / length;
-    y *= max / length;
-  }
-  return { x: x * scaleX, y: y * scaleY };
+// Camera aim-follow shift (tiles): (aim - head) * follow; if shorter than `min`, lengthened to
+// `min` along the aim direction (head to aim), so with min > 0 the camera never sits at the head;
+// if longer than `max`, scaled down to `max` (applied after min, so max wins when max < min); then
+// x and y scaled. `aim` must be the mouse projected through the camera at its rest position, never
+// through the shifted camera, or the camera chases itself. `lastDir` (a unit vector or null) is the
+// direction used when the aim point is exactly at the head. Returns { x, y, dir }: `dir` is the
+// unit aim direction used (keep it as the next `lastDir`), or null when there was none.
+export function cameraShift(head, aim, { follow, min, max, scaleX, scaleY }, lastDir = null) {
+  const dx = aim.x - head.x;
+  const dy = aim.y - head.y;
+  const distance = Math.hypot(dx, dy);
+  const dir = distance > 0 ? { x: dx / distance, y: dy / distance } : lastDir;
+  if (!dir) return { x: 0, y: 0, dir: null };
+  let length = distance * follow;
+  if (length < min) length = min;
+  if (length > max) length = max;
+  return { x: dir.x * length * scaleX, y: dir.y * length * scaleY, dir };
 }
 
 // A point in canvas CSS px (top-left origin, y down) on the play plane (z = 0) seen by a camera

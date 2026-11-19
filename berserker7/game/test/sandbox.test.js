@@ -180,14 +180,22 @@ test('camera offset: ±4 tiles in 0.25 steps; the camera moves with it in both v
   }
 });
 
-test('cameraShift: follow fraction, dead zone, max length, then x / y scale', () => {
+test('cameraShift: follow fraction, Min radius along the aim, Max after Min, then x / y scale', () => {
   const head = { x: 0, y: 0 };
   const base = { follow: 0.5, min: 0, max: 8, scaleX: 1, scaleY: 1 };
-  assert.deepEqual(cameraShift(head, { x: 6, y: 8 }, base), { x: 3, y: 4 });
-  assert.deepEqual(cameraShift(head, { x: 6, y: 8 }, { ...base, min: 6 }), { x: 0, y: 0 });
-  const capped = cameraShift(head, { x: 60, y: 80 }, { ...base, max: 5 });
-  assert.ok(Math.abs(capped.x - 3) < 1e-9 && Math.abs(capped.y - 4) < 1e-9);
-  assert.deepEqual(cameraShift(head, { x: 6, y: 8 }, { ...base, scaleX: 2, scaleY: 0 }), { x: 6, y: 0 });
+  const xy = ({ x, y }) => [Number(x.toFixed(9)), Number(y.toFixed(9))];
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, base)), [3, 4]);
+  // Shorter than Min: lengthened to Min along head -> aim (here 0.5 * 10 = 5 < 6).
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, min: 6 })), [3.6, 4.8]);
+  // Follow 0 with Min 1: still Min along the aim direction.
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, follow: 0, min: 1 })), [0.6, 0.8]);
+  // Aim exactly at the head: the last direction; none yet: no shift.
+  assert.deepEqual(xy(cameraShift(head, head, { ...base, min: 2 }, { x: 0, y: 1 })), [0, 2]);
+  assert.deepEqual(cameraShift(head, head, { ...base, min: 2 }), { x: 0, y: 0, dir: null });
+  // Max after Min: Max wins when Max < Min.
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, min: 6, max: 5 })), [3, 4]);
+  assert.deepEqual(xy(cameraShift(head, { x: 60, y: 80 }, { ...base, max: 5 })), [3, 4]);
+  assert.deepEqual(xy(cameraShift(head, { x: 6, y: 8 }, { ...base, scaleX: 2, scaleY: 0 })), [6, 0]);
 });
 
 test('aim follow: the camera is stable frame to frame (rest-camera projection) and the aim line hits the mouse', async () => {
