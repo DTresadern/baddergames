@@ -1,10 +1,11 @@
 // PeerJS transport (the default): WebRTC data channels, with the public PeerJS server for
-// signalling. PeerJS is loaded with a dynamic import on first use, so Node tests never load it;
-// tests pass their own `loadPeer`.
+// signalling. PeerJS is loaded with a dynamic import of online-libs.js on first use; tests pass
+// their own `loadPeer`. A raw connection delivers received data as an ArrayBuffer,
+// which becomes a Uint8Array before it reaches the channel.
 //
-// The host's peer id is `berserker7-v1-<CODE>`; on 'unavailable-id' (the code is taken) the host
+// The host's peer id is `berserker7-v2-<CODE>`; on 'unavailable-id' (the code is taken) the host
 // tries a new code, up to HOST_RETRIES times. The guest connects with
-// { reliable: true, serialization: 'raw' }, so codec strings travel as they are. A second guest
+// { reliable: true, serialization: 'raw' }, so codec bytes travel as they are. A second guest
 // gets a `reject full` codec message and is closed. A join that has not opened after
 // JOIN_TIMEOUT_MS fails with 'timeout'. When the signalling server connection is lost after the
 // peer opened, the peer reconnects; open data connections carry on without it.
@@ -14,7 +15,7 @@
 import { encode, rejectMessage } from './codec.js';
 import { createRawChannel } from './link.js';
 
-export const PEER_ID_PREFIX = 'berserker7-v1-';
+export const PEER_ID_PREFIX = 'berserker7-v2-';
 export const HOST_RETRIES = 4;
 export const JOIN_TIMEOUT_MS = 15000;
 const REJECT_CLOSE_MS = 500; // time for the reject to leave before the connection closes
@@ -27,7 +28,9 @@ export function peerErrorReason(type) {
   return 'failed';
 }
 
-const defaultLoadPeer = () => import('peerjs').then((m) => m.Peer ?? m.default);
+const defaultLoadPeer = () => import('./online-libs.js').then((m) => m.Peer);
+
+const asBytes = (data) => (data instanceof ArrayBuffer ? new Uint8Array(data) : data);
 
 export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearTimer, loadPeer = defaultLoadPeer }) {
   // Calls `use(Peer)` once PeerJS is loaded, unless `isClosed()` by then; a failed load is 'unsupported'.
@@ -91,7 +94,7 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
           return;
         }
         const channel = createRawChannel({
-          send: (text) => conn.send(text),
+          send: (bytes) => conn.send(bytes),
           getStats: () => conn.peerConnection?.getStats() ?? null,
           close: () => {
             if (guest?.conn === conn) guest = null;
@@ -101,7 +104,7 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
           },
         });
         guest = { conn, channel };
-        conn.on('data', (data) => channel.deliver(data));
+        conn.on('data', (data) => channel.deliver(asBytes(data)));
         conn.on('close', () => {
           if (guest?.conn === conn) guest = null;
           channel.remoteClosed();
@@ -158,7 +161,7 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
             if (closed) return;
             clearTimer(timer);
             channel = createRawChannel({
-              send: (text) => conn.send(text),
+              send: (bytes) => conn.send(bytes),
               getStats: () => conn.peerConnection?.getStats() ?? null,
               close: () => {
                 // As on the host: a delayed plain close, so a last message (a bye) leaves first.
@@ -168,7 +171,7 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
             });
             onOpen(channel);
           });
-          conn.on('data', (data) => channel?.deliver(data));
+          conn.on('data', (data) => channel?.deliver(asBytes(data)));
           conn.on('close', () => fail('failed'));
           conn.on('error', () => fail('failed'));
         });

@@ -1,11 +1,11 @@
 // Local transport for `?net=local`: browser tabs on one machine talk over a BroadcastChannel
-// named `b7-net-<CODE>`, with no server and no internet. The channel constructor and timers are
+// named `b7-net-v2-<CODE>`, with no server and no internet. The channel constructor and timers are
 // passed in, so Node tests run it with a fake.
 //
-// Framing (transport only; game messages are codec strings inside `s`):
+// Framing (transport only; game messages are codec bytes inside `b`):
 //   { k: 'join', from }           a joiner asks
 //   { k: 'accept', from, to }     the host takes it as its guest
-//   { k: 'msg', from, to, s }     one codec string
+//   { k: 'msg', from, to, b }     one codec message (a Uint8Array, structured-cloned)
 //   { k: 'close', from, to }      ends a link
 // A host that already has a guest answers a join with a `reject full` codec message and nothing
 // else. A join with no answer within JOIN_TIMEOUT_MS fails with 'not-found'.
@@ -18,7 +18,7 @@
 import { encode, rejectMessage } from './codec.js';
 import { createRawChannel } from './link.js';
 
-export const LOCAL_CHANNEL_PREFIX = 'b7-net-';
+export const LOCAL_CHANNEL_PREFIX = 'b7-net-v2-';
 export const LOCAL_JOIN_TIMEOUT_MS = 2000;
 
 export function createLocalTransport({ BroadcastChannel: Channel, setTimeout: setTimer, clearTimeout: clearTimer, randomId }) {
@@ -42,12 +42,12 @@ export function createLocalTransport({ BroadcastChannel: Channel, setTimeout: se
       if (data.k === 'join' && typeof data.from === 'string') {
         if (guest?.id === data.from) return;
         if (guest) {
-          post({ k: 'msg', from: id, to: data.from, s: encode(rejectMessage('full')) });
+          post({ k: 'msg', from: id, to: data.from, b: encode(rejectMessage('full')) });
           return;
         }
         const guestId = data.from;
         const channel = createRawChannel({
-          send: (s) => post({ k: 'msg', from: id, to: guestId, s }),
+          send: (b) => post({ k: 'msg', from: id, to: guestId, b }),
           close: () => {
             post({ k: 'close', from: id, to: guestId });
             if (guest?.id === guestId) guest = null;
@@ -57,7 +57,7 @@ export function createLocalTransport({ BroadcastChannel: Channel, setTimeout: se
         post({ k: 'accept', from: id, to: guestId });
         onGuest(channel);
       } else if (data.to === id && guest && data.from === guest.id) {
-        if (data.k === 'msg') guest.channel.deliver(data.s);
+        if (data.k === 'msg') guest.channel.deliver(data.b);
         else if (data.k === 'close') {
           const { channel } = guest;
           guest = null;
@@ -107,7 +107,7 @@ export function createLocalTransport({ BroadcastChannel: Channel, setTimeout: se
       clearTimer(timer);
       hostId = from;
       channel = createRawChannel({
-        send: (s) => post({ k: 'msg', from: id, to: hostId, s }),
+        send: (b) => post({ k: 'msg', from: id, to: hostId, b }),
         close: () => {
           post({ k: 'close', from: id, to: hostId });
           end();
@@ -120,11 +120,11 @@ export function createLocalTransport({ BroadcastChannel: Channel, setTimeout: se
       if (!channel) {
         // The first answer picks the host: an accept, or a message (a reject) without one.
         if (data.k === 'accept' || data.k === 'msg') open(data.from);
-        if (data.k === 'msg') channel.deliver(data.s);
+        if (data.k === 'msg') channel.deliver(data.b);
         return;
       }
       if (data.from !== hostId) return;
-      if (data.k === 'msg') channel.deliver(data.s);
+      if (data.k === 'msg') channel.deliver(data.b);
       else if (data.k === 'close') {
         end();
         channel.remoteClosed();

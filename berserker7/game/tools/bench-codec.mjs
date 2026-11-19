@@ -23,7 +23,7 @@ import os from 'node:os';
 import { readFileSync } from 'node:fs';
 import { encode as mpEncode, decode as mpDecode } from '@msgpack/msgpack';
 import { ACTIONS } from '../src/input/actions.js';
-import { snapMessage, inputMessage, encode as codecEncode, decode as codecDecode } from '../src/net/codec.js';
+import { snapMessage, inputMessage, encode as codecEncode, decode as codecDecode, loadCodec } from '../src/net/codec.js';
 
 const { Packr } = await import('msgpackr');
 const pkgVersion = (name) => JSON.parse(readFileSync(new URL(`../node_modules/${name}/package.json`, import.meta.url), 'utf8')).version;
@@ -83,7 +83,9 @@ for (let i = 0; i < POOL; i++) {
   inputs.push(inputMessage(1000 + i, { connected: true, actions, aim: aim() }));
 }
 
-// Codec-shape validation: the messages are real codec messages.
+// Codec-shape validation: the messages are real codec messages. The codec loads msgpackr
+// (as the game does) before use.
+await loadCodec(() => import('msgpackr'));
 for (const m of [...snaps, ...inputs]) assert.deepStrictEqual(codecDecode(codecEncode(m)), m);
 
 // Quantised set. `+ 0` turns -0 into 0 so round-trips compare equal.
