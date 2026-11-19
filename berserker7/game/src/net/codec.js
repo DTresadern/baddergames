@@ -1,0 +1,217 @@
+// Wire messages: the only code that builds or parses them. encode(msg) -> string,
+// decode(text) -> msg | null. JSON inside for now; a later step may move to MessagePack and
+// quantised integers, which only changes this file.
+//
+// Every message is flat: `t` (its type) plus the fields listed for that type in MESSAGES, each a
+// number, boolean or short string. No nested objects or arrays; player fields are per slot
+// (x0, y0, ... x1, y1, ...). decode returns a new plain object with only the listed fields,
+// numbers clamped to their range and integers rounded; anything malformed gives null. encode runs
+// the same checks and throws, since a malformed outgoing message is a bug on our side.
+//
+// The helpers below the table turn input frames and Sandbox players into messages and back;
+// nothing outside src/net/ builds message objects by hand.
+
+import { ACTIONS } from '../input/actions.js';
+import { SANDBOX_MAPS } from '../scenes/sandbox.js';
+
+export const PROTOCOL_VERSION = 1;
+// Largest message accepted or sent, in UTF-8 bytes. The largest message (a two-player snap) is
+// about 300 bytes.
+export const MAX_MESSAGE_BYTES = 2048;
+// Players a snapshot can carry (slot 0 is the host, slot 1 the guest).
+export const MAX_PLAYERS = 2;
+
+// Bit masks over ACTIONS index order must fit in a 32-bit signed integer.
+if (ACTIONS.length >= 31) throw new Error(`codec: ${ACTIONS.length} actions do not fit an input bit mask`);
+const MASK_MAX = 2 ** ACTIONS.length - 1;
+const TICK_MAX = 2 ** 31 - 1;
+const POSITION_LIMIT = 100000; // tiles
+const SPEED_LIMIT = 1000; // tiles/s
+const TIME_LIMIT = 1e12; // ms
+
+// Field specs.
+const int = (min, max) => Object.freeze({ kind: 'int', min, max });
+const num = (min, max) => Object.freeze({ kind: 'number', min, max });
+const bool = Object.freeze({ kind: 'boolean' });
+const oneOf = (...values) => Object.freeze({ kind: 'enum', values: Object.freeze(values) });
+const text = (pattern, maxLength) => Object.freeze({ kind: 'string', pattern, maxLength });
+export const SPECS = Object.freeze({ int, num, bool, oneOf, text });
+
+// Per player slot i: x, y (bottom centre, tiles), vx, vy (tiles/s), g (onGround), c (crouching),
+// a (aim, radians).
+const PLAYER_FIELDS = Object.freeze({
+  x: num(-POSITION_LIMIT, POSITION_LIMIT),
+  y: num(-POSITION_LIMIT, POSITION_LIMIT),
+  vx: num(-SPEED_LIMIT, SPEED_LIMIT),
+  vy: num(-SPEED_LIMIT, SPEED_LIMIT),
+  g: bool,
+  c: bool,
+  a: num(-Math.PI, Math.PI),
+});
+const playerSlots = () => {
+  const fields = {};
+  for (let i = 0; i < MAX_PLAYERS; i++) {
+    for (const [name, spec] of Object.entries(PLAYER_FIELDS)) fields[`${name}${i}`] = spec;
+  }
+  return fields;
+};
+
+// type -> { field: spec }. Direction in brackets.
+export const MESSAGES = Object.freeze({
+  // (guest -> host) first message on a new link
+  hello: Object.freeze({ v: int(0, TICK_MAX) }),
+  // (host -> guest) accepted: the host's Sandbox map, the guest's player slot, the host's tick
+  welcome: Object.freeze({ map: oneOf(...SANDBOX_MAPS), slot: int(1, MAX_PLAYERS - 1), tick: int(0, TICK_MAX) }),
+  // (host -> guest) refused; the host closes the link after it
+  reject: Object.freeze({ reason: oneOf('full', 'version') }),
+  // (host -> guest) the host's Sandbox map changed
+  map: Object.freeze({ map: oneOf(...SANDBOX_MAPS) }),
+  // (guest -> host) one input frame: held and pressed bit masks over ACTIONS, aim in radians
+  input: Object.freeze({ tick: int(0, TICK_MAX), held: int(0, MASK_MAX), pressed: int(0, MASK_MAX), aim: num(-Math.PI, Math.PI) }),
+  // (host -> guest) Sandbox players: ack = last guest input tick applied (-1 none), n = player count
+  snap: Object.freeze({ tick: int(0, TICK_MAX), ack: int(-1, TICK_MAX), n: int(1, MAX_PLAYERS), ...playerSlots() }),
+  // (both) clock and round-trip time; `time` is the sender's clock in ms, echoed in the pong
+  ping: Object.freeze({ id: int(0, TICK_MAX), time: num(0, TIME_LIMIT) }),
+  pong: Object.freeze({ id: int(0, TICK_MAX), time: num(0, TIME_LIMIT), tick: int(0, TICK_MAX) }),
+  // (both) leaving
+  bye: Object.freeze({}),
+});
+
+// UTF-8 length of a string, without allocating.
+export function byteLength(str) {
+  let bytes = 0;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    if (c < 0x80) bytes += 1;
+    else if (c < 0x800) bytes += 2;
+    else if (c >= 0xd800 && c <= 0xdbff) {
+      bytes += 4;
+      i += 1;
+    } else bytes += 3;
+  }
+  return bytes;
+}
+
+const INVALID = Symbol('invalid');
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+// The cleaned value, or INVALID.
+function check(spec, value) {
+  switch (spec.kind) {
+    case 'int':
+      return typeof value === 'number' && Number.isFinite(value) ? clamp(Math.round(value), spec.min, spec.max) : INVALID;
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value) ? clamp(value, spec.min, spec.max) : INVALID;
+    case 'boolean':
+      return typeof value === 'boolean' ? value : INVALID;
+    case 'enum':
+      return spec.values.includes(value) ? value : INVALID;
+    case 'string':
+      return typeof value === 'string' && value.length <= spec.maxLength && spec.pattern.test(value) ? value : INVALID;
+    default:
+      return INVALID;
+  }
+}
+
+const isPlainObject = (v) => v !== null && typeof v === 'object' && Object.getPrototypeOf(v) === Object.prototype;
+
+// A new message with only the listed fields, cleaned; or a string saying what is wrong.
+function clean(msg) {
+  if (!isPlainObject(msg)) return 'not a plain object';
+  if (typeof msg.t !== 'string' || !Object.hasOwn(MESSAGES, msg.t)) return `unknown type ${String(msg.t)}`;
+  const out = { t: msg.t };
+  for (const [name, spec] of Object.entries(MESSAGES[msg.t])) {
+    const value = check(spec, msg[name]);
+    if (value === INVALID) return `${msg.t}.${name}: bad value ${String(msg[name])}`;
+    out[name] = value;
+  }
+  return out;
+}
+
+export function encode(msg) {
+  const out = clean(msg);
+  if (typeof out === 'string') throw new Error(`codec: cannot encode: ${out}`);
+  for (const name of Object.keys(msg)) {
+    if (name !== 't' && !Object.hasOwn(MESSAGES[msg.t], name)) throw new Error(`codec: cannot encode: unknown field ${msg.t}.${name}`);
+  }
+  const textOut = JSON.stringify(out);
+  if (byteLength(textOut) > MAX_MESSAGE_BYTES) throw new Error(`codec: ${msg.t} message over ${MAX_MESSAGE_BYTES} bytes`);
+  return textOut;
+}
+
+export function decode(textIn) {
+  if (typeof textIn !== 'string' || byteLength(textIn) > MAX_MESSAGE_BYTES) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(textIn);
+  } catch {
+    return null;
+  }
+  const out = clean(parsed);
+  return typeof out === 'string' ? null : out;
+}
+
+// --- message helpers ---
+
+export const helloMessage = () => ({ t: 'hello', v: PROTOCOL_VERSION });
+export const welcomeMessage = (map, slot, tick) => ({ t: 'welcome', map, slot, tick });
+export const rejectMessage = (reason) => ({ t: 'reject', reason });
+export const mapMessage = (map) => ({ t: 'map', map });
+export const pingMessage = (id, time) => ({ t: 'ping', id, time });
+export const pongMessage = (ping, tick) => ({ t: 'pong', id: ping.id, time: ping.time, tick });
+export const byeMessage = () => ({ t: 'bye' });
+
+// Held and pressed bit masks of an input frame (bit i = ACTIONS[i]).
+export function frameMasks(frame) {
+  let held = 0;
+  let pressed = 0;
+  ACTIONS.forEach((action, i) => {
+    const a = frame?.connected ? frame.actions[action] : null;
+    if (a?.held) held |= 1 << i;
+    if (a?.pressed) pressed |= 1 << i;
+  });
+  return { held, pressed };
+}
+
+// The input message for a player's frame on `tick`.
+export function inputMessage(tick, frame) {
+  const aim = frame?.connected && Number.isFinite(frame.aim) ? frame.aim : 0;
+  return { t: 'input', tick, ...frameMasks(frame), aim };
+}
+
+// A full input frame from masks: `released` from the previous held mask; no pointer, no wheel,
+// not an activation; always connected.
+export function frameFromMasks({ held, pressed, aim }, prevHeld = 0, player = 1) {
+  const actions = {};
+  ACTIONS.forEach((action, i) => {
+    const bit = 1 << i;
+    actions[action] = { held: (held & bit) !== 0, pressed: (pressed & bit) !== 0, released: (prevHeld & bit) !== 0 && (held & bit) === 0 };
+  });
+  return { player, connected: true, actions, aim, wheel: 0, pointer: null, activated: false };
+}
+
+// A snap message from Sandbox players (first MAX_PLAYERS); empty slots are zeros.
+export function snapMessage({ tick, ack, players }) {
+  const msg = { t: 'snap', tick, ack, n: Math.min(players.length, MAX_PLAYERS) };
+  for (let i = 0; i < MAX_PLAYERS; i++) {
+    const p = players[i];
+    msg[`x${i}`] = p ? p.x : 0;
+    msg[`y${i}`] = p ? p.y : 0;
+    msg[`vx${i}`] = p ? p.vx : 0;
+    msg[`vy${i}`] = p ? p.vy : 0;
+    msg[`g${i}`] = p ? p.onGround : false;
+    msg[`c${i}`] = p ? p.crouching : false;
+    msg[`a${i}`] = p ? p.aim : 0;
+  }
+  return msg;
+}
+
+// { tick, ack, players }: players are { x, y, vx, vy, onGround, crouching, aim } (no size: the
+// receiver adds its own map's player size).
+export function snapshotFromMessage(msg) {
+  const players = [];
+  for (let i = 0; i < msg.n; i++) {
+    players.push({ x: msg[`x${i}`], y: msg[`y${i}`], vx: msg[`vx${i}`], vy: msg[`vy${i}`], onGround: msg[`g${i}`], crouching: msg[`c${i}`], aim: msg[`a${i}`] });
+  }
+  return { tick: msg.tick, ack: msg.ack, players };
+}
