@@ -3,7 +3,7 @@
 // The tile map is static level data, built in load() and kept outside the state; the state is
 // plain data: { ticks, map (manifest key), player }.
 
-import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
+import { EdgesGeometry, InstancedMesh, LineBasicMaterial, LineSegments, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
 import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
@@ -17,7 +17,9 @@ import {
   OFFSET_LIMIT,
   cameraShift,
   createViewMode,
+  WIRE_COLOR,
   depthCubes,
+  edgeLines,
   perspectiveDistance,
   screenToPlane,
   smerp,
@@ -177,6 +179,17 @@ function addInstanced(scene, track, geometry, material, positions) {
   positions.forEach(([x, y, z = 0], i) => mesh.setMatrixAt(i, matrix.makeTranslation(x + 0.5, y + 0.5, z)));
   mesh.instanceMatrix.needsUpdate = true;
   scene.add(mesh);
+  return mesh;
+}
+
+// The level drawn twice per group: solid (the instanced mesh) and as edges only (one LineSegments
+// of all the group's tiles or cubes), hidden or shown in draw by the Wireframe setting.
+function addLevelGroup(scene, track, level, geometry, edges, material, wireMaterial, positions) {
+  level.solid.push(addInstanced(scene, track, geometry, material, positions));
+  const lines = track(new LineSegments(track(edgeLines(edges, positions)), wireMaterial));
+  lines.visible = false;
+  scene.add(lines);
+  level.wire.push(lines);
 }
 
 // The player box and the aim line, one pair per view (an object belongs to one three.js scene).
@@ -222,6 +235,9 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         // A thin plane from the head along +x, rotated to the aim angle.
         aim: track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
       };
+      // Edge templates for the wireframe view: a tile outline (2D) and a cube's 12 edges (2.5D).
+      const edges = { tile: track(new EdgesGeometry(geometries.tile)), cube: track(new EdgesGeometry(geometries.cube)) };
+      const wireMaterial = track(new LineBasicMaterial({ color: WIRE_COLOR }));
       const materials = {
         player: track(new MeshBasicMaterial({ color: PLAYER_COLOR })),
         aim: track(new MeshBasicMaterial({ color: AIM_COLOR })),
@@ -230,8 +246,10 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
 
       // 2D: flat tiles, orthographic camera.
       const flatScene = new Scene();
-      for (const [id, positions] of groups) addInstanced(flatScene, track, geometries.tile, flatMaterials.get(id), positions);
+      const flatLevel = { solid: [], wire: [] };
+      for (const [id, positions] of groups) addLevelGroup(flatScene, track, flatLevel, geometries.tile, edges.tile, flatMaterials.get(id), wireMaterial, positions);
       flat = {
+        level: flatLevel,
         scene: flatScene,
         camera: new OrthographicCamera(-1, 1, 1, -1, -10, 10),
         player: addPlayer(flatScene, geometries, materials, { player: PLAYER_Z, aim: AIM_Z }),
@@ -239,7 +257,8 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
 
       // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera.
       const deepScene = new Scene();
-      for (const [id, positions] of groups) addInstanced(deepScene, track, geometries.cube, cubeMaterials.get(id), positions);
+      const deepLevel = { solid: [], wire: [] };
+      for (const [id, positions] of groups) addLevelGroup(deepScene, track, deepLevel, geometries.cube, edges.cube, cubeMaterials.get(id), wireMaterial, positions);
       const decor = new Map(); // tile id -> [[x, y, z], ...]
       // Off-plane cubes: a cells map's own cells, or decorative depth cubes for a flat map.
       for (const cube of map.cells ?? depthCubes(tiles)) {
@@ -247,7 +266,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         if (!decor.has(cube.id)) decor.set(cube.id, []);
         decor.get(cube.id).push([cube.x, cube.y, cube.z]);
       }
-      for (const [id, positions] of decor) addInstanced(deepScene, track, geometries.cube, cubeMaterials.get(id), positions);
+      for (const [id, positions] of decor) addLevelGroup(deepScene, track, deepLevel, geometries.cube, edges.cube, cubeMaterials.get(id), wireMaterial, positions);
       // Background city blocks: wide enough for the widest normal view (FOV 50, the furthest
       // zoom, a 21:9 window) anywhere the camera can go (the level plus the largest offset and
       // aim-follow Max).
@@ -261,6 +280,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         view: { fovDegrees: FOV_DEFAULT, tilesHigh: CAMERA_TILES_MAX, aspect: 21 / 9 },
       });
       deep = {
+        level: deepLevel,
         city,
         scene: deepScene,
         camera: new PerspectiveCamera(FOV_DEFAULT, 1, 0.1, 100),
@@ -315,6 +335,9 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         camera.position.set(camX, camY, distance);
       }
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
+      const wire = viewMode.wireframe();
+      for (const mesh of active.level.solid) mesh.visible = !wire;
+      for (const lines of active.level.wire) lines.visible = wire;
       const { body, aim } = active.player;
       body.position.set(player.x, centreY, body.position.z);
       body.scale.y = height / map.player.height; // the body geometry is the standing height tall

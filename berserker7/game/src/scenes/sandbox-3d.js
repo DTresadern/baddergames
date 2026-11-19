@@ -1,7 +1,7 @@
 // The Sandbox's 2.5D view: view mode and FOV holder, perspective camera distance, per-face shaded
 // cubes and the decorative depth cubes. The map, player and physics are the same as in 2D.
 
-import { BoxGeometry, Float32BufferAttribute } from 'three';
+import { BoxGeometry, BufferGeometry, Float32BufferAttribute } from 'three';
 
 export const VIEW_MODES = Object.freeze(['2d', '2.5d']);
 export const DEFAULT_VIEW_MODE = '2.5d';
@@ -39,6 +39,7 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   const offset = { ...OFFSET_DEFAULT };
   const follow = Object.fromEntries(FOLLOW_SETTINGS.map(([key, , , , , value]) => [key, value]));
   let backdrop = true;
+  let wireframe = false;
   return {
     mode: () => current,
     // Ignores an unknown mode. Returns the mode now in use.
@@ -63,6 +64,12 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
     setBackdrop(on) {
       backdrop = Boolean(on);
       return backdrop;
+    },
+    // Level tiles and cubes drawn as edges only (both views), off by default.
+    wireframe: () => wireframe,
+    setWireframe(on) {
+      wireframe = Boolean(on);
+      return wireframe;
     },
     follow: () => ({ ...follow }),
     // Sets one FOLLOW_SETTINGS key, clamped to its range and rounded to its step; ignores an
@@ -122,6 +129,28 @@ export function perspectiveDistance(tilesHigh, fovDegrees) {
 
 // A 1 x 1 x 1 cube with a colour attribute shading each face (FACE_SHADE). Each face keeps the
 // box's 0..1 UVs, so the texture is mapped once per face.
+// Line colour of the wireframe view.
+export const WIRE_COLOR = 0xd8ecff;
+
+// One line-segment geometry for many tiles or cubes: the `edges` template (an EdgesGeometry of a
+// unit tile or cube, centred on the origin) copied to each [x, y, z?] cell, centred at
+// (x + 0.5, y + 0.5, z). Built once at load, like the instanced meshes.
+export function edgeLines(edges, positions) {
+  const template = edges.getAttribute('position').array;
+  const out = new Float32Array(template.length * positions.length);
+  positions.forEach(([x, y, z = 0], i) => {
+    for (let j = 0; j < template.length; j += 3) {
+      const k = i * template.length + j;
+      out[k] = template[j] + x + 0.5;
+      out[k + 1] = template[j + 1] + y + 0.5;
+      out[k + 2] = template[j + 2] + z;
+    }
+  });
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(out, 3));
+  return geometry;
+}
+
 export function shadedCubeGeometry() {
   const geometry = new BoxGeometry(1, 1, 1);
   // BoxGeometry face order: +x, -x, +y, -y, +z, -z; 4 vertices each.

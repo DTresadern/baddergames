@@ -301,3 +301,28 @@ test('initSandbox: the map\'s player size sets the height, crouch height and hea
   plain.player.crouching = true;
   assert.equal(playerHeight(plain.player), 1);
 });
+
+test('wireframe: the toggle swaps the level from solid tiles and cubes to edge lines, in both views', async () => {
+  let rendered;
+  const renderer = { render: (scene) => (rendered = scene) };
+  const viewMode = createViewMode();
+  const scene = createSandbox({ viewMode, fetchJson: async () => json() });
+  await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
+  const state = scene.enter();
+  const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
+  const visible = () => ({
+    solid: rendered.children.filter((o) => o.isInstancedMesh && o.visible && o.material.map).length,
+    wire: rendered.children.filter((o) => o.isLineSegments && o.visible).length,
+  });
+  assert.equal(viewMode.wireframe(), false);
+  for (const mode of ['2d', '2.5d']) {
+    viewMode.setMode(mode);
+    viewMode.setWireframe(false);
+    scene.draw(state, view);
+    const solid = visible();
+    assert.ok(solid.solid > 0 && solid.wire === 0, mode);
+    viewMode.setWireframe(true);
+    scene.draw(state, view);
+    assert.deepEqual(visible(), { solid: 0, wire: solid.solid }, mode);
+  }
+});
