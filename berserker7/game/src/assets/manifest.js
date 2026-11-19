@@ -1,8 +1,9 @@
 // Every runtime asset, by key. See berserker7/AGENTS.md, Assets.
 
-export const TYPES = Object.freeze(['texture', 'music']);
+export const TYPES = Object.freeze(['texture', 'music', 'map']);
 // 'menubg': the menu backgrounds. Nothing loads this group whole; start-up adds the picked one to the boot load.
-export const GROUPS = Object.freeze(['boot', 'menubg']);
+// 'sandbox': the Sandbox test scene's content (maps).
+export const GROUPS = Object.freeze(['boot', 'menubg', 'sandbox']);
 export const COLOR_SPACES = Object.freeze(['srgb', 'raw']);
 
 export const ASSETS = freezeList([
@@ -12,6 +13,9 @@ export const ASSETS = freezeList([
   { key: 'music.title', path: 'content/audio/music/titlescreen-1.mp3', type: 'music', groups: ['boot'] },
   { key: 'poster.classic', path: 'content/textures/menubg/berserkerguy-classic-2-1.png', type: 'texture', groups: ['menubg'] },
   { key: 'poster.thrash', path: 'content/textures/menubg/berserkerguy-thrash-2-1.png', type: 'texture', groups: ['menubg'] },
+  { key: 'map.walkway', path: 'content/maps/walkway.json', type: 'map', groups: ['sandbox'] },
+  { key: 'map.mvp-upper-1', path: 'content/maps/mvp-upper-1.json', type: 'map', groups: ['sandbox'] },
+  { key: 'map.moge3-cyberpunk', path: 'content/maps/moge3-cyberpunk.json', type: 'map', groups: ['sandbox'] },
 ]);
 
 function freezeList(list) {

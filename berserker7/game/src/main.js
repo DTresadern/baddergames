@@ -15,6 +15,8 @@ import { createMainMenu } from './scenes/main-menu.js';
 import { createNewGame } from './scenes/new-game.js';
 import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
+import { createSandbox, createCameraZoom, createMapChoice } from './scenes/sandbox.js';
+import { createViewMode } from './scenes/sandbox-3d.js';
 import { pickPoster, withPoster } from './scenes/poster.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
@@ -76,8 +78,17 @@ harness.register('sceneA', createSceneA());
 harness.register('sceneB', createSceneB());
 harness.register('pause', createPause());
 harness.register('slow', createSlow());
+// The Sandbox camera's view height; the debug panel changes it live (slider, [ and ]).
+const sandboxZoom = createCameraZoom();
+// The Sandbox view mode (2D / 2.5D) and the 2.5D FOV; the debug panel changes them live.
+const sandboxViewMode = createViewMode();
+// The Sandbox map; the debug panel changes it and reloads the scene.
+const sandboxMap = createMapChoice();
+harness.register('sandbox', createSandbox({ zoom: sandboxZoom, viewMode: sandboxViewMode, mapChoice: sandboxMap }));
 // Start-up: boot (loading, then "press any key") -> intro (logos) -> main menu.
 // New Game is an overlay over the main menu, so the menu keeps its layer and the title music plays on.
+// Starting a game closes it and fades to the Sandbox (the main menu leaves the main layer and stops the music).
+const GAME_FADE_SECONDS = 2; // total: 1 s to black, 1 s back in
 const screens = {
   startIntro: () => harness.setMain('intro'),
   // From black (the intro ended): the swap is at once and the menu fades in over MENU_FADE_IN_SECONDS.
@@ -85,6 +96,10 @@ const screens = {
   showMenu: ({ fromBlack }) => harness.setMain('mainMenu', menuFade({ fromBlack })),
   openNewGame: () => harness.openOverlay('newGame'),
   closeNewGame: () => harness.closeOverlay('newGame'),
+  startGame() {
+    harness.closeOverlay('newGame');
+    harness.setMain('sandbox', { fade: GAME_FADE_SECONDS });
+  },
 };
 harness.register('boot', createBoot({ loader, screens }));
 harness.register('intro', createIntro({ music, screens }));
@@ -125,7 +140,7 @@ function loop(time) {
 }
 requestAnimationFrame(loop);
 
-mountPanel({ harness, renderer, assets, settings, session });
+mountPanel({ harness, renderer, assets, settings, session, sandboxZoom, sandboxViewMode, sandboxMap });
 mountInputPanel({ input });
 
 // Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input, music,

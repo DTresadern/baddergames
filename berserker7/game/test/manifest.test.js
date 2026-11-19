@@ -15,7 +15,7 @@ test('manifest: the real list has no problems and is frozen', () => {
     assert.ok(Object.isFrozen(entry), entry.key);
     assert.ok(Object.isFrozen(entry.groups), entry.key);
   }
-  assert.deepEqual(GROUPS, ['boot', 'menubg']);
+  assert.deepEqual(GROUPS, ['boot', 'menubg', 'sandbox']);
 });
 
 test('manifest: every path exists on disk under public/', () => {
@@ -65,5 +65,7 @@ test('assetByKey and groupAssets: lookups, and loud errors naming the unknown ke
   assert.deepEqual(groupAssets('boot').map((a) => a.key), ['logo.baddergames', 'logo.w8omg', 'music.title']);
   assert.deepEqual(groupAssets('menubg').map((a) => a.key), ['poster.classic', 'poster.thrash']);
   assert.equal(assetByKey('poster.thrash').path, 'content/textures/menubg/berserkerguy-thrash-2-1.png');
+  assert.deepEqual(groupAssets('sandbox').map((a) => a.key), ['map.walkway', 'map.mvp-upper-1', 'map.moge3-cyberpunk']);
+  assert.deepEqual(assetByKey('map.walkway'), { key: 'map.walkway', path: 'content/maps/walkway.json', type: 'map', groups: ['sandbox'] });
   assert.throws(() => groupAssets('nope'), /unknown group 'nope'/);
 });

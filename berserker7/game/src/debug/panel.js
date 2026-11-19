@@ -8,10 +8,24 @@
 //                                       layers, transition, geometries, textures, assets,
 //                                       settings (JSON of settings.get()), session (JSON or none)
 //   [data-scene="<id>"] [data-field="..."]  layer, life, settings, ticks, left, back, error
+//   .b7-sandbox (shown while the Sandbox is the main scene):
+//     #b7-map (select)                       Sandbox map; a change reloads the scene
+//     #b7-zoom (range), [data-value="zoom"]  camera view height in tiles; [ and ] change it by 2
+//     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
+//     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
+//     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
+//     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
+//                                       camera offset from the followed point, tiles
+//     #b7-follow-<key> (range), [data-value="follow-<key>"]  camera aim-follow settings
+//                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleY)
+
+import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
+import { FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
 
 const ACTIONS = [
   ['main-menu', 'Main menu'],
   ['players', 'Players scene (input test)'],
+  ['sandbox', 'Sandbox'],
   ['switch-ab', 'Switch A / B (fade)'],
   ['pause', 'Open pause'],
   ['suspend', 'Suspend main'],
@@ -43,6 +57,7 @@ const FIELDS = ['layer', 'life', 'settings', 'ticks', 'left', 'back', 'error'];
 const SLOW_FRAME_MS = 1000;
 const REFRESH_MS = 250;
 const FADE = 0.6;
+const ZOOM_STEP_KEYS = 2; // tiles per [ or ] press
 
 const STYLE = `
 #b7-debug { position: fixed; top: 8px; right: 8px; z-index: 2; width: min(360px, calc(100vw - 16px));
@@ -60,7 +75,23 @@ const STYLE = `
 #b7-debug dd { margin: 0; overflow-wrap: anywhere; }
 #b7-debug .b7-scenes > div { padding: 3px 0; border-top: 1px solid #333; overflow-wrap: anywhere; }
 #b7-debug .b7-dim { color: #999; }
+#b7-debug .b7-sandbox[hidden] { display: none; }
+#b7-debug .b7-sandbox label, #b7-debug .b7-modes { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+#b7-debug .b7-sandbox input, #b7-debug .b7-sandbox select { flex: 1; min-width: 0; }
+#b7-debug .b7-sandbox .b7-check input { flex: 0 0 auto; }
+#b7-debug .b7-sandbox input:disabled { opacity: 0.4; }
+#b7-debug .b7-modes button { flex: 1; padding: 4px; font: inherit; color: #eee; background: #333b50;
+  border: 1px solid #556; border-radius: 3px; cursor: pointer; }
+#b7-debug .b7-modes button[aria-pressed="true"] { background: #4f6290; border-color: #8aa; }
 `;
+
+// True for elements that take typed text ([ and ] are left alone there). A range slider is not one.
+const TEXT_INPUT_TYPES = new Set(['text', 'search', 'email', 'url', 'tel', 'password', 'number', 'date', 'time', 'datetime-local', 'month', 'week']);
+function takesText(target) {
+  if (!target) return false;
+  if (target.isContentEditable || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return true;
+  return target.tagName === 'INPUT' && TEXT_INPUT_TYPES.has((target.type || 'text').toLowerCase());
+}
 
 // Short hash of a state's JSON, to compare states at a glance.
 function hash(text) {
@@ -70,7 +101,10 @@ function hash(text) {
   return h.toString(16).padStart(8, '0');
 }
 
-export function mountPanel({ harness, renderer, assets, settings, session, parent = document.body }) {
+// `sandboxZoom` and `sandboxViewMode` (optional) are the Sandbox camera's view height holder
+// (createCameraZoom) and its view mode and FOV holder (createViewMode).
+// `sandboxMap` (optional) is the Sandbox map choice (createMapChoice).
+export function mountPanel({ harness, renderer, assets, settings, session, sandboxZoom = null, sandboxViewMode = null, sandboxMap = null, parent = document.body }) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.append(style);
@@ -83,6 +117,33 @@ export function mountPanel({ harness, renderer, assets, settings, session, paren
     <div id="b7-debug-body" hidden>
       <div class="b7-actions">
         ${ACTIONS.map(([action, label]) => `<button type="button" data-action="${action}">${label}</button>`).join('')}
+      </div>
+      <div class="b7-sandbox" hidden>
+        <label>Map
+          <select id="b7-map">${SANDBOX_MAPS.map((key) => `<option value="${key}">${key.replace(/^map\./, '')}</option>`).join('')}</select></label>
+        <div class="b7-modes">
+          <button type="button" data-view-mode="2d">2D (ortho)</button>
+          <button type="button" data-view-mode="2.5d">2.5D (perspective)</button>
+        </div>
+        <label>Sandbox view
+          <input id="b7-zoom" type="range" min="${CAMERA_TILES_MIN}" max="${CAMERA_TILES_MAX}" step="1">
+          <span data-value="zoom"></span></label>
+        <label class="b7-check"><input id="b7-city" type="checkbox"> City backdrop (2.5D)</label>
+        <label>FOV
+          <input id="b7-fov" type="range" min="${FOV_MIN}" max="${FOV_MAX}" step="1">
+          <span data-value="fov"></span></label>
+        ${['x', 'y']
+          .map(
+            (axis) => `<label>Camera ${axis.toUpperCase()}
+          <input id="b7-cam-${axis}" data-axis="${axis}" type="range" min="${-OFFSET_LIMIT}" max="${OFFSET_LIMIT}" step="${OFFSET_STEP}">
+          <span data-value="cam-${axis}"></span></label>`,
+          )
+          .join('')}
+        ${FOLLOW_SETTINGS.map(
+          ([key, label, min, max, step]) => `<label>${label}
+          <input id="b7-follow-${key}" data-follow="${key}" type="range" min="${min}" max="${max}" step="${step}">
+          <span data-value="follow-${key}"></span></label>`,
+        ).join('')}
       </div>
       <dl>${VALUES.map(([key, label]) => `<dt>${label}</dt><dd data-value="${key}"></dd>`).join('')}</dl>
       <div class="b7-scenes">${ids
@@ -124,6 +185,11 @@ export function mountPanel({ harness, renderer, assets, settings, session, paren
       // The menu has no backdrop.
       if (harness.layers.background.includes('backdrop')) harness.leave('backdrop');
       harness.setMain('mainMenu', { fade: FADE });
+    },
+    sandbox() {
+      // The Sandbox has no backdrop.
+      if (harness.layers.background.includes('backdrop')) harness.leave('backdrop');
+      harness.setMain('sandbox', { fade: FADE });
     },
     players() {
       harness.addBackground('backdrop');
@@ -167,6 +233,102 @@ export function mountPanel({ harness, renderer, assets, settings, session, paren
     refresh();
   });
 
+  // Sandbox camera zoom: the slider and the [ / ] keys. Debug tooling, not game input.
+  const sandboxRow = root.querySelector('.b7-sandbox');
+  const zoomSlider = root.querySelector('#b7-zoom');
+  const fovSlider = root.querySelector('#b7-fov');
+  const modeButtons = [...root.querySelectorAll('[data-view-mode]')];
+  const offsetSliders = [...root.querySelectorAll('[data-axis]')];
+  const cityCheck = root.querySelector('#b7-city');
+  const followSliders = [...root.querySelectorAll('[data-follow]')];
+  function showZoom() {
+    if (sandboxZoom) {
+      zoomSlider.value = String(sandboxZoom.get());
+      setValue('zoom', `${sandboxZoom.get()} tiles high`);
+    }
+    if (sandboxViewMode) {
+      const mode = sandboxViewMode.mode();
+      for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
+      cityCheck.checked = sandboxViewMode.backdrop();
+      fovSlider.value = String(sandboxViewMode.fov());
+      fovSlider.disabled = mode !== '2.5d';
+      setValue('fov', `${sandboxViewMode.fov()}°`);
+      const offset = sandboxViewMode.offset();
+      for (const slider of offsetSliders) {
+        const value = offset[slider.dataset.axis];
+        slider.value = String(value);
+        setValue(`cam-${slider.dataset.axis}`, `${value > 0 ? '+' : ''}${value.toFixed(2)} tiles`);
+      }
+      const follow = sandboxViewMode.follow();
+      for (const slider of followSliders) {
+        slider.value = String(follow[slider.dataset.follow]);
+        setValue(`follow-${slider.dataset.follow}`, follow[slider.dataset.follow].toFixed(2));
+      }
+    }
+  }
+  const mapSelect = root.querySelector('#b7-map');
+  if (sandboxMap) {
+    mapSelect.value = sandboxMap.get();
+    // A new map reloads the scene: leave it unloaded, then make it the main scene again.
+    mapSelect.addEventListener('change', () => {
+      mapSelect.blur();
+      sandboxMap.set(mapSelect.value);
+      if (harness.layers.main === 'sandbox') {
+        harness.leave('sandbox', 'unload');
+        harness.setMain('sandbox');
+      }
+    });
+  }
+  if (sandboxViewMode) {
+    for (const b of modeButtons) {
+      b.addEventListener('click', () => {
+        b.blur();
+        sandboxViewMode.setMode(b.dataset.viewMode);
+        showZoom();
+      });
+    }
+    fovSlider.addEventListener('input', () => {
+      sandboxViewMode.setFov(Number(fovSlider.value));
+      showZoom();
+    });
+    fovSlider.addEventListener('change', () => fovSlider.blur());
+    cityCheck.addEventListener('change', () => {
+      cityCheck.blur();
+      sandboxViewMode.setBackdrop(cityCheck.checked);
+      showZoom();
+    });
+    for (const slider of offsetSliders) {
+      slider.addEventListener('input', () => {
+        sandboxViewMode.setOffset(slider.dataset.axis, Number(slider.value));
+        showZoom();
+      });
+      slider.addEventListener('change', () => slider.blur());
+    }
+    for (const slider of followSliders) {
+      slider.addEventListener('input', () => {
+        sandboxViewMode.setFollow(slider.dataset.follow, Number(slider.value));
+        showZoom();
+      });
+      slider.addEventListener('change', () => slider.blur());
+    }
+  }
+  if (sandboxZoom) {
+    zoomSlider.addEventListener('input', () => {
+      sandboxZoom.set(Number(zoomSlider.value));
+      showZoom();
+    });
+    // Give up focus once the drag ends, so arrow keys go to the game.
+    zoomSlider.addEventListener('change', () => zoomSlider.blur());
+    window.addEventListener('keydown', (e) => {
+      if (takesText(e.target)) return;
+      const step = { BracketLeft: ZOOM_STEP_KEYS, BracketRight: -ZOOM_STEP_KEYS }[e.code];
+      if (step === undefined) return;
+      sandboxZoom.set(sandboxZoom.get() + step);
+      showZoom();
+    });
+    showZoom();
+  }
+
   toggle.addEventListener('click', () => {
     toggle.blur();
     const open = body.hidden;
@@ -194,6 +356,8 @@ export function mountPanel({ harness, renderer, assets, settings, session, paren
 
   function refresh() {
     refreshButtons();
+    sandboxRow.hidden = !sandboxZoom || harness.layers.main !== 'sandbox';
+    showZoom();
     const { layers, lastLongFrame: long, transition: tr } = harness;
     setValue('frame-ms', `${(harness.lastFrameSeconds * 1000).toFixed(1)} ms`);
     setValue('work-ms', `${harness.lastWorkMs.toFixed(2)} ms`);
