@@ -254,3 +254,18 @@ test('guest input queue: waits for 2 entries, repeats held when empty, keeps pre
   // released comes from the previous held mask.
   assert.equal(f.actions.moveRight.released, true);
 });
+
+test('session: an invalid code typed while hosting changes nothing', () => {
+  const w = world();
+  w.connect();
+  const before = w.host.events.length;
+  const code = w.host.session.code();
+  assert.equal(w.host.session.join('ab1', { transport: w.transport }), false);
+  assert.equal(w.host.session.state(), 'joined');
+  assert.equal(w.host.session.role(), 'host');
+  assert.equal(w.host.session.code(), code);
+  assert.equal(w.host.events.length, before);
+  w.tick(10);
+  assert.equal(w.guest.session.state(), 'connected');
+  assert.equal(w.guest.events.some((e) => e.type === 'ended'), false);
+});

@@ -25,6 +25,7 @@ import { createSlow } from './scenes/slow.js';
 import { createSessionHolder } from './session.js';
 import { browserStorage, createSettingsStore } from './settings/store.js';
 import { createNetSession, parseNetOptions } from './net/session.js';
+import { cleanRoomCode, isRoomCode } from './net/room-code.js';
 import { createLocalTransport } from './net/transport-local.js';
 import { createPeerTransport } from './net/transport-peer.js';
 import { JOIN_MESSAGES, createJoinForm, joinMessage } from './ui/join-form.js';
@@ -164,6 +165,11 @@ harness.register('newGame', createNewGame({ screens, settings, session, poster }
 const joinForm = createJoinForm({
   document,
   onJoin(code) {
+    // An invalid code changes nothing (a host keeps hosting).
+    if (!isRoomCode(cleanRoomCode(code))) {
+      joinForm.setMessage(joinMessage('invalid'));
+      return;
+    }
     joinForm.setMessage(JOIN_MESSAGES.connecting);
     net.join(code, { transport });
   },
