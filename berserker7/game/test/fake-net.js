@@ -38,8 +38,10 @@ export function createFakeClock(start = 1000) {
 
 // A BroadcastChannel class over one shared bus: posts reach every other open channel of the same
 // name after `delayMs` (0: on the next advance). Messages are structured-cloned like the real one.
+// `cut()` silently loses every later message, like a network that went away.
 export function createFakeBroadcast(clock, { delayMs = 0 } = {}) {
   const open = new Set();
+  let lost = false;
   const posted = []; // every message posted, for checks: { name, data }
   class FakeBroadcastChannel {
     constructor(name) {
@@ -54,7 +56,7 @@ export function createFakeBroadcast(clock, { delayMs = 0 } = {}) {
         if (other === this || other.name !== this.name) continue;
         const copy = structuredClone(data);
         clock.setTimeout(() => {
-          if (open.has(other)) other.onmessage?.({ data: copy });
+          if (open.has(other) && !lost) other.onmessage?.({ data: copy });
         }, delayMs);
       }
     }
@@ -62,7 +64,10 @@ export function createFakeBroadcast(clock, { delayMs = 0 } = {}) {
       open.delete(this);
     }
   }
-  return { BroadcastChannel: FakeBroadcastChannel, posted, openCount: () => open.size };
+  const cut = () => {
+    lost = true;
+  };
+  return { BroadcastChannel: FakeBroadcastChannel, posted, cut, openCount: () => open.size };
 }
 
 // A raw channel pair (as createRawChannel gives a transport) joined back to back, for link tests.
