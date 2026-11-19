@@ -6,6 +6,7 @@ import { NoColorSpace, SRGBColorSpace } from 'three';
 import { createLoader } from '../src/assets/loader.js';
 import { assetByKey, groupAssets } from '../src/assets/manifest.js';
 import { withPoster } from '../src/scenes/poster.js';
+import { acquireMap } from '../src/assets/maps.js';
 import { acquireTexture } from '../src/assets/textures.js';
 import { createAssetCache } from '../src/engine/asset-cache.js';
 
@@ -157,4 +158,35 @@ test('acquireTexture: colour space from the manifest (sRGB by default, raw for t
   assert.equal((await acquireTexture(acquire, 'logo.w8omg', load)).colorSpace, NoColorSpace);
   assert.throws(() => acquireTexture(acquire, 'music.title', load), /not a texture/);
   assert.throws(() => acquireTexture(acquire, 'logo.nope', load), /unknown asset key/);
+});
+
+test('loader: a map asset loads as JSON through the asset cache, once, and the cache entry is shared', async () => {
+  const loads = [];
+  const json = { format: 1, name: 'walkway' };
+  const loadJson = (path) => {
+    loads.push(path);
+    return Promise.resolve(json);
+  };
+  const assets = createAssetCache();
+  const loader = createLoader({ assets, music: {}, loadJson, log: { error() {} } });
+  await loader.load('sandbox');
+  await loader.load('sandbox');
+  assert.deepEqual(loads, ['content/maps/walkway.json']);
+  assert.equal(await acquireMap(assets.acquire, 'map.walkway', loadJson), json);
+  assert.equal(loads.length, 1);
+  assert.equal(assets.count('map.walkway'), 2);
+  assert.deepEqual(loader.status('sandbox'), { progress: 1, done: true, error: null });
+  assert.throws(() => acquireMap(assets.acquire, 'music.title', loadJson), /not a map/);
+});
+
+test('loader: a map that fails to load rejects the group naming the path', async () => {
+  const errors = [];
+  const loader = createLoader({
+    assets: createAssetCache(),
+    music: {},
+    loadJson: () => Promise.reject(new Error('HTTP 404')),
+    log: { error: (...args) => errors.push(args) },
+  });
+  await assert.rejects(loader.load('sandbox'), /Could not load content\/maps\/walkway.json/);
+  assert.equal(loader.status('sandbox').error, 'Could not load content/maps/walkway.json');
 });
