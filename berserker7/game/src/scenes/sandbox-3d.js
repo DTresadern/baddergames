@@ -18,7 +18,7 @@ export const FOLLOW_SETTINGS = Object.freeze([
   ['max', 'Max (tiles)', 0, 20, 0.25, 8], // a longer shift is scaled down to this length
   ['scaleX', 'X scale', 0, 2, 0.05, 1], // applied after the clamp
   ['scaleY', 'Y scale', 0, 2, 0.05, 0.5],
-  ['smoothing', 'Smoothing half-life (s)', 0, 0.5, 0.01, 0.1], // camera source smoothing; 0 = snap
+  ['smoothing', 'Smoothing half-life (s)', 0, 0.5, 0.01, 0.05], // camera source smoothing; 0 = snap
 ].map((row) => Object.freeze(row)));
 // Depth range kept around the play plane by the near and far planes, tiles (cubes reach z ±1.5).
 export const DEPTH_MARGIN = 4;
