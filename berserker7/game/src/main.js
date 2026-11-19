@@ -153,6 +153,8 @@ const screens = {
   },
   // True while a fade runs; the main menu waits for its fade-in from black to end before opening its panel.
   fading: () => harness.transition !== null,
+  // True while any overlay (New Game, Join) is open; the main menu ignores input meanwhile.
+  overlayOpen: () => harness.layers.overlays.length > 0,
   // New Game stays open (its boxes already closed) so the menu's panel is not shown during the fade;
   // the menu's suspend at the fade's midpoint closes it.
   startGame: () => harness.setMain('sandbox', { fadeOut: GAME_FADE_OUT_SECONDS, fadeIn: GAME_FADE_IN_SECONDS }),
