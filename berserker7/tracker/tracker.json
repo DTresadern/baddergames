@@ -6117,6 +6117,23 @@
         "T-110"
       ],
       "notes": ""
+    },
+    {
+      "id": "T-113",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Build and deploy",
+      "title": "Tell players when their build is out of date",
+      "detail": "Each time the main menu is entered, the game fetches the published version.json without the cache. If its commit differs and its build time is later, the menu shows a notice to hard refresh. Both players in an online game need the same build.",
+      "status": "implemented",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [
+        "T-085"
+      ],
+      "notes": "2026-11-19: implemented in #92 (issue #91)."
     }
   ]
 }
