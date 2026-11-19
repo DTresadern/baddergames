@@ -25,10 +25,9 @@ import { createSlow } from './scenes/slow.js';
 import { createSessionHolder } from './session.js';
 import { browserStorage, createSettingsStore } from './settings/store.js';
 import { createNetSession, parseNetOptions } from './net/session.js';
-import { cleanRoomCode, isRoomCode } from './net/room-code.js';
 import { createLocalTransport } from './net/transport-local.js';
 import { createPeerTransport } from './net/transport-peer.js';
-import { JOIN_MESSAGES, createJoinForm, joinMessage } from './ui/join-form.js';
+import { createJoinForm, joinMessage, submitJoinCode } from './ui/join-form.js';
 import { createNotice } from './ui/notice.js';
 
 const versionLabel = document.getElementById('version');
@@ -166,17 +165,7 @@ harness.register('newGame', createNewGame({ screens, settings, session, poster }
 // The Join screen's DOM form; the `join` overlay scene shows and hides it.
 const joinForm = createJoinForm({
   document,
-  onJoin(code) {
-    // An invalid code changes nothing (a host keeps hosting, a connected guest stays), except
-    // that a join still connecting is cancelled, as Back does: the screen no longer asks for it.
-    if (!isRoomCode(cleanRoomCode(code))) {
-      if (net.role() === 'guest' && net.state() === 'connecting') net.leave();
-      joinForm.setMessage(joinMessage('invalid'));
-      return;
-    }
-    joinForm.setMessage(JOIN_MESSAGES.connecting);
-    net.join(code, { transport });
-  },
+  onJoin: (code) => submitJoinCode(code, { net, transport, setMessage: (m) => joinForm.setMessage(m) }),
   onBack: () => screens.closeJoin(),
 });
 harness.register('join', createJoin({ form: joinForm, screens }));
