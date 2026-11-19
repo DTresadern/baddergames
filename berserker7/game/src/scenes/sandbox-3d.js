@@ -10,6 +10,14 @@ export const FOV_MAX = 130;
 export const FOV_DEFAULT = 15;
 export const OFFSET_LIMIT = 4; // camera offset range, ± tiles
 export const OFFSET_STEP = 0.25; // camera offset step, tiles
+// Camera aim-follow settings: [key, label, min, max, step, default]. See cameraShift.
+export const FOLLOW_SETTINGS = Object.freeze([
+  ['follow', 'Follow', 0, 1, 0.05, 0.5], // fraction of head-to-aim the camera moves
+  ['min', 'Min (tiles)', 0, 10, 0.25, 0], // dead zone: a shift shorter than this is 0
+  ['max', 'Max (tiles)', 0, 20, 0.25, 8], // a longer shift is scaled down to this length
+  ['scaleX', 'X scale', 0, 2, 0.05, 1], // applied after the clamp
+  ['scaleY', 'Y scale', 0, 2, 0.05, 1],
+].map((row) => Object.freeze(row)));
 // Depth range kept around the play plane by the near and far planes, tiles (cubes reach z ±1.5).
 export const DEPTH_MARGIN = 4;
 // A depth cube on every DEPTH_CUBE_SPACING-th column of the ground.
@@ -27,6 +35,7 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   let current = VIEW_MODES.includes(mode) ? mode : DEFAULT_VIEW_MODE;
   let degrees = clampFov(fov);
   const offset = { x: 0, y: 0 };
+  const follow = Object.fromEntries(FOLLOW_SETTINGS.map(([key, , , , , value]) => [key, value]));
   return {
     mode: () => current,
     // Ignores an unknown mode. Returns the mode now in use.
@@ -46,7 +55,42 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
       if ((axis === 'x' || axis === 'y') && Number.isFinite(v)) offset[axis] = clampOffset(v);
       return { ...offset };
     },
+    follow: () => ({ ...follow }),
+    // Sets one FOLLOW_SETTINGS key, clamped to its range and rounded to its step; ignores an
+    // unknown key or a value that is not a finite number. Returns the settings.
+    setFollow(key, v) {
+      const row = FOLLOW_SETTINGS.find(([k]) => k === key);
+      if (row && Number.isFinite(v)) {
+        const [, , min, max, step] = row;
+        follow[key] = Number(Math.min(max, Math.max(min, Math.round(v / step) * step)).toFixed(4));
+      }
+      return { ...follow };
+    },
   };
+}
+
+// Camera aim-follow shift (tiles): (aim - head) * follow, its length clamped (below `min`: 0, above
+// `max`: scaled down to `max`), then x and y scaled. `aim` must be the mouse projected through the
+// camera at its rest position, never through the shifted camera, or the camera chases itself.
+export function cameraShift(head, aim, { follow, min, max, scaleX, scaleY }) {
+  let x = (aim.x - head.x) * follow;
+  let y = (aim.y - head.y) * follow;
+  const length = Math.hypot(x, y);
+  if (length < min || length === 0) return { x: 0, y: 0 };
+  if (length > max) {
+    x *= max / length;
+    y *= max / length;
+  }
+  return { x: x * scaleX, y: y * scaleY };
+}
+
+// A point in canvas CSS px (top-left origin, y down) on the play plane (z = 0) seen by a camera
+// centred on `camera` ({ x, y }) showing `tilesHigh` tiles in a `width` x `height` view. Exact for
+// both views: the orthographic camera and the perspective camera (by its distance) both show
+// `tilesHigh` tiles on the play plane, centred on the camera and looking straight along -z.
+export function screenToPlane(camera, point, width, height, tilesHigh) {
+  const tilesPerPx = tilesHigh / height;
+  return { x: camera.x + (point.x - width / 2) * tilesPerPx, y: camera.y - (point.y - height / 2) * tilesPerPx };
 }
 
 // Camera distance from the play plane (z = 0) that shows exactly `tilesHigh` tiles there.

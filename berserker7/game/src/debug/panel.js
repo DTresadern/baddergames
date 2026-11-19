@@ -14,9 +14,11 @@
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
 //     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
 //                                       camera offset from the followed point, tiles
+//     #b7-follow-<key> (range), [data-value="follow-<key>"]  camera aim-follow settings
+//                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleY)
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN } from '../scenes/sandbox.js';
-import { FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
+import { FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
 
 const ACTIONS = [
   ['main-menu', 'Main menu'],
@@ -130,6 +132,11 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
           <span data-value="cam-${axis}"></span></label>`,
           )
           .join('')}
+        ${FOLLOW_SETTINGS.map(
+          ([key, label, min, max, step]) => `<label>${label}
+          <input id="b7-follow-${key}" data-follow="${key}" type="range" min="${min}" max="${max}" step="${step}">
+          <span data-value="follow-${key}"></span></label>`,
+        ).join('')}
       </div>
       <dl>${VALUES.map(([key, label]) => `<dt>${label}</dt><dd data-value="${key}"></dd>`).join('')}</dl>
       <div class="b7-scenes">${ids
@@ -225,6 +232,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
   const fovSlider = root.querySelector('#b7-fov');
   const modeButtons = [...root.querySelectorAll('[data-view-mode]')];
   const offsetSliders = [...root.querySelectorAll('[data-axis]')];
+  const followSliders = [...root.querySelectorAll('[data-follow]')];
   function showZoom() {
     if (sandboxZoom) {
       zoomSlider.value = String(sandboxZoom.get());
@@ -241,6 +249,11 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
         const value = offset[slider.dataset.axis];
         slider.value = String(value);
         setValue(`cam-${slider.dataset.axis}`, `${value > 0 ? '+' : ''}${value.toFixed(2)} tiles`);
+      }
+      const follow = sandboxViewMode.follow();
+      for (const slider of followSliders) {
+        slider.value = String(follow[slider.dataset.follow]);
+        setValue(`follow-${slider.dataset.follow}`, follow[slider.dataset.follow].toFixed(2));
       }
     }
   }
@@ -260,6 +273,13 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
     for (const slider of offsetSliders) {
       slider.addEventListener('input', () => {
         sandboxViewMode.setOffset(slider.dataset.axis, Number(slider.value));
+        showZoom();
+      });
+      slider.addEventListener('change', () => slider.blur());
+    }
+    for (const slider of followSliders) {
+      slider.addEventListener('input', () => {
+        sandboxViewMode.setFollow(slider.dataset.follow, Number(slider.value));
         showZoom();
       });
       slider.addEventListener('change', () => slider.blur());

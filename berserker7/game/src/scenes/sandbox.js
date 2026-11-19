@@ -9,7 +9,16 @@ import { loadGridMap } from '../world/grid-map.js';
 import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createTileTexture } from './tile-texture.js';
-import { DEPTH_MARGIN, FOV_DEFAULT, createViewMode, depthCubes, perspectiveDistance, shadedCubeGeometry } from './sandbox-3d.js';
+import {
+  DEPTH_MARGIN,
+  FOV_DEFAULT,
+  cameraShift,
+  createViewMode,
+  depthCubes,
+  perspectiveDistance,
+  screenToPlane,
+  shadedCubeGeometry,
+} from './sandbox-3d.js';
 
 export const MAP_KEY = 'map.mvp-upper-1';
 // Default view height: tiles shown from the bottom of the view to the top. The game camera is
@@ -45,12 +54,20 @@ const AIM_Z_DEEP = 0.02; // just in front of the player plane (2.5D)
 export function initSandbox(map, key = MAP_KEY) {
   const spawn = map.spawns.find((s) => s.type === 'player');
   if (!spawn) throw new Error(`sandbox: map '${map.name}' has no player spawn`);
-  return { ticks: 0, map: key, player: createPlayer(spawn.x + 0.5, spawn.y) };
+  // `pointer`: player 1's last mouse position ({ x, y }, canvas CSS px) or null. `aimSource`: what
+  // last changed player 1's aim, 'mouse' (the pointer moved) or 'stick', or null before either.
+  return { ticks: 0, map: key, player: createPlayer(spawn.x + 0.5, spawn.y), pointer: null, aimSource: null };
 }
 
 // `tiles` is the tile map (not part of the state).
 export function tickSandbox(state, inputs, dt, tiles) {
-  stepPlayer(state.player, inputs[0], tiles, dt);
+  const frame = inputs[0];
+  if (frame?.connected) {
+    if (frame.pointer) state.pointer = { x: frame.pointer.x, y: frame.pointer.y };
+    if (frame.pointer?.moved) state.aimSource = 'mouse';
+    else if (Number.isFinite(frame.aim) && frame.aim !== state.player.aim) state.aimSource = 'stick';
+  }
+  stepPlayer(state.player, frame, tiles, dt);
   state.ticks += 1;
   return state;
 }
@@ -160,11 +177,18 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       const headY = player.y + MOVE.height; // top centre of the box
       const active = viewMode.mode() === '2d' ? flat : deep;
       const { camera } = active;
-      // The camera follows the player's centre plus the offset, and always looks straight ahead
-      // (along -z, no rotation), so moving it moves its look target too.
+      // Camera: rest = head + offset; with a mouse aim, plus the aim-follow shift. The aim point is
+      // the mouse projected through a camera at the rest position, never the actual camera (that
+      // would chase itself). No smoothing: the camera snaps there every frame and always looks
+      // straight along -z (no rotation), so its look target moves with it.
       const offset = viewMode.offset();
-      const camX = player.x + offset.x;
-      const camY = centreY + offset.y;
+      const head = { x: player.x, y: headY };
+      const rest = { x: head.x + offset.x, y: head.y + offset.y };
+      const mouse = state.aimSource === 'mouse' && state.pointer ? state.pointer : null;
+      let shift = { x: 0, y: 0 };
+      if (mouse) shift = cameraShift(head, screenToPlane(rest, mouse, view.width, view.height, tilesHigh), viewMode.follow());
+      const camX = rest.x + shift.x;
+      const camY = rest.y + shift.y;
       if (active === flat) {
         fitOrtho(camera, view, tilesHigh / 2);
         camera.position.set(camX, camY, 0);
@@ -184,9 +208,17 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       const { body, aim } = active.player;
       body.position.set(player.x, centreY, body.position.z);
       aim.position.set(player.x, headY, aim.position.z);
-      aim.rotation.z = player.aim;
-      // Mouse aim is measured from the head. The view centre is the camera position and the play
-      // plane shows `tilesHigh` tiles in both views, so this mapping holds for both.
+      // The aim line points at the mouse's true world position: the pointer projected through the
+      // actual camera. With a stick (or before the mouse moves) it uses the input's aim angle.
+      if (mouse) {
+        const target = screenToPlane({ x: camX, y: camY }, mouse, view.width, view.height, tilesHigh);
+        aim.rotation.z = Math.atan2(target.y - headY, target.x - player.x);
+      } else {
+        aim.rotation.z = player.aim;
+      }
+      // The input system measures frame.aim from the head's position on screen under the actual
+      // camera, so the camera shift does not offset it. The view centre is the camera position and
+      // the play plane shows `tilesHigh` tiles in both views, so this mapping holds for both.
       const pxPerTile = view.height / tilesHigh;
       view.setAimOrigin(0, view.width / 2 + (player.x - camera.position.x) * pxPerTile, view.height / 2 - (headY - camera.position.y) * pxPerTile);
       view.renderer.render(active.scene, camera);

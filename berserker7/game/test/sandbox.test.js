@@ -13,7 +13,7 @@ import {
 } from '../src/scenes/sandbox.js';
 import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/tile-texture.js';
 import { NearestFilter } from 'three';
-import { DEPTH_CUBE_SPACING, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
+import { DEPTH_CUBE_SPACING, cameraShift, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { MOVE } from '../src/world/player.js';
 import { frame } from './frames.js';
@@ -25,7 +25,7 @@ const map = loadGridMap(json());
 test('initSandbox: plain state, the player stands at the first player spawn', () => {
   const state = initSandbox(map);
   const spawn = map.spawns.find((s) => s.type === 'player');
-  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0 } });
+  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0 }, pointer: null, aimSource: null });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
 });
@@ -42,7 +42,7 @@ test('tickSandbox: player 1 input moves the player, ticks count, the state stays
   assert.equal(state.ticks, 61);
 });
 
-test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the player centre', async () => {
+test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the player head', async () => {
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = camera) };
   const scene = createSandbox({ viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json() });
@@ -54,13 +54,13 @@ test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the pla
   scene.draw(state, { renderer, width: 800, height: 600, setAimOrigin: (...args) => origins.push(args) });
   assert.equal(rendered.top - rendered.bottom, CAMERA_TILES_HIGH);
   assert.equal(rendered.right - rendered.left, (CAMERA_TILES_HIGH * 800) / 600);
-  assert.deepEqual([rendered.position.x, rendered.position.y], [10, 5 + MOVE.height / 2]);
-  // Aim origin: the head (top centre of the box), MOVE.height / 2 tiles above the view centre.
+  assert.deepEqual([rendered.position.x, rendered.position.y], [10, 5 + MOVE.height]);
+  // Aim origin: the head (top centre of the box), at the view centre.
   const tilePx = 600 / CAMERA_TILES_HIGH;
   assert.equal(origins.length, 1);
   const [player, px, py] = origins[0];
   assert.deepEqual([player, px], [0, 400]);
-  assert.ok(Math.abs(py - (300 - (MOVE.height / 2) * tilePx)) < 1e-9, `py ${py}`);
+  assert.ok(Math.abs(py - 300) < 1e-9, `py ${py} (${tilePx} px per tile)`);
 });
 
 test('sandbox scene: ticks while uncovered, draws when covered, suspends on leave', () => {
@@ -138,9 +138,9 @@ test('sandbox draw 2.5D: the play plane shows the zoom height at any FOV, live m
     assert.ok(Math.abs(2 * d * Math.tan((rendered.fov * Math.PI) / 360) - zoom.get()) < 1e-9, `fov ${fov}`);
     assert.ok(rendered.near < d - 1.5 && rendered.far > d + 1.5, 'cubes at z ±1.5 not clipped');
   }
-  // Same aim origin as in 2D: head MOVE.height / 2 above the view centre.
+  // Same aim origin as in 2D: the head, at the view centre.
   assert.deepEqual(origins.at(-1).slice(0, 2), [0, 400]);
-  assert.ok(Math.abs(origins.at(-1)[2] - (300 - (MOVE.height / 2) * (600 / zoom.get()))) < 1e-9);
+  assert.ok(Math.abs(origins.at(-1)[2] - 300) < 1e-9);
   viewMode.setMode('2d');
   scene.draw(state, view);
   assert.equal(rendered.isOrthographicCamera, true);
@@ -175,7 +175,43 @@ test('camera offset: ±4 tiles in 0.25 steps; the camera moves with it in both v
     v.setMode(mode);
     scene.draw(state, view);
     assert.equal(rendered.position.x, state.player.x + 1.25, mode);
-    assert.equal(rendered.position.y, state.player.y + MOVE.height / 2 - 4, mode);
+    assert.equal(rendered.position.y, state.player.y + MOVE.height - 4, mode);
     assert.deepEqual([rendered.rotation.x, rendered.rotation.y, rendered.rotation.z], [0, 0, 0], mode);
+  }
+});
+
+test('cameraShift: follow fraction, dead zone, max length, then x / y scale', () => {
+  const head = { x: 0, y: 0 };
+  const base = { follow: 0.5, min: 0, max: 8, scaleX: 1, scaleY: 1 };
+  assert.deepEqual(cameraShift(head, { x: 6, y: 8 }, base), { x: 3, y: 4 });
+  assert.deepEqual(cameraShift(head, { x: 6, y: 8 }, { ...base, min: 6 }), { x: 0, y: 0 });
+  const capped = cameraShift(head, { x: 60, y: 80 }, { ...base, max: 5 });
+  assert.ok(Math.abs(capped.x - 3) < 1e-9 && Math.abs(capped.y - 4) < 1e-9);
+  assert.deepEqual(cameraShift(head, { x: 6, y: 8 }, { ...base, scaleX: 2, scaleY: 0 }), { x: 6, y: 0 });
+});
+
+test('aim follow: the camera is stable frame to frame (rest-camera projection) and the aim line hits the mouse', async () => {
+  let rendered;
+  const renderer = { render: (scene, camera) => (rendered = camera) };
+  const viewMode = createViewMode();
+  viewMode.setFollow('follow', 1);
+  viewMode.setFollow('max', 20);
+  const scene = createSandbox({ viewMode, fetchJson: async () => json() });
+  await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
+  const state = scene.enter();
+  state.pointer = { x: 700, y: 150 };
+  state.aimSource = 'mouse';
+  const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
+  for (const mode of ['2d', '2.5d']) {
+    viewMode.setMode(mode);
+    scene.draw(state, view);
+    const first = [rendered.position.x, rendered.position.y];
+    for (let i = 0; i < 5; i++) scene.draw(state, view);
+    assert.deepEqual([rendered.position.x, rendered.position.y], first, `${mode}: no feedback`);
+    // follow 1: the camera centres on the mouse's rest-camera aim point: 300 px right, 150 px up.
+    const tilesPerPx = CAMERA_TILES_HIGH / 600;
+    const headY = state.player.y + MOVE.height;
+    assert.ok(Math.abs(first[0] - (state.player.x + 300 * tilesPerPx)) < 1e-9, mode);
+    assert.ok(Math.abs(first[1] - (headY + 150 * tilesPerPx)) < 1e-9, mode);
   }
 });
