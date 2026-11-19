@@ -3,7 +3,8 @@
 //
 // Stable hooks for browser scripts:
 //   #b7-debug, #b7-debug-toggle, #b7-debug-body (hidden at start)
-//   button[data-action="..."]           see ACTIONS below (reset-settings: settings.reset())
+//   button[data-action="..."]           see ACTIONS below (reset-settings: settings.reset();
+//                                       go-online: "Go online" / "Go offline" / "Leave game")
 //   [data-value="..."]                  frame-ms, work-ms, steps, long-frame, play-mode,
 //                                       layers, transition, geometries, textures, assets,
 //                                       settings (JSON of settings.get()), session (JSON or none)
@@ -19,9 +20,16 @@
 //                                       camera offset from the followed point, tiles
 //     #b7-follow-<key> (range), [data-value="follow-<key>"]  camera aim-follow settings
 //                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleYUp, scaleYDown)
+//   .b7-net (always shown): network section, refreshed with the panel
+//     [data-value="room-code"]               the room code while hosting
+//     button[data-action="copy-invite"]      copies the invite link (shown while hosting)
+//     [data-value="invite-link"]             the invite link text (selected when copying fails)
+//     [data-value="net-<key>"]               role, code, state, ping, offset, msgs-in, msgs-out,
+//                                            bytes-in, bytes-out (per second), lag
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
+import { inviteUrl } from '../net/room-code.js';
 
 const ACTIONS = [
   ['main-menu', 'Main menu'],
@@ -32,7 +40,7 @@ const ACTIONS = [
   ['suspend', 'Suspend main'],
   ['unload', 'Unload main'],
   ['snapshot', 'Snapshot-leave main'],
-  ['play-mode', 'Play mode: go online'],
+  ['go-online', 'Go online'],
   ['slow-frame', 'Simulate slow frame (1 s)'],
   ['slow-scene', 'Switch to slow scene'],
   ['fail-slow', 'Fail slow scene\'s next load'],
@@ -53,6 +61,22 @@ const VALUES = [
   ['settings', 'settings'],
   ['session', 'session'],
 ];
+
+// Network section values: [key, label].
+const NET_VALUES = [
+  ['role', 'role'],
+  ['code', 'room code'],
+  ['state', 'state'],
+  ['ping', 'ping'],
+  ['offset', 'tick offset'],
+  ['msgs-in', 'msgs in /s'],
+  ['msgs-out', 'msgs out /s'],
+  ['bytes-in', 'bytes in /s'],
+  ['bytes-out', 'bytes out /s'],
+  ['lag', 'added lag'],
+];
+// Session state -> what the panel shows.
+const NET_STATES = { idle: 'offline', creating: 'creating room', waiting: 'waiting', joined: 'guest joined', left: 'guest left', failed: 'failed', connecting: 'connecting', connected: 'connected', ended: 'ended' };
 
 const FIELDS = ['layer', 'life', 'settings', 'ticks', 'left', 'back', 'error'];
 const SLOW_FRAME_MS = 1000;
@@ -84,6 +108,13 @@ const STYLE = `
 #b7-debug .b7-modes button { flex: 1; padding: 4px; font: inherit; color: #eee; background: #333b50;
   border: 1px solid #556; border-radius: 3px; cursor: pointer; }
 #b7-debug .b7-modes button[aria-pressed="true"] { background: #4f6290; border-color: #8aa; }
+#b7-debug .b7-net { padding: 4px 0 6px; border-top: 1px solid #333; }
+#b7-debug .b7-net-room { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+#b7-debug .b7-net-room[hidden] { display: none; }
+#b7-debug .b7-net-room b { font-size: 16px; letter-spacing: 2px; }
+#b7-debug .b7-net-room button { padding: 3px 6px; font: inherit; color: #eee; background: #333b50;
+  border: 1px solid #556; border-radius: 3px; cursor: pointer; }
+#b7-debug [data-value="invite-link"] { display: block; margin-bottom: 4px; overflow-wrap: anywhere; color: #999; }
 `;
 
 // True for elements that take typed text ([ and ] are left alone there). A range slider is not one.
@@ -105,7 +136,23 @@ function hash(text) {
 // `sandboxZoom` and `sandboxViewMode` (optional) are the Sandbox camera's view height holder
 // (createCameraZoom) and its view mode and FOV holder (createViewMode).
 // `sandboxMap` (optional) is the Sandbox map choice (createMapChoice).
-export function mountPanel({ harness, renderer, assets, settings, session, sandboxZoom = null, sandboxViewMode = null, sandboxMap = null, parent = document.body }) {
+// `net` (optional) is the net session (net/session.js) and `transport` the transport it hosts
+// with. A guest's "Leave game" ends the session; main.js takes the guest back to the main menu.
+export function mountPanel({
+  harness,
+  renderer,
+  assets,
+  settings,
+  session,
+  sandboxZoom = null,
+  sandboxViewMode = null,
+  sandboxMap = null,
+  net = null,
+  transport = null,
+  location = window.location,
+  clipboard = navigator.clipboard,
+  parent = document.body,
+}) {
   const style = document.createElement('style');
   style.textContent = STYLE;
   document.head.append(style);
@@ -146,6 +193,12 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
           <input id="b7-follow-${key}" data-follow="${key}" type="range" min="${min}" max="${max}" step="${step}">
           <span data-value="follow-${key}"></span></label>`,
         ).join('')}
+      </div>
+      <div class="b7-net">
+        <div class="b7-net-room" hidden>Room <b data-value="room-code"></b>
+          <button type="button" data-action="copy-invite">Copy invite link</button></div>
+        <span data-value="invite-link"></span>
+        <dl>${NET_VALUES.map(([key, label]) => `<dt>${label}</dt><dd data-value="net-${key}"></dd>`).join('')}</dl>
       </div>
       <dl>${VALUES.map(([key, label]) => `<dt>${label}</dt><dd data-value="${key}"></dd>`).join('')}</dl>
       <div class="b7-scenes">${ids
@@ -209,8 +262,17 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
     suspend: () => leaveOrReturn('suspend'),
     unload: () => leaveOrReturn('unload'),
     snapshot: () => leaveOrReturn('snapshot'),
-    'play-mode'() {
-      harness.setPlayMode(harness.playMode === 'local' ? 'online' : 'local');
+    // Offline: host a room (play mode online). Host: stop hosting (play mode local). Guest: leave
+    // the game (main.js takes the guest back to the main menu).
+    'go-online'() {
+      if (!net) return;
+      if (net.role() === null) {
+        net.host({ transport });
+        harness.setPlayMode('online');
+      } else {
+        net.leave();
+        harness.setPlayMode('local');
+      }
     },
     'slow-frame'() {
       // Block the main thread, so the next frame's real frame time is large.
@@ -227,6 +289,30 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
     },
     'reset-settings': () => settings.reset(),
   };
+
+  // The invite link: the clipboard, or else the link text selected for a manual copy.
+  const inviteText = root.querySelector('[data-value="invite-link"]');
+  const copyButton = root.querySelector('[data-action="copy-invite"]');
+  const selectInvite = () => {
+    const range = document.createRange();
+    range.selectNodeContents(inviteText);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+  copyButton.addEventListener('click', () => {
+    copyButton.blur();
+    const link = inviteText.textContent;
+    if (!link) return;
+    const copied = clipboard?.writeText ? clipboard.writeText(link) : Promise.reject(new Error('no clipboard'));
+    copied.then(
+      () => {
+        copyButton.textContent = 'Copied';
+        setTimeout(() => (copyButton.textContent = 'Copy invite link'), 1500);
+      },
+      selectInvite,
+    );
+  });
 
   // Each button gives up focus after a click, so Space and other keys go to the game.
   for (const [action] of ACTIONS) button(action).addEventListener('click', (e) => {
@@ -360,11 +446,36 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
     button('fail-slow').textContent = harness.records.get('slow').scene.debug.failNextLoad
       ? 'Slow scene\'s next load fails: on'
       : 'Fail slow scene\'s next load';
-    button('play-mode').textContent = harness.playMode === 'local' ? 'Play mode: go online' : 'Play mode: go local';
+    const role = net?.role() ?? null;
+    button('go-online').textContent = role === 'host' ? 'Go offline' : role === 'guest' ? 'Leave game' : 'Go online';
+    button('go-online').disabled = !net;
+  }
+
+  function refreshNet() {
+    const stats = net?.stats() ?? null;
+    const hosting = stats?.role === 'host' && stats.code !== null;
+    root.querySelector('.b7-net-room').hidden = !hosting;
+    setValue('room-code', hosting ? stats.code : '');
+    inviteText.textContent = hosting ? inviteUrl(location.href, stats.code) : '';
+    const dash = '—';
+    const text = {
+      role: stats?.role ?? 'none',
+      code: stats?.code ?? dash,
+      state: stats ? `${NET_STATES[stats.state] ?? stats.state}${stats.reason ? ` (${stats.reason})` : ''}` : dash,
+      ping: stats?.pingMs != null ? `${stats.pingMs.toFixed(0)} ms` : dash,
+      offset: stats?.pingMs != null ? `${stats.offsetTicks.toFixed(1)} ticks` : dash,
+      'msgs-in': stats ? String(stats.msgsIn) : dash,
+      'msgs-out': stats ? String(stats.msgsOut) : dash,
+      'bytes-in': stats ? String(stats.bytesIn) : dash,
+      'bytes-out': stats ? String(stats.bytesOut) : dash,
+      lag: stats ? `${stats.lagMs} ms per send` : dash,
+    };
+    for (const [key] of NET_VALUES) setValue(`net-${key}`, text[key]);
   }
 
   function refresh() {
     refreshButtons();
+    refreshNet();
     sandboxRow.hidden = !sandboxZoom || harness.layers.main !== 'sandbox';
     showZoom();
     const { layers, lastLongFrame: long, transition: tr } = harness;

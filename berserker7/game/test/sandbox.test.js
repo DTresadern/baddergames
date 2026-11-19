@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import {
+  OFFLINE_NET,
+  PLAYER_COLORS,
   createSandbox,
   createCameraZoom,
   CAMERA_TILES_HIGH,
@@ -17,7 +19,7 @@ import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/ti
 import { NearestFilter } from 'three';
 import { DEPTH_CUBE_SPACING, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { loadGridMap } from '../src/world/grid-map.js';
-import { PLAYER_SIZE, playerHeight } from '../src/world/player.js';
+import { PLAYER_SIZE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
 import { frame } from './frames.js';
 import { STEP } from './fakes.js';
 
@@ -27,18 +29,29 @@ const map = loadGridMap(json());
 test('initSandbox: plain state, the player stands at the first player spawn', () => {
   const state = initSandbox(map);
   const spawn = map.spawns.find((s) => s.type === 'player');
-  assert.deepEqual(state, { ticks: 0, map: MAP_KEY, player: { x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE } }, pointer: null, aimSource: null, spawn: { x: spawn.x + 0.5, y: spawn.y }, fallY: -10, camera: { x: spawn.x + 0.5, y: spawn.y + PLAYER_SIZE.height } });
+  assert.deepEqual(state, {
+    ticks: 0,
+    map: MAP_KEY,
+    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE } }],
+    localSlot: 0,
+    pointer: null,
+    aimSource: null,
+    spawn: { x: spawn.x + 0.5, y: spawn.y },
+    fallY: -10,
+    size: { ...PLAYER_SIZE },
+    camera: { x: spawn.x + 0.5, y: spawn.y + PLAYER_SIZE.height },
+  });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
 });
 
 test('tickSandbox: player 1 input moves the player, ticks count, the state stays cloneable', () => {
   const state = initSandbox(map);
-  const start = state.player.x;
+  const start = state.players[0].x;
   for (let i = 0; i < 60; i++) tickSandbox(state, [frame(['moveRight'])], STEP, map.tiles);
   assert.equal(state.ticks, 60);
-  assert.ok(state.player.x > start + 1);
-  assert.equal(state.player.onGround, true);
+  assert.ok(state.players[0].x > start + 1);
+  assert.equal(state.players[0].onGround, true);
   assert.deepEqual(structuredClone(state), state);
   tickSandbox(state, [], STEP, map.tiles); // no input frames: no throw
   assert.equal(state.ticks, 61);
@@ -50,8 +63,8 @@ test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the pla
   const scene = createSandbox({ viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
-  state.player.x = 10;
-  state.player.y = 5;
+  state.players[0].x = 10;
+  state.players[0].y = 5;
   snapCamera(state);
   const origins = [];
   scene.draw(state, { renderer, width: 800, height: 600, setAimOrigin: (...args) => origins.push(args) });
@@ -177,8 +190,8 @@ test('camera offset: ±4 tiles in 0.25 steps; the camera moves with it in both v
   for (const mode of ['2d', '2.5d']) {
     v.setMode(mode);
     scene.draw(state, view);
-    assert.equal(rendered.position.x, state.player.x + 1.25, mode);
-    assert.equal(rendered.position.y, state.player.y + PLAYER_SIZE.height - 4, mode);
+    assert.equal(rendered.position.x, state.players[0].x + 1.25, mode);
+    assert.equal(rendered.position.y, state.players[0].y + PLAYER_SIZE.height - 4, mode);
     assert.deepEqual([rendered.rotation.x, rendered.rotation.y, rendered.rotation.z], [0, 0, 0], mode);
   }
 });
@@ -229,8 +242,8 @@ test('aim follow: the camera is stable frame to frame (rest-camera projection) a
     assert.deepEqual([rendered.position.x, rendered.position.y], first, `${mode}: no feedback`);
     // follow 1: the camera centres on the mouse's rest-camera aim point: 300 px right, 150 px up.
     const tilesPerPx = CAMERA_TILES_HIGH / 600;
-    const headY = state.player.y + PLAYER_SIZE.height;
-    assert.ok(Math.abs(first[0] - (state.player.x + 300 * tilesPerPx)) < 1e-9, mode);
+    const headY = state.players[0].y + PLAYER_SIZE.height;
+    assert.ok(Math.abs(first[0] - (state.players[0].x + 300 * tilesPerPx)) < 1e-9, mode);
     assert.ok(Math.abs(first[1] - (headY + 150 * tilesPerPx)) < 1e-9, mode);
   }
 });
@@ -282,13 +295,13 @@ test('camera smoothing: half-life 0 snaps to the head; above 0 it converges, ind
     for (let i = 0; i < ticks; i++) tickSandbox(state, [frame(held)], STEP, map.tiles, halfLife);
   };
   run(60, 0, ['moveRight']);
-  assert.deepEqual(state.camera, { x: state.player.x, y: state.player.y + PLAYER_SIZE.height });
+  assert.deepEqual(state.camera, { x: state.players[0].x, y: state.players[0].y + PLAYER_SIZE.height });
   run(10, 0.1, ['moveRight']);
-  assert.ok(state.camera.x < state.player.x, 'lags behind while moving');
+  assert.ok(state.camera.x < state.players[0].x, 'lags behind while moving');
   run(120, 0.1);
-  assert.ok(Math.abs(state.camera.x - state.player.x) < 1e-3, 'catches up when the player stops');
+  assert.ok(Math.abs(state.camera.x - state.players[0].x) < 1e-3, 'catches up when the player stops');
   state.camera = { x: -100, y: -100 };
-  state.player.y = state.fallY - 1;
+  state.players[0].y = state.fallY - 1;
   run(1, 0.1);
   assert.deepEqual(state.camera, { x: state.spawn.x, y: state.spawn.y + PLAYER_SIZE.height });
 });
@@ -296,16 +309,16 @@ test('camera smoothing: half-life 0 snaps to the head; above 0 it converges, ind
 test('initSandbox: the map\'s player size sets the height, crouch height and head; no field gives 2 / 1', () => {
   const sized = loadGridMap({ ...json(), player: { width: 1, height: 1.5, crouchHeight: 0.75 } });
   const state = initSandbox(sized);
-  assert.equal(playerHeight(state.player), 1.5);
-  state.player.crouching = true;
-  assert.equal(playerHeight(state.player), 0.75);
-  state.player.crouching = false;
-  assert.equal(playerHead(state.player).y, state.player.y + 1.5);
-  assert.deepEqual(state.camera, { x: state.player.x, y: state.player.y + 1.5 });
+  assert.equal(playerHeight(state.players[0]), 1.5);
+  state.players[0].crouching = true;
+  assert.equal(playerHeight(state.players[0]), 0.75);
+  state.players[0].crouching = false;
+  assert.equal(playerHead(state.players[0]).y, state.players[0].y + 1.5);
+  assert.deepEqual(state.camera, { x: state.players[0].x, y: state.players[0].y + 1.5 });
   const plain = initSandbox(map);
-  assert.equal(playerHeight(plain.player), 2);
-  plain.player.crouching = true;
-  assert.equal(playerHeight(plain.player), 1);
+  assert.equal(playerHeight(plain.players[0]), 2);
+  plain.players[0].crouching = true;
+  assert.equal(playerHeight(plain.players[0]), 1);
 });
 
 test('grid: the toggle swaps the level textures from checkerboard to grid, in both views; grid pixels', async () => {
@@ -334,4 +347,102 @@ test('grid: the toggle swaps the level textures from checkerboard to grid, in bo
     scene.draw(state, view);
     assert.deepEqual(textures(), new Set(['grid']), mode);
   }
+});
+
+// A net view for tests: fixed role and slot, a settable peer, and queued snapshots.
+function fakeNet({ role = null, slot = 0, peer = false } = {}) {
+  const net = {
+    peer,
+    snapshots: [],
+    history: [],
+    remote: null,
+    role: () => role,
+    localSlot: () => slot,
+    peerPresent: () => net.peer,
+    takeSnapshot: () => net.snapshots.shift() ?? null,
+    inputsAfter: (ack) => net.history.filter((e) => e.tick > ack),
+    remotePlayer: () => net.remote,
+  };
+  return net;
+}
+
+test('tickSandbox: offline and host without a peer have one player; local gamepad player 2 is not played', () => {
+  const state = initSandbox(map);
+  tickSandbox(state, [frame([]), frame(['moveRight'])], STEP, map.tiles, 0, OFFLINE_NET);
+  assert.equal(state.players.length, 1);
+  tickSandbox(state, [frame([]), frame(['moveRight'])], STEP, map.tiles, 0, fakeNet({ role: 'host' }));
+  assert.equal(state.players.length, 1);
+});
+
+test('tickSandbox: a host with a peer steps slot 1 from inputs[1]; slot 1 goes when the peer leaves', () => {
+  const state = initSandbox(map);
+  const net = fakeNet({ role: 'host', peer: true });
+  for (let i = 0; i < 30; i++) tickSandbox(state, [frame([]), { ...frame(['moveRight']), player: 1 }], STEP, map.tiles, 0, net);
+  assert.equal(state.players.length, 2);
+  assert.equal(state.players[0].x, state.spawn.x, 'player 1 did not move');
+  assert.ok(state.players[1].x > state.spawn.x + 1, 'player 2 moved right');
+  assert.deepEqual(state.players[1].size, state.size);
+  assert.equal(state.localSlot, 0);
+  assert.deepEqual(state.camera, { x: state.players[0].x, y: state.players[0].y + PLAYER_SIZE.height }, 'the camera follows player 1');
+  assert.deepEqual(structuredClone(state), state);
+  net.peer = false;
+  tickSandbox(state, [frame([]), frame([])], STEP, map.tiles, 0, net);
+  assert.equal(state.players.length, 1);
+  // A new peer starts at the spawn.
+  net.peer = true;
+  tickSandbox(state, [frame([]), frame([])], STEP, map.tiles, 0, net);
+  assert.equal(state.players[1].x, state.spawn.x);
+});
+
+test('tickSandbox: a guest reconciles its player from the snapshot plus replayed inputs; slot 0 is the remote player', () => {
+  const net = fakeNet({ role: 'guest', slot: 1 });
+  const state = initSandbox(map);
+  tickSandbox(state, [frame([])], STEP, map.tiles, 0, net);
+  assert.deepEqual([state.localSlot, state.players.length], [1, 2], 'a slot change starts the state again');
+  // Without a snapshot the own player is predicted from inputs[0].
+  const before = state.players[1].x;
+  tickSandbox(state, [frame(['moveRight'])], STEP, map.tiles, 0, net);
+  assert.ok(state.players[1].x > before);
+  // With one: the snapshot's player plus the inputs after its ack, the current tick's included.
+  const confirmed = { x: 20.5, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0 };
+  net.history = [5, 6, 7, 8].map((tick) => ({ tick, frame: frame(['moveRight']) }));
+  net.snapshots.push({ tick: 100, ack: 6, players: [{ ...confirmed, x: 3.5 }, confirmed] });
+  net.remote = { ...confirmed, x: 3.5, aim: 1 };
+  tickSandbox(state, [frame(['moveRight'])], STEP, map.tiles, 0, net);
+  const expected = createPlayer(20.5, 2, state.size);
+  Object.assign(expected, { onGround: true });
+  stepPlayer(expected, frame(['moveRight']), map.tiles, STEP);
+  stepPlayer(expected, frame(['moveRight']), map.tiles, STEP);
+  assert.deepEqual(state.players[1], expected);
+  assert.deepEqual(state.players[0], { ...net.remote, size: state.size });
+  assert.deepEqual(state.camera, { x: expected.x, y: expected.y + PLAYER_SIZE.height }, 'the camera follows the local slot');
+  // No remote player this tick: the previous one stays.
+  net.remote = null;
+  tickSandbox(state, [frame([])], STEP, map.tiles, 0, net);
+  assert.equal(state.players[0].x, 3.5);
+  // Back offline: one fresh player in slot 0.
+  tickSandbox(state, [frame([])], STEP, map.tiles, 0, OFFLINE_NET);
+  assert.deepEqual([state.localSlot, state.players.length, state.players[0].x], [0, 1, state.spawn.x]);
+});
+
+test('sandbox draw: one body per player in its colour; absent slots hidden; aim origin is the local head', async () => {
+  let rendered;
+  const renderer = { render: (scene, camera) => (rendered = { scene, camera }) };
+  const net = fakeNet({ role: 'host' });
+  const scene = createSandbox({ viewMode: createViewMode({ mode: '2d' }), net, fetchJson: async () => json() });
+  await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
+  const state = scene.enter();
+  const origins = [];
+  const view = { renderer, width: 800, height: 600, setAimOrigin: (...a) => origins.push(a) };
+  const bodies = () => rendered.scene.children.filter((o) => o.isMesh && !o.isInstancedMesh && PLAYER_COLORS.includes(o.material.color?.getHex()));
+  scene.draw(state, view);
+  assert.deepEqual(bodies().map((b) => [b.material.color.getHex(), b.visible]), [[PLAYER_COLORS[0], true], [PLAYER_COLORS[1], false]]);
+  net.peer = true;
+  tickSandbox(state, [frame([]), frame([])], STEP, map.tiles, 0, net);
+  state.players[1].x = 30;
+  scene.draw(state, view);
+  assert.deepEqual(bodies().map((b) => [b.visible, b.position.x]), [[true, state.players[0].x], [true, 30]]);
+  assert.equal(origins.at(-1)[0], 0);
+  assert.equal(origins.at(-1)[1], 400, 'the local player is at the view centre');
+  assert.notEqual(PLAYER_COLORS[0], PLAYER_COLORS[1]);
 });

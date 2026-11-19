@@ -47,7 +47,13 @@ test('panelSize: capped at 480 x 560, else 90% width and 80% height', () => {
 });
 
 function fakeScreens(calls, fading = () => false) {
-  return { openNewGame: () => calls.push(['open']), closeNewGame: () => calls.push(['close']), fading };
+  return {
+    openNewGame: () => calls.push(['open']),
+    closeNewGame: () => calls.push(['close']),
+    openJoin: () => calls.push(['openJoin']),
+    closeJoin: () => calls.push(['closeJoin']),
+    fading,
+  };
 }
 
 // A menu state whose panel has finished opening.
@@ -56,7 +62,7 @@ function openState(state = initMainMenu()) {
   return state;
 }
 
-test('main menu: music plays on enter and resume, stops on suspend and exit; suspend and exit close New Game', () => {
+test('main menu: music plays on enter and resume, stops on suspend and exit; suspend and exit close New Game and Join', () => {
   const MUSIC_URL = assetByKey('music.title').path;
   const calls = [];
   const music = { play: (url) => calls.push(['play', url]), stop: () => calls.push(['stop']) };
@@ -66,11 +72,11 @@ test('main menu: music plays on enter and resume, stops on suspend and exit; sus
   menu.resume();
   menu.exit();
   assert.deepStrictEqual(calls, [
-    ['play', MUSIC_URL], ['stop'], ['close'], ['play', MUSIC_URL], ['stop'], ['close'],
+    ['play', MUSIC_URL], ['stop'], ['close'], ['closeJoin'], ['play', MUSIC_URL], ['stop'], ['close'], ['closeJoin'],
   ]);
 });
 
-test('main menu: selecting New Game opens the screen once; other items do not; it does not pause', () => {
+test('main menu: New Game opens its screen once, Multiplayer opens Join once, Options does nothing; it does not pause', () => {
   const calls = [];
   const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls), poster: 'poster.classic' });
   assert.equal(menu.settings.pausable, false);
@@ -80,9 +86,12 @@ test('main menu: selecting New Game opens the screen once; other items do not; i
   menu.tick(state, [frame([])]);
   assert.equal(calls.length, 1, 'only on the tick that selects');
   menu.tick(state, [frame(['moveDown', 'jump'])]);
+  assert.deepStrictEqual([state.selected, state.request], ['Multiplayer', 'multiplayer']);
+  assert.deepStrictEqual(calls, [['open'], ['openJoin']]);
+  menu.tick(state, [frame([])]);
   menu.tick(state, [frame(['moveDown', 'jump'])]);
   assert.deepStrictEqual(state.selected, 'Options');
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
 });
 
 test('main menu: a later selection by another player in the same tick does not cancel New Game', () => {
