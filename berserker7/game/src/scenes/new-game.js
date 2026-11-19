@@ -1,14 +1,17 @@
 // New Game screen: the poster, four campaign cards and a difficulty list for the selected
 // campaign, plus a Back item. It opens on the last choice saved in the settings. Selecting a
-// difficulty creates the session, saves the last choice, then closes this overlay and fades to the
-// Sandbox (screens.startGame); difficulty has no effect yet. It is an overlay over the main menu,
-// so the title music is not interrupted while it is open.
+// difficulty creates the session and saves the last choice, closes its boxes (see panel-anim.js),
+// waits START_DELAY_SECONDS, then calls screens.startGame (the fade to the Sandbox); difficulty has
+// no effect yet. It is an overlay over the main menu, so the title music is not interrupted while
+// it is open. The overlay stays open during the fade; the main menu's suspend closes it.
 
 import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneGeometry, Scene } from 'three';
 import { CAMPAIGNS, DEFAULT_DIFFICULTY, DIFFICULTIES } from '../data/campaigns.js';
 import { labelTexture } from './labels.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
 import { checkPoster, coverSize } from './poster.js';
+import { STEP_SECONDS } from '../engine/clock.js';
+import { CLOSE_SECONDS, animRect, closingAt } from './panel-anim.js';
 import { createSession } from '../session.js';
 import { fitOrtho, inside, place } from './shared.js';
 
@@ -26,7 +29,9 @@ const MARGIN = 16; // minimum space between the block and the view edge
 const OUTLINE = 3;
 const DIM_OPACITY = 0.6;
 const UNAVAILABLE_OPACITY = 0.5;
+const BAR_OPACITY = 0.16;
 const CARD_FONT = 24;
+export const START_DELAY_SECONDS = 0.5; // after the boxes have closed, before startGame
 
 // Rectangles in canvas CSS px (top-left origin, y down). The whole block (cards, then list
 // panel) is scaled uniformly to fit the view and centred.
@@ -93,6 +98,7 @@ export function initNewGame(lastChoice) {
     selections: 0,
     request: null,
     start: null,
+    closing: null, // after a difficulty was selected: { t, started }
   };
 }
 
@@ -100,6 +106,8 @@ export function initNewGame(lastChoice) {
 // at any point in this tick (so a later selection in the same tick cannot cancel it), else null.
 // `start` is { campaign, difficulty } when a difficulty was selected in this tick (the last one
 // wins), else null; the scene's tick turns it into the session and the saved last choice.
+// `closing` is null until a difficulty is selected; from then on input is ignored, `closing.t` counts
+// up, and `request` becomes 'startGame' once, when t reaches CLOSE_SECONDS + START_DELAY_SECONDS.
 function select(state, id) {
   state.selected = id;
   state.selections += 1;
@@ -128,11 +136,24 @@ function applyFrame(state, { actions, pointer }) {
   }
 }
 
-export function tickNewGame(state, inputs = []) {
+export function tickNewGame(state, inputs = [], dt = STEP_SECONDS) {
   state.ticks += 1;
   state.request = null;
   state.start = null;
+  if (state.closing) {
+    state.closing.t += dt;
+    if (!state.closing.started && state.closing.t >= CLOSE_SECONDS + START_DELAY_SECONDS) {
+      state.closing.started = true;
+      state.request = 'startGame';
+    }
+    return state;
+  }
   for (const frame of inputs) if (frame.connected) applyFrame(state, frame);
+  if (state.start) {
+    // A selection wins over a Back in the same tick.
+    state.request = null;
+    state.closing = { t: 0, started: false };
+  }
   return state;
 }
 
@@ -183,7 +204,7 @@ export function createNewGame({
         material.opacity = CAMPAIGNS[i].available ? 1 : UNAVAILABLE_OPACITY;
       });
       panel = at(flat(0x000000, 0.85), 2);
-      bar = at(flat(0xffffff, 0.16), 3);
+      bar = at(flat(0xffffff, BAR_OPACITY), 3);
       lists = {};
       for (const c of CAMPAIGNS) {
         if (c.available) lists[c.id] = DIFFICULTIES.map((d) => text(c.difficultyNames[d], ITEM_WIDTH, ITEM_HEIGHT, 28, 4));
@@ -192,13 +213,13 @@ export function createNewGame({
       camera = new OrthographicCamera(-1, 1, 1, -1, -10, 10);
     },
     enter: () => initNewGame(settings.get().lastChoice),
-    tick(state, inputs) {
-      tickNewGame(state, inputs);
+    tick(state, inputs, dt) {
+      tickNewGame(state, inputs, dt);
       if (state.start) {
         session.set(createSession(state.start));
         settings.set({ lastChoice: { ...state.start } });
-        screens.startGame();
       }
+      if (state.request === 'startGame') screens.startGame();
       if (state.request === 'back') screens.closeNewGame();
       return state;
     },
@@ -209,21 +230,37 @@ export function createNewGame({
       poster.scale.set(cover.width, cover.height, 1);
       const layout = newGameLayout(width, height);
       const chosen = CAMPAIGNS.findIndex((c) => c.id === state.campaign);
+      // While closing, every box shrinks the same way and the items fade; width 0 hides a mesh.
+      const anim = state.closing ? closingAt(state.closing.t) : { width: 1, height: 1, items: 1 };
+      const fit = (mesh, rect) => {
+        mesh.visible = rect.width > 0 && rect.height > 0;
+        if (mesh.visible) place(mesh, rect, width, height);
+      };
+      const itemsVisible = anim.items > 0;
       layout.cards.forEach((rect, i) => {
-        const { fill, mesh } = cards[i];
-        place(fill, rect, width, height);
-        place(mesh, rect, width, height);
+        const { fill, mesh, material } = cards[i];
+        fit(fill, animRect(rect, anim));
+        mesh.visible = itemsVisible;
+        if (itemsVisible) place(mesh, rect, width, height);
+        material.opacity = (CAMPAIGNS[i].available ? 1 : UNAVAILABLE_OPACITY) * anim.items;
       });
-      const r = layout.cards[chosen];
-      place(outline, { x: r.x - OUTLINE, y: r.y - OUTLINE, width: r.width + 2 * OUTLINE, height: r.height + 2 * OUTLINE }, width, height);
-      place(panel, layout.list.panel, width, height);
-      place(bar, layout.list.items[state.highlight], width, height);
+      const r = animRect(layout.cards[chosen], anim);
+      fit(outline, { x: r.x - OUTLINE, y: r.y - OUTLINE, width: r.width + 2 * OUTLINE, height: r.height + 2 * OUTLINE });
+      if (r.width === 0) outline.visible = false;
+      fit(panel, animRect(layout.list.panel, anim));
+      bar.visible = itemsVisible;
+      if (itemsVisible) {
+        place(bar, layout.list.items[state.highlight], width, height);
+        bar.material.opacity = BAR_OPACITY * anim.items;
+      }
       const shown = lists[state.campaign] ?? [];
-      for (const group of Object.values(lists)) for (const l of group) l.mesh.visible = shown.includes(l);
+      for (const group of Object.values(lists)) for (const l of group) l.mesh.visible = itemsVisible && shown.includes(l);
       const slots = [...shown.map((l, i) => [l, i]), [back, LIST.length - 1]];
       for (const [l, i] of slots) {
+        l.mesh.visible = itemsVisible;
+        if (!itemsVisible) continue;
         place(l.mesh, layout.list.items[i], width, height);
-        l.material.opacity = i === state.highlight ? 1 : DIM_OPACITY;
+        l.material.opacity = (i === state.highlight ? 1 : DIM_OPACITY) * anim.items;
       }
       view.renderer.render(scene, camera);
     },
