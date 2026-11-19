@@ -120,7 +120,10 @@ export function createPeerTransport({ setTimeout: setTimer, clearTimeout: clearT
         if (closed) return;
         closed = true;
         guest?.channel.close();
-        peer?.destroy();
+        // Destroying the peer tears down the connection and loses a bye sent just before, so wait
+        // as the guest channel's close does. `closed` is already set, so nothing reacts meanwhile.
+        const p = peer;
+        if (p) setTimer(() => p.destroy(), REJECT_CLOSE_MS);
       },
     };
   }

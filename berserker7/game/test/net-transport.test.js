@@ -73,7 +73,10 @@ function fakePeerLib(clock, taken = new Set()) {
     }
     send(data) {
       const other = this.other;
-      clock.setTimeout(() => other.emit('data', data), 0);
+      // Destroying the sending peer tears down its connection: data still in flight is lost.
+      clock.setTimeout(() => {
+        if (!this.peer.destroyed) other.emit('data', data);
+      }, 0);
     }
     close() {
       if (!this.open) return;
@@ -90,6 +93,7 @@ function fakePeerLib(clock, taken = new Set()) {
       super();
       this.id = id;
       this.destroyed = false;
+      this.conns = [];
       clock.setTimeout(() => {
         if (taken.has(id) || peers.has(id)) this.emit('error', { type: 'unavailable-id' });
         else {
@@ -111,6 +115,8 @@ function fakePeerLib(clock, taken = new Set()) {
         mine.other = theirs;
         theirs.other = mine;
         mine.open = theirs.open = true;
+        this.conns.push(mine);
+        target.conns.push(theirs);
         target.emit('connection', theirs);
         clock.setTimeout(() => {
           theirs.emit('open');
@@ -125,6 +131,16 @@ function fakePeerLib(clock, taken = new Set()) {
     destroy() {
       this.destroyed = true;
       if (peers.get(this.id) === this) peers.delete(this.id);
+      // Destroying a peer closes its open connections, at both ends.
+      for (const conn of this.conns) {
+        if (!conn.open) continue;
+        conn.open = false;
+        conn.other.open = false;
+        clock.setTimeout(() => {
+          conn.emit('close');
+          conn.other.emit('close');
+        }, 0);
+      }
     }
   }
   return { FakePeer, peers };
@@ -175,6 +191,24 @@ test('peer transport: host retries a taken code; guest joins with raw serializat
   listen(third, thirdGot);
   await run(1000);
   assert.deepEqual(thirdGot.map((t) => (t === 'closed' ? t : decode(t))), [{ t: 'reject', reason: 'full' }, 'closed']);
+});
+
+test('peer transport: the host bye reaches the guest before the connection closes', async () => {
+  const { transport, run } = await peerSetup();
+  let hostChannel;
+  const hostHandle = transport.host({ makeCode: () => 'CCCCCC', onReady() {}, onGuest: (ch) => (hostChannel = ch), onError: assert.fail });
+  for (let i = 0; i < 5; i++) await run();
+  let guestChannel;
+  transport.join('CCCCCC', { onOpen: (ch) => (guestChannel = ch), onError: assert.fail });
+  for (let i = 0; i < 5; i++) await run();
+  assert.ok(hostChannel && guestChannel);
+  const got = [];
+  listen(guestChannel, got);
+  hostChannel.send('bye');
+  hostChannel.close();
+  hostHandle.close();
+  await run(1000);
+  assert.deepEqual(got, ['bye', 'closed']);
 });
 
 test('peer transport: an unknown code is not-found; no answer is timeout', async () => {

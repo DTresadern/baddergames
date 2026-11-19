@@ -46,13 +46,14 @@ test('panelSize: capped at 480 x 560, else 90% width and 80% height', () => {
   assert.deepStrictEqual(panelSize(1280, 500), { width: 480, height: 400 });
 });
 
-function fakeScreens(calls, fading = () => false) {
+function fakeScreens(calls, fading = () => false, overlayOpen = () => false) {
   return {
     openNewGame: () => calls.push(['open']),
     closeNewGame: () => calls.push(['close']),
     openJoin: () => calls.push(['openJoin']),
     closeJoin: () => calls.push(['closeJoin']),
     fading,
+    overlayOpen,
   };
 }
 
@@ -272,4 +273,37 @@ test('main menu: the scene tick passes screens.fading()', () => {
   fading = false;
   menu.tick(state, [], 1 / 60);
   assert.equal(state.open.phase, 'opening');
+});
+
+test('tickMainMenu: while covered no input is applied and nothing is requested', () => {
+  const frames = [
+    [frame(['jump'])],
+    [frame(['interact'])],
+    [frame(['primaryFire'], pointerAt(centre(0), false))],
+    [frame(['moveDown'], pointerAt(centre(1)))],
+  ];
+  for (const inputs of frames) {
+    const covered = tickMainMenu(openState(), inputs, undefined, { covered: true });
+    assert.deepEqual([covered.highlight, covered.selected, covered.selections, covered.request], [0, null, 0, null]);
+    const free = tickMainMenu(openState(), inputs, undefined, { covered: false });
+    assert.ok(free.highlight !== 0 || free.selections > 0, 'the same frame does something when not covered');
+  }
+});
+
+test('tickMainMenu: while covered the opening animation still advances', () => {
+  const state = tickMainMenu(initMainMenu(), [], undefined, { covered: true });
+  assert.equal(state.open.phase, 'opening');
+});
+
+test('main menu: with an overlay open over it, a jump press opens nothing', () => {
+  const calls = [];
+  let covered = true;
+  const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls, () => false, () => covered), poster: 'poster.classic' });
+  const state = openState(menu.enter());
+  menu.tick(state, [frame(['jump'])]);
+  assert.deepEqual(calls, []);
+  assert.equal(state.request, null);
+  covered = false;
+  menu.tick(state, [frame(['jump'])]);
+  assert.deepEqual(calls, [['open']]);
 });

@@ -242,18 +242,25 @@ export function createNetSession({
 
   // --- guest ---
 
+  // An invalid code is checked first. With a session active (host or guest) it changes nothing;
+  // with none it ends as 'invalid'. A valid code leaves the current session, then joins.
+  // Returns false for an invalid code, true when a join started.
   function join(text, { transport }) {
+    const cleaned = cleanRoomCode(text);
+    if (!isRoomCode(cleaned)) {
+      if (role !== null) return false;
+      leave();
+      resetPeerData();
+      code = cleaned;
+      setState('ended', 'invalid');
+      emit({ type: 'ended', reason: 'invalid', wasConnected: false });
+      return false;
+    }
     leave();
     const gen = ++generation;
     const live = () => gen === generation;
     resetPeerData();
-    code = cleanRoomCode(text);
-    if (!isRoomCode(code)) {
-      role = null;
-      setState('ended', 'invalid');
-      emit({ type: 'ended', reason: 'invalid', wasConnected: false });
-      return;
-    }
+    code = cleaned;
     role = 'guest';
     setState('connecting');
     handle = transport.join(code, {
@@ -277,6 +284,7 @@ export function createNetSession({
         if (live()) guestEnd(r);
       },
     });
+    return true;
   }
 
   function guestReceive(msg) {

@@ -86,8 +86,9 @@ function applyFrame(state, { actions, pointer }) {
 
 // The panel opens in phases (see panel-anim.js): 'waiting' (nothing shown; held while the menu's
 // fade-in from black runs, `fading`), 'opening' (t counts up to OPEN_SECONDS), 'open'.
-// Input counts only if the menu was already open at the start of the tick.
-export function tickMainMenu(state, inputs = [], dt = STEP_SECONDS, { fading = false } = {}) {
+// Input counts only if the menu was already open at the start of the tick, and never while
+// `covered` (another screen is open over the menu: the animation still runs, the input is ignored).
+export function tickMainMenu(state, inputs = [], dt = STEP_SECONDS, { fading = false, covered = false } = {}) {
   state.ticks += 1;
   state.request = null;
   const wasOpen = state.open.phase === 'open';
@@ -97,7 +98,7 @@ export function tickMainMenu(state, inputs = [], dt = STEP_SECONDS, { fading = f
     state.open.t += dt;
     if (state.open.t >= OPEN_SECONDS) state.open = { phase: 'open', t: OPEN_SECONDS };
   }
-  if (!wasOpen) return state;
+  if (!wasOpen || covered) return state;
   for (const frame of inputs) if (frame.connected) applyFrame(state, frame);
   return state;
 }
@@ -174,7 +175,7 @@ export function createMainMenu({
         replay = false;
         state.open = { phase: 'waiting', t: 0 };
       }
-      tickMainMenu(state, inputs, dt, { fading: screens.fading() });
+      tickMainMenu(state, inputs, dt, { fading: screens.fading(), covered: screens.overlayOpen() });
       if (state.request === 'newGame') screens.openNewGame();
       if (state.request === 'multiplayer') screens.openJoin();
       return state;

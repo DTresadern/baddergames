@@ -9,7 +9,7 @@
 // action, no pause toggle and no activation), and a keyup there only releases. Enter joins and
 // Escape goes back; both stop there.
 
-import { ROOM_CODE_LENGTH } from '../net/room-code.js';
+import { ROOM_CODE_LENGTH, cleanRoomCode, isRoomCode } from '../net/room-code.js';
 
 // One message per reason a join ends (net/session.js), and while connecting.
 export const JOIN_MESSAGES = Object.freeze({
@@ -25,6 +25,21 @@ export const JOIN_MESSAGES = Object.freeze({
   unsupported: 'This browser cannot connect to games.',
   failed: 'Could not connect.',
 });
+
+// The Join button (main.js's onJoin). The code is checked first: an invalid one shows its
+// message and changes nothing (a host keeps hosting, a connected guest stays), except that a
+// join still connecting is cancelled, as Back does, since the screen no longer asks for it.
+// A valid code shows "Connecting…" and joins (net.join leaves any current session first).
+export function submitJoinCode(code, { net, transport, setMessage }) {
+  if (!isRoomCode(cleanRoomCode(code))) {
+    if (net.role() === 'guest' && net.state() === 'connecting') net.leave();
+    setMessage(JOIN_MESSAGES.invalid);
+    return false;
+  }
+  setMessage(JOIN_MESSAGES.connecting);
+  net.join(code, { transport });
+  return true;
+}
 
 export function joinMessage(reason) {
   return JOIN_MESSAGES[reason] ?? JOIN_MESSAGES.failed;
