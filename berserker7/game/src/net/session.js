@@ -50,16 +50,6 @@ export function parseNetOptions(search) {
   return { local: params.get('net') === 'local', lagMs: clampLag(params.get('lag') ?? 0), room: params.get('room') };
 }
 
-// The Sandbox's view when there is no session.
-export const OFFLINE_NET = Object.freeze({
-  role: () => null,
-  localSlot: () => 0,
-  peerPresent: () => false,
-  takeSnapshot: () => null,
-  inputsAfter: () => [],
-  remotePlayer: () => null,
-});
-
 // The host's queue of guest inputs: append in tick order, consume one per host tick once
 // JITTER_START are queued; when empty, repeat the last held mask with no presses (ack unchanged)
 // and wait for JITTER_START again. Over JITTER_MAX, drop the oldest but OR its presses into the

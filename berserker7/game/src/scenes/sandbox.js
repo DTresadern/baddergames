@@ -1,11 +1,16 @@
-// Sandbox (main layer): a test scene. A tile map (the walkway) and a box player that runs and jumps.
-// One world unit is one tile; x is right, y is up. Player 1 only for now.
+// Sandbox (main layer): a test scene. A tile map and box players that run and jump.
+// One world unit is one tile; x is right, y is up. Slot 0 is player 1 (the host when online);
+// slot 1 exists only while a net peer is present (the guest's player). `state.localSlot` is the
+// slot this browser controls.
 // The tile map is static level data, built in load() and kept outside the state; the state is
-// plain data: { ticks, map (manifest key), player }.
+// plain data: { ticks, map (manifest key), players, localSlot, ... }.
+// Networking reaches the scene only through `net` (the net session's read-only view, see
+// net/session.js): the scene never sees the transport, and input still arrives only as `inputs`.
 
 import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
+import { reconcile } from '../net/prediction.js';
 import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createGridTexture, createTileTexture } from './tile-texture.js';
@@ -93,7 +98,19 @@ export function createCameraZoom(tilesHigh = CAMERA_TILES_HIGH) {
     },
   };
 }
-const PLAYER_COLOR = 0xf2c14e;
+// One colour per player slot: player 1, player 2.
+export const PLAYER_COLORS = Object.freeze([0xf2c14e, 0x4ec1f2]);
+export const MAX_SLOTS = PLAYER_COLORS.length;
+
+// The Sandbox's net view when there is no session: offline, slot 0, no peer.
+export const OFFLINE_NET = Object.freeze({
+  role: () => null,
+  localSlot: () => 0,
+  peerPresent: () => false,
+  takeSnapshot: () => null,
+  inputsAfter: () => [],
+  remotePlayer: () => null,
+});
 const PLAYER_Z = 0.1; // in front of the tiles
 export const AIM_LENGTH = 2; // aim line length, tiles
 const AIM_WIDTH = 0.06; // aim line thickness, tiles
@@ -106,50 +123,107 @@ export function playerHead(player) {
   return { x: player.x, y: player.y + playerHeight(player) };
 }
 
-// Puts the camera's smoothed source on the player's head at once (spawn, respawn, map change).
+// The player this browser controls.
+export function localPlayer(state) {
+  return state.players[state.localSlot];
+}
+
+// Puts the camera's smoothed source on the local player's head at once (spawn, respawn, map change).
 export function snapCamera(state) {
-  state.camera = playerHead(state.player);
+  state.camera = playerHead(localPlayer(state));
   return state;
 }
 
-// `map` is the result of loadMap. The player starts at the first `player` spawn: its x is the
+// A new player at the state's spawn, with the map's player size.
+function spawnPlayer(state) {
+  return createPlayer(state.spawn.x, state.spawn.y, state.size);
+}
+
+// Fresh players for `localSlot`: slot 0 alone, or (a guest) slots 0 and 1 at the spawn.
+function respawnAll(state, localSlot) {
+  state.localSlot = localSlot;
+  state.players = Array.from({ length: localSlot + 1 }, () => spawnPlayer(state));
+  state.pointer = null;
+  state.aimSource = null;
+  return snapCamera(state);
+}
+
+// `map` is the result of loadMap. Players start at the first `player` spawn: its x is the
 // tile column (the box is centred on that tile) and its y the tile row the feet are at.
-export function initSandbox(map, key = MAP_KEY) {
+export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
   const spawn = map.spawns.find((s) => s.type === 'player');
   if (!spawn) throw new Error(`sandbox: map '${map.name}' has no player spawn`);
-  // `pointer`: player 1's last mouse position ({ x, y }, canvas CSS px) or null. `aimSource`: what
-  // last changed player 1's aim, 'mouse' (the pointer moved) or 'stick', or null before either.
-  // `spawn` and `fallY`: a player below fallY goes back to the spawn (maps can have open ends).
-  // `camera`: the camera's smoothed source point ({ x, y }, tiles), following the head.
+  // `players`: index = player slot. `localSlot`: the slot this browser controls (0 offline or
+  // host, 1 guest). `pointer`: the local player's last mouse position ({ x, y }, canvas CSS px)
+  // or null. `aimSource`: what last changed the local aim, 'mouse' (the pointer moved) or
+  // 'stick', or null before either. `spawn` and `fallY`: a player below fallY goes back to the
+  // spawn (maps can have open ends). `size`: the map's player size. `camera`: the camera's
+  // smoothed source point ({ x, y }, tiles), following the local player's head.
   const state = {
     ticks: 0,
     map: key,
-    player: createPlayer(spawn.x + 0.5, spawn.y, map.player),
+    players: [],
+    localSlot,
     pointer: null,
     aimSource: null,
     spawn: { x: spawn.x + 0.5, y: spawn.y },
     fallY: lowestTileY(map.tiles) - FALL_MARGIN,
+    size: { ...map.player },
     camera: null,
   };
-  return snapCamera(state);
+  return respawnAll(state, localSlot);
+}
+
+// One player step plus the fall respawn. Returns true when the player respawned.
+function stepWithFall(state, player, frame, tiles, dt) {
+  stepPlayer(player, frame, tiles, dt);
+  if (player.y >= state.fallY) return false;
+  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false });
+  return true;
 }
 
 // `tiles` is the tile map (not part of the state). `halfLife` (seconds) smooths the camera's
-// source towards the head (smerp); 0 snaps. A respawn snaps it too.
-export function tickSandbox(state, inputs, dt, tiles, halfLife = 0) {
+// source towards the local head (smerp); 0 snaps. A local respawn snaps it too.
+// `net` is the net view (OFFLINE_NET when there is no session):
+//   - its localSlot differs from the state's: the state starts again for that slot
+//   - offline or host: slot i steps with inputs[i]; slot 1 exists only while a peer is present
+//   - guest: the own player (slot 1) is the newest snapshot's copy with the inputs the host has
+//     not applied replayed on it (the current tick's frame is among them), or without a snapshot
+//     one step with inputs[0]; slot 0 is the interpolated host player (kept when there is none)
+// inputs[0] is always this browser's own keyboard + mouse (+ pad) frame: pointer and aim source
+// come from it and belong to the local player.
+export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLINE_NET) {
+  const slot = net.localSlot();
+  if (slot !== state.localSlot) respawnAll(state, slot);
   const frame = inputs[0];
   if (frame?.connected) {
     if (frame.pointer) state.pointer = { x: frame.pointer.x, y: frame.pointer.y };
     if (frame.pointer?.moved) state.aimSource = 'mouse';
-    else if (Number.isFinite(frame.aim) && frame.aim !== state.player.aim) state.aimSource = 'stick';
+    else if (Number.isFinite(frame.aim) && frame.aim !== localPlayer(state).aim) state.aimSource = 'stick';
   }
-  stepPlayer(state.player, frame, tiles, dt);
-  if (state.player.y < state.fallY) {
-    Object.assign(state.player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false });
-    snapCamera(state);
+  let respawned = false;
+  if (net.role() === 'guest' && slot > 0) {
+    let own = state.players[slot];
+    const step = (player, f) => {
+      if (stepWithFall(state, player, f, tiles, dt)) respawned = true;
+    };
+    const snapshot = net.takeSnapshot();
+    const confirmed = snapshot?.players[slot];
+    if (confirmed) own = reconcile({ ...confirmed, size: { ...state.size } }, net.inputsAfter(snapshot.ack), step);
+    else step(own, frame);
+    state.players[slot] = own;
+    const remote = net.remotePlayer();
+    if (remote) state.players[0] = { ...remote, size: { ...state.size } };
   } else {
-    state.camera = smerp(state.camera, playerHead(state.player), dt, halfLife);
+    const count = net.peerPresent() ? MAX_SLOTS : 1;
+    while (state.players.length < count) state.players.push(spawnPlayer(state));
+    state.players.length = count;
+    state.players.forEach((player, i) => {
+      if (stepWithFall(state, player, inputs[i], tiles, dt) && i === state.localSlot) respawned = true;
+    });
   }
+  if (respawned) snapCamera(state);
+  else state.camera = smerp(state.camera, playerHead(localPlayer(state)), dt, halfLife);
   state.ticks += 1;
   return state;
 }
@@ -187,9 +261,10 @@ function addLevelGroup(scene, track, level, geometry, materials, positions) {
   level.push({ mesh, ...materials });
 }
 
-// The player box and the aim line, one pair per view (an object belongs to one three.js scene).
-function addPlayer(scene, geometries, materials, z) {
-  const body = new Mesh(geometries.player, materials.player);
+// A player box and its aim line, one pair per slot and view (an object belongs to one three.js
+// scene). Hidden while the slot is empty.
+function addPlayer(scene, geometries, materials, slot, z) {
+  const body = new Mesh(geometries.player, materials.players[slot]);
   const aim = new Mesh(geometries.aim, materials.aim);
   body.position.z = z.player;
   aim.position.z = z.aim;
@@ -199,8 +274,15 @@ function addPlayer(scene, geometries, materials, z) {
 
 // `zoom` is the camera view height holder (createCameraZoom) and `viewMode` the 2D / 2.5D and FOV
 // holder (createViewMode), both passed at registration. `fetchJson` is for tests.
-// `mapChoice` (createMapChoice) picks the map at load.
-export function createSandbox({ zoom = createCameraZoom(), viewMode = createViewMode(), mapChoice = createMapChoice(), fetchJson = defaultFetchJson } = {}) {
+// `mapChoice` (createMapChoice) picks the map at load. `net` is the net session's view
+// (OFFLINE_NET by default).
+export function createSandbox({
+  zoom = createCameraZoom(),
+  viewMode = createViewMode(),
+  mapChoice = createMapChoice(),
+  fetchJson = defaultFetchJson,
+  net = OFFLINE_NET,
+} = {}) {
   let mapKey;
   let map, tiles;
   let flat, deep; // { scene, camera, player } for the 2D and the 2.5D view
@@ -234,7 +316,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         aim: track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
       };
       const materials = {
-        player: track(new MeshBasicMaterial({ color: PLAYER_COLOR })),
+        players: PLAYER_COLORS.map((color) => track(new MeshBasicMaterial({ color }))),
         aim: track(new MeshBasicMaterial({ color: AIM_COLOR })),
       };
       const groups = tileGroups(tiles, flatMaterials);
@@ -247,7 +329,7 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         level: flatLevel,
         scene: flatScene,
         camera: new OrthographicCamera(-1, 1, 1, -1, -10, 10),
-        player: addPlayer(flatScene, geometries, materials, { player: PLAYER_Z, aim: AIM_Z }),
+        players: PLAYER_COLORS.map((_, slot) => addPlayer(flatScene, geometries, materials, slot, { player: PLAYER_Z, aim: AIM_Z })),
       };
 
       // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera.
@@ -280,18 +362,17 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         scene: deepScene,
         camera: new PerspectiveCamera(FOV_DEFAULT, 1, 0.1, 100),
         // The player is a flat plane on the play plane, facing the camera; the aim line just in front.
-        player: addPlayer(deepScene, geometries, materials, { player: 0, aim: AIM_Z_DEEP }),
+        players: PLAYER_COLORS.map((_, slot) => addPlayer(deepScene, geometries, materials, slot, { player: 0, aim: AIM_Z_DEEP })),
       };
     },
     enter() {
-      return initSandbox(map, mapKey);
+      return initSandbox(map, mapKey, net.localSlot());
     },
-    tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles, viewMode.follow().smoothing),
+    tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles, viewMode.follow().smoothing, net),
     draw(state, view) {
-      const { player } = state;
+      const player = localPlayer(state);
       const tilesHigh = zoom.get();
       const height = playerHeight(player); // crouchHeight while crouched, else height
-      const centreY = player.y + height / 2;
       const headY = player.y + height; // top centre of the box
       const active = viewMode.mode() === '2d' ? flat : deep;
       const { camera } = active;
@@ -332,17 +413,22 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
       const grid = viewMode.grid();
       for (const group of active.level) group.mesh.material = grid ? group.grid : group.checker;
-      const { body, aim } = active.player;
-      body.position.set(player.x, centreY, body.position.z);
-      body.scale.y = height / map.player.height; // the body geometry is the standing height tall
-      aim.position.set(player.x, headY, aim.position.z);
-      // The aim line points at the mouse's true world position: the pointer projected through the
-      // actual camera. With a stick (or before the mouse moves) it uses the input's aim angle.
+      // One body and aim line per player; empty slots are hidden.
+      active.players.forEach(({ body, aim }, slot) => {
+        const p = state.players[slot];
+        body.visible = aim.visible = Boolean(p);
+        if (!p) return;
+        const h = playerHeight(p);
+        body.position.set(p.x, p.y + h / 2, body.position.z);
+        body.scale.y = h / map.player.height; // the body geometry is the standing height tall
+        aim.position.set(p.x, p.y + h, aim.position.z);
+        aim.rotation.z = p.aim;
+      });
+      // The local aim line points at the mouse's true world position: the pointer projected
+      // through the actual camera. With a stick (or before the mouse moves) it uses the aim angle.
       if (mouse) {
         const target = screenToPlane({ x: camX, y: camY }, mouse, view.width, view.height, tilesHigh);
-        aim.rotation.z = Math.atan2(target.y - headY, target.x - player.x);
-      } else {
-        aim.rotation.z = player.aim;
+        active.players[state.localSlot].aim.rotation.z = Math.atan2(target.y - headY, target.x - player.x);
       }
       // The input system measures frame.aim from the head's position on screen under the actual
       // camera, so the camera shift does not offset it. The view centre is the camera position and

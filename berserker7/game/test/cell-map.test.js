@@ -36,9 +36,9 @@ test('moge3-cyberpunk.json: the spawn is on the walkway, and a fall goes back to
   const state = initSandbox(map, 'map.moge3-cyberpunk');
   const actions = Object.fromEntries(ACTIONS.map((a) => [a, { held: false, pressed: false, released: false }]));
   for (let i = 0; i < 30; i++) tickSandbox(state, [{ player: 0, connected: true, actions }], 1 / 60, map.tiles);
-  assert.equal(state.player.onGround, true);
-  assert.equal(state.player.y, spawn.y);
-  state.player.y = state.fallY - 1;
+  assert.equal(state.players[0].onGround, true);
+  assert.equal(state.players[0].y, spawn.y);
+  state.players[0].y = state.fallY - 1;
   tickSandbox(state, [], 1 / 60, map.tiles);
-  assert.deepEqual([state.player.x, state.player.y], [state.spawn.x, state.spawn.y]);
+  assert.deepEqual([state.players[0].x, state.players[0].y], [state.spawn.x, state.spawn.y]);
 });

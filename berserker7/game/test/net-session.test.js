@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
 import { PROTOCOL_VERSION, decode, encode } from '../src/net/codec.js';
 import { TIMEOUT_MS } from '../src/net/link.js';
-import { JITTER_MAX, OFFLINE_NET, createGuestInputQueue, createNetSession, parseNetOptions } from '../src/net/session.js';
+import { JITTER_MAX, createGuestInputQueue, createNetSession, parseNetOptions } from '../src/net/session.js';
 import { createLocalTransport } from '../src/net/transport-local.js';
 import { createFakeBroadcast, createFakeClock } from './fake-net.js';
 import { frame } from './frames.js';
@@ -69,7 +69,6 @@ test('parseNetOptions: net=local, lag clamped, room', () => {
   assert.deepEqual(parseNetOptions('?net=local&lag=200&room=abc'), { local: true, lagMs: 200, room: 'abc' });
   assert.deepEqual(parseNetOptions(''), { local: false, lagMs: 0, room: null });
   assert.equal(parseNetOptions('?lag=9999').lagMs, 2000);
-  assert.equal(OFFLINE_NET.localSlot(), 0);
 });
 
 test('session: host and guest connect; the guest learns the host map', () => {
