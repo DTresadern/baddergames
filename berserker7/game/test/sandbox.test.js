@@ -302,7 +302,14 @@ test('initSandbox: the map\'s player size sets the height, crouch height and hea
   assert.equal(playerHeight(plain.player), 1);
 });
 
-test('wireframe: the toggle swaps the level from solid tiles and cubes to edge lines, in both views', async () => {
+test('grid: the toggle swaps the level textures from checkerboard to grid, in both views; grid pixels', async () => {
+  const { TILE_GRID, gridPixels } = await import('../src/scenes/tile-texture.js');
+  // 64 px: a 2 px light border on every edge, dark fill inside.
+  const px = gridPixels(64);
+  const at = (x, y) => [...px.slice((y * 64 + x) * 4, (y * 64 + x) * 4 + 3)];
+  const hex = (css) => [1, 3, 5].map((i) => parseInt(css.slice(i, i + 2), 16));
+  assert.deepEqual([at(0, 30), at(1, 30), at(63, 30), at(30, 62)], Array(4).fill(hex(TILE_GRID.line)));
+  assert.deepEqual([at(2, 30), at(30, 30), at(61, 61)], Array(3).fill(hex(TILE_GRID.fill)));
   let rendered;
   const renderer = { render: (scene) => (rendered = scene) };
   const viewMode = createViewMode();
@@ -310,19 +317,15 @@ test('wireframe: the toggle swaps the level from solid tiles and cubes to edge l
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
-  const visible = () => ({
-    solid: rendered.children.filter((o) => o.isInstancedMesh && o.visible && o.material.map).length,
-    wire: rendered.children.filter((o) => o.isLineSegments && o.visible).length,
-  });
-  assert.equal(viewMode.wireframe(), false);
+  const textures = () => new Set(rendered.children.filter((o) => o.isInstancedMesh && o.material.map).map((o) => o.material.map.name));
+  assert.equal(viewMode.grid(), false);
   for (const mode of ['2d', '2.5d']) {
     viewMode.setMode(mode);
-    viewMode.setWireframe(false);
+    viewMode.setGrid(false);
     scene.draw(state, view);
-    const solid = visible();
-    assert.ok(solid.solid > 0 && solid.wire === 0, mode);
-    viewMode.setWireframe(true);
+    assert.deepEqual(textures(), new Set(['checker']), mode);
+    viewMode.setGrid(true);
     scene.draw(state, view);
-    assert.deepEqual(visible(), { solid: 0, wire: solid.solid }, mode);
+    assert.deepEqual(textures(), new Set(['grid']), mode);
   }
 });

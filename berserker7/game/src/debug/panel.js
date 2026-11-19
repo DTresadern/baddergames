@@ -13,7 +13,7 @@
 //     #b7-zoom (range), [data-value="zoom"]  camera view height in tiles; [ and ] change it by 2
 //     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
 //     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
-//     #b7-wire (checkbox)                    level tiles and cubes as edges only, off by default
+//     #b7-grid (checkbox)                    level tiles and cubes with the grid texture, off by default
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
 //     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
 //                                       camera offset from the followed point, tiles
@@ -130,7 +130,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
           <input id="b7-zoom" type="range" min="${CAMERA_TILES_MIN}" max="${CAMERA_TILES_MAX}" step="1">
           <span data-value="zoom"></span></label>
         <label class="b7-check"><input id="b7-city" type="checkbox"> City backdrop (2.5D)</label>
-        <label class="b7-check"><input id="b7-wire" type="checkbox"> Wireframe</label>
+        <label class="b7-check"><input id="b7-grid" type="checkbox"> Grid</label>
         <label>FOV
           <input id="b7-fov" type="range" min="${FOV_MIN}" max="${FOV_MAX}" step="1">
           <span data-value="fov"></span></label>
@@ -242,7 +242,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
   const modeButtons = [...root.querySelectorAll('[data-view-mode]')];
   const offsetSliders = [...root.querySelectorAll('[data-axis]')];
   const cityCheck = root.querySelector('#b7-city');
-  const wireCheck = root.querySelector('#b7-wire');
+  const gridCheck = root.querySelector('#b7-grid');
   const followSliders = [...root.querySelectorAll('[data-follow]')];
   function showZoom() {
     if (sandboxZoom) {
@@ -253,7 +253,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
       const mode = sandboxViewMode.mode();
       for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
       cityCheck.checked = sandboxViewMode.backdrop();
-      wireCheck.checked = sandboxViewMode.wireframe();
+      gridCheck.checked = sandboxViewMode.grid();
       fovSlider.value = String(sandboxViewMode.fov());
       fovSlider.disabled = mode !== '2.5d';
       setValue('fov', `${sandboxViewMode.fov()}°`);
@@ -301,9 +301,9 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
       sandboxViewMode.setBackdrop(cityCheck.checked);
       showZoom();
     });
-    wireCheck.addEventListener('change', () => {
-      wireCheck.blur();
-      sandboxViewMode.setWireframe(wireCheck.checked);
+    gridCheck.addEventListener('change', () => {
+      gridCheck.blur();
+      sandboxViewMode.setGrid(gridCheck.checked);
       showZoom();
     });
     for (const slider of offsetSliders) {
