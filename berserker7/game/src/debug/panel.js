@@ -12,9 +12,11 @@
 //     #b7-zoom (range), [data-value="zoom"]  camera view height in tiles; [ and ] change it by 2
 //     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
+//     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
+//                                       camera offset from the followed point, tiles
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN } from '../scenes/sandbox.js';
-import { FOV_MAX, FOV_MIN } from '../scenes/sandbox-3d.js';
+import { FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP } from '../scenes/sandbox-3d.js';
 
 const ACTIONS = [
   ['main-menu', 'Main menu'],
@@ -121,6 +123,13 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
         <label>FOV
           <input id="b7-fov" type="range" min="${FOV_MIN}" max="${FOV_MAX}" step="1">
           <span data-value="fov"></span></label>
+        ${['x', 'y']
+          .map(
+            (axis) => `<label>Camera ${axis.toUpperCase()}
+          <input id="b7-cam-${axis}" data-axis="${axis}" type="range" min="${-OFFSET_LIMIT}" max="${OFFSET_LIMIT}" step="${OFFSET_STEP}">
+          <span data-value="cam-${axis}"></span></label>`,
+          )
+          .join('')}
       </div>
       <dl>${VALUES.map(([key, label]) => `<dt>${label}</dt><dd data-value="${key}"></dd>`).join('')}</dl>
       <div class="b7-scenes">${ids
@@ -215,6 +224,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
   const zoomSlider = root.querySelector('#b7-zoom');
   const fovSlider = root.querySelector('#b7-fov');
   const modeButtons = [...root.querySelectorAll('[data-view-mode]')];
+  const offsetSliders = [...root.querySelectorAll('[data-axis]')];
   function showZoom() {
     if (sandboxZoom) {
       zoomSlider.value = String(sandboxZoom.get());
@@ -226,6 +236,12 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
       fovSlider.value = String(sandboxViewMode.fov());
       fovSlider.disabled = mode !== '2.5d';
       setValue('fov', `${sandboxViewMode.fov()}°`);
+      const offset = sandboxViewMode.offset();
+      for (const slider of offsetSliders) {
+        const value = offset[slider.dataset.axis];
+        slider.value = String(value);
+        setValue(`cam-${slider.dataset.axis}`, `${value > 0 ? '+' : ''}${value.toFixed(2)} tiles`);
+      }
     }
   }
   if (sandboxViewMode) {
@@ -241,6 +257,13 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
       showZoom();
     });
     fovSlider.addEventListener('change', () => fovSlider.blur());
+    for (const slider of offsetSliders) {
+      slider.addEventListener('input', () => {
+        sandboxViewMode.setOffset(slider.dataset.axis, Number(slider.value));
+        showZoom();
+      });
+      slider.addEventListener('change', () => slider.blur());
+    }
   }
   if (sandboxZoom) {
     zoomSlider.addEventListener('input', () => {

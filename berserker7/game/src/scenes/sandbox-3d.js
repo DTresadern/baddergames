@@ -6,8 +6,10 @@ import { BoxGeometry, Float32BufferAttribute } from 'three';
 export const VIEW_MODES = Object.freeze(['2d', '2.5d']);
 export const DEFAULT_VIEW_MODE = '2.5d';
 export const FOV_MIN = 1; // degrees, vertical
-export const FOV_MAX = 60;
+export const FOV_MAX = 130;
 export const FOV_DEFAULT = 15;
+export const OFFSET_LIMIT = 4; // camera offset range, ± tiles
+export const OFFSET_STEP = 0.25; // camera offset step, tiles
 // Depth range kept around the play plane by the near and far planes, tiles (cubes reach z ±1.5).
 export const DEPTH_MARGIN = 4;
 // A depth cube on every DEPTH_CUBE_SPACING-th column of the ground.
@@ -16,12 +18,15 @@ export const DEPTH_CUBE_SPACING = 3;
 // front a little darker, the sides darker, the bottom and back darkest. No lights needed.
 export const FACE_SHADE = Object.freeze({ top: 1, front: 0.8, side: 0.62, bottom: 0.45, back: 0.45 });
 
-// The Sandbox view mode ('2d' or '2.5d') and the perspective FOV (whole degrees, clamped), changed
-// live by the debug panel and read by the scene in draw. Not saved.
+// The Sandbox view mode ('2d' or '2.5d'), the perspective FOV (whole degrees, clamped) and the
+// camera offset from the point it follows (tiles, x right, y up, ±OFFSET_LIMIT in OFFSET_STEP
+// steps), changed live by the debug panel and read by the scene in draw. Not saved.
 export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } = {}) {
   const clampFov = (v) => Math.min(FOV_MAX, Math.max(FOV_MIN, Math.round(v)));
+  const clampOffset = (v) => Math.min(OFFSET_LIMIT, Math.max(-OFFSET_LIMIT, Math.round(v / OFFSET_STEP) * OFFSET_STEP)) + 0;
   let current = VIEW_MODES.includes(mode) ? mode : DEFAULT_VIEW_MODE;
   let degrees = clampFov(fov);
+  const offset = { x: 0, y: 0 };
   return {
     mode: () => current,
     // Ignores an unknown mode. Returns the mode now in use.
@@ -34,6 +39,12 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
     setFov(v) {
       if (Number.isFinite(v)) degrees = clampFov(v);
       return degrees;
+    },
+    offset: () => ({ ...offset }),
+    // Sets one axis ('x' or 'y'); ignores a value that is not a finite number. Returns the offset.
+    setOffset(axis, v) {
+      if ((axis === 'x' || axis === 'y') && Number.isFinite(v)) offset[axis] = clampOffset(v);
+      return { ...offset };
     },
   };
 }
@@ -64,8 +75,9 @@ export function hashInt(n) {
 }
 
 // Decorative cubes off the play plane: on every `spacing`-th column strictly between the leftmost
-// and rightmost solid columns, one cube sitting on the column's top solid tile, at z = -1 (far) or
-// +1 (near) chosen by a hash of the column. They are not in the tile map, so they never collide.
+// and rightmost solid columns, one cube in the same row as the column's top solid tile (flush with
+// the floor surface, as if the floor extends sideways there), at z = -1 (far) or +1 (near) chosen
+// by a hash of the column. They are not in the tile map, so they never collide.
 // Returns [{ x, y, z, id }]: x, y the tile the cube fills, id the tile type it copies.
 export function depthCubes(tiles, spacing = DEPTH_CUBE_SPACING) {
   let minX = Infinity;
@@ -90,7 +102,7 @@ export function depthCubes(tiles, spacing = DEPTH_CUBE_SPACING) {
     let y = maxY;
     while (y >= minY && !tiles.isSolid(x, y)) y--;
     if (y < minY) continue;
-    cubes.push({ x, y: y + 1, z: hashInt(x) & 1 ? 1 : -1, id: tiles.tileAt(x, y) });
+    cubes.push({ x, y, z: hashInt(x) & 1 ? 1 : -1, id: tiles.tileAt(x, y) });
   }
   return cubes;
 }

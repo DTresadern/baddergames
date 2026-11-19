@@ -160,9 +160,14 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
       const headY = player.y + MOVE.height; // top centre of the box
       const active = viewMode.mode() === '2d' ? flat : deep;
       const { camera } = active;
+      // The camera follows the player's centre plus the offset, and always looks straight ahead
+      // (along -z, no rotation), so moving it moves its look target too.
+      const offset = viewMode.offset();
+      const camX = player.x + offset.x;
+      const camY = centreY + offset.y;
       if (active === flat) {
         fitOrtho(camera, view, tilesHigh / 2);
-        camera.position.set(player.x, centreY, 0);
+        camera.position.set(camX, camY, 0);
       } else {
         // The play plane (z = 0) shows exactly `tilesHigh` tiles, as in 2D, at any FOV.
         const fov = viewMode.fov();
@@ -174,14 +179,14 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
           Object.assign(camera, { fov, aspect, near, far });
           camera.updateProjectionMatrix();
         }
-        camera.position.set(player.x, centreY, distance);
+        camera.position.set(camX, camY, distance);
       }
       const { body, aim } = active.player;
       body.position.set(player.x, centreY, body.position.z);
       aim.position.set(player.x, headY, aim.position.z);
       aim.rotation.z = player.aim;
-      // Mouse aim is measured from the head. The camera is centred on the player's centre and the
-      // play plane shows `tilesHigh` tiles in both views, so this mapping holds for both.
+      // Mouse aim is measured from the head. The view centre is the camera position and the play
+      // plane shows `tilesHigh` tiles in both views, so this mapping holds for both.
       const pxPerTile = view.height / tilesHigh;
       view.setAimOrigin(0, view.width / 2 + (player.x - camera.position.x) * pxPerTile, view.height / 2 - (headY - camera.position.y) * pxPerTile);
       view.renderer.render(active.scene, camera);
