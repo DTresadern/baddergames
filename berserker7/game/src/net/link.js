@@ -1,7 +1,7 @@
 // A checked link over a raw string channel. Pure: time and timers are passed in.
 //
-// Raw channel (made by a transport with createRawChannel): { send(text), close(), listen(handlers) },
-// strings only. The link adds:
+// Raw channel (made by a transport with createRawChannel): { send(text), close(), listen(handlers),
+// getStats() }, strings only. getStats() is for the debug panel: a promise of an RTCStatsReport, or null. The link adds:
 //   receive: drop texts over MAX_MESSAGE_BYTES, drop beyond MAX_MESSAGES_PER_SECOND in a 1 s window,
 //            decode with the codec and drop what it rejects; the rest go to onMessage(msg)
 //   send:    encode (throws on a malformed message), then an optional `lagMs` delay, in order
@@ -18,8 +18,9 @@ const WINDOW_MS = 1000;
 
 // The transports' side of a channel. `send` and `close` go to the network; the transport calls
 // deliver(text) for each received string and remoteClosed() when the other side closed. Texts
-// that arrive before listen() are kept and handed over by it.
-export function createRawChannel({ send, close }) {
+// that arrive before listen() are kept and handed over by it. `getStats` (optional) returns the
+// connection's stats (a promise) or null.
+export function createRawChannel({ send, close, getStats = null }) {
   let handlers = null;
   let closed = false;
   const early = [];
@@ -47,6 +48,7 @@ export function createRawChannel({ send, close }) {
       closed = true;
       handlers?.close();
     },
+    getStats: () => (closed || !getStats ? null : getStats()),
     closed: () => closed,
   };
 }

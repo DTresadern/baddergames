@@ -114,6 +114,7 @@ export function createNetSession({
   let code = null;
   let handle = null; // the transport's host or join handle
   let link = null;
+  let linkChannel = null; // the raw channel under `link`
   let localTick = 0;
   let clock = createClockSync();
   let nextPingAt = 0;
@@ -184,6 +185,7 @@ export function createNetSession({
           return;
         }
         guestReady = false;
+        linkChannel = channel;
         link = makeLink(channel, (msg) => live() && hostReceive(msg), () => live() && guestGone());
       },
       onError(r) {
@@ -191,6 +193,7 @@ export function createNetSession({
         generation += 1;
         link?.close('failed');
         link = null;
+        linkChannel = null;
         handle?.close();
         handle = null;
         role = null;
@@ -235,6 +238,7 @@ export function createNetSession({
 
   function guestGone() {
     link = null;
+    linkChannel = null;
     const was = guestReady;
     guestReady = false;
     if (was) setState('left');
@@ -269,12 +273,14 @@ export function createNetSession({
           channel.close();
           return;
         }
+        linkChannel = channel;
         link = makeLink(
           channel,
           (msg) => live() && guestReceive(msg),
           (r) => {
             if (!live()) return;
             link = null;
+            linkChannel = null;
             guestEnd(r === 'dropped' ? 'dropped' : state === 'connected' ? 'host-left' : 'failed');
           },
         );
@@ -330,6 +336,7 @@ export function createNetSession({
     role = null;
     const l = link;
     link = null;
+    linkChannel = null;
     l?.close(r);
     handle?.close();
     handle = null;
@@ -351,6 +358,7 @@ export function createNetSession({
     role = null;
     const l = link;
     link = null;
+    linkChannel = null;
     if (l) {
       l.send(byeMessage());
       l.close('left');
@@ -433,6 +441,15 @@ export function createNetSession({
     leave,
     wrapInput,
     afterFrame,
+    // The raw channel's stats (a promise of an RTCStatsReport, or null), only while a peer is connected.
+    connectionStats() {
+      try {
+        const connected = role === 'host' ? state === 'joined' : role === 'guest' && state === 'connected';
+        return connected && link && linkChannel ? (linkChannel.getStats?.() ?? null) : null;
+      } catch {
+        return null;
+      }
+    },
     netView: () => view,
     active: () => role !== null,
     role: () => role,
