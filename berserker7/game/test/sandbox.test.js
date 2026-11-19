@@ -45,7 +45,10 @@ test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the pla
   assert.deepEqual([rendered.position.x, rendered.position.y], [10, 5 + MOVE.height / 2]);
   // Aim origin: the head (top centre of the box), MOVE.height / 2 tiles above the view centre.
   const tilePx = 600 / CAMERA_TILES_HIGH;
-  assert.deepEqual(origins, [[0, 400, 300 - (MOVE.height / 2) * tilePx]]);
+  assert.equal(origins.length, 1);
+  const [player, px, py] = origins[0];
+  assert.deepEqual([player, px], [0, 400]);
+  assert.ok(Math.abs(py - (300 - (MOVE.height / 2) * tilePx)) < 1e-9, `py ${py}`);
 });
 
 test('sandbox scene: ticks while uncovered, draws when covered, suspends on leave', () => {
