@@ -6,7 +6,7 @@
 //      as tick(state, inputs, dt).
 //   2. draw: clear the input's aim origins (scenes set them again in draw), clear, draw every scene allowed to draw in layer order, then the fade.
 //   3. end failed loads; apply the queued scene changes in request order; activate scenes whose load finished.
-//   4. advance the fade; swap the main scene when it reaches its midpoint.
+//   4. advance the fade; swap the main scene when the fade-out part ends.
 // Requests made at any time (including from scene hooks) only take effect in step 3
 // (or 4 for the fade swap), never mid-frame.
 //
@@ -124,15 +124,26 @@ export function createHarness({
   }
 
   // `params` go to enter() when the scene starts fresh; when omitted, the
-  // params it was last entered with are used. `fade` is the fade duration in seconds.
+  // params it was last entered with are used. `fade` is the total fade duration in seconds,
+  // split evenly (0 = swap at once). Alternatively `fadeOut` and `fadeIn` (both given, both
+  // positive, not with `fade`) set the seconds to black and the seconds back in; the swap
+  // happens after `fadeOut`.
   // `fromAlpha` (0..1) is the darkness the fade starts at; by default the current fade's, else 0.
   // With 1 the screen is taken as already black: the swap happens at once and the new scene
-  // fades in over the second half.
-  function setMain(id, { params, fade = 0, fromAlpha } = {}) {
+  // fades in over `fadeIn` (half of `fade` by default).
+  function setMain(id, { params, fade, fadeOut, fadeIn, fromAlpha } = {}) {
     if (fromAlpha !== undefined && !(typeof fromAlpha === 'number' && fromAlpha >= 0 && fromAlpha <= 1)) {
       throw new Error(`harness: fromAlpha must be 0..1, got ${fromAlpha}`);
     }
-    request('setMain', { id, params, fade, fromAlpha });
+    const asymmetric = fadeOut !== undefined || fadeIn !== undefined;
+    if (asymmetric) {
+      if (fade !== undefined) throw new Error('harness: give either fade or fadeOut + fadeIn, not both');
+      const ok = (n) => typeof n === 'number' && Number.isFinite(n) && n > 0;
+      if (!ok(fadeOut) || !ok(fadeIn)) {
+        throw new Error(`harness: fadeOut and fadeIn must both be positive finite numbers, got ${fadeOut} and ${fadeIn}`);
+      }
+    }
+    request('setMain', { id, params, fade: fade ?? 0, fadeOut, fadeIn, fromAlpha });
   }
 
   function openOverlay(id) {
@@ -169,9 +180,16 @@ export function createHarness({
     const record = req.id === undefined ? null : get(req.id);
     switch (req.type) {
       case 'setMain':
-        if (req.fade > 0) {
+        if (req.fadeOut !== undefined || req.fade > 0) {
           const fromAlpha = req.fromAlpha ?? (harness.transition ? transitionAlpha(harness.transition) : 0);
-          harness.transition = createTransition({ duration: req.fade, to: req.id, params: req.params, fromAlpha });
+          harness.transition = createTransition({
+            duration: req.fade,
+            fadeOut: req.fadeOut,
+            fadeIn: req.fadeIn,
+            to: req.id,
+            params: req.params,
+            fromAlpha,
+          });
         } else {
           harness.transition = null;
           showMain(record, req.params);
