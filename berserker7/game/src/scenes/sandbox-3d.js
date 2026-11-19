@@ -7,16 +7,17 @@ export const VIEW_MODES = Object.freeze(['2d', '2.5d']);
 export const DEFAULT_VIEW_MODE = '2.5d';
 export const FOV_MIN = 1; // degrees, vertical
 export const FOV_MAX = 130;
-export const FOV_DEFAULT = 15;
+export const FOV_DEFAULT = 50;
 export const OFFSET_LIMIT = 4; // camera offset range, ± tiles
 export const OFFSET_STEP = 0.25; // camera offset step, tiles
+export const OFFSET_DEFAULT = Object.freeze({ x: 0, y: 2 }); // camera offset at start, tiles
 // Camera aim-follow settings: [key, label, min, max, step, default]. See cameraShift.
 export const FOLLOW_SETTINGS = Object.freeze([
-  ['follow', 'Follow', 0, 1, 0.05, 0.5], // fraction of head-to-aim the camera moves
+  ['follow', 'Follow', 0, 1, 0.05, 0.4], // fraction of head-to-aim the camera moves
   ['min', 'Min (tiles)', 0, 10, 0.25, 0], // minimum radius: a shorter shift is lengthened to this
   ['max', 'Max (tiles)', 0, 20, 0.25, 8], // a longer shift is scaled down to this length
   ['scaleX', 'X scale', 0, 2, 0.05, 1], // applied after the clamp
-  ['scaleY', 'Y scale', 0, 2, 0.05, 1],
+  ['scaleY', 'Y scale', 0, 2, 0.05, 0.5],
 ].map((row) => Object.freeze(row)));
 // Depth range kept around the play plane by the near and far planes, tiles (cubes reach z ±1.5).
 export const DEPTH_MARGIN = 4;
@@ -34,7 +35,7 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   const clampOffset = (v) => Math.min(OFFSET_LIMIT, Math.max(-OFFSET_LIMIT, Math.round(v / OFFSET_STEP) * OFFSET_STEP)) + 0;
   let current = VIEW_MODES.includes(mode) ? mode : DEFAULT_VIEW_MODE;
   let degrees = clampFov(fov);
-  const offset = { x: 0, y: 0 };
+  const offset = { ...OFFSET_DEFAULT };
   const follow = Object.fromEntries(FOLLOW_SETTINGS.map(([key, , , , , value]) => [key, value]));
   return {
     mode: () => current,

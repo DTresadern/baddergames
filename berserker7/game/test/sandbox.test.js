@@ -13,7 +13,7 @@ import {
 } from '../src/scenes/sandbox.js';
 import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/tile-texture.js';
 import { NearestFilter } from 'three';
-import { DEPTH_CUBE_SPACING, cameraShift, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
+import { DEPTH_CUBE_SPACING, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { MOVE } from '../src/world/player.js';
 import { frame } from './frames.js';
@@ -54,13 +54,13 @@ test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the pla
   scene.draw(state, { renderer, width: 800, height: 600, setAimOrigin: (...args) => origins.push(args) });
   assert.equal(rendered.top - rendered.bottom, CAMERA_TILES_HIGH);
   assert.equal(rendered.right - rendered.left, (CAMERA_TILES_HIGH * 800) / 600);
-  assert.deepEqual([rendered.position.x, rendered.position.y], [10, 5 + MOVE.height]);
-  // Aim origin: the head (top centre of the box), at the view centre.
+  assert.deepEqual([rendered.position.x, rendered.position.y], [10, 5 + MOVE.height + OFFSET_DEFAULT.y]);
+  // Aim origin: the head (top centre of the box), OFFSET_DEFAULT.y tiles below the view centre.
   const tilePx = 600 / CAMERA_TILES_HIGH;
   assert.equal(origins.length, 1);
   const [player, px, py] = origins[0];
   assert.deepEqual([player, px], [0, 400]);
-  assert.ok(Math.abs(py - 300) < 1e-9, `py ${py} (${tilePx} px per tile)`);
+  assert.ok(Math.abs(py - (300 + OFFSET_DEFAULT.y * tilePx)) < 1e-9, `py ${py} (${tilePx} px per tile)`);
 });
 
 test('sandbox scene: ticks while uncovered, draws when covered, suspends on leave', () => {
@@ -108,9 +108,9 @@ test('tile texture: 8 px checker of the legend colour and a slightly lighter sha
   assert.equal(texture.generateMipmaps, false);
 });
 
-test('createViewMode: 2.5D and FOV 15 by default; unknown modes ignored; FOV whole degrees, 1 to 130', () => {
+test('createViewMode: 2.5D and FOV 50 by default; unknown modes ignored; FOV whole degrees, 1 to 130', () => {
   const v = createViewMode();
-  assert.deepEqual([v.mode(), v.fov()], ['2.5d', 15]);
+  assert.deepEqual([v.mode(), v.fov()], ['2.5d', 50]);
   assert.equal(v.setMode('2d'), '2d');
   assert.equal(v.setMode('3d'), '2d');
   assert.equal(v.setFov(0), 1);
@@ -138,9 +138,9 @@ test('sandbox draw 2.5D: the play plane shows the zoom height at any FOV, live m
     assert.ok(Math.abs(2 * d * Math.tan((rendered.fov * Math.PI) / 360) - zoom.get()) < 1e-9, `fov ${fov}`);
     assert.ok(rendered.near < d - 1.5 && rendered.far > d + 1.5, 'cubes at z ±1.5 not clipped');
   }
-  // Same aim origin as in 2D: the head, at the view centre.
+  // Same aim origin as in 2D: the head, OFFSET_DEFAULT.y tiles below the view centre.
   assert.deepEqual(origins.at(-1).slice(0, 2), [0, 400]);
-  assert.ok(Math.abs(origins.at(-1)[2] - 300) < 1e-9);
+  assert.ok(Math.abs(origins.at(-1)[2] - (300 + OFFSET_DEFAULT.y * (600 / zoom.get()))) < 1e-9);
   viewMode.setMode('2d');
   scene.draw(state, view);
   assert.equal(rendered.isOrthographicCamera, true);
@@ -161,8 +161,8 @@ test('depthCubes: deterministic, every few columns, flush with the ground surfac
 
 test('camera offset: ±4 tiles in 0.25 steps; the camera moves with it in both views, no rotation', async () => {
   const v = createViewMode();
-  assert.deepEqual(v.offset(), { x: 0, y: 0 });
-  assert.deepEqual(v.setOffset('x', 1.3), { x: 1.25, y: 0 });
+  assert.deepEqual(v.offset(), { x: 0, y: 2 });
+  assert.deepEqual(v.setOffset('x', 1.3), { x: 1.25, y: 2 });
   assert.deepEqual(v.setOffset('y', -9), { x: 1.25, y: -4 });
   assert.deepEqual(v.setOffset('z', 1), { x: 1.25, y: -4 });
   let rendered;
@@ -204,6 +204,8 @@ test('aim follow: the camera is stable frame to frame (rest-camera projection) a
   const viewMode = createViewMode();
   viewMode.setFollow('follow', 1);
   viewMode.setFollow('max', 20);
+  viewMode.setFollow('scaleY', 1);
+  viewMode.setOffset('y', 0);
   const scene = createSandbox({ viewMode, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
