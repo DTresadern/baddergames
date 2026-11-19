@@ -166,7 +166,8 @@ Version label and CI:
   - `jump`, `interact` and a click select.
   - A click on an available card sets the campaign.
   - Back keys: the Back item, Escape and gamepad Start (`pause`), V and gamepad B (`melee`).
-  - Selecting a difficulty creates the session and saves the last choice (see below); nothing else happens yet (no scene change, no sound), and the overlay stays open.
+  - Selecting a difficulty (any of the four, by mouse or keys) creates the session and saves the last choice (see below), then calls `screens.startGame()`: `main.js` closes the overlay and fades to the Sandbox as the main scene (`GAME_FADE_SECONDS` 2, the total: 1 s to black, 1 s back in). Difficulty has no effect yet.
+  - The main menu leaves the main layer at the fade's midpoint (leave `suspend`), and its `suspend` calls `music.stop()`, so the title music stops there.
   - Selecting Back closes the overlay; it creates no session and saves nothing.
 - State fields:
   - `state.selected` (`easy`, `normal`, `hard`, `extreme` or `back`) and `state.selections` are for debug checks only.
@@ -174,7 +175,7 @@ Version label and CI:
   - `state.request` is `'back'` when Back was selected at any point in the tick (so a later selection in the same tick cannot cancel it), and the scene's `tick` closes the overlay on it.
 - Opening and saving (`createNewGame({ screens, settings, session, poster })`):
   - `enter` calls `initNewGame(settings.get().lastChoice)`: the saved campaign if it is an available campaign, else the first available one (Megacity); the saved difficulty if it is one of `DIFFICULTIES`, else `DEFAULT_DIFFICULTY`.
-  - The scene's `tick`, when `state.start` is set: `session.set(createSession(state.start))` and `settings.set({ lastChoice: { ...state.start } })`; then the Back handling.
+  - The scene's `tick`, when `state.start` is set: `session.set(createSession(state.start))`, `settings.set({ lastChoice: { ...state.start } })`, then `screens.startGame()`; then the Back handling (a Back in the same tick also closes the overlay).
 - Its leave setting is `unload`, so closing frees its labels and each open starts fresh. The poster stays loaded because the main menu still holds it.
 
 ## Settings and session (`game/src/settings/store.js`, `game/src/session.js`)
@@ -227,13 +228,13 @@ Session (`createSession`, `createSessionHolder`):
 - Content folder (`game/public/content/`): runtime assets (images, audio).
   - Vite copies them as-is into `dist/`, so they are published at `/berserker7/content/`.
   - Load them with relative paths (`content/...`, no leading slash) so they work under the published base path.
-  - Subfolders: `textures/logos/`, `textures/menubg/`, `audio/music/` (more come later).
+  - Subfolders: `textures/logos/`, `textures/menubg/`, `audio/music/`, `maps/` (more come later).
   - Every file the game uses is listed in the asset manifest (see Manifest below); code never writes a content path itself.
 - Asset code is in `game/src/assets/`.
 - Manifest (`manifest.js`): `ASSETS`, one frozen list of every runtime asset, `{ key, path, type, groups, colorSpace? }`.
   - `path` starts with `content/` and is relative to `public/` (for example `content/textures/logos/w8omg.png`; no leading slash, no `..`).
-  - `type` is `texture` or `music`.
-  - `groups` names the preload groups that load it (`GROUPS`: `boot` and `menubg`; nothing loads `menubg` whole, start-up adds the picked poster to the boot load).
+  - `type` is `texture`, `music` or `map`.
+  - `groups` names the preload groups that load it (`GROUPS`: `boot`, `menubg` and `sandbox`; nothing loads `menubg` whole, start-up adds the picked poster to the boot load; the `sandbox` group holds the maps and is not preloaded, the Sandbox scene acquires its map itself).
   - A texture's `colorSpace` is `srgb` (default, colour images) or `raw` (stored values used as data; the w8omg logo).
   - `assetByKey(key)` and `groupAssets(group)` throw on an unknown key or group.
   - `checkManifest(list)` returns the problems (duplicate or missing key, bad path, unknown type or colour space, a colour space on an entry that is not a texture, unknown or empty groups, a group with no assets); the module throws at import if `ASSETS` has any.
@@ -242,12 +243,31 @@ Session (`createSession`, `createSessionHolder`):
   - Scenes pass `context.acquire`; the loader passes the cache's own `acquire`.
   - Whoever acquires first starts the download; the others get the same entry, so a texture is loaded once.
   - Scenes must not `track` it.
+- Maps (`maps.js`): `acquireMap(acquire, key)` returns a promise of the parsed JSON of a `map` asset, through the asset cache under the manifest key (entry `{ ready, dispose: () => {} }`: nothing to free). The default fetch is `fetch(path)` plus `.json()` and throws on a non-OK response; tests pass their own as the third argument. Scenes must not `track` it.
 - Loader (`loader.js`, `createLoader({ assets, music })`):
-  - `load(group)` returns a promise (the same one on every call for that group) and loads each asset of the group once, even when it is in several groups: textures through `acquireTexture`, music through `music.preload`.
+  - `load(group)` returns a promise (the same one on every call for that group) and loads each asset of the group once, even when it is in several groups: textures through `acquireTexture`, maps through `acquireMap` (`loadJson` option for tests, like `loadTexture`), music through `music.preload`.
   - The loader never releases what it acquired, so preloaded assets stay loaded for the page's life and a scene's later acquire gets them at once; a scene releasing them does not dispose them.
   - `status(group)` gives `{ progress, done, error }`: `progress` is loaded assets / group size, only moves forward, and is exactly 1 when `done`.
   - Loud failure: the first asset that fails rejects the group's promise, sets `error` to `Could not load <path>`, and is logged once with `console.error`; the group never becomes done and there is no retry.
 - Adding an asset: put the file under `game/public/content/...`, add an entry to `ASSETS` with its groups, and in code use `acquireTexture(context.acquire, key)` for a texture or `assetByKey(key).path` for music.
+
+## Sandbox (`scenes/sandbox.js`, `world/`)
+
+A test scene: a tile map and a box player that runs and jumps. Experimental.
+
+- Units: one world unit is one tile. Positions, sizes and speeds are in tiles (speeds tiles/s). x is right, y is up. The 64 px `tileSize` in the map file is art data; physics never uses it.
+- Map file (`public/content/maps/walkway.json`, manifest key `map.walkway`): `{ format: 1, name, tileSize, legend, grid, spawns }`.
+  - `legend` maps one character to `{ type, color }`; `type: "solid"` blocks the player. A character not in the legend (use `.`) is empty.
+  - `grid` is a list of strings written top to bottom; the loader flips it, so the last string is y = 0 and the column index is x.
+  - `spawns` is a list of `{ type, x, y }` in tile coordinates with y up (the same coordinates the loader produces). A `player` spawn is the tile the player's feet stand in: the box is centred on tile column `x` and its bottom is at `y`.
+  - The walkway: a floor 2 tiles thick and 60 long, a wall 8 tiles tall (6 above the floor) at each end, 16 rows in all, the player spawn on the floor near the left end.
+- Tile map (`world/tilemap.js`, `createTileMap({ types })`): sparse chunks of 32 x 32 tiles (`CHUNK_SIZE`) in a `Map` keyed `"cx,cy"`; each chunk is `{ cx, cy, tiles: Uint16Array }`. Tile id 0 is empty; `types[id]` is `{ solid, color }`.
+  - `setTile(x, y, id)`, `tileAt(x, y)` (a missing chunk reads 0 and is not created), `isSolid(x, y)`, `chunks()`, `chunkSize`. Coordinates are integers; negative ones work.
+  - It knows nothing about files. The tile map is level data, not scene state: it is built in `load()` and passed to the tick function, and the scene state stays plain data (`{ ticks, map, player }`).
+- Grid loader (`world/grid-map.js`, `loadGridMap(json) -> { name, tileSize, tiles, spawns }`): throws on a `format` other than 1; legend ids start at 1 in legend order. It is the only code that reads `grid` and `legend`; another file format needs only another loader returning the same shape.
+- Player (`world/player.js`, pure, tested in Node): a box 1 tile wide and 2 tall. `{ x, y, vx, vy, onGround }`, with `x, y` the bottom-centre. `stepPlayer(player, frame, tiles, dt)` moves on x, pushes out of solid tiles, then does the same on y. All movement numbers are in the frozen `MOVE` object at the top of the file (width, height, max speed, ground and air acceleration and friction, gravity, jump speed, max fall speed). There is no swept collision: a step is under half a tile at the fastest fall.
+- Scene (`createSandbox()`): `tick: uncovered`, `drawCovered: true`, `leave: suspend`, pausable (Escape opens pause). Player 1 only. Tiles are drawn as one `InstancedMesh` per chunk and tile type; all geometry, materials and meshes are tracked. The camera shows `CAMERA_TILES_HIGH` (12) tiles in height and follows the player's centre. Pure helpers `initSandbox(map)` and `tickSandbox(state, inputs, dt, tiles)` are for tests.
+- Reaching it: the debug panel's "Sandbox" button, or selecting a difficulty on the New Game screen. The debug "Main menu" button goes back.
 
 ## Audio (`game/src/audio/music.js`)
 
@@ -363,6 +383,7 @@ Pure logic (`actions.js`, `bindings.js`, `devices.js`, `sampler.js`) is separate
 - Debug panel (`game/src/debug/panel.js`):
   - Top-right, collapsed at start.
   - Has a "Main menu" button and buttons for each harness behaviour, including the test scenes ("Players scene (input test)", the A / B switch and the slow scene), which add the backdrop.
+  - The "Sandbox" button (`data-action="sandbox"`) leaves the backdrop if it is there and fades to the Sandbox (see Sandbox). "Main menu" is the way back.
   - Buttons give up focus after a click, so keys go to the game.
   - The "Fail slow scene's next load" button makes the slow scene's next `load()` throw after tracking and acquiring resources; the error message gives the GPU texture count at the moment of failure.
   - The `leftState` and `returnedState` fields on each harness record are JSON copies of the state kept for the panel's identical-state check; `test/harness.test.js` also reads them.
