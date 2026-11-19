@@ -30,6 +30,7 @@ import { createLocalTransport } from './net/transport-local.js';
 import { createPeerTransport } from './net/transport-peer.js';
 import { createJoinForm, joinMessage, submitJoinCode } from './ui/join-form.js';
 import { createNotice } from './ui/notice.js';
+import { checkForNewerBuild, createOutdatedNotice } from './ui/version-check.js';
 
 const versionLabel = document.getElementById('version');
 versionLabel.textContent = __BUILD_LABEL__;
@@ -132,6 +133,10 @@ const NET_FADE_SECONDS = 1.2; // joining a game, and back to the menu when it en
 // An invite link (`?room=CODE`) is used once: after the boot press it skips the intro and opens
 // the Join screen with the code filled in, joining at once.
 let inviteRoom = netOptions.room;
+// The build this page runs (null in dev: no check) and the outdated-version notice (ui/version-check.js).
+const runningBuild = __BUILD_SHA__ ? { sha: __BUILD_SHA__, builtAt: __BUILD_AT__ } : null;
+const outdatedNotice = createOutdatedNotice({ document });
+let versionToken = 0;
 const screens = {
   startIntro() {
     if (inviteRoom === null) {
@@ -161,6 +166,18 @@ const screens = {
   // New Game stays open (its boxes already closed) so the menu's panel is not shown during the fade;
   // the menu's suspend at the fade's midpoint closes it.
   startGame: () => harness.setMain('sandbox', { fadeOut: GAME_FADE_OUT_SECONDS, fadeIn: GAME_FADE_IN_SECONDS }),
+  // Each menu entry: ask for version.json and show the notice if the published build is newer.
+  // A result counts only if no other check or hide came after it and the menu is still the main scene.
+  checkVersion() {
+    const token = ++versionToken;
+    checkForNewerBuild({ running: runningBuild, fetch: (...a) => window.fetch(...a), now: Date.now }).then((outdated) => {
+      if (outdated && token === versionToken && harness.layers.main === 'mainMenu') outdatedNotice.show();
+    });
+  },
+  hideVersionNotice() {
+    versionToken += 1;
+    outdatedNotice.hide();
+  },
 };
 harness.register('boot', createBoot({ loader, screens }));
 harness.register('intro', createIntro({ music, screens }));

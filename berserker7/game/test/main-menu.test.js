@@ -52,6 +52,8 @@ function fakeScreens(calls, fading = () => false, overlayOpen = () => false) {
     closeNewGame: () => calls.push(['close']),
     openJoin: () => calls.push(['openJoin']),
     closeJoin: () => calls.push(['closeJoin']),
+    checkVersion: () => calls.push(['checkVersion']),
+    hideVersionNotice: () => calls.push(['hideVersionNotice']),
     fading,
     overlayOpen,
   };
@@ -73,7 +75,10 @@ test('main menu: music plays on enter and resume, stops on suspend and exit; sus
   menu.resume();
   menu.exit();
   assert.deepStrictEqual(calls, [
-    ['play', MUSIC_URL], ['stop'], ['close'], ['closeJoin'], ['play', MUSIC_URL], ['stop'], ['close'], ['closeJoin'],
+    ['play', MUSIC_URL], ['checkVersion'],
+    ['stop'], ['close'], ['closeJoin'], ['hideVersionNotice'],
+    ['play', MUSIC_URL], ['checkVersion'],
+    ['stop'], ['close'], ['closeJoin'], ['hideVersionNotice'],
   ]);
 });
 
@@ -82,6 +87,7 @@ test('main menu: New Game opens its screen once, Multiplayer opens Join once, Op
   const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls), poster: 'poster.classic' });
   assert.equal(menu.settings.pausable, false);
   const state = openState(menu.enter());
+  calls.length = 0; // enter's checkVersion
   menu.tick(state, [frame(['jump'])]);
   assert.deepStrictEqual(calls, [['open']]);
   menu.tick(state, [frame([])]);
@@ -99,6 +105,7 @@ test('main menu: a later selection by another player in the same tick does not c
   const calls = [];
   const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls), poster: 'poster.classic' });
   const state = openState(menu.enter());
+  calls.length = 0; // enter's checkVersion
   menu.tick(state, [frame(['jump']), frame(['moveDown', 'jump'])]);
   assert.equal(state.selected, 'Multiplayer');
   assert.deepStrictEqual(calls, [['open']]);
@@ -300,6 +307,7 @@ test('main menu: with an overlay open over it, a jump press opens nothing', () =
   let covered = true;
   const menu = createMainMenu({ music: { play() {}, stop() {} }, screens: fakeScreens(calls, () => false, () => covered), poster: 'poster.classic' });
   const state = openState(menu.enter());
+  calls.length = 0; // enter's checkVersion
   menu.tick(state, [frame(['jump'])]);
   assert.deepEqual(calls, []);
   assert.equal(state.request, null);
