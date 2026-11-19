@@ -37,6 +37,7 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   let degrees = clampFov(fov);
   const offset = { ...OFFSET_DEFAULT };
   const follow = Object.fromEntries(FOLLOW_SETTINGS.map(([key, , , , , value]) => [key, value]));
+  let backdrop = true;
   return {
     mode: () => current,
     // Ignores an unknown mode. Returns the mode now in use.
@@ -55,6 +56,12 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
     setOffset(axis, v) {
       if ((axis === 'x' || axis === 'y') && Number.isFinite(v)) offset[axis] = clampOffset(v);
       return { ...offset };
+    },
+    // The background city blocks (2.5D only), on by default.
+    backdrop: () => backdrop,
+    setBackdrop(on) {
+      backdrop = Boolean(on);
+      return backdrop;
     },
     follow: () => ({ ...follow }),
     // Sets one FOLLOW_SETTINGS key, clamped to its range and rounded to its step; ignores an

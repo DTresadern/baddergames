@@ -225,3 +225,30 @@ test('aim follow: the camera is stable frame to frame (rest-camera projection) a
     assert.ok(Math.abs(first[1] - (headY + 150 * tilesPerPx)) < 1e-9, mode);
   }
 });
+
+test('city backdrop: deterministic, denser and darker with distance, inside the far plane', async () => {
+  const { CITY_LAYERS, CITY_FAR, layerBuildings } = await import('../src/scenes/city-backdrop.js');
+  assert.deepEqual(layerBuildings(CITY_LAYERS[0], -50, 50), layerBuildings(CITY_LAYERS[0], -50, 50));
+  const coverage = CITY_LAYERS.map((layer) => {
+    const b = layerBuildings(layer, -200, 200);
+    return b.reduce((sum, { width }) => sum + width, 0) / (b.at(-1).x + b.at(-1).width - b[0].x);
+  });
+  assert.ok(coverage[0] < coverage[1] && coverage[1] < coverage[2], `coverage ${coverage}`);
+  const brightness = CITY_LAYERS.map((l) => parseInt(l.color.slice(1), 16) >> 16);
+  assert.ok(brightness[0] > brightness[1] && brightness[1] > brightness[2]);
+  const deepest = Math.max(...CITY_LAYERS.map((l) => -l.z + l.depth / 2));
+  assert.ok(CITY_FAR > deepest);
+  // The 2.5D camera's far plane reaches the backdrop while it is on, and not when it is off.
+  let rendered;
+  const renderer = { render: (scene, camera) => (rendered = camera) };
+  const viewMode = createViewMode();
+  const scene = createSandbox({ viewMode, fetchJson: async () => json() });
+  await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
+  const state = scene.enter();
+  const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
+  scene.draw(state, view);
+  assert.ok(rendered.far > rendered.position.z + deepest);
+  viewMode.setBackdrop(false);
+  scene.draw(state, view);
+  assert.ok(rendered.far < rendered.position.z + 5);
+});

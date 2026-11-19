@@ -9,9 +9,12 @@ import { loadMap } from '../world/load-map.js';
 import { MOVE, createPlayer, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createTileTexture } from './tile-texture.js';
+import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
 import {
   DEPTH_MARGIN,
+  FOLLOW_SETTINGS,
   FOV_DEFAULT,
+  OFFSET_LIMIT,
   cameraShift,
   createViewMode,
   depthCubes,
@@ -37,6 +40,24 @@ export function createMapChoice(key = MAP_KEY) {
       return current;
     },
   };
+}
+
+// The level's { minX, maxX, minY } in tiles: solid tiles plus a cells map's other cells.
+function levelBounds(tiles, cells = []) {
+  const b = { minX: Infinity, maxX: -Infinity, minY: Infinity };
+  const add = (x, y) => {
+    b.minX = Math.min(b.minX, x);
+    b.maxX = Math.max(b.maxX, x + 1);
+    b.minY = Math.min(b.minY, y);
+  };
+  const size = tiles.chunkSize;
+  for (const chunk of tiles.chunks()) {
+    chunk.tiles.forEach((id, index) => {
+      if (id !== 0) add(chunk.cx * size + (index % size), chunk.cy * size + Math.floor(index / size));
+    });
+  }
+  for (const c of cells) add(c.x, c.y);
+  return Number.isFinite(b.minX) ? b : { minX: 0, maxX: 0, minY: 0 };
 }
 
 // Lowest y of any solid tile, or 0 for an empty map.
@@ -205,7 +226,20 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         decor.get(cube.id).push([cube.x, cube.y, cube.z]);
       }
       for (const [id, positions] of decor) addInstanced(deepScene, track, geometries.cube, cubeMaterials.get(id), positions);
+      // Background city blocks: wide enough for the widest normal view (FOV 50, the furthest
+      // zoom, a 21:9 window) anywhere the camera can go (the level plus the largest offset and
+      // aim-follow Max).
+      const followMax = FOLLOW_SETTINGS.find(([key]) => key === 'max')[3];
+      const city = addCityBackdrop(deepScene, {
+        track,
+        geometry: geometries.cube,
+        makeMaterial: (color) => new MeshBasicMaterial({ color, vertexColors: true }),
+        bounds: levelBounds(tiles, map.cells),
+        reach: OFFSET_LIMIT + followMax,
+        view: { fovDegrees: FOV_DEFAULT, tilesHigh: CAMERA_TILES_MAX, aspect: 21 / 9 },
+      });
       deep = {
+        city,
         scene: deepScene,
         camera: new PerspectiveCamera(FOV_DEFAULT, 1, 0.1, 100),
         // The player is a flat plane on the play plane, facing the camera; the aim line just in front.
@@ -247,13 +281,15 @@ export function createSandbox({ zoom = createCameraZoom(), viewMode = createView
         const distance = perspectiveDistance(tilesHigh, fov);
         const aspect = view.width / view.height;
         const near = Math.max(0.1, distance - DEPTH_MARGIN);
-        const far = distance + DEPTH_MARGIN;
+        // While the city backdrop shows, the far plane reaches behind its farthest layer.
+        const far = distance + (viewMode.backdrop() ? CITY_FAR : DEPTH_MARGIN);
         if (camera.fov !== fov || camera.aspect !== aspect || camera.near !== near || camera.far !== far) {
           Object.assign(camera, { fov, aspect, near, far });
           camera.updateProjectionMatrix();
         }
         camera.position.set(camX, camY, distance);
       }
+      if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
       const { body, aim } = active.player;
       body.position.set(player.x, centreY, body.position.z);
       aim.position.set(player.x, headY, aim.position.z);

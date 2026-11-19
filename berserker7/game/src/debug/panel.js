@@ -12,6 +12,7 @@
 //     #b7-map (select)                       Sandbox map; a change reloads the scene
 //     #b7-zoom (range), [data-value="zoom"]  camera view height in tiles; [ and ] change it by 2
 //     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
+//     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
 //     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
 //                                       camera offset from the followed point, tiles
@@ -77,6 +78,7 @@ const STYLE = `
 #b7-debug .b7-sandbox[hidden] { display: none; }
 #b7-debug .b7-sandbox label, #b7-debug .b7-modes { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 #b7-debug .b7-sandbox input, #b7-debug .b7-sandbox select { flex: 1; min-width: 0; }
+#b7-debug .b7-sandbox .b7-check input { flex: 0 0 auto; }
 #b7-debug .b7-sandbox input:disabled { opacity: 0.4; }
 #b7-debug .b7-modes button { flex: 1; padding: 4px; font: inherit; color: #eee; background: #333b50;
   border: 1px solid #556; border-radius: 3px; cursor: pointer; }
@@ -126,6 +128,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
         <label>Sandbox view
           <input id="b7-zoom" type="range" min="${CAMERA_TILES_MIN}" max="${CAMERA_TILES_MAX}" step="1">
           <span data-value="zoom"></span></label>
+        <label class="b7-check"><input id="b7-city" type="checkbox"> City backdrop (2.5D)</label>
         <label>FOV
           <input id="b7-fov" type="range" min="${FOV_MIN}" max="${FOV_MAX}" step="1">
           <span data-value="fov"></span></label>
@@ -236,6 +239,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
   const fovSlider = root.querySelector('#b7-fov');
   const modeButtons = [...root.querySelectorAll('[data-view-mode]')];
   const offsetSliders = [...root.querySelectorAll('[data-axis]')];
+  const cityCheck = root.querySelector('#b7-city');
   const followSliders = [...root.querySelectorAll('[data-follow]')];
   function showZoom() {
     if (sandboxZoom) {
@@ -245,6 +249,7 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
     if (sandboxViewMode) {
       const mode = sandboxViewMode.mode();
       for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
+      cityCheck.checked = sandboxViewMode.backdrop();
       fovSlider.value = String(sandboxViewMode.fov());
       fovSlider.disabled = mode !== '2.5d';
       setValue('fov', `${sandboxViewMode.fov()}°`);
@@ -287,6 +292,11 @@ export function mountPanel({ harness, renderer, assets, settings, session, sandb
       showZoom();
     });
     fovSlider.addEventListener('change', () => fovSlider.blur());
+    cityCheck.addEventListener('change', () => {
+      cityCheck.blur();
+      sandboxViewMode.setBackdrop(cityCheck.checked);
+      showZoom();
+    });
     for (const slider of offsetSliders) {
       slider.addEventListener('input', () => {
         sandboxViewMode.setOffset(slider.dataset.axis, Number(slider.value));
