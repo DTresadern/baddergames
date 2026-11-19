@@ -2087,7 +2087,7 @@
       "category": "Controls and movement",
       "title": "Better jump",
       "detail": "Improve the jump. Impact's Biolab player is a reference: separate ground and air acceleration and friction, a jump buffer and variable jump height (the MVP already had coyote time, buffering and variable jump).",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Deano",
         "Impact research"
@@ -2105,7 +2105,7 @@
       "refs": [
         "TF-083"
       ],
-      "notes": ""
+      "notes": "2026-11-19: first part in the Sandbox: separate ground and air acceleration and friction, gravity and a jump (#74). No jump buffer, coyote time or variable jump height yet."
     },
     {
       "id": "D-076",
@@ -2699,7 +2699,7 @@
       "refs": [
         "TF-095"
       ],
-      "notes": "2026-11-18: loading screen with a progress bar, press-to-start prompt and intro logos with fades (issue #52); main menu and New Game placeholders (issue #50). Final art and transitions are not done."
+      "notes": "2026-11-18: loading screen with a progress bar, press-to-start prompt and intro logos with fades (issue #52); main menu and New Game placeholders (issue #50). Final art and transitions are not done. 2026-11-19: menu panels open and close with an animation (a line widens, grows to full height, then the items fade in; closing plays it backwards), and the fade into the game is 2 s out and 1 s in (#78). The main menu shows a notice when a newer build is published (#92)."
     },
     {
       "id": "D-098",
@@ -3555,7 +3555,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-19: the Sandbox has both: 2D with an orthographic camera and 2.5D with a perspective camera and adjustable FOV; 2.5D is the default (#74). No decision recorded yet."
     },
     {
       "id": "T-007",
@@ -3709,7 +3709,7 @@
       "refs": [
         "TF-107"
       ],
-      "notes": ""
+      "notes": "2026-11-19: single-player parts exist in the Sandbox: the camera eases towards the player's head with a smoothing half-life, and aim follow shifts it towards the mouse with Follow, Min radius, Max length and X / Y scale settings (#74); follow uses each map's player size (#76). The co-op parts (a point from both players, deadzone, level bounds) are not built."
     },
     {
       "id": "T-014",
@@ -4069,7 +4069,7 @@
       "category": "Collision and physics",
       "title": "Gameplay collision on its own 2D tile grid",
       "detail": "3D meshes can be any shape while the simulation reads only a 2D grid in the gameplay plane. This keeps the simulation free of three.js, so it runs in Node and on both peers.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -4080,7 +4080,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-19: the Sandbox collides against a sparse tile map in 32 x 32 chunks, read only through tileAt, isSolid and chunks(); the player is plain data with no three.js and is tested in Node (#74). Cells off the play plane are drawn only."
     },
     {
       "id": "T-030",
@@ -4425,7 +4425,7 @@
       "category": "Networking",
       "title": "Highly efficient netcode",
       "detail": "Netcode should be highly efficient.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Deano"
       ],
@@ -4439,7 +4439,7 @@
         "TF-067",
         "T-109"
       ],
-      "notes": "2026-11-19: the netcode model is chosen in T-109."
+      "notes": "2026-11-19: the netcode model is chosen in T-109. 2026-11-19: network messages are sent as MessagePack bytes instead of JSON text (#90), chosen after a benchmark of JSON vs MessagePack and float vs quantised messages (#87). The Network panel showed host-to-guest bytes per second down by 43% and guest-to-host by 30% (#90). Quantised values are not used yet."
     },
     {
       "id": "T-046",
@@ -4448,7 +4448,7 @@
       "category": "Networking",
       "title": "MessagePack if it helps: measure snapshot size first",
       "detail": "Use MessagePack if it reduces message size or latency. MVP snapshot size was never measured: measure first, then compare JSON, MessagePack and delta compression.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Deano",
         "MVP retro"
@@ -4466,7 +4466,7 @@
       "refs": [
         "TF-064"
       ],
-      "notes": ""
+      "notes": "2026-11-19: measured in #87: a two-player snapshot is 269 bytes as JSON and 140 as MessagePack (103 quantised); an input is 76 and 50 bytes. MessagePack (msgpackr) adopted in #90. Delta compression has not been compared."
     },
     {
       "id": "T-047",
@@ -4493,7 +4493,7 @@
       "refs": [
         "TF-065"
       ],
-      "notes": ""
+      "notes": "2026-11-19: hosting from behind CGNAT worked (project owner, 2026-11-19, first friend test (#82)). The debug panel's Network section now shows a live session's connection type: direct (host, srflx, prflx) or TURN relay (#88)."
     },
     {
       "id": "T-048",
@@ -4546,7 +4546,7 @@
       "category": "Networking",
       "title": "Protocol check, size and rate limits, validated input",
       "detail": "Carry over the MVP's protocol version check, message size and rate limits, and validation of received values.",
-      "status": "open",
+      "status": "implemented",
       "authors": [
         "MVP retro"
       ],
@@ -4559,7 +4559,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": ""
+      "notes": "2026-11-19: implemented in #82: the guest's hello carries the protocol version and the host rejects a different one; messages over 2048 bytes or beyond 200 a second are dropped; every message is checked against a per-type field list, numbers are clamped and unknown fields dropped. #90 raised the protocol version to 2 and counts the size limit in MessagePack bytes."
     },
     {
       "id": "T-051",
@@ -4568,7 +4568,7 @@
       "category": "Networking",
       "title": "Worker-driven host tick",
       "detail": "Browsers throttle timers in hidden tabs; the authoritative host ticks from a Worker so a background host tab does not freeze the guest.",
-      "status": "open",
+      "status": "implemented",
       "authors": [
         "MVP retro"
       ],
@@ -4581,7 +4581,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": ""
+      "notes": "2026-11-19: implemented in #82: while a network session is active and the tab is hidden, a small Worker posts 60 ticks a second and each one runs the game frame, so a background host tab keeps ticking."
     },
     {
       "id": "T-052",
@@ -4603,7 +4603,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": "2026-11-19: the room code, the Join screen and the invite link are built (#81); Ready, Start and drop-in are not yet."
+      "notes": "2026-11-19: the room code, the Join screen and the invite link are built (issue #81, PR #82); Ready, Start and drop-in are not yet."
     },
     {
       "id": "T-053",
@@ -5059,7 +5059,7 @@
         "TF-111",
         "T-094"
       ],
-      "notes": "2026-11-17, project owner: added the draw-call count (renderer.info.render.calls) from the three.js rendering research, to check the effect of batching (T-094). 2026-11-18: the debug panel shows frame time, harness work time, steps per frame and the last long frame (issue #46). No graph, hitboxes, collision grid, entity IDs, network figures or draw-call count yet."
+      "notes": "2026-11-17, project owner: added the draw-call count (renderer.info.render.calls) from the three.js rendering research, to check the effect of batching (T-094). 2026-11-18: the debug panel shows frame time, harness work time, steps per frame and the last long frame (issue #46). No graph, hitboxes, collision grid, entity IDs, network figures or draw-call count yet. 2026-11-19: the debug panel has a Network section (role, room code, state, ping, tick offset, messages and bytes per second, added lag) (#82) with a connection line showing the WebRTC connection type (#88). The Input panel shows each action's primary key as a coloured chip (#80). Still not built: graph, hitboxes, collision grid, entity IDs, snapshot size, draw-call count."
     },
     {
       "id": "T-072",
@@ -5107,7 +5107,7 @@
       "refs": [
         "TF-068"
       ],
-      "notes": ""
+      "notes": "2026-11-19: what exists: `?lag` delays every send by up to 2000 ms (#82); Node tests run a host and a guest session over a fake BroadcastChannel, one with a 30 ms delay, and CI runs them with `npm test` (#82, #84). No headless clients, no loss or reordering, and no check that positions match under lag."
     },
     {
       "id": "T-074",
@@ -5133,7 +5133,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": "2026-11-19: ?net=local and ?lag are built (#81)."
+      "notes": "2026-11-19: ?net=local and ?lag are built (issue #81, PR #82)."
     },
     {
       "id": "T-075",
@@ -5379,7 +5379,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": "2026-11-17: implemented in PR #43 (project skeleton): a GitHub Pages deploy workflow publishes the game with a version label showing the short commit and UTC build time."
+      "notes": "2026-11-17: implemented in PR #43 (project skeleton): a GitHub Pages deploy workflow publishes the game with a version label showing the short commit and UTC build time. 2026-11-19: the build also writes version.json with the same commit and build time; the main menu uses it to tell players their build is out of date (#92, T-113)."
     },
     {
       "id": "T-086",
@@ -6053,7 +6053,7 @@
       "category": "Networking",
       "title": "Host-authoritative snapshots with prediction",
       "detail": "The host runs the game and sends snapshots; the guest sends per-tick inputs; each player's own movement is predicted, with reconciliation; the other player is interpolated; a shared clock is estimated from pings. Chosen over lockstep and rollback because it does not need bit-exact determinism: each snapshot corrects the guest.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Project owner"
       ],
@@ -6063,7 +6063,7 @@
         "T-110",
         "T-111"
       ],
-      "notes": "2026-11-19: built in #81 for the Sandbox players."
+      "notes": "2026-11-19: built for the Sandbox players (issue #81, PR #82; fixes in #84): host snapshots 30 times a second, per-tick guest inputs, own movement predicted with reconciliation, the other player interpolated 100 ms behind, a shared clock from pings. Enemies and projectiles do not exist yet (T-110)."
     },
     {
       "id": "T-110",
