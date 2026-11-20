@@ -60,26 +60,34 @@ import { columns, fill } from './moge3-cyberpunk-blocks.sections.mjs';
 
 const OUT = new URL('../../public/content/maps/depth-rows-test.json', import.meta.url);
 
-export const TRANSFERS = [
-  { x0: 8, x1: 11, low: 1, high: 0 }, // A
-  { x0: 28, x1: 31, low: 1, high: 0 }, // B
-  { x0: 35, x1: 37, low: 0, high: -1 }, // C
-  { x0: 57, x1: 60, low: 0, high: -1 }, // D
-  { x0: 64, x1: 67, low: -1, high: 0 }, // E
-  { x0: 87, x1: 90, low: -1, high: 0 }, // F
-  { x0: 105, x1: 108, low: 0, high: -1 }, // G
-  { x0: 120, x1: 123, low: 0, high: -1 }, // H
-  { x0: 136, x1: 140, low: 0, high: -1 }, // J
-];
+// The transfer zones, moved right by `dx` tiles (a y offset does not change them). Everything
+// this function and depthRowsCells use is declared inside them, so they work while
+// moge3-cyberpunk-blocks.sections.mjs (which imports this file, and is imported by it) is still
+// being evaluated.
+export function depthRowsTransfers(dx = 0) {
+  return [
+    { x0: 8, x1: 11, low: 1, high: 0 }, // A
+    { x0: 28, x1: 31, low: 1, high: 0 }, // B
+    { x0: 35, x1: 37, low: 0, high: -1 }, // C
+    { x0: 57, x1: 60, low: 0, high: -1 }, // D
+    { x0: 64, x1: 67, low: -1, high: 0 }, // E
+    { x0: 87, x1: 90, low: -1, high: 0 }, // F
+    { x0: 105, x1: 108, low: 0, high: -1 }, // G
+    { x0: 120, x1: 123, low: 0, high: -1 }, // H
+    { x0: 136, x1: 140, low: 0, high: -1 }, // J
+  ].map((t) => ({ ...t, x0: t.x0 + dx, x1: t.x1 + dx }));
+}
 
-// Cells x0..x1 at one floor top `top` (one cell thick), depth z.
-const floor = (x0, x1, top, z) => fill(x0, x1, top - 1, top - 1, z);
-
-function cells() {
+// The layout's cells, moved by `dx` tiles right and `dy` tiles up, deduplicated and sorted by z,
+// then y, then x. `startWall` false leaves out the start wall at x -1 (for a copy joined onto
+// another level).
+export function depthRowsCells({ dx = 0, dy = 0, startWall = true } = {}) {
+  // Cells x0..x1 at one floor top `top` (one cell thick), depth z.
+  const floor = (x0, x1, top, z) => fill(x0, x1, top - 1, top - 1, z);
   const pit = new Set([47, 48]);
   const list = [
     // Row 0
-    ...fill(-1, -1, -1, 6),
+    ...(startWall ? fill(-1, -1, -1, 6) : []),
     ...floor(0, 12, 0, 0),
     ...fill(13, 26, -1, 5),
     ...floor(27, 69, 0, 0),
@@ -110,7 +118,8 @@ function cells() {
   ];
   const seen = new Set();
   const out = [];
-  for (const cell of list) {
+  for (const [x, y, z] of list) {
+    const cell = [x + dx, y + dy, z];
     const key = cell.join(',');
     if (seen.has(key)) continue;
     seen.add(key);
@@ -129,9 +138,9 @@ export function buildDepthRowsTest() {
     tile: { type: 'solid', color: '#6f7f99' },
     player: { width: 0.55, height: 1.2, crouchHeight: 0.6 },
     spawns: [{ type: 'player', x: 2, y: 0 }],
-    transfers: TRANSFERS.map((t) => ({ ...t })),
+    transfers: depthRowsTransfers(),
     platforms: [],
-    cells: cells(),
+    cells: depthRowsCells(),
   };
 }
 
@@ -160,5 +169,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(same ? 0 : 1);
   }
   writeFileSync(OUT, text);
-  console.log(`depth-rows-test: wrote public/content/maps/depth-rows-test.json: ${JSON.parse(text).cells.length} cells, ${TRANSFERS.length} transfers`);
+  console.log(`depth-rows-test: wrote public/content/maps/depth-rows-test.json: ${JSON.parse(text).cells.length} cells, ${JSON.parse(text).transfers.length} transfers`);
 }
