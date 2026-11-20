@@ -24,8 +24,7 @@ import { ENEMY_HEALTH, ITEMS, MELEE, PLAYER_HEALTH, inventoryFromMask, inventory
 export const PROTOCOL_VERSION = 7;
 // Largest message accepted or sent, in MessagePack bytes. The largest message (a snap with two
 // players and MAX_ENEMIES enemies) is 1254 bytes at worst (every field at full-precision extremes;
-// 1110 with the test level's 8 enemies);
-// 2048 leaves wide margin.
+// 1110 with the test level's 8 enemies); 2048 leaves wide margin.
 export const MAX_MESSAGE_BYTES = 2048;
 // Players a snapshot can carry (slot 0 is the host, slot 1 the guest).
 export const MAX_PLAYERS = 2;
