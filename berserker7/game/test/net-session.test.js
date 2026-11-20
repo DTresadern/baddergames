@@ -31,7 +31,7 @@ function world({ delayMs = 0, lagMs = 0 } = {}) {
   let ids = 0;
   let seed = 0;
   const transport = createLocalTransport({ BroadcastChannel: bus.BroadcastChannel, setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout, randomId: () => `peer${++ids}` });
-  const sandbox = { map: 'map.walkway', players: [{ x: 1, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0 }] };
+  const sandbox = { map: 'map.walkway', ticks: 0, players: [{ x: 1, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0 }], enemies: [] };
   const make = (extra = {}) => {
     const session = createNetSession({
       now: clock.now,
@@ -137,12 +137,17 @@ test('session: snapshots reach the guest with the ack; the host player is interp
     { x: 4, y: 2, vx: 1, vy: 0, onGround: true, crouching: false, aim: 0.5 },
     { x: 9, y: 3, vx: 0, vy: 0, onGround: false, crouching: true, aim: -1 },
   ];
+  w.sandbox.ticks = 500;
+  w.sandbox.enemies = [{ id: 3, type: 'walker', x: 7, y: 0, vx: 1, vy: 0, onGround: true, awake: true, aim: 0, crouching: false }];
+  assert.deepEqual(w.guest.session.netView().remoteEnemies(), [], 'the host has sent no enemies yet');
   w.tick(30);
   const gv = w.guest.session.netView();
   const snap = gv.takeSnapshot();
   assert.ok(snap);
   assert.equal(snap.players.length, 2);
   assert.deepEqual(snap.players[1], w.sandbox.players[1]);
+  assert.equal(snap.wt, 500);
+  assert.deepEqual(snap.enemies, [{ id: 3, type: 'walker', x: 7, y: 0, awake: true }]);
   assert.ok(snap.ack > 0, `ack ${snap.ack}`);
   assert.equal(gv.takeSnapshot(), null, 'taken once');
   // Inputs after the ack are the ones the host has not applied yet: a few ticks' worth.
@@ -151,10 +156,43 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   assert.ok(pending.every((e) => e.tick > snap.ack));
   const remote = gv.remotePlayer();
   assert.ok(Math.abs(remote.x - 4) < 1e-9);
+  assert.deepEqual(gv.remoteEnemies(), [{ id: 3, type: 'walker', x: 7, y: 0, vx: 0, vy: 0, aim: 0, awake: true }]);
   const stats = w.guest.session.stats();
   assert.equal(stats.role, 'guest');
   assert.ok(stats.pingMs >= 60 && stats.pingMs < 120, `ping ${stats.pingMs}`);
   assert.ok(stats.msgsIn > 20 && stats.msgsOut > 50, JSON.stringify(stats));
+});
+
+test('session: guest enemies by id: a new id appears, a missing id is removed, the others interpolate on untouched', () => {
+  const enemy = (id, x) => ({ id, type: 'walker', x, y: 0, vx: 0, vy: 0, onGround: true, awake: true, aim: 0, crouching: false });
+  // Two identical worlds; in `cut`, enemy 1 (the middle of the list) disappears halfway.
+  const run = (cut) => {
+    const w = world({ delayMs: 30 });
+    w.connect();
+    const out = [];
+    for (let t = 0; t < 40; t++) {
+      w.sandbox.enemies = [enemy(0, t * 0.05), enemy(1, 10 + t * 0.05), enemy(2, 20 - t * 0.05)];
+      if (cut && t >= 20) w.sandbox.enemies.splice(1, 1);
+      if (t >= 30) w.sandbox.enemies.push(enemy(9, 50));
+      w.tick(1);
+      out.push(w.guest.session.netView().remoteEnemies());
+    }
+    return out;
+  };
+  const full = run(false);
+  const cut = run(true);
+  const byId = (list, id) => list?.find((e) => e.id === id);
+  // The removed id is gone at the end; it was there before.
+  assert.ok(byId(cut[15], 1), 'enemy 1 present before the cut');
+  assert.equal(byId(cut.at(-1), 1), undefined, 'enemy 1 removed');
+  assert.deepEqual(cut.at(-1).map((e) => e.id), [0, 2, 9]);
+  // The others interpolate exactly as without the removal, on every tick.
+  full.forEach((list, t) => {
+    for (const id of [0, 2]) assert.deepEqual(byId(cut[t], id), byId(list, id), `enemy ${id} at tick ${t}`);
+  });
+  // A new id appears, created from its snapshot data.
+  assert.equal(byId(full[25], 9), undefined);
+  assert.deepEqual(byId(full.at(-1), 9), { id: 9, type: 'walker', x: 50, y: 0, vx: 0, vy: 0, aim: 0, awake: true });
 });
 
 test('session: a third peer gets full', () => {

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "Berserker 7",
-  "updated": "2026-11-19",
+  "updated": "2026-11-20",
   "statuses": [
     "open",
     "accepted",
@@ -945,7 +945,7 @@
       "refs": [
         "TF-003"
       ],
-      "notes": ""
+      "notes": "2026-11-20: first vertical sections in the test level (#95): a climb to stacked walkways, a drop to a lower street and a lift up to the rooftops."
     },
     {
       "id": "D-031",
@@ -4171,7 +4171,7 @@
       "category": "Collision and physics",
       "title": "Riding moving platforms and lifts",
       "detail": "Waypoint entities named in the level, a mover that travels between them, and riders carried by the mover's displacement each tick. Supports the lifts that replace ladders.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -4184,7 +4184,7 @@
       "refs": [
         "TF-004"
       ],
-      "notes": ""
+      "notes": "2026-11-20: first moving platform with riding (#95): a box on a waypoint path, position from the world tick only, one-way from above; riders are carried by its movement each tick."
     },
     {
       "id": "T-035",
@@ -6098,7 +6098,7 @@
         "T-109",
         "T-074"
       ],
-      "notes": ""
+      "notes": "2026-11-20: platform and enemy checked with a host and a guest (#95), with ?net=local and ?lag=200."
     },
     {
       "id": "T-112",

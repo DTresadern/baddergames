@@ -181,3 +181,22 @@ export function depthCubes(tiles, spacing = DEPTH_CUBE_SPACING) {
   }
   return cubes;
 }
+
+// Depth shading for a cells map's cubes (2.5D), so the walkable layer reads apart from what is
+// behind and in front of it. A colour multiplier [r, g, b] for the material (times the texture and
+// the face shading): the play plane (z = 0) is unchanged; cells behind it get darker with each
+// tile of depth and a cool tint (BEHIND: brightness at z = -1, -2, -3 and beyond); cells in front
+// are dark, warm silhouettes (FRONT). Grid maps are not shaded.
+export const DEPTH_SHADE = Object.freeze({
+  behind: Object.freeze([0.62, 0.48, 0.38]),
+  behindTint: Object.freeze([0.82, 0.9, 1]),
+  front: 0.34,
+  frontTint: Object.freeze([1, 0.88, 0.8]),
+});
+
+export function depthShade(z) {
+  if (z === 0) return [1, 1, 1];
+  if (z > 0) return DEPTH_SHADE.frontTint.map((c) => c * DEPTH_SHADE.front);
+  const level = DEPTH_SHADE.behind[Math.min(-z, DEPTH_SHADE.behind.length) - 1];
+  return DEPTH_SHADE.behindTint.map((c) => c * level);
+}

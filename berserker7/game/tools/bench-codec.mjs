@@ -74,7 +74,7 @@ const snaps = [];
 const inputs = [];
 for (let i = 0; i < POOL; i++) {
   const tick = 1000 + i * 2;
-  snaps.push(snapMessage({ tick, ack: tick - 1 - Math.floor(rnd() * 4), players: [player(), player()] }));
+  snaps.push(snapMessage({ tick, ack: tick - 1 - Math.floor(rnd() * 4), wt: tick, players: [player(), player()] }));
   const actions = {};
   for (const name of ACTIONS) actions[name] = { held: false, pressed: false };
   const heldCount = 1 + Math.floor(rnd() * 3);
