@@ -38,3 +38,11 @@ test('depth-rows-test.json: loads with rows -1, 0, +1 and nine transfer zones; e
     }
   });
 });
+
+test('depth-rows-test.json: the way out of the end: row -1 runs at top 5 from x 129 to 135 (wall 129, bridge, wall 135)', () => {
+  const map = loadMap(JSON.parse(text));
+  for (let x = 129; x <= 135; x++) {
+    assert.equal(floorBelow(map.rows.get(-1), createPlayer(x + 0.5, 5, map.player)), 5, `x ${x}`);
+    assert.equal(map.rows.get(-1).isSolid(x, 5) || map.rows.get(-1).isSolid(x, 6), false, `x ${x}: room above`);
+  }
+});

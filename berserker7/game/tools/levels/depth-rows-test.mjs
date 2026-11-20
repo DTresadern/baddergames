@@ -29,10 +29,11 @@
 //   104-113                                                      G ledge, top 3
 //   114-115                                                      step, top 4
 //   116-128                                                      H platform, top 5
-//   129                                                          wall y -1..7
+//   129                                                          wall y -1..4 (top 5, flush with H)
 //   130-131 step, top 2
+//   130-134                                                      bridge, top 5 (one cell, y 4)
 //   132-135 tower, top 4
-//   135                                                          wall y -1..5
+//   135                                                          wall y -1..4 (top 5)
 //   136-142                                                      J ledge, top 3
 //   143                                                          wall y -1..5
 //   146     end wall y 0..6
@@ -53,6 +54,11 @@
 //                    reach row -1 through G and the step at 114-115
 //   J 136-140 0 / -1 row -1 top 3: walk off the row 0 tower (132-135, top 4) to the right and
 //                    press crouch while falling
+//   The way out of the end (right of the tower, x 136-145, row 0 floor 0 or the J ledge): the
+//   tower (4 above the floor) is out of jump reach, so: jump and air grab in J onto the J ledge
+//   (top 3), jump left onto wall 135 (top 5), walk left along the bridge (130-134) and H (116-128,
+//   all top 5), then descend in H (120-123) to row 0's floor left of the tower, or carry on left
+//   over the step at 114-115 and the G ledge.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -111,8 +117,9 @@ export function depthRowsCells({ dx = 0, dy = 0, startWall = true } = {}) {
     ...fill(104, 113, -1, 2, -1),
     ...fill(114, 115, -1, 3, -1),
     ...fill(116, 128, -1, 4, -1),
-    ...fill(129, 129, -1, 7, -1),
-    ...fill(135, 135, -1, 5, -1),
+    ...fill(129, 129, -1, 4, -1),
+    ...floor(130, 134, 5, -1),
+    ...fill(135, 135, -1, 4, -1),
     ...fill(136, 142, -1, 2, -1),
     ...fill(143, 143, -1, 5, -1),
   ];
