@@ -1,7 +1,10 @@
 // Sandbox enemies: boxes that wait until a player comes near, then walk towards the nearest player
-// for good. Pure logic, no three.js. No damage, no attacks, no pushing or blocking players.
-// Enemy data is plain: { id, type, x, y, vx, vy, onGround, awake, aim, crouching, size }, with x, y the
-// bottom-centre like a player, so stepPlayer moves it (aim and crouching are always 0 and false).
+// for good. Pure logic, no three.js. Enemies attack nearby players and lose health to the players'
+// melee (world/combat.js); their movement never pushes or blocks a player. Moving platforms block,
+// carry, push and crush them like players (stepPlayer).
+// Enemy data is plain: { id, type, x, y, vx, vy, onGround, awake, aim, crouching, size, health,
+// attackCooldown, crushed }, with x, y the bottom-centre like a player, so stepPlayer moves it (aim and
+// crouching are always 0 and false).
 
 import { MOVE, playerHeight, stepPlayer } from './player.js';
 
@@ -21,10 +24,13 @@ export const ENEMY_TYPES = Object.freeze(['walker']);
 export const ENEMY_ID_MAX = 65535;
 // Enemies a snapshot can carry (net/codec.js) and the Sandbox can draw at once.
 export const MAX_ENEMIES = 16;
+// An enemy's full health (world/combat.js re-exports it; defined here so combat.js can import this
+// module without a cycle).
+export const ENEMY_HEALTH = 30;
 
 // A new idle enemy with its feet at (x, y). `id` is its stable id, `type` one of ENEMY_TYPES.
 export function createEnemy(x, y, id = 0, type = ENEMY_TYPES[0]) {
-  return { id, type, x, y, vx: 0, vy: 0, onGround: false, awake: false, aim: 0, crouching: false, size: { ...ENEMY_SIZE } };
+  return { id, type, x, y, vx: 0, vy: 0, onGround: false, awake: false, aim: 0, crouching: false, size: { ...ENEMY_SIZE }, health: ENEMY_HEALTH, attackCooldown: 0, crushed: false };
 }
 
 const centre = (body) => ({ x: body.x, y: body.y + playerHeight(body) / 2 });

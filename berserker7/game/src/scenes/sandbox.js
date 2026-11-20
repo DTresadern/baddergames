@@ -6,7 +6,8 @@
 // state; the state is plain data: { ticks, map (manifest key), players, enemies, localSlot, ... }.
 // `ticks` is the world tick: platforms are a function of it (world/platform.js).
 // Enemies (world/enemy.js) are simulated by the host (or offline) only; a guest draws the host's,
-// interpolated.
+// interpolated. Combat (world/combat.js): every player steps its melee timer (a guest predicts its
+// own swing); only the host (or offline) decides hits.
 // Networking reaches the scene only through `net` (the net session's read-only view, see
 // net/session.js): the scene never sees the transport, and input still arrives only as `inputs`.
 
@@ -15,6 +16,7 @@ import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
 import { ENEMY, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
+import { ENEMY_HEALTH, PLAYER_HEALTH, meleeBox, resolveCombat, stepMelee, swinging } from '../world/combat.js';
 import { platformAt, platformsStep, rideShift } from '../world/platform.js';
 import { createPlayer, playerHeight } from '../world/player.js';
 import { PRESS_NONE, playerDepth, stepRowPlayer } from '../world/rows.js';
@@ -42,6 +44,9 @@ export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk-blocks', 'map.mo
 export const MAP_KEY = SANDBOX_MAPS[0];
 // Below the lowest solid tile by this many tiles, the player goes back to the spawn.
 export const FALL_MARGIN = 10;
+// A guest's own player moved further than this (tiles) by one snapshot correction counts as a
+// respawn the host decided: the camera snaps to it.
+const RESPAWN_SNAP_DISTANCE = 3;
 
 // The map the Sandbox loads, chosen in the debug panel; the panel reloads the scene after a
 // change. Unknown keys are ignored. Not saved.
@@ -138,6 +143,15 @@ const AIM_WIDTH = 0.06; // aim line thickness, tiles
 const AIM_COLOR = 0xffffff;
 const AIM_Z = 0.2; // in front of the player (2D)
 const AIM_Z_DEEP = 0.02; // just in front of the player plane (2.5D)
+const SWING_COLOR = 0xffffff;
+const SWING_OPACITY = 0.45;
+const SWING_Z = 0.15; // in front of the player, behind the aim line (2D)
+const SWING_Z_DEEP = 0.01; // just in front of the player plane (2.5D)
+export const HEALTH_BAR_COLOR = 0x40e070;
+const HEALTH_BAR_HEIGHT = 0.08; // tiles
+const HEALTH_BAR_GAP = 0.1; // tiles from the enemy's top to the bar's centre
+const HEALTH_BAR_Z = 0.09; // in front of the enemies (2D)
+const HEALTH_BAR_Z_DEEP = 0.01; // just in front of the enemy plane (2.5D)
 
 // The player's head: the top centre of the current box (crouched or standing).
 export function playerHead(player) {
@@ -210,12 +224,23 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
   return respawnAll(state, localSlot);
 }
 
-// One player step (with depth rows, world/rows.js) plus the fall respawn, on the spawn's row 0.
+// Puts a player back at the spawn on row 0: no velocity, no hop, no recent presses. Health,
+// inventory and melee fields are kept (a death respawn sets them itself).
+function toSpawn(state, player) {
+  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE } });
+}
+
+// One player step (with depth rows, world/rows.js), its melee timer (world/combat.js; after the
+// move, so the swing takes this tick's aim) and the fall respawn, on the spawn's row 0.
 // `level` is { rows, transfers }. Returns true when the player respawned.
 function stepWithFall(state, player, frame, level, dt, world) {
+  // stepPlayer sets `crushed` (a moving platform crushed the player); a step that does not reach
+  // it (a scripted ascend hop) leaves it false.
+  player.crushed = false;
   stepRowPlayer(player, frame, level.rows, level.transfers, dt, world);
+  stepMelee(player, frame);
   if (player.y >= state.fallY) return false;
-  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE } });
+  toSpawn(state, player);
   return true;
 }
 
@@ -230,7 +255,8 @@ function stepWithFall(state, player, frame, level, dt, world) {
 //     not applied replayed on it (the current tick's frame is among them), or without a snapshot
 //     one step with inputs[0]; slot 0 is the interpolated host player (kept when there is none)
 // World tick: a step from world tick k to k + 1 sees the platforms at k and k + 1, then
-// state.ticks = k + 1. Offline or host: k = state.ticks; enemies step after the players. Guest:
+// state.ticks = k + 1. Offline or host: k = state.ticks; enemies step after the players, then
+// resolveCombat decides hits (a player at 0 health goes back to the spawn with full health). Guest:
 // a snapshot's replay starts at the host's world tick `wt` (replayed entry j steps wt + j to
 // wt + j + 1, then state.ticks = wt + entries), so the guest predicts at the ticks the host will
 // use; without a snapshot k = state.ticks. Guest enemies come from net.remoteEnemies().
@@ -258,7 +284,11 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     const confirmed = snapshot?.players[slot];
     if (confirmed) {
       k = snapshot.wt;
+      const before = own;
       own = reconcile({ ...confirmed, size: { ...state.size } }, net.inputsAfter(snapshot.ack), step);
+      // A host-decided respawn (zero health) moves the own player far in one tick: snap the camera
+      // as the host does. A correction after a push or a hit is much shorter.
+      if (Math.hypot(own.x - before.x, own.y - before.y) > RESPAWN_SNAP_DISTANCE) respawned = true;
     } else step(own, frame);
     state.players[slot] = own;
     state.ticks = k;
@@ -270,7 +300,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     if (remote) state.players[0] = { ...remote, size: { ...state.size } };
     // Enemies: the host's list (by id), interpolated; the map's own until the first snapshot.
     const enemies = net.remoteEnemies();
-    if (enemies) state.enemies = enemies.map((e) => ({ ...createEnemy(e.x, e.y, e.id, e.type), awake: e.awake }));
+    if (enemies) state.enemies = enemies.map((e) => ({ ...createEnemy(e.x, e.y, e.id, e.type), awake: e.awake, health: e.health }));
   } else {
     const count = net.peerPresent() ? MAX_SLOTS : 1;
     while (state.players.length < count) state.players.push(spawnPlayer(state));
@@ -289,6 +319,13 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
       Object.assign(enemy, createEnemy(spawn.x, spawn.y, enemy.id, enemy.type));
       return true;
     });
+    // Hits (host and offline only). A player at 0 health goes back to the spawn with full health.
+    for (const i of resolveCombat(state)) {
+      const player = state.players[i];
+      toSpawn(state, player);
+      Object.assign(player, { health: PLAYER_HEALTH, meleeTicks: 0 });
+      if (i === state.localSlot) respawned = true;
+    }
     state.ticks += 1;
   }
   if (respawned) snapCamera(state);
@@ -329,15 +366,17 @@ function addLevelGroup(scene, track, level, geometry, materials, positions) {
   level.push({ mesh, ...materials });
 }
 
-// A player box and its aim line, one pair per slot and view (an object belongs to one three.js
-// scene). Hidden while the slot is empty.
+// A player box, its aim line and its melee swing, one set per slot and view (an object belongs to
+// one three.js scene). Hidden while the slot is empty; the swing only while it is drawn.
 function addPlayer(scene, geometries, materials, slot, z) {
   const body = new Mesh(geometries.player, materials.players[slot]);
   const aim = new Mesh(geometries.aim, materials.aim);
+  const swing = new Mesh(geometries.tile, materials.swing);
   body.position.z = z.player;
   aim.position.z = z.aim;
-  scene.add(body, aim);
-  return { body, aim, z };
+  swing.visible = false;
+  scene.add(body, aim, swing);
+  return { body, aim, swing, z };
 }
 
 // The highest solid top over columns x0..x1 of `tiles` (each column scanned from y 64 down to
@@ -372,10 +411,10 @@ function addTransferMarkers(scene, track, map) {
   }
 }
 
-// Moving platform meshes (one per platform) and a pool of MAX_ENEMIES enemy meshes (a guest's
-// enemy list follows the host's snapshots, so its length can change), made in load, of one view;
-// draw positions them from the state and hides unused enemy meshes.
-function addMovers(scene, geometries, materials, map, { platformGeometry, platformMaterial, enemyZ, platformZ }) {
+// Moving platform meshes (one per platform) and a pool of MAX_ENEMIES enemy meshes and health bars
+// (a guest's enemy list follows the host's snapshots, so its length can change), made in load, of
+// one view; draw positions them from the state and hides unused enemy meshes.
+function addMovers(scene, geometries, materials, map, { platformGeometry, platformMaterial, enemyZ, platformZ, barZ }) {
   const platforms = map.platforms.map((p) => {
     const mesh = new Mesh(platformGeometry, platformMaterial);
     mesh.scale.set(p.width, p.height, 1);
@@ -389,7 +428,14 @@ function addMovers(scene, geometries, materials, map, { platformGeometry, platfo
     scene.add(mesh);
     return mesh;
   });
-  return { platforms, enemies };
+  const bars = Array.from({ length: MAX_ENEMIES }, () => {
+    const mesh = new Mesh(geometries.healthBar, materials.healthBar);
+    mesh.position.z = barZ;
+    mesh.visible = false;
+    scene.add(mesh);
+    return mesh;
+  });
+  return { platforms, enemies, bars };
 }
 
 // `zoom` is the camera view height holder (createCameraZoom) and `viewMode` the 2D / 2.5D and FOV
@@ -459,11 +505,15 @@ export function createSandbox({
         // A thin plane from the head along +x, rotated to the aim angle.
         aim: track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
         enemy: track(new PlaneGeometry(ENEMY.width, ENEMY.height)),
+        // Anchored at its left end, so scale.x shrinks it towards the left.
+        healthBar: track(new PlaneGeometry(ENEMY.width, HEALTH_BAR_HEIGHT).translate(ENEMY.width / 2, 0, 0)),
       };
       const materials = {
         players: PLAYER_COLORS.map((color) => track(new MeshBasicMaterial({ color }))),
         aim: track(new MeshBasicMaterial({ color: AIM_COLOR })),
         enemy: track(new MeshBasicMaterial({ color: ENEMY_COLOR })),
+        swing: track(new MeshBasicMaterial({ color: SWING_COLOR, transparent: true, opacity: SWING_OPACITY })),
+        healthBar: track(new MeshBasicMaterial({ color: HEALTH_BAR_COLOR })),
         platform: track(new MeshBasicMaterial({ color: PLATFORM_COLOR })),
         // 2.5D: the shaded cube's vertex colours times the platform colour.
         platformCube: track(new MeshBasicMaterial({ color: new Color(PLATFORM_COLOR), vertexColors: true })),
@@ -478,8 +528,8 @@ export function createSandbox({
         level: flatLevel,
         scene: flatScene,
         camera: new OrthographicCamera(-1, 1, 1, -1, -10, 10),
-        players: PLAYER_COLORS.map((_, slot) => addPlayer(flatScene, geometries, materials, slot, { player: PLAYER_Z, aim: AIM_Z })),
-        ...addMovers(flatScene, geometries, materials, map, { platformGeometry: geometries.tile, platformMaterial: materials.platform, platformZ: PLATFORM_Z, enemyZ: ENEMY_Z }),
+        players: PLAYER_COLORS.map((_, slot) => addPlayer(flatScene, geometries, materials, slot, { player: PLAYER_Z, aim: AIM_Z, swing: SWING_Z })),
+        ...addMovers(flatScene, geometries, materials, map, { platformGeometry: geometries.tile, platformMaterial: materials.platform, platformZ: PLATFORM_Z, enemyZ: ENEMY_Z, barZ: HEALTH_BAR_Z }),
       };
 
       // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera. A cells map's
@@ -516,9 +566,9 @@ export function createSandbox({
         scene: deepScene,
         camera: new PerspectiveCamera(FOV_DEFAULT, 1, 0.1, 100),
         // The player is a flat plane on the play plane, facing the camera; the aim line just in front.
-        players: PLAYER_COLORS.map((_, slot) => addPlayer(deepScene, geometries, materials, slot, { player: 0, aim: AIM_Z_DEEP })),
+        players: PLAYER_COLORS.map((_, slot) => addPlayer(deepScene, geometries, materials, slot, { player: 0, aim: AIM_Z_DEEP, swing: SWING_Z_DEEP })),
         // Platforms: boxes width x height x 1 centred on the play plane; enemies: planes at z = 0.
-        ...addMovers(deepScene, geometries, materials, map, { platformGeometry: geometries.cube, platformMaterial: materials.platformCube, platformZ: 0, enemyZ: 0 }),
+        ...addMovers(deepScene, geometries, materials, map, { platformGeometry: geometries.cube, platformMaterial: materials.platformCube, platformZ: 0, enemyZ: 0, barZ: HEALTH_BAR_Z_DEEP }),
       };
     },
     enter() {
@@ -600,15 +650,22 @@ export function createSandbox({
       const rideOffset = (body) => (remoteTick === null ? { dx: 0, dy: 0 } : rideShift(map.platforms, body, remoteTick, state.ticks));
       active.enemies.forEach((mesh, i) => {
         const e = state.enemies[i];
+        const bar = active.bars[i];
         mesh.visible = Boolean(e);
+        // The health bar shows only while the enemy is hurt and alive.
+        bar.visible = Boolean(e) && e.health > 0 && e.health < ENEMY_HEALTH;
         if (!e) return;
         const { dx, dy } = rideOffset(e);
         mesh.position.set(e.x + dx, e.y + dy + ENEMY.height / 2, mesh.position.z);
+        if (!bar.visible) return;
+        bar.position.set(e.x + dx - ENEMY.width / 2, e.y + dy + ENEMY.height + HEALTH_BAR_GAP, bar.position.z);
+        bar.scale.x = e.health / ENEMY_HEALTH;
       });
-      // One body and aim line per player; empty slots are hidden.
-      active.players.forEach(({ body, aim, z }, slot) => {
+      // One body, aim line and melee swing per player; empty slots are hidden.
+      active.players.forEach(({ body, aim, swing, z }, slot) => {
         const p = state.players[slot];
         body.visible = aim.visible = Boolean(p);
+        swing.visible = Boolean(p) && swinging(p);
         if (!p) return;
         const h = playerHeight(p);
         const { dx, dy } = slot === state.localSlot ? { dx: 0, dy: 0 } : rideOffset(p);
@@ -617,6 +674,11 @@ export function createSandbox({
         body.scale.y = h / map.player.height; // the body geometry is the standing height tall
         aim.position.set(p.x + dx, p.y + dy + h, z.aim + depth);
         aim.rotation.z = p.aim;
+        if (swing.visible) {
+          const box = meleeBox(p);
+          swing.scale.set(box.x1 - box.x0, box.y1 - box.y0, 1);
+          swing.position.set((box.x0 + box.x1) / 2 + dx, (box.y0 + box.y1) / 2 + dy, z.swing + depth);
+        }
       });
       // The local aim line points at the mouse's true world position: the pointer projected
       // through the actual camera. With a stick (or before the mouse moves) it uses the aim angle.

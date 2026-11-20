@@ -5,7 +5,9 @@
 // (last point back to the first).
 // Position is a function of the world tick only (D-129): the same tick gives the same box on host
 // and guest, so platforms are never sent over the network.
-// Collision is one-way, from above only (see stepPlayer in player.js).
+// Platforms are solid, exactly like tiles, for players and enemies alike: they move first each
+// step, carrying riders, pushing bodies out of their way and crushing bodies with no room left;
+// then bodies collide with them as with tiles (stepPlayer in player.js).
 
 import { STEP_SECONDS } from '../engine/clock.js';
 
