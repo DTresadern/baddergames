@@ -36,6 +36,7 @@ import { INTERP_DELAY_TICKS, createInterpolationBuffer } from './interpolation.j
 import { clampLag, createLink } from './link.js';
 import { createInputHistory } from './prediction.js';
 import { cleanRoomCode, isRoomCode, makeRoomCode } from './room-code.js';
+import { playerDepth } from '../world/rows.js';
 
 export const PING_INTERVAL_MS = 500;
 export const SNAPSHOT_EVERY_TICKS = 2; // 30 per second
@@ -51,21 +52,21 @@ export function parseNetOptions(search) {
 }
 
 // The host's queue of guest inputs: append in tick order, consume one per host tick once
-// JITTER_START are queued; when empty, repeat the last held mask with no presses (ack unchanged)
-// and wait for JITTER_START again. Over JITTER_MAX, drop the oldest but OR its presses into the
-// next one, so a jump is never lost.
+// JITTER_START are queued; when empty, repeat the last held mask (and aim and row scheme) with no
+// presses (ack unchanged) and wait for JITTER_START again. Over JITTER_MAX, drop the oldest but OR
+// its presses into the next one, so a jump is never lost.
 export function createGuestInputQueue() {
   const queue = [];
   let lastQueued = -1;
   let consuming = false;
-  let last = { held: 0, aim: 0 };
+  let last = { held: 0, aim: 0, rs: 'A' };
   let prevHeld = 0;
   let ack = -1;
   return {
-    push({ tick, held, pressed, aim }) {
+    push({ tick, held, pressed, aim, rs }) {
       if (tick <= lastQueued) return;
       lastQueued = tick;
-      queue.push({ tick, held, pressed, aim });
+      queue.push({ tick, held, pressed, aim, rs });
       if (queue.length > JITTER_MAX) {
         const dropped = queue.shift();
         queue[0].pressed |= dropped.pressed;
@@ -78,14 +79,14 @@ export function createGuestInputQueue() {
       if (consuming && queue.length > 0) {
         const entry = queue.shift();
         ack = entry.tick;
-        last = { held: entry.held, aim: entry.aim };
+        last = { held: entry.held, aim: entry.aim, rs: entry.rs };
         masks = entry;
       } else {
         consuming = false;
-        masks = { held: last.held, pressed: 0, aim: last.aim };
+        masks = { held: last.held, pressed: 0, aim: last.aim, rs: last.rs };
       }
       // The guest's pause key opens the guest's own pause overlay, never the host's.
-      const frame = frameFromMasks({ held: masks.held & ~PAUSE_BIT, pressed: masks.pressed & ~PAUSE_BIT, aim: masks.aim }, prevHeld & ~PAUSE_BIT, 1);
+      const frame = frameFromMasks({ held: masks.held & ~PAUSE_BIT, pressed: masks.pressed & ~PAUSE_BIT, aim: masks.aim, rs: masks.rs }, prevHeld & ~PAUSE_BIT, 1);
       prevHeld = masks.held;
       return frame;
     },
@@ -322,7 +323,8 @@ export function createNetSession({
         worldOffset = msg.wt - msg.tick;
         const snapshot = snapshotFromMessage(msg);
         pendingSnapshot = snapshot; // an older unapplied one is discarded
-        if (snapshot.players[0]) interp.push(snapshot.tick, snapshot.players[0]);
+        // The host player with its drawn depth (eased during a hop), interpolated like x and y.
+        if (snapshot.players[0]) interp.push(snapshot.tick, { ...snapshot.players[0], depth: playerDepth(snapshot.players[0]) });
         updateEnemies(snapshot);
         history.drop(snapshot.ack);
         break;
