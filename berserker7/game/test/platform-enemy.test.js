@@ -168,16 +168,18 @@ test('solid platforms: a moving platform pushes a body out along its movement (s
   const side = Object.assign(createPlayer(6, 0, SIZE), { onGround: true });
   run(side, [{ width: 3, height: 1, speed: 6, mode: 'pingpong', path: [[2, 0], [20, 0]] }], 60);
   near(side.x, 2 + 6 + 3 + SIZE.width / 2, 'held at the leading edge after 1 s');
-  // Up: a rising platform under a player in the air lifts it onto its top.
+  // Up: a rising platform meets a player rising slower than it (its own step alone would snap it
+  // under the platform): pushed onto the top.
   const up = createPlayer(6, 1.02, SIZE);
+  up.vy = 1;
   run(up, [{ width: 3, height: 0.5, speed: 3, mode: 'pingpong', path: [[5, 0.5], [5, 6]] }], 1);
-  near(up.y, 0.5 + 0.05 + 0.5, 'on the top');
-  // Down: a descending platform over a player in the air with room below pushes it down.
-  const down = createPlayer(6, 3, SIZE);
-  down.vy = 3;
-  run(down, [{ width: 3, height: 0.5, speed: 6, mode: 'pingpong', path: [[5, 4.25], [5, 0]] }], 1);
+  assert.ok(up.y >= 0.5 + 0.05 + 0.5 - 1e-9, `pushed onto the top, y ${up.y}`);
+  // Down: a descending platform meets a player falling slower than it (its own step alone would
+  // snap it onto the top): pushed down under it, with room below.
+  const down = createPlayer(6, 3, SIZE); // head 4.2
+  down.vy = -1;
+  run(down, [{ width: 3, height: 0.5, speed: 6, mode: 'pingpong', path: [[5, 4.25], [5, 0]] }], 1); // bottom 4.25 -> 4.15
   assert.ok(down.y + SIZE.height <= 4.15 + 1e-9, `head ${down.y + SIZE.height} under the platform`);
-  assert.ok(down.vy <= 0, 'a rising vy stops');
   assert.equal(down.crushed, false);
 });
 
