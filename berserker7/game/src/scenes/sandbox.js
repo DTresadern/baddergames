@@ -37,8 +37,8 @@ import {
 } from './sandbox-3d.js';
 
 // The maps the Sandbox can load (manifest keys), and the default: the block-markup blockout,
-// extended into the test level.
-export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk-blocks', 'map.moge3-cyberpunk', 'map.mvp-upper-1', 'map.walkway']);
+// extended into the test level. map.depth-rows-test tries depth rows (world/rows.js).
+export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk-blocks', 'map.moge3-cyberpunk', 'map.mvp-upper-1', 'map.walkway', 'map.depth-rows-test']);
 export const MAP_KEY = SANDBOX_MAPS[0];
 // Below the lowest solid tile by this many tiles, the player goes back to the spawn.
 export const FALL_MARGIN = 10;
