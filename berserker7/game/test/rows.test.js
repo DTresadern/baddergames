@@ -147,3 +147,94 @@ test('scheme A: down and jump pressed in the same frame descend (a merged guest 
   step(player, f(['moveDown', 'jump']));
   assert.equal(player.hop?.to, 1);
 });
+
+// Reach map: row 0 floor top 0 (x 0..39); row -1 floor top 3 at x 0..9 (zone G, x 5..8) and top 5 at
+// x 20..29 (zone H, x 25..28). A jump's y after n ticks: 1.125 (5), 1.903 (10), 2.428 at the peak (19).
+const reachMap = loadCellMap({
+  ...json(),
+  transfers: [
+    { x0: 5, x1: 8, low: 0, high: -1 },
+    { x0: 25, x1: 28, low: 0, high: -1 },
+  ],
+  cells: [
+    ...Array.from({ length: 40 }, (_, x) => [x, -1, 0]),
+    ...Array.from({ length: 10 }, (_, x) => [x, 2, -1]),
+    ...Array.from({ length: 10 }, (_, x) => [x + 20, 4, -1]),
+  ],
+});
+const rstep = (player, frame) => step(player, frame, reachMap);
+const rstanding = (x, row = 0, y = 0) => {
+  const player = createPlayer(x, y, reachMap.player);
+  player.row = row;
+  for (let i = 0; i < 5; i++) rstep(player, f());
+  assert.equal(player.onGround, true);
+  return player;
+};
+// Presses jump at tick 1, then idles until the tick before `n`, and returns the player.
+const jumped = (x, n, scheme = 'A') => {
+  const player = rstanding(x);
+  rstep(player, f(['jump'], [], scheme));
+  for (let i = 2; i < n; i++) rstep(player, f([], [], scheme));
+  return player;
+};
+
+test('reach, top 3: standing or an early double jump cannot reach; a crouch press on the ground does nothing', () => {
+  const early = rstanding(6.5);
+  rstep(early, f(['jump'], [], 'B'));
+  run(early, 2, f([], [], 'B'));
+  rstep(early, f(['jump'], [], 'B'));
+  assert.equal(early.hop, null);
+  const crouch = rstanding(6.5);
+  rstep(crouch, f(['moveDown']));
+  assert.equal(crouch.hop, null);
+  // Held from the ground into the air: not a press event.
+  const held = rstanding(6.5);
+  rstep(held, f(['jump'], ['moveDown']));
+  run(held, 15, f([], ['moveDown']));
+  assert.equal(held.hop, null);
+});
+
+test('reach, top 3: jump, then a crouch press near the top of the jump hops to y 3', () => {
+  for (const scheme of ['A', 'B']) {
+    const player = jumped(6.5, 15, scheme);
+    rstep(player, f(['moveDown'], [], scheme));
+    assert.equal(player.hop?.to, -1, scheme);
+    assert.equal(player.hop.y1, 3, scheme);
+  }
+  const low = jumped(6.5, 5);
+  rstep(low, f(['moveDown']));
+  assert.equal(low.hop, null, 'y 1.1: out of reach');
+});
+
+test('reach, top 3: scheme B two jump presses near the top of the jump hop', () => {
+  const player = jumped(6.5, 12, 'B');
+  rstep(player, f(['jump'], [], 'B'));
+  assert.equal(player.hop?.to, -1);
+});
+
+test('reach, top 5: out of reach even at the peak; descending from it works', () => {
+  for (const scheme of ['A', 'B']) {
+    const player = jumped(26.5, 19, scheme);
+    rstep(player, f(['moveDown'], [], scheme));
+    assert.equal(player.hop, null, scheme);
+  }
+  const second = jumped(26.5, 10, 'B');
+  rstep(second, f(['jump'], [], 'B'));
+  assert.equal(second.hop, null);
+  const down = rstanding(26.5, -1, 5);
+  rstep(down, f(['moveDown']));
+  rstep(down, f(['jump'], ['moveDown']));
+  assert.deepEqual([down.hop?.to, down.hop?.y1], [0, 0]);
+});
+
+test('air grab: a player falling past the ledge grabs the higher row with a crouch press', () => {
+  for (const scheme of ['A', 'B']) {
+    const player = createPlayer(6.5, 2.5, reachMap.player);
+    player.row = 0;
+    rstep(player, f([], [], scheme));
+    assert.equal(player.onGround, false);
+    assert.equal(player.presses.down, PRESS_NONE);
+    rstep(player, f(['moveDown'], [], scheme));
+    assert.deepEqual([player.hop?.to, player.hop?.y1], [-1, 3], scheme);
+  }
+});
