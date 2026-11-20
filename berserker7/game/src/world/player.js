@@ -1,7 +1,9 @@
 // The Sandbox player: a box moved by input and collided with solid tiles. Pure logic, no three.js.
 // One world unit is one tile; x is right, y is up. The position is the bottom-centre of the box:
 // the box covers x - width / 2 .. x + width / 2 and y .. y + height.
-// Player data is plain: { x, y, vx, vy, onGround, aim, crouching, size } (aim in radians, y up, 0 = right).
+// Player data is plain: { x, y, vx, vy, onGround, aim, crouching, size, row, hop, presses } (aim in
+// radians, y up, 0 = right). row, hop and presses belong to depth rows (world/rows.js); stepPlayer
+// leaves them alone.
 
 // Default box size, tiles. A map may override it (top-level `player` field); the player carries its
 // own copy in `player.size`. crouchHeight: box height while crouched (feet stay put).
@@ -27,8 +29,12 @@ export const MOVE = Object.freeze({
 // Gap that stops a box resting exactly on a tile edge from counting as overlapping it, tiles.
 const EPSILON = 1e-6;
 
+// Press age meaning "no recent press" (world/rows.js re-exports it; defined here so rows.js can
+// import this module without a cycle).
+export const PRESS_NONE = 255;
+
 export function createPlayer(x, y, size = PLAYER_SIZE) {
-  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...size } };
+  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...size }, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE } };
 }
 
 // Moves `value` towards `target` by at most `amount`, never past it.
