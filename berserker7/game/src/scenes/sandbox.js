@@ -227,16 +227,17 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
 // Puts a player back at the spawn on row 0: no velocity, no hop, no recent presses. Health,
 // inventory and melee fields are kept (a death respawn sets them itself).
 function toSpawn(state, player) {
-  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE } });
+  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE }, crushed: false });
 }
 
 // One player step (with depth rows, world/rows.js), its melee timer (world/combat.js; after the
 // move, so the swing takes this tick's aim) and the fall respawn, on the spawn's row 0.
 // `level` is { rows, transfers }. Returns true when the player respawned.
 function stepWithFall(state, player, frame, level, dt, world) {
-  // stepPlayer sets `crushed` (a moving platform crushed the player); a step that does not reach
-  // it (a scripted ascend hop) leaves it false.
-  player.crushed = false;
+  // A crushed player (stepPlayer sets `crushed`) is not stepped again until it respawns: the host
+  // and offline respawn it in the same tick (resolveCombat); a guest holds its predicted player in
+  // place until the host's respawn arrives in a snapshot (a snapshot's player is not crushed).
+  if (player.crushed) return false;
   stepRowPlayer(player, frame, level.rows, level.transfers, dt, world);
   stepMelee(player, frame);
   if (player.y >= state.fallY) return false;
