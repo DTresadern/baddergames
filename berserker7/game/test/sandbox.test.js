@@ -40,6 +40,8 @@ test('initSandbox: plain state, the player stands at the first player spawn', ()
     fallY: -10,
     size: { ...PLAYER_SIZE },
     camera: { x: spawn.x + 0.5, y: spawn.y + PLAYER_SIZE.height },
+    enemies: [],
+    enemySpawns: [],
   });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
@@ -362,6 +364,7 @@ function fakeNet({ role = null, slot = 0, peer = false } = {}) {
     takeSnapshot: () => net.snapshots.shift() ?? null,
     inputsAfter: (ack) => net.history.filter((e) => e.tick > ack),
     remotePlayer: () => net.remote,
+    remoteEnemies: () => null,
   };
   return net;
 }
@@ -406,7 +409,7 @@ test('tickSandbox: a guest reconciles its player from the snapshot plus replayed
   // With one: the snapshot's player plus the inputs after its ack, the current tick's included.
   const confirmed = { x: 20.5, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0 };
   net.history = [5, 6, 7, 8].map((tick) => ({ tick, frame: frame(['moveRight']) }));
-  net.snapshots.push({ tick: 100, ack: 6, players: [{ ...confirmed, x: 3.5 }, confirmed] });
+  net.snapshots.push({ tick: 100, ack: 6, wt: 90, players: [{ ...confirmed, x: 3.5 }, confirmed], enemies: [] });
   net.remote = { ...confirmed, x: 3.5, aim: 1 };
   tickSandbox(state, [frame(['moveRight'])], STEP, map.tiles, 0, net);
   const expected = createPlayer(20.5, 2, state.size);

@@ -2,15 +2,20 @@
 // One world unit is one tile; x is right, y is up. Slot 0 is player 1 (the host when online);
 // slot 1 exists only while a net peer is present (the guest's player). `state.localSlot` is the
 // slot this browser controls.
-// The tile map is static level data, built in load() and kept outside the state; the state is
-// plain data: { ticks, map (manifest key), players, localSlot, ... }.
+// The tile map and moving platforms are static level data, built in load() and kept outside the
+// state; the state is plain data: { ticks, map (manifest key), players, enemies, localSlot, ... }.
+// `ticks` is the world tick: platforms are a function of it (world/platform.js).
+// Enemies (world/enemy.js) are simulated by the host (or offline) only; a guest draws the host's,
+// interpolated.
 // Networking reaches the scene only through `net` (the net session's read-only view, see
 // net/session.js): the scene never sees the transport, and input still arrives only as `inputs`.
 
-import { InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
+import { Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
+import { ENEMY, createEnemy, stepEnemy } from '../world/enemy.js';
+import { platformAt, platformsStep } from '../world/platform.js';
 import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createGridTexture, createTileTexture } from './tile-texture.js';
@@ -111,7 +116,14 @@ export const OFFLINE_NET = Object.freeze({
   takeSnapshot: () => null,
   inputsAfter: () => [],
   remotePlayer: () => null,
+  remoteEnemies: () => null,
 });
+// Level data with no moving platforms (tickSandbox's default).
+const NO_LEVEL = Object.freeze({ platforms: Object.freeze([]) });
+export const PLATFORM_COLOR = 0xc9a23a; // hazard yellow
+export const ENEMY_COLOR = 0xe03030;
+const PLATFORM_Z = 0.05; // in front of the tiles, behind the players (2D)
+const ENEMY_Z = 0.08; // in front of the tiles and platforms, behind the players (2D)
 const PLAYER_Z = 0.1; // in front of the tiles
 export const AIM_LENGTH = 2; // aim line length, tiles
 const AIM_WIDTH = 0.06; // aim line thickness, tiles
@@ -159,7 +171,10 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
   // or null. `aimSource`: what last changed the local aim, 'mouse' (the pointer moved) or
   // 'stick', or null before either. `spawn` and `fallY`: a player below fallY goes back to the
   // spawn (maps can have open ends). `size`: the map's player size. `camera`: the camera's
-  // smoothed source point ({ x, y }, tiles), following the local player's head.
+  // smoothed source point ({ x, y }, tiles), following the local player's head. `enemies`: one
+  // per `enemy` spawn (same coordinates as the player spawn), idle; `enemySpawns` their spawn
+  // points, for the fall respawn.
+  const enemySpawns = map.spawns.filter((s) => s.type === 'enemy').map((s) => ({ x: s.x + 0.5, y: s.y }));
   const state = {
     ticks: 0,
     map: key,
@@ -171,19 +186,22 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
     fallY: lowestTileY(map.tiles) - FALL_MARGIN,
     size: { ...map.player },
     camera: null,
+    enemies: enemySpawns.map(({ x, y }) => createEnemy(x, y)),
+    enemySpawns,
   };
   return respawnAll(state, localSlot);
 }
 
 // One player step plus the fall respawn. Returns true when the player respawned.
-function stepWithFall(state, player, frame, tiles, dt) {
-  stepPlayer(player, frame, tiles, dt);
+function stepWithFall(state, player, frame, tiles, dt, world) {
+  stepPlayer(player, frame, tiles, dt, world);
   if (player.y >= state.fallY) return false;
   Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false });
   return true;
 }
 
-// `tiles` is the tile map (not part of the state). `halfLife` (seconds) smooths the camera's
+// `tiles` is the tile map and `level` the map's other level data ({ platforms }); neither is part of
+// the state. `halfLife` (seconds) smooths the camera's
 // source towards the local head (smerp); 0 snaps. A local respawn snaps it too.
 // `net` is the net view (OFFLINE_NET when there is no session):
 //   - its localSlot differs from the state's: the state starts again for that slot
@@ -191,9 +209,14 @@ function stepWithFall(state, player, frame, tiles, dt) {
 //   - guest: the own player (slot 1) is the newest snapshot's copy with the inputs the host has
 //     not applied replayed on it (the current tick's frame is among them), or without a snapshot
 //     one step with inputs[0]; slot 0 is the interpolated host player (kept when there is none)
+// World tick: a step from world tick k to k + 1 sees the platforms at k and k + 1, then
+// state.ticks = k + 1. Offline or host: k = state.ticks; enemies step after the players. Guest:
+// a snapshot's replay starts at the host's world tick `wt` (replayed entry j steps wt + j to
+// wt + j + 1, then state.ticks = wt + entries), so the guest predicts at the ticks the host will
+// use; without a snapshot k = state.ticks. Guest enemies come from net.remoteEnemies().
 // inputs[0] is always this browser's own keyboard + mouse (+ pad) frame: pointer and aim source
 // come from it and belong to the local player.
-export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLINE_NET) {
+export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLINE_NET, level = NO_LEVEL) {
   const slot = net.localSlot();
   if (slot !== state.localSlot) respawnAll(state, slot);
   const frame = inputs[0];
@@ -205,27 +228,45 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
   let respawned = false;
   if (net.role() === 'guest' && slot > 0) {
     let own = state.players[slot];
+    let k = state.ticks; // the world tick the next step starts from
     const step = (player, f) => {
-      if (stepWithFall(state, player, f, tiles, dt)) respawned = true;
+      if (stepWithFall(state, player, f, tiles, dt, { platforms: platformsStep(level.platforms, k) })) respawned = true;
+      k += 1;
     };
     const snapshot = net.takeSnapshot();
     const confirmed = snapshot?.players[slot];
-    if (confirmed) own = reconcile({ ...confirmed, size: { ...state.size } }, net.inputsAfter(snapshot.ack), step);
-    else step(own, frame);
+    if (confirmed) {
+      k = snapshot.wt;
+      own = reconcile({ ...confirmed, size: { ...state.size } }, net.inputsAfter(snapshot.ack), step);
+    } else step(own, frame);
     state.players[slot] = own;
+    state.ticks = k;
     const remote = net.remotePlayer();
     if (remote) state.players[0] = { ...remote, size: { ...state.size } };
+    // Enemies: the host's, interpolated; only indices this map has; kept when there are none.
+    const enemies = net.remoteEnemies();
+    if (enemies) {
+      state.enemies.forEach((enemy, i) => {
+        const e = enemies[i];
+        if (e) Object.assign(enemy, { x: e.x, y: e.y, awake: e.awake });
+      });
+    }
   } else {
     const count = net.peerPresent() ? MAX_SLOTS : 1;
     while (state.players.length < count) state.players.push(spawnPlayer(state));
     state.players.length = count;
+    const world = { platforms: platformsStep(level.platforms, state.ticks) };
     state.players.forEach((player, i) => {
-      if (stepWithFall(state, player, inputs[i], tiles, dt) && i === state.localSlot) respawned = true;
+      if (stepWithFall(state, player, inputs[i], tiles, dt, world) && i === state.localSlot) respawned = true;
     });
+    state.enemies.forEach((enemy, i) => {
+      stepEnemy(enemy, state.players, tiles, dt, world);
+      if (enemy.y < state.fallY) Object.assign(enemy, createEnemy(state.enemySpawns[i].x, state.enemySpawns[i].y));
+    });
+    state.ticks += 1;
   }
   if (respawned) snapCamera(state);
   else state.camera = smerp(state.camera, playerHead(localPlayer(state)), dt, halfLife);
-  state.ticks += 1;
   return state;
 }
 
@@ -273,6 +314,25 @@ function addPlayer(scene, geometries, materials, slot, z) {
   return { body, aim, z };
 }
 
+// Moving platform meshes (one per platform, made in load) and enemy meshes (one per enemy spawn)
+// of one view; draw positions them from the state.
+function addMovers(scene, geometries, materials, map, { platformGeometry, platformMaterial, enemyZ, platformZ }) {
+  const platforms = map.platforms.map((p) => {
+    const mesh = new Mesh(platformGeometry, platformMaterial);
+    mesh.scale.set(p.width, p.height, 1);
+    mesh.position.z = platformZ;
+    scene.add(mesh);
+    return mesh;
+  });
+  const enemies = map.spawns.filter((s) => s.type === 'enemy').map(() => {
+    const mesh = new Mesh(geometries.enemy, materials.enemy);
+    mesh.position.z = enemyZ;
+    scene.add(mesh);
+    return mesh;
+  });
+  return { platforms, enemies };
+}
+
 // `zoom` is the camera view height holder (createCameraZoom) and `viewMode` the 2D / 2.5D and FOV
 // holder (createViewMode), both passed at registration. `fetchJson` is for tests.
 // `mapChoice` (createMapChoice) picks the map at load. `net` is the net session's view
@@ -315,10 +375,15 @@ export function createSandbox({
         player: track(new PlaneGeometry(map.player.width, map.player.height)),
         // A thin plane from the head along +x, rotated to the aim angle.
         aim: track(new PlaneGeometry(AIM_LENGTH, AIM_WIDTH).translate(AIM_LENGTH / 2, 0, 0)),
+        enemy: track(new PlaneGeometry(ENEMY.width, ENEMY.height)),
       };
       const materials = {
         players: PLAYER_COLORS.map((color) => track(new MeshBasicMaterial({ color }))),
         aim: track(new MeshBasicMaterial({ color: AIM_COLOR })),
+        enemy: track(new MeshBasicMaterial({ color: ENEMY_COLOR })),
+        platform: track(new MeshBasicMaterial({ color: PLATFORM_COLOR })),
+        // 2.5D: the shaded cube's vertex colours times the platform colour.
+        platformCube: track(new MeshBasicMaterial({ color: new Color(PLATFORM_COLOR), vertexColors: true })),
       };
       const groups = tileGroups(tiles, flatMaterials);
 
@@ -331,6 +396,7 @@ export function createSandbox({
         scene: flatScene,
         camera: new OrthographicCamera(-1, 1, 1, -1, -10, 10),
         players: PLAYER_COLORS.map((_, slot) => addPlayer(flatScene, geometries, materials, slot, { player: PLAYER_Z, aim: AIM_Z })),
+        ...addMovers(flatScene, geometries, materials, map, { platformGeometry: geometries.tile, platformMaterial: materials.platform, platformZ: PLATFORM_Z, enemyZ: ENEMY_Z }),
       };
 
       // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera.
@@ -364,12 +430,14 @@ export function createSandbox({
         camera: new PerspectiveCamera(FOV_DEFAULT, 1, 0.1, 100),
         // The player is a flat plane on the play plane, facing the camera; the aim line just in front.
         players: PLAYER_COLORS.map((_, slot) => addPlayer(deepScene, geometries, materials, slot, { player: 0, aim: AIM_Z_DEEP })),
+        // Platforms: boxes width x height x 1 centred on the play plane; enemies: planes at z = 0.
+        ...addMovers(deepScene, geometries, materials, map, { platformGeometry: geometries.cube, platformMaterial: materials.platformCube, platformZ: 0, enemyZ: 0 }),
       };
     },
     enter() {
       return initSandbox(map, mapKey, net.localSlot());
     },
-    tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles, viewMode.follow().smoothing, net),
+    tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles, viewMode.follow().smoothing, net, map),
     draw(state, view) {
       const player = localPlayer(state);
       const tilesHigh = zoom.get();
@@ -414,6 +482,16 @@ export function createSandbox({
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
       const grid = viewMode.grid();
       for (const group of active.level) group.mesh.material = grid ? group.grid : group.checker;
+      // Platforms at the state's world tick (the same tick as the local player, also on a guest).
+      active.platforms.forEach((mesh, i) => {
+        const box = platformAt(map.platforms[i], state.ticks);
+        mesh.position.set(box.x + box.width / 2, box.y + box.height / 2, mesh.position.z);
+      });
+      active.enemies.forEach((mesh, i) => {
+        const e = state.enemies[i];
+        mesh.visible = Boolean(e);
+        if (e) mesh.position.set(e.x, e.y + ENEMY.height / 2, mesh.position.z);
+      });
       // One body and aim line per player; empty slots are hidden.
       active.players.forEach(({ body, aim }, slot) => {
         const p = state.players[slot];
