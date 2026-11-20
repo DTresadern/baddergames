@@ -134,11 +134,11 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   w.connect();
   w.tick(30);
   w.sandbox.players = [
-    { x: 4, y: 2, vx: 1, vy: 0, onGround: true, crouching: false, aim: 0.5, row: -1, hop: null, presses: { down: 255, jump: 255 } },
-    { x: 9, y: 3, vx: 0, vy: 0, onGround: false, crouching: true, aim: -1, row: 0, hop: { to: 1, t: 4, y0: 3, y1: 1, fall: false }, presses: { down: 255, jump: 2 } },
+    { x: 4, y: 2, vx: 1, vy: 0, onGround: true, crouching: false, aim: 0.5, row: -1, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1 },
+    { x: 9, y: 3, vx: 0, vy: 0, onGround: false, crouching: true, aim: -1, row: 0, hop: { to: 1, t: 4, y0: 3, y1: 1, fall: false }, presses: { down: 255, jump: 2 }, health: 40, inventory: [], meleeTicks: 12, meleeDir: -1 },
   ];
   w.sandbox.ticks = 500;
-  w.sandbox.enemies = [{ id: 3, type: 'walker', x: 7, y: 0, vx: 1, vy: 0, onGround: true, awake: true, aim: 0, crouching: false }];
+  w.sandbox.enemies = [{ id: 3, type: 'walker', x: 7, y: 0, vx: 1, vy: 0, onGround: true, awake: true, aim: 0, crouching: false, health: 20, attackCooldown: 5 }];
   assert.deepEqual(w.guest.session.netView().remoteEnemies(), [], 'the host has sent no enemies yet');
   w.tick(30);
   const gv = w.guest.session.netView();
@@ -147,7 +147,7 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   assert.equal(snap.players.length, 2);
   assert.deepEqual(snap.players[1], w.sandbox.players[1]);
   assert.equal(snap.wt, 500);
-  assert.deepEqual(snap.enemies, [{ id: 3, type: 'walker', x: 7, y: 0, awake: true }]);
+  assert.deepEqual(snap.enemies, [{ id: 3, type: 'walker', x: 7, y: 0, awake: true, health: 20 }]);
   assert.ok(snap.ack > 0, `ack ${snap.ack}`);
   assert.equal(gv.takeSnapshot(), null, 'taken once');
   // Inputs after the ack are the ones the host has not applied yet: a few ticks' worth.
@@ -157,7 +157,8 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   const remote = gv.remotePlayer();
   assert.ok(Math.abs(remote.x - 4) < 1e-9);
   assert.equal(remote.depth, -1, 'the host player carries its drawn depth');
-  assert.deepEqual(gv.remoteEnemies(), [{ id: 3, type: 'walker', x: 7, y: 0, vx: 0, vy: 0, aim: 0, awake: true }]);
+  assert.deepEqual(gv.remoteEnemies(), [{ id: 3, type: 'walker', x: 7, y: 0, vx: 0, vy: 0, aim: 0, awake: true, health: 20 }]);
+  assert.deepEqual([remote.health, remote.meleeTicks, remote.meleeDir], [100, 0, 1], 'combat fields travel through the interpolation');
   const stats = w.guest.session.stats();
   assert.equal(stats.role, 'guest');
   assert.ok(stats.pingMs >= 60 && stats.pingMs < 120, `ping ${stats.pingMs}`);
@@ -224,7 +225,7 @@ test('session: guest enemies by id: a new id appears, a missing id is removed, t
   });
   // A new id appears, created from its snapshot data.
   assert.equal(byId(full[25], 9), undefined);
-  assert.deepEqual(byId(full.at(-1), 9), { id: 9, type: 'walker', x: 50, y: 0, vx: 0, vy: 0, aim: 0, awake: true });
+  assert.deepEqual(byId(full.at(-1), 9), { id: 9, type: 'walker', x: 50, y: 0, vx: 0, vy: 0, aim: 0, awake: true, health: 30 });
 });
 
 test('session: a third peer gets full', () => {

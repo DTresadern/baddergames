@@ -353,7 +353,7 @@ export function createNetSession({
       if (!enemyBuffers.has(e.id)) enemyBuffers.set(e.id, { type: e.type, buffer: createInterpolationBuffer() });
       const entry = enemyBuffers.get(e.id);
       entry.type = e.type;
-      entry.buffer.push(snapshot.tick, { x: e.x, y: e.y, vx: 0, vy: 0, aim: 0, awake: e.awake });
+      entry.buffer.push(snapshot.tick, { x: e.x, y: e.y, vx: 0, vy: 0, aim: 0, awake: e.awake, health: e.health });
     }
     for (const id of enemyBuffers.keys()) if (!present.has(id)) enemyBuffers.delete(id);
   }
@@ -476,7 +476,7 @@ export function createNetSession({
       if (role !== 'guest' || worldOffset === null) return null;
       return Math.min(remoteDrawTick(), lastSnapshotTick) + worldOffset;
     },
-    // The host's enemies ([{ id, type, x, y, vx, vy, aim, awake }], the ids of the newest snapshot
+    // The host's enemies ([{ id, type, x, y, vx, vy, aim, awake, health }], the ids of the newest snapshot
     // in first-seen order) at the same tick as remotePlayer(); null before the first snapshot (and
     // after a map change until the next one).
     remoteEnemies() {

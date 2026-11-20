@@ -1,5 +1,5 @@
 // Local transport for `?net=local`: browser tabs on one machine talk over a BroadcastChannel
-// named `b7-net-v6-<CODE>`, with no server and no internet. The channel constructor and timers are
+// named `b7-net-v7-<CODE>`, with no server and no internet. The channel constructor and timers are
 // passed in, so Node tests run it with a fake.
 //
 // Framing (transport only; game messages are codec bytes inside `b`):
@@ -18,7 +18,7 @@
 import { encode, rejectMessage } from './codec.js';
 import { createRawChannel } from './link.js';
 
-export const LOCAL_CHANNEL_PREFIX = 'b7-net-v6-';
+export const LOCAL_CHANNEL_PREFIX = 'b7-net-v7-';
 export const LOCAL_JOIN_TIMEOUT_MS = 2000;
 
 export function createLocalTransport({ BroadcastChannel: Channel, setTimeout: setTimer, clearTimeout: clearTimer, randomId }) {
