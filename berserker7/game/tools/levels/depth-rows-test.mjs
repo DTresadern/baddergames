@@ -29,10 +29,11 @@
 //   104-113                                                      G ledge, top 3
 //   114-115                                                      step, top 4
 //   116-128                                                      H platform, top 5
-//   129                                                          wall y -1..7
+//   129                                                          wall y -1..4 (top 5, flush with H)
 //   130-131 step, top 2
+//   130-134                                                      bridge, top 5 (one cell, y 4)
 //   132-135 tower, top 4
-//   135                                                          wall y -1..5
+//   135                                                          wall y -1..4 (top 5)
 //   136-142                                                      J ledge, top 3
 //   143                                                          wall y -1..5
 //   146     end wall y 0..6
@@ -53,6 +54,11 @@
 //                    reach row -1 through G and the step at 114-115
 //   J 136-140 0 / -1 row -1 top 3: walk off the row 0 tower (132-135, top 4) to the right and
 //                    press crouch while falling
+//   The way out of the end (right of the tower, x 136-145, row 0 floor 0 or the J ledge): the
+//   tower (4 above the floor) is out of jump reach, so: jump and air grab in J onto the J ledge
+//   (top 3), jump left onto wall 135 (top 5), walk left along the bridge (130-134) and H (116-128,
+//   all top 5), then descend in H (120-123) to row 0's floor left of the tower, or carry on left
+//   over the step at 114-115 and the G ledge.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -60,26 +66,34 @@ import { columns, fill } from './moge3-cyberpunk-blocks.sections.mjs';
 
 const OUT = new URL('../../public/content/maps/depth-rows-test.json', import.meta.url);
 
-export const TRANSFERS = [
-  { x0: 8, x1: 11, low: 1, high: 0 }, // A
-  { x0: 28, x1: 31, low: 1, high: 0 }, // B
-  { x0: 35, x1: 37, low: 0, high: -1 }, // C
-  { x0: 57, x1: 60, low: 0, high: -1 }, // D
-  { x0: 64, x1: 67, low: -1, high: 0 }, // E
-  { x0: 87, x1: 90, low: -1, high: 0 }, // F
-  { x0: 105, x1: 108, low: 0, high: -1 }, // G
-  { x0: 120, x1: 123, low: 0, high: -1 }, // H
-  { x0: 136, x1: 140, low: 0, high: -1 }, // J
-];
+// The transfer zones, moved right by `dx` tiles (a y offset does not change them). Everything
+// this function and depthRowsCells use is declared inside them, so they work while
+// moge3-cyberpunk-blocks.sections.mjs (which imports this file, and is imported by it) is still
+// being evaluated.
+export function depthRowsTransfers(dx = 0) {
+  return [
+    { x0: 8, x1: 11, low: 1, high: 0 }, // A
+    { x0: 28, x1: 31, low: 1, high: 0 }, // B
+    { x0: 35, x1: 37, low: 0, high: -1 }, // C
+    { x0: 57, x1: 60, low: 0, high: -1 }, // D
+    { x0: 64, x1: 67, low: -1, high: 0 }, // E
+    { x0: 87, x1: 90, low: -1, high: 0 }, // F
+    { x0: 105, x1: 108, low: 0, high: -1 }, // G
+    { x0: 120, x1: 123, low: 0, high: -1 }, // H
+    { x0: 136, x1: 140, low: 0, high: -1 }, // J
+  ].map((t) => ({ ...t, x0: t.x0 + dx, x1: t.x1 + dx }));
+}
 
-// Cells x0..x1 at one floor top `top` (one cell thick), depth z.
-const floor = (x0, x1, top, z) => fill(x0, x1, top - 1, top - 1, z);
-
-function cells() {
+// The layout's cells, moved by `dx` tiles right and `dy` tiles up, deduplicated and sorted by z,
+// then y, then x. `startWall` false leaves out the start wall at x -1 (for a copy joined onto
+// another level).
+export function depthRowsCells({ dx = 0, dy = 0, startWall = true } = {}) {
+  // Cells x0..x1 at one floor top `top` (one cell thick), depth z.
+  const floor = (x0, x1, top, z) => fill(x0, x1, top - 1, top - 1, z);
   const pit = new Set([47, 48]);
   const list = [
     // Row 0
-    ...fill(-1, -1, -1, 6),
+    ...(startWall ? fill(-1, -1, -1, 6) : []),
     ...floor(0, 12, 0, 0),
     ...fill(13, 26, -1, 5),
     ...floor(27, 69, 0, 0),
@@ -103,14 +117,16 @@ function cells() {
     ...fill(104, 113, -1, 2, -1),
     ...fill(114, 115, -1, 3, -1),
     ...fill(116, 128, -1, 4, -1),
-    ...fill(129, 129, -1, 7, -1),
-    ...fill(135, 135, -1, 5, -1),
+    ...fill(129, 129, -1, 4, -1),
+    ...floor(130, 134, 5, -1),
+    ...fill(135, 135, -1, 4, -1),
     ...fill(136, 142, -1, 2, -1),
     ...fill(143, 143, -1, 5, -1),
   ];
   const seen = new Set();
   const out = [];
-  for (const cell of list) {
+  for (const [x, y, z] of list) {
+    const cell = [x + dx, y + dy, z];
     const key = cell.join(',');
     if (seen.has(key)) continue;
     seen.add(key);
@@ -129,9 +145,9 @@ export function buildDepthRowsTest() {
     tile: { type: 'solid', color: '#6f7f99' },
     player: { width: 0.55, height: 1.2, crouchHeight: 0.6 },
     spawns: [{ type: 'player', x: 2, y: 0 }],
-    transfers: TRANSFERS.map((t) => ({ ...t })),
+    transfers: depthRowsTransfers(),
     platforms: [],
-    cells: cells(),
+    cells: depthRowsCells(),
   };
 }
 
@@ -160,5 +176,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(same ? 0 : 1);
   }
   writeFileSync(OUT, text);
-  console.log(`depth-rows-test: wrote public/content/maps/depth-rows-test.json: ${JSON.parse(text).cells.length} cells, ${TRANSFERS.length} transfers`);
+  console.log(`depth-rows-test: wrote public/content/maps/depth-rows-test.json: ${JSON.parse(text).cells.length} cells, ${JSON.parse(text).transfers.length} transfers`);
 }
