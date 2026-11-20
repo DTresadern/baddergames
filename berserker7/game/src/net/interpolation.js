@@ -2,8 +2,8 @@
 // The buffer holds { tick, player } (host ticks), ordered, at most `cap`; duplicate ticks and
 // ticks older than the newest are ignored. sampleAt(tick) lerps x, y, vx and vy between the two
 // entries around `tick` (and `depth`, the drawn depth, when both entries have one), turns the aim
-// the short way round, and takes onGround, crouching, size, row and hop from the earlier entry. Before the oldest: the oldest; after the newest: the newest (no
-// extrapolation).
+// the short way round, and takes onGround, crouching, size, row and hop from the earlier entry.
+// Before the oldest: the oldest; after the newest: the newest (no extrapolation).
 
 export const INTERP_CAP = 32;
 // How far behind the estimated host tick the remote player is drawn: 6 ticks (100 ms), three
