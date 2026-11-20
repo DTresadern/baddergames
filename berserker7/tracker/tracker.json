@@ -1622,7 +1622,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-20: first melee hit (#105): the attack key (or V) with an empty inventory hits in front of the player, about one player width; host-decided."
     },
     {
       "id": "D-057",
@@ -3981,7 +3981,7 @@
       "category": "Simulation",
       "title": "One damage interface",
       "detail": "One function for every damage source (shots, hazards, contact), called by the host, with its outcome in the snapshot.",
-      "status": "open",
+      "status": "ongoing",
       "authors": [
         "Impact research"
       ],
@@ -3992,7 +3992,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-20: damage(target, amount) in world/combat.js is the one damage function, used by the player melee and the enemy attack (#105); health travels in the snapshot."
     },
     {
       "id": "T-026",
@@ -5561,6 +5561,21 @@
       "notes": "2026-11-20: first test version (issue #98). 2026-11-20: merged in #100, with the test map depth-rows-test. Row, hop and press ages are in the snapshot and predicted on the guest (protocol 5). Still not built: enemies and shots changing rows, cutting away blocks in the way, moving platforms on rows other than z = 0. 2026-11-20: reach rule and air grab (#103): an ascend needs the landing's floor at or below the top of the player's box at the press (ROW_RISE_MAX removed); a crouch press in the air inside a zone grabs the higher row, in both schemes. Test map: new reach section (zones G, H, J). 2026-11-20: descend falls under gravity (#103 follow-up): the depth move takes the usual 0.25 s, y follows normal physics on the target row after a small upward nudge, so a 5-tile drop takes as long as a 5-tile fall; ascend unchanged. Protocol 6."
     },
     {
+      "id": "D-131",
+      "list": "design",
+      "kind": "feature",
+      "category": "Weapons",
+      "title": "Player inventory: what each player carries",
+      "detail": "Each player has an inventory: a plain list of the items they carry, known to both machines. Empty for now; refined in playtesting.",
+      "status": "ongoing",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [],
+      "notes": "2026-11-20: first version (#105): an empty list per player, sent in the snapshot; the attack key does a melee hit while it is empty."
+    },
+    {
       "id": "T-089",
       "list": "technical",
       "kind": "feature",
@@ -6131,7 +6146,7 @@
         "T-109",
         "T-110"
       ],
-      "notes": ""
+      "notes": "2026-11-20: the host decides every hit for now, including the guest's (#105)."
     },
     {
       "id": "T-113",
