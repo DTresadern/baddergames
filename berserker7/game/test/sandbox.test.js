@@ -365,6 +365,7 @@ function fakeNet({ role = null, slot = 0, peer = false } = {}) {
     inputsAfter: (ack) => net.history.filter((e) => e.tick > ack),
     remotePlayer: () => net.remote,
     remoteEnemies: () => null,
+    remoteWorldTick: () => null,
   };
   return net;
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ENEMY, createEnemy, stepEnemy } from '../src/world/enemy.js';
-import { platformAt, platformsStep } from '../src/world/platform.js';
+import { platformAt, platformsStep, rideShift } from '../src/world/platform.js';
 import { createPlayer, stepPlayer } from '../src/world/player.js';
 import { createTileMap } from '../src/world/tilemap.js';
 import { frame } from './frames.js';
@@ -125,4 +125,14 @@ test('enemy: idle with the player out of range; wakes and walks to the nearest p
   run([far], 600);
   assert.ok(Math.abs(enemy.x - far.x) < ENEMY.stopDistance + 0.1, `${enemy.x} near ${far.x}`);
   assert.deepEqual(structuredClone(enemy), enemy, 'plain data');
+});
+
+test('rideShift: a remote body on a platform at an older tick is drawn moved with it to the draw tick', () => {
+  const lift = { width: 3, height: 0.5, speed: 2, mode: 'pingpong', path: [[0, 0], [0, 8]] };
+  const at30 = platformAt(lift, 30); // top at 1.5
+  const body = { x: 1.5, y: at30.y + at30.height, size: { width: 0.55 } };
+  const shift = rideShift([lift], body, 30, 42);
+  assert.ok(Math.abs(shift.dx) < 1e-9);
+  assert.ok(Math.abs(shift.dy - 0.4) < 1e-9); // 12 ticks at 2 tiles/s
+  assert.deepEqual(rideShift([lift], { ...body, y: body.y + 1 }, 30, 42), { dx: 0, dy: 0 }); // not on it
 });

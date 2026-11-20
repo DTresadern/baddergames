@@ -51,3 +51,22 @@ export function platformAt(platform, tick) {
 export function platformsStep(platforms, tick) {
   return platforms.map((p) => ({ prev: platformAt(p, tick), now: platformAt(p, tick + 1) }));
 }
+
+// Feet within this of a platform's top count as riding it when drawing a remote body, tiles.
+const DRAW_RIDE_TOLERANCE = 0.05;
+
+// Drawing only (a guest): a remote body (the host's player or an enemy, { x, y, size }) is sampled
+// at the host's world tick `fromTick`, while the platforms are drawn at the guest's own tick
+// `toTick`. A body standing on a platform at `fromTick` is moved by that platform's movement from
+// `fromTick` to `toTick`, so it is drawn on the platform. Returns { dx, dy } (0, 0 when not riding).
+export function rideShift(platforms, body, fromTick, toTick) {
+  const half = body.size.width / 2;
+  for (const p of platforms) {
+    const a = platformAt(p, fromTick);
+    if (Math.abs(body.y - (a.y + a.height)) < DRAW_RIDE_TOLERANCE && body.x + half > a.x && body.x - half < a.x + a.width) {
+      const b = platformAt(p, toTick);
+      return { dx: b.x - a.x, dy: b.y - a.y };
+    }
+  }
+  return { dx: 0, dy: 0 };
+}

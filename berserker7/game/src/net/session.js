@@ -132,6 +132,7 @@ export function createNetSession({
   let enemyCount = 0; // enemies in the newest snapshot
   let pendingSnapshot = null;
   let lastSnapshotTick = -1;
+  let worldOffset = null; // host world tick (wt) minus host net tick, from the newest snapshot
 
   const emit = (event) => {
     for (const fn of [...listeners]) fn(event);
@@ -160,6 +161,7 @@ export function createNetSession({
     enemyCount = 0;
     pendingSnapshot = null;
     lastSnapshotTick = -1;
+    worldOffset = null;
   }
 
   function onPong(msg) {
@@ -318,6 +320,7 @@ export function createNetSession({
       case 'snap': {
         if (state !== 'connected' || msg.tick <= lastSnapshotTick) return;
         lastSnapshotTick = msg.tick;
+        worldOffset = msg.wt - msg.tick;
         const snapshot = snapshotFromMessage(msg);
         pendingSnapshot = snapshot; // an older unapplied one is discarded
         if (snapshot.players[0]) interp.push(snapshot.tick, snapshot.players[0]);
@@ -449,6 +452,13 @@ export function createNetSession({
     },
     // The host's enemies ([{ x, y, vx, vy, aim, awake }], by index) at the same tick as
     // remotePlayer(), or null before the first snapshot with enemies.
+    // The host world tick (wt) remotePlayer() and remoteEnemies() are drawn at (never past the
+    // newest snapshot, as the interpolation holds there), or null before the first snapshot. The
+    // Sandbox draws remote riders relative to the platforms with it (rideShift, world/platform.js).
+    remoteWorldTick() {
+      if (role !== 'guest' || worldOffset === null) return null;
+      return Math.min(localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS, lastSnapshotTick) + worldOffset;
+    },
     remoteEnemies() {
       if (role !== 'guest' || enemyCount === 0) return null;
       const tick = localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS;

@@ -15,7 +15,7 @@ import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
 import { ENEMY, createEnemy, stepEnemy } from '../world/enemy.js';
-import { platformAt, platformsStep } from '../world/platform.js';
+import { platformAt, platformsStep, rideShift } from '../world/platform.js';
 import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
 import { createGridTexture, createTileTexture } from './tile-texture.js';
@@ -117,6 +117,7 @@ export const OFFLINE_NET = Object.freeze({
   inputsAfter: () => [],
   remotePlayer: () => null,
   remoteEnemies: () => null,
+  remoteWorldTick: () => null,
 });
 // Level data with no moving platforms (tickSandbox's default).
 const NO_LEVEL = Object.freeze({ platforms: Object.freeze([]) });
@@ -158,6 +159,7 @@ function respawnAll(state, localSlot) {
   state.players = Array.from({ length: localSlot + 1 }, () => spawnPlayer(state));
   state.pointer = null;
   state.aimSource = null;
+  delete state.remoteTick; // a guest's (see tickSandbox); none once the state starts again
   return snapCamera(state);
 }
 
@@ -242,6 +244,9 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     state.players[slot] = own;
     state.ticks = k;
     const remote = net.remotePlayer();
+    // The host world tick the remote player and enemies below are sampled at, read in the same
+    // tick so draw pairs them correctly (a snapshot can arrive between this tick and the draw).
+    state.remoteTick = net.remoteWorldTick();
     if (remote) state.players[0] = { ...remote, size: { ...state.size } };
     // Enemies: the host's, interpolated; only indices this map has; kept when there are none.
     const enemies = net.remoteEnemies();
@@ -487,10 +492,17 @@ export function createSandbox({
         const box = platformAt(map.platforms[i], state.ticks);
         mesh.position.set(box.x + box.width / 2, box.y + box.height / 2, mesh.position.z);
       });
+      // A guest draws the host's player and the enemies at an older host world tick than the
+      // platforms (interpolated vs predicted): a remote body standing on a platform is moved with
+      // that platform to the draw tick, so it is drawn on it.
+      const remoteTick = state.remoteTick ?? null;
+      const rideOffset = (body) => (remoteTick === null ? { dx: 0, dy: 0 } : rideShift(map.platforms, body, remoteTick, state.ticks));
       active.enemies.forEach((mesh, i) => {
         const e = state.enemies[i];
         mesh.visible = Boolean(e);
-        if (e) mesh.position.set(e.x, e.y + ENEMY.height / 2, mesh.position.z);
+        if (!e) return;
+        const { dx, dy } = rideOffset(e);
+        mesh.position.set(e.x + dx, e.y + dy + ENEMY.height / 2, mesh.position.z);
       });
       // One body and aim line per player; empty slots are hidden.
       active.players.forEach(({ body, aim }, slot) => {
@@ -498,9 +510,10 @@ export function createSandbox({
         body.visible = aim.visible = Boolean(p);
         if (!p) return;
         const h = playerHeight(p);
-        body.position.set(p.x, p.y + h / 2, body.position.z);
+        const { dx, dy } = slot === state.localSlot ? { dx: 0, dy: 0 } : rideOffset(p);
+        body.position.set(p.x + dx, p.y + dy + h / 2, body.position.z);
         body.scale.y = h / map.player.height; // the body geometry is the standing height tall
-        aim.position.set(p.x, p.y + h, aim.position.z);
+        aim.position.set(p.x + dx, p.y + dy + h, aim.position.z);
         aim.rotation.z = p.aim;
       });
       // The local aim line points at the mouse's true world position: the pointer projected
