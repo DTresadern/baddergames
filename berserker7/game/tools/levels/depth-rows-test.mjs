@@ -23,9 +23,19 @@
 //   70      wall y -4..5
 //   73-74, 78-79  pillars y -4..4
 //   84      lip y 0..1
-//   85-100  floor top 0
+//   85-145  floor top 0
 //   93                                                           wall y -3..0
-//   101     end wall y 0..6
+//   103                                                          wall y -1..5
+//   104-113                                                      G ledge, top 3
+//   114-115                                                      step, top 4
+//   116-128                                                      H platform, top 5
+//   129                                                          wall y -1..7
+//   130-131 step, top 2
+//   132-135 tower, top 4
+//   135                                                          wall y -1..5
+//   136-142                                                      J ledge, top 3
+//   143                                                          wall y -1..5
+//   146     end wall y 0..6
 //
 // Transfer zones (x0..x1, low, high):
 //   A 8-11  +1 / 0   descend towards the camera (0 -> +1); back up possible
@@ -36,6 +46,13 @@
 //   E 64-67 -1 / 0   descend away (0 -> -1, the low back path, drop 3)
 //   (70-84: the low path runs behind row 0's wall and pillars)
 //   F 87-90 -1 / 0   ascend towards the camera (-1 -> 0, rise 3)
+//   Reach section (x 103-145): row 0 top 0 / row -1 top 3 or 5; an ascend needs the landing's floor
+//   at or below the top of the player's box at the press (standing 1.2, jump top 3.628)
+//   G 105-108 0 / -1 row -1 top 3: jump, then crouch near the top of the jump (air grab)
+//   H 120-123 0 / -1 row -1 top 5: out of reach even at the top of a jump; descend (drop 5) works;
+//                    reach row -1 through G and the step at 114-115
+//   J 136-140 0 / -1 row -1 top 3: walk off the row 0 tower (132-135, top 4) to the right and
+//                    press crouch while falling
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -50,6 +67,9 @@ export const TRANSFERS = [
   { x0: 57, x1: 60, low: 0, high: -1 }, // D
   { x0: 64, x1: 67, low: -1, high: 0 }, // E
   { x0: 87, x1: 90, low: -1, high: 0 }, // F
+  { x0: 105, x1: 108, low: 0, high: -1 }, // G
+  { x0: 120, x1: 123, low: 0, high: -1 }, // H
+  { x0: 136, x1: 140, low: 0, high: -1 }, // J
 ];
 
 // Cells x0..x1 at one floor top `top` (one cell thick), depth z.
@@ -67,8 +87,10 @@ function cells() {
     ...fill(70, 70, -4, 5),
     ...columns([73, 74, 78, 79], -4, 4),
     ...fill(84, 84, 0, 1),
-    ...floor(85, 100, 0, 0),
-    ...fill(101, 101, 0, 6),
+    ...floor(85, 145, 0, 0),
+    ...fill(130, 131, -1, 1),
+    ...fill(132, 135, -1, 3),
+    ...fill(146, 146, 0, 6),
     // Row +1 (front)
     ...columns([5, 33], -2, -1, 1),
     ...floor(6, 32, -2, 1),
@@ -77,6 +99,14 @@ function cells() {
     ...fill(62, 62, -4, 3, -1),
     ...floor(63, 92, -3, -1),
     ...fill(93, 93, -3, 0, -1),
+    ...fill(103, 103, -1, 5, -1),
+    ...fill(104, 113, -1, 2, -1),
+    ...fill(114, 115, -1, 3, -1),
+    ...fill(116, 128, -1, 4, -1),
+    ...fill(129, 129, -1, 7, -1),
+    ...fill(135, 135, -1, 5, -1),
+    ...fill(136, 142, -1, 2, -1),
+    ...fill(143, 143, -1, 5, -1),
   ];
   const seen = new Set();
   const out = [];
