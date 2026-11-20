@@ -41,6 +41,7 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   const follow = Object.fromEntries(FOLLOW_SETTINGS.map(([key, , , , , value]) => [key, value]));
   let backdrop = true;
   let grid = false;
+  let rowCamera = true;
   return {
     mode: () => current,
     // Ignores an unknown mode. Returns the mode now in use.
@@ -71,6 +72,13 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
     setGrid(on) {
       grid = Boolean(on);
       return grid;
+    },
+    // 2.5D: the camera moves in depth with the local player's row (on by default); off keeps it on
+    // the play plane.
+    rowCamera: () => rowCamera,
+    setRowCamera(on) {
+      rowCamera = Boolean(on);
+      return rowCamera;
     },
     follow: () => ({ ...follow }),
     // Sets one FOLLOW_SETTINGS key, clamped to its range and rounded to its step; ignores an
@@ -194,7 +202,15 @@ export const DEPTH_SHADE = Object.freeze({
   frontTint: Object.freeze([1, 0.88, 0.8]),
 });
 
+// A fractional z (relative depth during a hop) is interpolated linearly between the whole depths
+// around it.
 export function depthShade(z) {
+  if (!Number.isInteger(z)) {
+    const lo = depthShade(Math.floor(z));
+    const hi = depthShade(Math.ceil(z));
+    const t = z - Math.floor(z);
+    return lo.map((c, i) => c + (hi[i] - c) * t);
+  }
   if (z === 0) return [1, 1, 1];
   if (z > 0) return DEPTH_SHADE.frontTint.map((c) => c * DEPTH_SHADE.front);
   const level = DEPTH_SHADE.behind[Math.min(-z, DEPTH_SHADE.behind.length) - 1];
