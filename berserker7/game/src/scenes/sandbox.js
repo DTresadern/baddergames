@@ -16,7 +16,8 @@ import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
 import { ENEMY, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
 import { platformAt, platformsStep, rideShift } from '../world/platform.js';
-import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
+import { createPlayer, playerHeight } from '../world/player.js';
+import { PRESS_NONE, playerDepth, stepRowPlayer } from '../world/rows.js';
 import { fitOrtho } from './shared.js';
 import { createGridTexture, createTileTexture } from './tile-texture.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
@@ -73,14 +74,16 @@ function levelBounds(tiles, cells = []) {
   return Number.isFinite(b.minX) ? b : { minX: 0, maxX: 0, minY: 0 };
 }
 
-// Lowest y of any solid tile, or 0 for an empty map.
-function lowestTileY(tiles) {
+// Lowest y of any solid tile over all the given tile maps (a map's rows), or 0 when all are empty.
+function lowestTileY(tileMaps) {
   let lowest = Infinity;
-  const size = tiles.chunkSize;
-  for (const chunk of tiles.chunks()) {
-    chunk.tiles.forEach((id, index) => {
-      if (id !== 0) lowest = Math.min(lowest, chunk.cy * size + Math.floor(index / size));
-    });
+  for (const tiles of tileMaps) {
+    const size = tiles.chunkSize;
+    for (const chunk of tiles.chunks()) {
+      chunk.tiles.forEach((id, index) => {
+        if (id !== 0) lowest = Math.min(lowest, chunk.cy * size + Math.floor(index / size));
+      });
+    }
   }
   return Number.isFinite(lowest) ? lowest : 0;
 }
@@ -120,8 +123,9 @@ export const OFFLINE_NET = Object.freeze({
   remoteEnemies: () => null,
   remoteWorldTick: () => null,
 });
-// Level data with no moving platforms (tickSandbox's default).
-const NO_LEVEL = Object.freeze({ platforms: Object.freeze([]) });
+// Level data with no moving platforms, one row and no transfer zones (tickSandbox's default; with
+// `rows` null the tiles are row 0).
+const NO_LEVEL = Object.freeze({ platforms: Object.freeze([]), rows: null, transfers: Object.freeze([]) });
 export const PLATFORM_COLOR = 0xc9a23a; // hazard yellow
 export const ENEMY_COLOR = 0xe03030;
 const PLATFORM_Z = 0.05; // in front of the tiles, behind the players (2D)
@@ -187,7 +191,7 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
     pointer: null,
     aimSource: null,
     spawn: { x: spawn.x + 0.5, y: spawn.y },
-    fallY: lowestTileY(map.tiles) - FALL_MARGIN,
+    fallY: lowestTileY(map.rows?.values() ?? [map.tiles]) - FALL_MARGIN, // over all rows
     size: { ...map.player },
     camera: null,
     // An enemy's id is its index among the map's enemy spawns: the same on host and guest.
@@ -197,16 +201,18 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
   return respawnAll(state, localSlot);
 }
 
-// One player step plus the fall respawn. Returns true when the player respawned.
-function stepWithFall(state, player, frame, tiles, dt, world) {
-  stepPlayer(player, frame, tiles, dt, world);
+// One player step (with depth rows, world/rows.js) plus the fall respawn, on the spawn's row 0.
+// `level` is { rows, transfers }. Returns true when the player respawned.
+function stepWithFall(state, player, frame, level, dt, world) {
+  stepRowPlayer(player, frame, level.rows, level.transfers, dt, world);
   if (player.y >= state.fallY) return false;
-  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false });
+  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE } });
   return true;
 }
 
-// `tiles` is the tile map and `level` the map's other level data ({ platforms }); neither is part of
-// the state. `halfLife` (seconds) smooths the camera's
+// `tiles` is the play plane's tile map and `level` the map's other level data ({ platforms, rows,
+// transfers }: rows a Map z -> tile map, null for `tiles` as row 0); neither is part of the state.
+// Players step through stepRowPlayer (depth rows); enemies stay on row 0. `halfLife` (seconds) smooths the camera's
 // source towards the local head (smerp); 0 snaps. A local respawn snaps it too.
 // `net` is the net view (OFFLINE_NET when there is no session):
 //   - its localSlot differs from the state's: the state starts again for that slot
@@ -224,6 +230,7 @@ function stepWithFall(state, player, frame, tiles, dt, world) {
 export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLINE_NET, level = NO_LEVEL) {
   const slot = net.localSlot();
   if (slot !== state.localSlot) respawnAll(state, slot);
+  const rowLevel = { rows: level.rows ?? new Map([[0, tiles]]), transfers: level.transfers ?? [] };
   const frame = inputs[0];
   if (frame?.connected) {
     if (frame.pointer) state.pointer = { x: frame.pointer.x, y: frame.pointer.y };
@@ -235,7 +242,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     let own = state.players[slot];
     let k = state.ticks; // the world tick the next step starts from
     const step = (player, f) => {
-      if (stepWithFall(state, player, f, tiles, dt, { platforms: platformsStep(level.platforms, k) })) respawned = true;
+      if (stepWithFall(state, player, f, rowLevel, dt, { platforms: platformsStep(level.platforms, k) })) respawned = true;
       k += 1;
     };
     const snapshot = net.takeSnapshot();
@@ -250,6 +257,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     // The host world tick the remote player and enemies below are sampled at, read in the same
     // tick so draw pairs them correctly (a snapshot can arrive between this tick and the draw).
     state.remoteTick = net.remoteWorldTick();
+    // `remote` carries `depth` (its drawn depth, interpolated; see net/session.js), kept here.
     if (remote) state.players[0] = { ...remote, size: { ...state.size } };
     // Enemies: the host's list (by id), interpolated; the map's own until the first snapshot.
     const enemies = net.remoteEnemies();
@@ -260,7 +268,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     state.players.length = count;
     const world = { platforms: platformsStep(level.platforms, state.ticks) };
     state.players.forEach((player, i) => {
-      if (stepWithFall(state, player, inputs[i], tiles, dt, world) && i === state.localSlot) respawned = true;
+      if (stepWithFall(state, player, inputs[i], rowLevel, dt, world) && i === state.localSlot) respawned = true;
     });
     // A fallen enemy goes back to its spawn, idle; one with no spawn of this map (an id that came
     // from elsewhere, e.g. a host's list kept after leaving a game) is removed instead.
