@@ -189,8 +189,8 @@ export function mountPanel({
         <label class="b7-check"><input id="b7-grid" type="checkbox"> Grid</label>
         <label>Row switch
           <select id="b7-row-scheme">
-            <option value="A">A: crouch→jump / jump→crouch</option>
-            <option value="B">B: double crouch / double jump</option>
+            <option value="A">A: crouch→jump / air crouch grabs up</option>
+            <option value="B">B: double crouch / double jump, air crouch grabs up</option>
           </select></label>
         <label class="b7-check"><input id="b7-row-camera" type="checkbox"> Camera follows row depth</label>
         <label>FOV
