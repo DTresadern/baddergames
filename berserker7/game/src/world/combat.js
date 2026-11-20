@@ -4,7 +4,7 @@
 // Melee: the attack key (primaryFire) with an empty inventory, or the melee key (V, gamepad B),
 // starts a swing in the aim's direction; it hits every enemy in a box in front of the player once,
 // on the swing's first tick. Enemies attack a player close to them: damage and a push away. A
-// player a moving platform crushes against a solid block dies.
+// player or enemy a moving platform crushes against a solid block dies.
 // Only the host (or offline) decides hits (resolveCombat); a guest predicts its own swing
 // (stepMelee) but never resolves it. A player at 0 health goes back to the spawn with full
 // health (scenes/sandbox.js owns the spawn).
@@ -136,16 +136,16 @@ function push(player, enemy) {
   player.onGround = false;
 }
 
-// Host and offline only, after players and enemies have stepped this tick: (0) a crushed player
-// dies (CRUSH_DAMAGE); (a) every swing that
+// Host and offline only, after players and enemies have stepped this tick: (0) a player or enemy
+// a moving platform crushed this tick dies (CRUSH_DAMAGE); (a) every swing that
 // started this tick damages each enemy in its box once; (b) enemies at 0 health are removed from
 // state.enemies; (c) each remaining enemy counts its cooldown down and, at 0 and awake, attacks
 // the nearest player in range (damage, push, cooldown). Returns the slots of the players at 0
 // health (scenes/sandbox.js sends them back to the spawn).
 export function resolveCombat(state) {
   const players = state.players;
-  // (0) a player a moving platform crushed this tick (pushByPlatforms in world/player.js) dies.
-  for (const player of players) if (player?.crushed) damage(player, CRUSH_DAMAGE, 'crush');
+  // (0) a body a moving platform crushed this tick (stepPlayer in world/player.js) dies.
+  for (const body of [...players, ...state.enemies]) if (body?.crushed) damage(body, CRUSH_DAMAGE, 'crush');
   for (const player of players) {
     if (!player || !swingStarted(player)) continue;
     for (const enemy of meleeHits(player, state.enemies)) damage(enemy, MELEE.damage, 'melee');

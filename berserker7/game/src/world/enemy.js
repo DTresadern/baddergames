@@ -1,8 +1,9 @@
 // Sandbox enemies: boxes that wait until a player comes near, then walk towards the nearest player
 // for good. Pure logic, no three.js. Enemies attack nearby players and lose health to the players'
-// melee (world/combat.js); their movement still never pushes or blocks a player.
+// melee (world/combat.js); their movement never pushes or blocks a player. Moving platforms block,
+// carry, push and crush them like players (stepPlayer).
 // Enemy data is plain: { id, type, x, y, vx, vy, onGround, awake, aim, crouching, size, health,
-// attackCooldown }, with x, y the bottom-centre like a player, so stepPlayer moves it (aim and
+// attackCooldown, crushed }, with x, y the bottom-centre like a player, so stepPlayer moves it (aim and
 // crouching are always 0 and false).
 
 import { MOVE, playerHeight, stepPlayer } from './player.js';
@@ -29,7 +30,7 @@ export const ENEMY_HEALTH = 30;
 
 // A new idle enemy with its feet at (x, y). `id` is its stable id, `type` one of ENEMY_TYPES.
 export function createEnemy(x, y, id = 0, type = ENEMY_TYPES[0]) {
-  return { id, type, x, y, vx: 0, vy: 0, onGround: false, awake: false, aim: 0, crouching: false, size: { ...ENEMY_SIZE }, health: ENEMY_HEALTH, attackCooldown: 0 };
+  return { id, type, x, y, vx: 0, vy: 0, onGround: false, awake: false, aim: 0, crouching: false, size: { ...ENEMY_SIZE }, health: ENEMY_HEALTH, attackCooldown: 0, crushed: false };
 }
 
 const centre = (body) => ({ x: body.x, y: body.y + playerHeight(body) / 2 });

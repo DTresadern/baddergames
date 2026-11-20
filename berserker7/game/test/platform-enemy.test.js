@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ENEMY, createEnemy, stepEnemy } from '../src/world/enemy.js';
 import { platformAt, platformsStep, rideShift } from '../src/world/platform.js';
-import { createPlayer, pushByPlatforms, stepPlayer } from '../src/world/player.js';
+import { createPlayer, stepPlayer } from '../src/world/player.js';
 import { createTileMap } from '../src/world/tilemap.js';
 import { frame } from './frames.js';
 
@@ -66,22 +66,6 @@ test('riding: a player on a moving platform moves with it; a jump leaves it', ()
   for (let i = 0; i < 10; i++) step();
   assert.ok(player.y > 3.5 + 1, `in the air at ${player.y}`);
   near(player.x, x, 'not carried in the air');
-});
-
-test('riding: one-way, a player passes up through a platform and lands on it falling', () => {
-  const tiles = tileMap();
-  const platforms = [{ width: 4, height: 0.5, speed: 0, mode: 'pingpong', path: [[-2, 1.5]] }];
-  const player = createPlayer(0, 0, SIZE);
-  player.onGround = true;
-  const world = { platforms: platformsStep(platforms, 0) };
-  stepPlayer(player, frame(['jump']), tiles, DT, world);
-  let landed = false;
-  for (let i = 0; i < 120 && !landed; i++) {
-    stepPlayer(player, null, tiles, DT, world);
-    landed = player.onGround;
-  }
-  assert.ok(landed);
-  near(player.y, 2, 'stands on the top, not the floor');
 });
 
 test('riding: a rider carried into a wall stops at the wall', () => {
@@ -149,59 +133,100 @@ test('tickSandbox: a fallen enemy with no spawn on this map is removed, not resp
   assert.deepEqual(state.enemies.map((e) => [e.id, e.y]), [[0, 0]]);
 });
 
-// Platform push and crush (issue #105). A step's boxes: `prev` before, `now` after.
-const box = (x, y, width = 3, height = 0.5) => ({ x, y, width, height });
+// Solid platforms (issue #105): platforms collide like tiles; a moving platform carries riders,
+// pushes bodies out of its way and crushes them against tiles.
+const still = (x, y, width = 3, height = 1) => ({ width, height, speed: 0, mode: 'pingpong', path: [[x, y]] });
+const run = (body, platforms, ticks, f = () => null, tiles = tileMap(), from = 0) => {
+  for (let tick = from; tick < from + ticks; tick++) stepPlayer(body, f(tick), tiles, DT, { platforms: platformsStep(platforms, tick) });
+  return body;
+};
 
-test('pushByPlatforms: a platform moving sideways into a player pushes it out of the way', () => {
-  const player = createPlayer(5, 0, SIZE); // box x 4.725..5.275, y 0..1.2
-  const step = { prev: box(1.7, 0.5), now: box(2, 0.5) }; // right edge 4.7 -> 5: into the player
-  assert.equal(pushByPlatforms(player, [step], tileMap()), false);
-  near(player.x, 5 + SIZE.width / 2, 'pushed to the platform right edge');
-  near(player.y, 0);
+test('solid platforms: walking into a side stops at it', () => {
+  const player = Object.assign(createPlayer(3, 0, SIZE), { onGround: true });
+  run(player, [still(5, 0)], 120, () => frame(['moveRight']));
+  near(player.x, 5 - SIZE.width / 2);
 });
 
-test('pushByPlatforms: a platform coming down onto a player with room below pushes it down', () => {
-  const player = createPlayer(5, 2, SIZE); // in the air, box y 2..3.2
-  const step = { prev: box(4, 3.25), now: box(4, 3) }; // bottom 3.25 -> 3: into the head
-  player.vy = 2;
-  assert.equal(pushByPlatforms(player, [step], tileMap()), false);
-  near(player.y, 3 - SIZE.height, 'pushed below the platform');
-  assert.equal(player.vy, 0, 'a rising player stops');
+test('solid platforms: a jump into the underside stops at the head; a fall lands on the top', () => {
+  const player = Object.assign(createPlayer(6, 0, SIZE), { onGround: true });
+  const platforms = [still(4, 1.5, 4, 0.5)]; // underside at 1.5, top at 2
+  let top = 0;
+  run(player, platforms, 60, (tick) => {
+    top = Math.max(top, player.y + SIZE.height);
+    return tick === 0 ? frame(['jump']) : null;
+  });
+  assert.ok(top <= 1.5 + 1e-9, `head reached ${top}`);
+  near(player.y, 0, 'back on the floor');
+  const above = createPlayer(6, 4, SIZE);
+  run(above, platforms, 60);
+  near(above.y, 2, 'lands on the top');
+  assert.equal(above.onGround, true);
 });
 
-test('pushByPlatforms: a player pushed into a wall with no room is crushed and stays put', () => {
-  const player = createPlayer(0, 0, SIZE);
-  const tiles = tileMap([[6, 0], [6, 1]]);
-  player.x = 6 - SIZE.width / 2; // touching the wall
-  const step = { prev: box(2.4, 0.5), now: box(2.75, 0.5) }; // right edge 5.4 -> 5.75 (player from 5.45)
-  assert.equal(pushByPlatforms(player, [step], tiles), true);
-  near(player.x, 6 - SIZE.width / 2, 'not moved into the wall');
-  assert.equal(player.crushed, true);
+test('solid platforms: a moving platform pushes a body out along its movement (side, up, down)', () => {
+  // Side: a platform moving right at 6 tiles/s meets a standing player and pushes it along.
+  const side = Object.assign(createPlayer(6, 0, SIZE), { onGround: true });
+  run(side, [{ width: 3, height: 1, speed: 6, mode: 'pingpong', path: [[2, 0], [20, 0]] }], 60);
+  near(side.x, 2 + 6 + 3 + SIZE.width / 2, 'held at the leading edge after 1 s');
+  // Up: a rising platform under a player in the air lifts it onto its top.
+  const up = createPlayer(6, 1.02, SIZE);
+  run(up, [{ width: 3, height: 0.5, speed: 3, mode: 'pingpong', path: [[5, 0.5], [5, 6]] }], 1);
+  near(up.y, 0.5 + 0.05 + 0.5, 'on the top');
+  // Down: a descending platform over a player in the air with room below pushes it down.
+  const down = createPlayer(6, 3, SIZE);
+  down.vy = 3;
+  run(down, [{ width: 3, height: 0.5, speed: 6, mode: 'pingpong', path: [[5, 4.25], [5, 0]] }], 1);
+  assert.ok(down.y + SIZE.height <= 4.15 + 1e-9, `head ${down.y + SIZE.height} under the platform`);
+  assert.ok(down.vy <= 0, 'a rising vy stops');
+  assert.equal(down.crushed, false);
 });
 
-test('pushByPlatforms: a platform moving away, or a rider on its top, is not pushed', () => {
-  const inside = createPlayer(4.5, 0.2, SIZE); // inside the platform, right of its centre
-  assert.equal(pushByPlatforms(inside, [{ prev: box(2.25, 0.5), now: box(2, 0.5) }], tileMap()), false); // moving left
-  near(inside.x, 4.5);
-  const rider = createPlayer(3, 1, SIZE);
-  pushByPlatforms(rider, [{ prev: box(2, 0.5), now: box(2.25, 0.5) }], tileMap());
-  near(rider.x, 3);
-  near(rider.y, 1);
+test('solid platforms: a body pushed into a wall or onto the floor with no room is crushed', () => {
+  const wall = Object.assign(createPlayer(8 - SIZE.width / 2, 0, SIZE), { onGround: true });
+  const toWall = [{ width: 3, height: 1, speed: 6, mode: 'pingpong', path: [[2, 0], [20, 0]] }];
+  const tiles = tileMap([[8, 0], [8, 1]]);
+  let crushed = false;
+  for (let tick = 0; tick < 120 && !crushed; tick++) {
+    stepPlayer(wall, null, tiles, DT, { platforms: platformsStep(toWall, tick) });
+    crushed = wall.crushed;
+  }
+  assert.equal(crushed, true, 'crushed against the wall');
+  near(wall.x, 8 - SIZE.width / 2, 'not moved into the wall');
+  const floor = Object.assign(createPlayer(6, 0, SIZE), { onGround: true });
+  const lift = [{ width: 3, height: 0.5, speed: 6, mode: 'pingpong', path: [[5, 3], [5, -3]] }];
+  crushed = false;
+  for (let tick = 0; tick < 120 && !crushed; tick++) {
+    stepPlayer(floor, null, tileMap(), DT, { platforms: platformsStep(lift, tick) });
+    crushed = floor.crushed;
+  }
+  assert.equal(crushed, true, 'crushed against the floor');
 });
 
-test('pushByPlatforms: a player already inside a platform (jumped up through it) is not pushed', () => {
-  const player = createPlayer(4.5, 0.2, SIZE); // overlaps the platform before and after the step
-  player.vy = 8;
-  assert.equal(pushByPlatforms(player, [{ prev: box(2, 0.5), now: box(2.25, 0.5) }], tileMap()), false);
-  near(player.x, 4.5);
-  near(player.y, 0.2);
+test('solid platforms: a rider is carried, and crushed when carried up into a ceiling', () => {
+  const rider = Object.assign(createPlayer(6, 1, SIZE), { onGround: true });
+  const diagonal = [{ width: 3, height: 1, speed: Math.SQRT2 * 3, mode: 'pingpong', path: [[5, 0], [15, 10]] }];
+  run(rider, diagonal, 60);
+  near(rider.x, 9, 'carried 3 right');
+  near(rider.y, 4, 'and 3 up');
+  const lift = [{ width: 3, height: 0.5, speed: 3, mode: 'pingpong', path: [[5, 0.5], [5, 8]] }];
+  const ceiling = tileMap([[5, 4], [6, 4], [7, 4]]);
+  const under = Object.assign(createPlayer(6, 1, SIZE), { onGround: true });
+  let crushed = false;
+  for (let tick = 0; tick < 120 && !crushed; tick++) {
+    stepPlayer(under, null, ceiling, DT, { platforms: platformsStep(lift, tick) });
+    crushed = under.crushed;
+  }
+  assert.equal(crushed, true);
+  assert.ok(under.y + SIZE.height <= 4 + 1e-9, 'not moved into the ceiling');
 });
 
-test('pushByPlatforms: a rider of a rising platform is left to stepPlayer, which carries it', () => {
-  const player = Object.assign(createPlayer(3, 1, SIZE), { onGround: true }); // feet on the top (1)
-  const step = { prev: box(2, 0.5), now: box(2.1, 0.6) }; // up 0.1 and right 0.1
-  assert.equal(pushByPlatforms(player, [step], tileMap()), false);
-  near(player.y, 1, 'not pushed');
-  stepPlayer(player, null, tileMap(), 1 / 60, { platforms: [step] });
-  near(player.x, 3.1, 'carried sideways too');
+test('solid platforms: an enemy is blocked by a platform side and pushed by a moving one', () => {
+  const blocked = createEnemy(3, 0);
+  Object.assign(blocked, { awake: true, onGround: true });
+  const target = createPlayer(10, 0, SIZE);
+  for (let tick = 0; tick < 120; tick++) stepEnemy(blocked, [target], tileMap(), DT, { platforms: platformsStep([still(5, 0)], tick) });
+  near(blocked.x, 5 - ENEMY.width / 2, 'stopped at the side');
+  const pushed = Object.assign(createEnemy(6, 0), { onGround: true });
+  for (let tick = 0; tick < 60; tick++) stepEnemy(pushed, [], tileMap(), DT, { platforms: platformsStep([{ width: 3, height: 1, speed: 6, mode: 'pingpong', path: [[2, 0], [20, 0]] }], tick) });
+  near(pushed.x, 2 + 6 + 3 + ENEMY.width / 2, 'pushed along');
 });

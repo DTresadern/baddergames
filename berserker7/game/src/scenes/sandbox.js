@@ -18,7 +18,7 @@ import { reconcile } from '../net/prediction.js';
 import { ENEMY, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
 import { ENEMY_HEALTH, PLAYER_HEALTH, meleeBox, resolveCombat, stepMelee, swinging } from '../world/combat.js';
 import { platformAt, platformsStep, rideShift } from '../world/platform.js';
-import { createPlayer, playerHeight, pushByPlatforms } from '../world/player.js';
+import { createPlayer, playerHeight } from '../world/player.js';
 import { PRESS_NONE, playerDepth, stepRowPlayer } from '../world/rows.js';
 import { fitOrtho } from './shared.js';
 import { createGridTexture, createTileTexture } from './tile-texture.js';
@@ -234,10 +234,9 @@ function toSpawn(state, player) {
 // move, so the swing takes this tick's aim) and the fall respawn, on the spawn's row 0.
 // `level` is { rows, transfers }. Returns true when the player respawned.
 function stepWithFall(state, player, frame, level, dt, world) {
-  // Moving platforms push players on row 0 (platforms are on row 0 only), not during a hop; a
-  // player with no room left is marked crushed (the host kills it, world/combat.js).
-  if (player.row === 0 && player.hop === null) pushByPlatforms(player, world.platforms, level.rows.get(0));
-  else player.crushed = false;
+  // stepPlayer sets `crushed` (a moving platform crushed the player); a step that does not reach
+  // it (a scripted ascend hop) leaves it false.
+  player.crushed = false;
   stepRowPlayer(player, frame, level.rows, level.transfers, dt, world);
   stepMelee(player, frame);
   if (player.y >= state.fallY) return false;

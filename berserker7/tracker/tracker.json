@@ -4184,7 +4184,7 @@
       "refs": [
         "TF-004"
       ],
-      "notes": "2026-11-20: first moving platform with riding (#95): a box on a waypoint path, position from the world tick only, one-way from above; riders are carried by its movement each tick. 2026-11-20: merged in #96. Platform positions are not sent: the guest computes them from the snapshot's world tick. A remote player or enemy standing on a platform is drawn moved with it to the guest's draw tick. 2026-11-20: platforms push players; crushed players die (#105): a platform moving into a player pushes it out of the way from any side; with no room left (a wall, floor or ceiling) the player dies. Enemies are not pushed yet."
+      "notes": "2026-11-20: first moving platform with riding (#95): a box on a waypoint path, position from the world tick only, one-way from above; riders are carried by its movement each tick. 2026-11-20: merged in #96. Platform positions are not sent: the guest computes them from the snapshot's world tick. A remote player or enemy standing on a platform is drawn moved with it to the guest's draw tick. 2026-11-20: platforms push players; crushed players die (#105): a platform moving into a player pushes it out of the way from any side; with no room left (a wall, floor or ceiling) the player dies. Enemies are not pushed yet. 2026-11-20: platforms are solid like tiles (#105): the one-way rule is gone; bodies (players and enemies) are blocked by their sides and underside, carried on top, pushed out of the way and crushed with no room left."
     },
     {
       "id": "T-035",
