@@ -1,7 +1,7 @@
 // The net session: one object, created in main.js, outside the scenes. Host-authoritative: the
-// host's browser runs the game and sends snapshots of the Sandbox players; the guest sends one
-// input message per tick, predicts its own player (reconciling on each snapshot) and draws the
-// host's player interpolated; both estimate the shared clock from pings.
+// host's browser runs the game and sends snapshots of the Sandbox players and enemies; the guest
+// sends one input message per tick, predicts its own player (reconciling on each snapshot) and
+// draws the host's player and enemies interpolated; both estimate the shared clock from pings.
 //
 // Scenes never see this object. The harness gets wrapInput(input) as its input (a guest's frame
 // becomes the host's player 2 frame, inputs[1]); the Sandbox gets netView(), plain data and pure
@@ -128,6 +128,8 @@ export function createNetSession({
   let slot = 0;
   let history = createInputHistory();
   let interp = createInterpolationBuffer();
+  let enemyInterp = []; // one interpolation buffer per enemy index
+  let enemyCount = 0; // enemies in the newest snapshot
   let pendingSnapshot = null;
   let lastSnapshotTick = -1;
 
@@ -154,6 +156,8 @@ export function createNetSession({
     slot = 0;
     history = createInputHistory();
     interp = createInterpolationBuffer();
+    enemyInterp = [];
+    enemyCount = 0;
     pendingSnapshot = null;
     lastSnapshotTick = -1;
   }
@@ -305,7 +309,11 @@ export function createNetSession({
         guestEnd(msg.reason);
         break;
       case 'map':
-        if (state === 'connected') emit({ type: 'map', map: msg.map });
+        if (state !== 'connected') return;
+        // The new map has its own enemies: forget the old map's.
+        enemyInterp = [];
+        enemyCount = 0;
+        emit({ type: 'map', map: msg.map });
         break;
       case 'snap': {
         if (state !== 'connected' || msg.tick <= lastSnapshotTick) return;
@@ -313,6 +321,12 @@ export function createNetSession({
         const snapshot = snapshotFromMessage(msg);
         pendingSnapshot = snapshot; // an older unapplied one is discarded
         if (snapshot.players[0]) interp.push(snapshot.tick, snapshot.players[0]);
+        // Enemies interpolate like a player (no velocity or aim sent).
+        snapshot.enemies.forEach((e, i) => {
+          enemyInterp[i] ??= createInterpolationBuffer();
+          enemyInterp[i].push(snapshot.tick, { x: e.x, y: e.y, vx: 0, vy: 0, aim: 0, awake: e.awake });
+        });
+        enemyCount = snapshot.enemies.length;
         history.drop(snapshot.ack);
         break;
       }
@@ -405,7 +419,7 @@ export function createNetSession({
           lastSentMap = sandbox.map;
           link.send(mapMessage(sandbox.map));
         }
-        link.send(snapMessage({ tick: localTick, ack: guestInputs.ack(), players: sandbox.players }));
+        link.send(snapMessage({ tick: localTick, ack: guestInputs.ack(), wt: sandbox.ticks, players: sandbox.players, enemies: sandbox.enemies }));
         lastSnapTick = localTick;
       }
     }
@@ -420,7 +434,7 @@ export function createNetSession({
     role: () => role,
     localSlot: () => (role === 'guest' && state === 'connected' ? slot : 0),
     peerPresent: () => (role === 'host' ? guestReady : role === 'guest' && state === 'connected'),
-    // The newest snapshot not yet applied, as { tick, ack, players }, or null.
+    // The newest snapshot not yet applied, as { tick, ack, wt, players, enemies }, or null.
     takeSnapshot() {
       const s = pendingSnapshot;
       pendingSnapshot = null;
@@ -432,6 +446,13 @@ export function createNetSession({
     remotePlayer() {
       if (role !== 'guest' || interp.size() === 0) return null;
       return interp.sampleAt(localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS);
+    },
+    // The host's enemies ([{ x, y, vx, vy, aim, awake }], by index) at the same tick as
+    // remotePlayer(), or null before the first snapshot with enemies.
+    remoteEnemies() {
+      if (role !== 'guest' || enemyCount === 0) return null;
+      const tick = localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS;
+      return enemyInterp.slice(0, enemyCount).map((buffer) => buffer.sampleAt(tick));
     },
   });
 

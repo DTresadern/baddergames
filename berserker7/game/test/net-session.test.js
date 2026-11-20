@@ -31,7 +31,7 @@ function world({ delayMs = 0, lagMs = 0 } = {}) {
   let ids = 0;
   let seed = 0;
   const transport = createLocalTransport({ BroadcastChannel: bus.BroadcastChannel, setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout, randomId: () => `peer${++ids}` });
-  const sandbox = { map: 'map.walkway', players: [{ x: 1, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0 }] };
+  const sandbox = { map: 'map.walkway', ticks: 0, players: [{ x: 1, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0 }], enemies: [] };
   const make = (extra = {}) => {
     const session = createNetSession({
       now: clock.now,
@@ -137,12 +137,17 @@ test('session: snapshots reach the guest with the ack; the host player is interp
     { x: 4, y: 2, vx: 1, vy: 0, onGround: true, crouching: false, aim: 0.5 },
     { x: 9, y: 3, vx: 0, vy: 0, onGround: false, crouching: true, aim: -1 },
   ];
+  w.sandbox.ticks = 500;
+  w.sandbox.enemies = [{ x: 7, y: 0, vx: 1, vy: 0, onGround: true, awake: true, aim: 0, crouching: false }];
+  assert.equal(w.guest.session.netView().remoteEnemies(), null, 'none before a snapshot with enemies');
   w.tick(30);
   const gv = w.guest.session.netView();
   const snap = gv.takeSnapshot();
   assert.ok(snap);
   assert.equal(snap.players.length, 2);
   assert.deepEqual(snap.players[1], w.sandbox.players[1]);
+  assert.equal(snap.wt, 500);
+  assert.deepEqual(snap.enemies, [{ x: 7, y: 0, awake: true }]);
   assert.ok(snap.ack > 0, `ack ${snap.ack}`);
   assert.equal(gv.takeSnapshot(), null, 'taken once');
   // Inputs after the ack are the ones the host has not applied yet: a few ticks' worth.
@@ -151,6 +156,7 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   assert.ok(pending.every((e) => e.tick > snap.ack));
   const remote = gv.remotePlayer();
   assert.ok(Math.abs(remote.x - 4) < 1e-9);
+  assert.deepEqual(gv.remoteEnemies(), [{ x: 7, y: 0, vx: 0, vy: 0, aim: 0, awake: true }]);
   const stats = w.guest.session.stats();
   assert.equal(stats.role, 'guest');
   assert.ok(stats.pingMs >= 60 && stats.pingMs < 120, `ping ${stats.pingMs}`);

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
+import { readFileSync } from 'node:fs';
 import {
+  MAX_ENEMIES,
   MAX_MESSAGE_BYTES,
   MESSAGES,
   PROTOCOL_VERSION,
@@ -29,7 +31,7 @@ const SAMPLES = {
   reject: { t: 'reject', reason: 'full' },
   map: { t: 'map', map: 'map.mvp-upper-1' },
   input: { t: 'input', tick: 99, held: 5, pressed: 1, aim: -0.5 },
-  snap: snapMessage({ tick: 10, ack: -1, players: [player(1), player(2, { crouching: true })] }),
+  snap: snapMessage({ tick: 10, ack: -1, wt: 8, players: [player(1), player(2, { crouching: true })], enemies: [{ x: 3, y: -2, awake: true }] }),
   ping: { t: 'ping', id: 3, time: 12345.5 },
   pong: { t: 'pong', id: 3, time: 12345.5, tick: 600 },
   bye: { t: 'bye' },
@@ -75,8 +77,17 @@ test('encode: output is a fresh buffer of its own, not msgpackr\'s shared one', 
 
 test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
   const extreme = (x) => ({ x, y: -12345.678901234, vx: -777.123456789, vy: 0.25123456789, onGround: true, crouching: true, aim: -3.14159265358979 });
-  const snap = snapMessage({ tick: 2 ** 31 - 1, ack: 2 ** 31 - 1, players: [extreme(99999.123456789), extreme(-99999.123456789)] });
-  assert.ok(encode(snap).byteLength <= 172);
+  const enemy = (i) => ({ x: -99999.123456789 + i, y: 12345.678901234, awake: true });
+  const big = (count) => ({ tick: 2 ** 31 - 1, ack: 2 ** 31 - 1, wt: 2 ** 31 - 1, players: [extreme(99999.123456789), extreme(-99999.123456789)], enemies: Array.from({ length: count }, (_, i) => enemy(i)) });
+  const worst = encode(snapMessage(big(MAX_ENEMIES))).byteLength;
+  // The test level's real enemy count, values at the same extremes.
+  const level = JSON.parse(readFileSync(new URL('../public/content/maps/moge3-cyberpunk-blocks.json', import.meta.url), 'utf8'));
+  const levelEnemies = level.spawns.filter((s) => s.type === 'enemy').length;
+  const levelBytes = encode(snapMessage(big(levelEnemies))).byteLength;
+  console.log(`snap bytes: worst case (2 players, ${MAX_ENEMIES} enemies) ${worst}; this level (${levelEnemies} enemies) ${levelBytes}; limit ${MAX_MESSAGE_BYTES}`);
+  assert.ok(worst <= 698, `worst case ${worst}`);
+  assert.ok(worst < MAX_MESSAGE_BYTES / 2);
+  assert.ok(levelEnemies <= MAX_ENEMIES);
   assert.equal(MAX_MESSAGE_BYTES, 2048);
 });
 
@@ -185,14 +196,21 @@ test('input frames: masks round-trip; released derived from the previous held ma
   assert.deepEqual(frameMasks(frame(['jump'], null, false)), { held: 0, pressed: 0 });
 });
 
-test('snapshots: players round-trip; n limits the list', () => {
+test('snapshots: players, the world tick and enemies round-trip; n and ne limit the lists', () => {
   const players = [player(1), player(-7.25, { onGround: false, crouching: true, aim: -3 })];
-  const msg = decode(encode(snapMessage({ tick: 5, ack: 3, players })));
-  assert.deepEqual(snapshotFromMessage(msg), { tick: 5, ack: 3, players });
-  const one = decode(encode(snapMessage({ tick: 6, ack: -1, players: players.slice(0, 1) })));
+  const enemies = [{ x: 22.5, y: 0, awake: false }, { x: -3.25, y: 6, awake: true }];
+  const msg = decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players, enemies })));
+  assert.deepEqual(snapshotFromMessage(msg), { tick: 5, ack: 3, wt: 4, players, enemies });
+  const one = decode(encode(snapMessage({ tick: 6, ack: -1, wt: 0, players: players.slice(0, 1) })));
   assert.equal(one.n, 1);
+  assert.equal(one.ne, 0);
   assert.deepEqual(snapshotFromMessage(one).players, [players[0]]);
-  // Players carry a size in the Sandbox; it is not sent.
-  const sized = decode(encode(snapMessage({ tick: 1, ack: -1, players: [{ ...player(0), size: { width: 1 } }] })));
+  assert.deepEqual(snapshotFromMessage(one).enemies, []);
+  // Players and enemies carry more in the Sandbox (size, velocity...); only the listed fields go.
+  const sized = decode(encode(snapMessage({ tick: 1, ack: -1, wt: 1, players: [{ ...player(0), size: { width: 1 } }], enemies: [{ ...enemies[0], vx: 2, size: {} }] })));
   assert.equal('size' in snapshotFromMessage(sized).players[0], false);
+  assert.deepEqual(snapshotFromMessage(sized).enemies, [enemies[0]]);
+  // More than MAX_ENEMIES: the first MAX_ENEMIES are sent.
+  const many = Array.from({ length: MAX_ENEMIES + 3 }, (_, i) => ({ x: i, y: 0, awake: false }));
+  assert.deepEqual(snapshotFromMessage(decode(encode(snapMessage({ tick: 1, ack: -1, wt: 1, players, enemies: many })))).enemies, many.slice(0, MAX_ENEMIES));
 });
