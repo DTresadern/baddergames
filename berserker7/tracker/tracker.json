@@ -5558,7 +5558,7 @@
       ],
       "sources": [],
       "refs": [],
-      "notes": "2026-11-20: first test version (issue #98). 2026-11-20: merged in #100, with the test map depth-rows-test. Row, hop and press ages are in the snapshot and predicted on the guest (protocol 5). Still not built: enemies and shots changing rows, cutting away blocks in the way, moving platforms on rows other than z = 0. 2026-11-20: reach rule and air grab (#103): an ascend needs the landing's floor at or below the top of the player's box at the press (ROW_RISE_MAX removed); a crouch press in the air inside a zone grabs the higher row, in both schemes. Test map: new reach section (zones G, H, J). 2026-11-20: descend falls under gravity (#103 follow-up): the depth move takes the usual 0.25 s, y follows normal physics on the target row after a small upward nudge, so a 5-tile drop takes as long as a 5-tile fall; ascend unchanged. Protocol 6."
+      "notes": "2026-11-20: first test version (issue #98). 2026-11-20: merged in #100, with the test map depth-rows-test. Row, hop and press ages are in the snapshot and predicted on the guest (protocol 5). Still not built: enemies and shots changing rows, cutting away blocks in the way, moving platforms on rows other than z = 0. 2026-11-20: reach rule and air grab (#103): an ascend needs the landing's floor at or below the top of the player's box at the press (ROW_RISE_MAX removed); a crouch press in the air inside a zone grabs the higher row, in both schemes. Test map: new reach section (zones G, H, J). 2026-11-20: descend falls under gravity (#103 follow-up): the depth move takes the usual 0.25 s, y follows normal physics on the target row after a small upward nudge, so a 5-tile drop takes as long as a 5-tile fall; ascend unchanged. Protocol 6. 2026-11-20: Control feedback and a draft middle-ground scheme: D-132."
     },
     {
       "id": "D-131",
@@ -5574,6 +5574,24 @@
       "sources": [],
       "refs": [],
       "notes": "2026-11-20: first version (#105): an empty list per player, sent in the snapshot; the attack key does a melee hit while it is empty."
+    },
+    {
+      "id": "D-132",
+      "list": "design",
+      "kind": "feature",
+      "category": "Controls and movement",
+      "title": "Row switch controls: a scheme both players like",
+      "detail": "Feedback (two-player test, 2026-11-20): Andrew did not like the current row schemes; the project owner did not like Andrew's. Looking for a middle ground. Andrew's scheme: W = up, Space = jump (W does not jump). Hold up and press jump = ascend a row; hold down and press jump = descend a row. No time window for either. The project owner dislikes Space for jump. Today: W also jumps, written into the movement code (world/player.js, world/rows.js), not a key binding. That is the one real clash.",
+      "status": "open",
+      "authors": [
+        "Project owner",
+        "Andrew"
+      ],
+      "sources": [],
+      "refs": [
+        "D-130"
+      ],
+      "notes": "2026-11-20: Draft solution, not decided: (1) \"Up also jumps\" becomes a setting. On: W jumps. Off: W is only up and Space jumps. (2) A third row scheme next to A and B: descend = hold down and press jump, no time window, for everyone (outside a zone it stays a normal jump); ascend = hold up and press jump, no time window, when up and jump are separate keys; the air grab stays for everyone. (3) To check before building: whether one key can be bound to two actions, and where the setting and the scheme are shown. 2026-11-20: Settled: a held up for ascending does not clash with ladders. A player next to a ladder has the ladder in the way, so ascending a row there makes no sense."
     },
     {
       "id": "T-089",
