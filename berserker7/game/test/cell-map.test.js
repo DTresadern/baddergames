@@ -27,6 +27,20 @@ test('cell map: z = 0 cells collide, the others are visual only; loadMap picks t
   assert.throws(() => loadCellMap({ ...small, format: 2 }), /unsupported/);
 });
 
+test('cell map: every cell goes into its row\'s tile map; transfers are checked and copied', () => {
+  const map = loadCellMap({ ...small, transfers: [{ x0: 0, x1: 2, low: 1, high: 0 }] });
+  assert.deepEqual([...map.rows.keys()].sort(), [-1, 0, 3]);
+  assert.equal(map.rows.get(0), map.tiles);
+  assert.equal(map.rows.get(3).isSolid(0, -1), true);
+  assert.equal(map.rows.get(-1).isSolid(-2, 5), true);
+  assert.equal(map.rows.get(-1).isSolid(0, -1), false);
+  assert.deepEqual(map.transfers, [{ x0: 0, x1: 2, low: 1, high: 0 }]);
+  assert.deepEqual(loadCellMap(small).transfers, []);
+  assert.throws(() => loadCellMap({ ...small, transfers: [{ x0: 0, x1: 2, low: 2, high: 0 }] }), /not adjacent/);
+  assert.throws(() => loadCellMap({ ...small, transfers: [{ x0: 3, x1: 2, low: 1, high: 0 }] }), /left of/);
+  assert.throws(() => loadCellMap({ ...small, transfers: [{ x0: 0.5, x1: 2, low: 1, high: 0 }] }), /integers/);
+});
+
 test('moge3-cyberpunk.json: the spawn is on the walkway, and a fall goes back to the spawn', () => {
   const json = JSON.parse(readFileSync(new URL('../public/content/maps/moge3-cyberpunk.json', import.meta.url), 'utf8'));
   const map = loadMap(json);
