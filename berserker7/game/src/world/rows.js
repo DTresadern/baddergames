@@ -3,29 +3,42 @@
 // row it is on (`player.row`). The map's transfer zones (`transfers: [{ x0, x1, low, high }]`,
 // world/cell-map.js) are where a player can switch between two adjacent rows: inside a zone
 // "descend" moves to the row whose floor is lower there (`low`), "ascend" to the higher one
-// (`high`). The switch is a short scripted hop, HOP_TICKS long, driven by the tick: across in
-// depth and up or down to the landing found on the target row. A blocked landing: nothing happens.
+// (`high`). An ascend is a short scripted hop, HOP_TICKS long, driven by the tick: across in depth
+// and up to the landing found on the target row. A descend is a falling hop: the depth eases over
+// HOP_TICKS while y follows normal physics on the target row; the hop ends when the player lands
+// (no row switch until then). A blocked landing: nothing happens.
 // Outside a zone (or when blocked) crouch and jump behave exactly as before (world/player.js).
 //
-// Controls, two schemes (the input frame's `rowScheme`; anything but 'B' is 'A'):
-//   A: descend = crouch, then jump; ascend = jump, then crouch while in the air.
-//   B: descend = crouch twice; ascend = jump twice.
-// The two presses must be at most ROW_WINDOW_TICKS apart.
+// Controls, two schemes (the input frame's `rowScheme`; anything but 'B' is 'A'). Which one applies
+// depends on the side of the zone the player is on:
+//   on the zone's high row (descend):
+//     A: crouch, then jump; B: crouch twice. The two presses at most ROW_WINDOW_TICKS apart.
+//   on the zone's low row (ascend):
+//     both schemes, the air grab: a crouch press made while airborne (walking off a ledge, late in
+//     a fall, or at the top of a jump). A crouch held since the ground does nothing.
+//     B also: jump twice, at most ROW_WINDOW_TICKS apart.
+// Reach rule: an ascend lands on a floor whose top is at or below the top of the player's box at
+// the press, plus REACH_MARGIN (`reachOf`). Standing, a floor at the top of the box (1.2 tiles
+// above the feet) is the highest; a jump raises it. No landing in reach: the press does what it
+// always did (nothing in the air).
 //
 // Player fields (plain data, set by createPlayer):
 //   row      the z of the row the player is on
-//   hop      null, or an active hop { to, t, y0, y1 }: target row, ticks done (1..HOP_TICKS), start
-//            y, landing y
+//   hop      null, or an active hop { to, t, y0, y1, fall }: target row, ticks done (1..HOP_TICKS;
+//            a fall hop stays at HOP_TICKS, on the target row, until the player lands),
+//            start y, landing y (for a fall only what findLanding found; physics decides), fall
 //   presses  { down, jump }: ticks since the last moveDown / jump (jump or moveUp) press, capped at
 //            PRESS_NONE
 
-import { PRESS_NONE, stepPlayer } from './player.js';
+import { PRESS_NONE, playerHeight, stepPlayer } from './player.js';
 import { createTileMap } from './tilemap.js';
 
 export const ROW_WINDOW_TICKS = 12; // 200 ms at 60 Hz: the two presses at most this many ticks apart
 export const HOP_TICKS = 15; // 0.25 s
 export const HOP_ARC = 0.5; // tiles: the hop's height above the straight line at its middle
-export const ROW_RISE_MAX = 3; // tiles above the current floor a landing is searched
+export const REACH_MARGIN = 0; // tiles above the top of the box the hands reach
+export const DROP_NUDGE_SPEED = 7; // tiles/s upward at the start of a descend (rises 0.43 tile at 60 Hz)
+export const DROP_AIR_CONTROL = false; // true: normal air control during a descend's depth move
 export const ROW_DROP_MAX = 6; // tiles below the current floor a landing is searched
 export { PRESS_NONE }; // press age meaning "no recent press" (ages are capped there; 255)
 export const ROW_SCHEMES = Object.freeze(['A', 'B']);
@@ -34,6 +47,7 @@ export const ROW_LIMIT = 64; // rows are -ROW_LIMIT..ROW_LIMIT (the codec's rang
 
 // Same gap as world/player.js: a box resting exactly on a tile edge does not overlap it.
 const EPSILON = 1e-6;
+const FLOOR_SCAN = 9; // tiles floorBelow scans down from the feet
 // A row the map has no cells on.
 const EMPTY = Object.freeze(createTileMap({ types: [{ solid: false }] }));
 
@@ -61,13 +75,18 @@ export function zoneAt(transfers, player) {
   return transfers.find((t) => t.x0 <= player.x && player.x < t.x1 + 1 && (t.low === player.row || t.high === player.row)) ?? null;
 }
 
+// How high the hands reach at this moment: the top of the player's box plus REACH_MARGIN.
+export function reachOf(player) {
+  return player.y + playerHeight(player) + REACH_MARGIN;
+}
+
 // The top of the first solid tile under the box (any column it overlaps), scanning down from the
-// tile containing the feet for at most ROW_DROP_MAX + ROW_RISE_MAX tiles; null if none. In the air
+// tile containing the feet for at most FLOOR_SCAN tiles; null if none. In the air
 // this is the floor below.
 export function floorBelow(tiles, player) {
   const { x0, x1 } = columnsOf(player);
   const start = Math.floor(player.y - EPSILON);
-  for (let ty = start; ty > start - (ROW_DROP_MAX + ROW_RISE_MAX); ty--) {
+  for (let ty = start; ty > start - FLOOR_SCAN; ty--) {
     for (let tx = x0; tx <= x1; tx++) if (tiles.isSolid(tx, ty)) return ty + 1;
   }
   return null;
@@ -84,11 +103,11 @@ function standsClear(tiles, player, y) {
 }
 
 // The landing top on the target row's tiles, or null (blocked). `from` is the reference floor y;
-// `dir` 'ascend' searches whole tops from < top <= from + ROW_RISE_MAX, 'descend'
-// from - ROW_DROP_MAX <= top < from, highest first. A top is valid when a column under the box
+// `dir` 'ascend' searches whole tops from < top <= reach (`reachOf`), 'descend'
+// from - ROW_DROP_MAX <= top < from (`reach` ignored), highest first. A top is valid when a column under the box
 // has a solid tile just below it and the standing box there overlaps no solid tile.
-export function findLanding(targetTiles, player, from, dir) {
-  const hi = dir === 'ascend' ? Math.floor(from + ROW_RISE_MAX) : Math.ceil(from) - 1;
+export function findLanding(targetTiles, player, from, dir, reach) {
+  const hi = dir === 'ascend' ? Math.floor(reach + EPSILON) : Math.ceil(from) - 1;
   const lo = dir === 'ascend' ? Math.floor(from) + 1 : Math.ceil(from - ROW_DROP_MAX);
   const { x0, x1 } = columnsOf(player);
   for (let top = hi; top >= lo; top--) {
@@ -99,6 +118,19 @@ export function findLanding(targetTiles, player, from, dir) {
   return null;
 }
 
+// True when every tile of the box's columns from the landing `top` up to the top of the standing box
+// at the player's current y (the descend stands a crouched player up) is non-solid on the target
+// row's tiles: nothing in the way of the fall.
+export function fallPathClear(tiles, player, top) {
+  const { x0, x1 } = columnsOf(player);
+  const y0 = Math.floor(top + EPSILON);
+  const y1 = Math.floor(player.y + player.size.height - EPSILON);
+  for (let ty = y0; ty <= y1; ty++) {
+    for (let tx = x0; tx <= x1; tx++) if (tiles.isSolid(tx, ty)) return false;
+  }
+  return true;
+}
+
 const ease = (s) => s * s * (3 - 2 * s); // smoothstep
 
 // The drawn depth (z): the row, or during a hop eased from the row to the target.
@@ -107,11 +139,35 @@ export function playerDepth(player) {
   return hop ? row + (hop.to - row) * ease(hop.t / HOP_TICKS) : row;
 }
 
-// One hop tick: input is ignored except aim. The last tick puts the player on the target row,
-// standing on the landing.
-function advanceHop(player, frame) {
-  if (frame?.connected && Number.isFinite(frame.aim)) player.aim = frame.aim;
+// A copy of the frame for a fall hop's depth move: no jump, crouch or (unless DROP_AIR_CONTROL)
+// horizontal input; the aim is kept.
+function fallFrame(frame) {
+  if (!frame?.connected) return frame;
+  const off = { held: false, pressed: false, released: false };
+  const actions = { ...frame.actions, jump: off, moveUp: off, moveDown: off };
+  if (!DROP_AIR_CONTROL) Object.assign(actions, { moveLeft: off, moveRight: off });
+  return { ...frame, actions };
+}
+
+// One hop tick. Scripted (ascend): input is ignored except aim; the last tick puts the player on
+// the target row, standing on the landing. Fall (descend): physics on the target row (it lands
+// through normal collision); the last tick only changes the row.
+function advanceHop(player, frame, rows, dt, world) {
   const hop = player.hop;
+  if (hop.fall) {
+    // The depth move (t < HOP_TICKS): input filtered (fallFrame). After it, the row is the target
+    // and the hop stays, at t = HOP_TICKS, until the player lands: normal control, but no row
+    // switch, so a crouch press while still falling cannot grab straight back up.
+    const moving = hop.t < HOP_TICKS;
+    if (moving) hop.t += 1;
+    stepPlayer(player, moving ? fallFrame(frame) : frame, rows.get(hop.to) ?? EMPTY, dt, hop.to === 0 ? world : undefined);
+    if (hop.t >= HOP_TICKS) {
+      player.row = hop.to;
+      if (player.onGround) player.hop = null;
+    }
+    return;
+  }
+  if (frame?.connected && Number.isFinite(frame.aim)) player.aim = frame.aim;
   hop.t += 1;
   const s = hop.t / HOP_TICKS;
   player.y = hop.y0 + (hop.y1 - hop.y0) * s + HOP_ARC * 4 * s * (1 - s);
@@ -130,39 +186,44 @@ export function stepRowPlayer(player, frame, rows, transfers, dt, world) {
   presses.down = Math.min(PRESS_NONE, presses.down + 1);
   presses.jump = Math.min(PRESS_NONE, presses.jump + 1);
   if (player.hop) {
-    advanceHop(player, frame);
+    advanceHop(player, frame, rows, dt, world);
     return player;
   }
   const actions = frame?.connected ? frame.actions : undefined;
   const downPressed = Boolean(actions?.moveDown?.pressed);
   const jumpPressed = Boolean(actions?.jump?.pressed || actions?.moveUp?.pressed);
-  // The intent, from the press ages before this tick's presses are recorded.
+  // Before anything changes this tick: the reach, the zone, and the intent from the press ages
+  // before this tick's presses are recorded.
+  const reach = reachOf(player);
+  const zone = zoneAt(transfers, player);
+  const B = frame?.rowScheme === 'B';
   let intent = null;
-  if (frame?.rowScheme === 'B') {
-    if (downPressed && presses.down <= ROW_WINDOW_TICKS) intent = 'descend';
-    else if (jumpPressed && presses.jump <= ROW_WINDOW_TICKS) intent = 'ascend';
-  } else {
+  if (zone && player.row === zone.high) {
     // A down and a jump in the same frame also count: the host's guest-input queue can merge two
     // consecutive frames into one (net/session.js), and the host must still see the descend. A
-    // merged scheme A ascend (jump, then down) or scheme B double press is lost there; the next
-    // snapshot corrects the guest's prediction.
-    if (jumpPressed && (downPressed || presses.down <= ROW_WINDOW_TICKS)) intent = 'descend';
-    else if (downPressed && !player.onGround && presses.jump <= ROW_WINDOW_TICKS) intent = 'ascend';
+    // merged scheme B double press is lost there; the next snapshot corrects the guest's prediction.
+    if (B) {
+      if (downPressed && presses.down <= ROW_WINDOW_TICKS) intent = 'descend';
+    } else if (jumpPressed && (downPressed || presses.down <= ROW_WINDOW_TICKS)) intent = 'descend';
+  } else if (zone && player.row === zone.low) {
+    if (downPressed && !player.onGround) intent = 'ascend';
+    else if (B && jumpPressed && presses.jump <= ROW_WINDOW_TICKS) intent = 'ascend';
   }
   if (downPressed) presses.down = 0;
   if (jumpPressed) presses.jump = 0;
-  const zone = intent ? zoneAt(transfers, player) : null;
-  if (zone && player.row === (intent === 'descend' ? zone.high : zone.low)) {
+  if (intent) {
     const target = intent === 'descend' ? zone.low : zone.high;
     const from = floorBelow(rows.get(player.row) ?? EMPTY, player) ?? player.y;
-    const top = findLanding(rows.get(target) ?? EMPTY, player, from, intent);
-    if (top !== null) {
+    const top = findLanding(rows.get(target) ?? EMPTY, player, from, intent, reach);
+    const fall = intent === 'descend';
+    if (top !== null && (!fall || fallPathClear(rows.get(target) ?? EMPTY, player, top))) {
       // The press is used by the hop: no normal jump this tick. Both ages reset, so a third
       // press does not start another.
-      Object.assign(player, { hop: { to: target, t: 0, y0: player.y, y1: top }, crouching: false, vx: 0, vy: 0 });
+      Object.assign(player, { hop: { to: target, t: 0, y0: player.y, y1: top, fall }, crouching: false, vx: 0, vy: fall ? DROP_NUDGE_SPEED : 0 });
+      if (fall) player.onGround = false;
       presses.down = PRESS_NONE;
       presses.jump = PRESS_NONE;
-      advanceHop(player, frame);
+      advanceHop(player, frame, rows, dt, world);
       return player;
     }
   }

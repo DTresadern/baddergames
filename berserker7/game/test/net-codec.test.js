@@ -78,7 +78,7 @@ test('encode: output is a fresh buffer of its own, not msgpackr\'s shared one', 
 test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
   const extreme = (x) => ({
     x, y: -12345.678901234, vx: -777.123456789, vy: 0.25123456789, onGround: true, crouching: true, aim: -3.14159265358979,
-    row: -64, hop: { to: -63, t: 14, y0: -99999.123456789, y1: -99998.123456789 }, presses: { down: 254, jump: 254 },
+    row: -64, hop: { to: -63, t: 14, y0: -99999.123456789, y1: -99998.123456789, fall: true }, presses: { down: 254, jump: 254 },
   });
   const enemy = (i) => ({ id: 65535 - i, type: 'walker', x: -99999.123456789 + i, y: 12345.678901234, awake: true });
   const big = (count) => ({ tick: 2 ** 31 - 1, ack: 2 ** 31 - 1, wt: 2 ** 31 - 1, players: [extreme(99999.123456789), extreme(-99999.123456789)], enemies: Array.from({ length: count }, (_, i) => enemy(i)) });
@@ -89,7 +89,7 @@ test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
   const levelBytes = encode(snapMessage(big(levelEnemies))).byteLength;
   console.log(`snap bytes: worst case (2 players, ${MAX_ENEMIES} enemies) ${worst}; this level (${levelEnemies} enemies) ${levelBytes}; limit ${MAX_MESSAGE_BYTES}`);
   assert.ok(worst <= 1200, `worst case ${worst}`);
-  assert.ok(worst < MAX_MESSAGE_BYTES * 0.6, 'wide margin (1118 bytes with depth rows, protocol 5)');
+  assert.ok(worst < MAX_MESSAGE_BYTES * 0.6, 'wide margin (1128 bytes with depth rows and the hop fall flag, protocol 6)');
   assert.ok(levelEnemies <= MAX_ENEMIES);
   assert.equal(MAX_MESSAGE_BYTES, 2048);
 });
@@ -231,11 +231,13 @@ test('input frames: the row scheme travels as rs into frameFromMasks\' rowScheme
 
 test('snapshots: each player slot carries its row, hop and press ages', () => {
   const players = [
-    player(1, { row: -1, hop: { to: 0, t: 7, y0: -2.5, y1: 0 }, presses: { down: 255, jump: 3 } }),
+    player(1, { row: -1, hop: { to: 0, t: 7, y0: -2.5, y1: 0, fall: true }, presses: { down: 255, jump: 3 } }),
     player(2, { row: 1, presses: { down: 0, jump: 12 } }),
   ];
   const back = snapshotFromMessage(decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players }))));
   assert.deepEqual(back.players, players);
+  const scripted = [player(1, { row: 1, hop: { to: 0, t: 3, y0: -2, y1: 0, fall: false } })];
+  assert.deepEqual(snapshotFromMessage(decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players: scripted })))).players, scripted);
   // Missing fields (a player made before rows): row 0, no hop, no recent press.
   const old = snapshotFromMessage(decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players: [{ x: 0, y: 0, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0 }] }))));
   assert.deepEqual([old.players[0].row, old.players[0].hop, old.players[0].presses], [0, null, { down: 255, jump: 255 }]);

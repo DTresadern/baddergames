@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
 import { loadCellMap } from '../src/world/cell-map.js';
 import { createPlayer } from '../src/world/player.js';
-import { HOP_TICKS, PRESS_NONE, createRowScheme, findLanding, playerDepth, stepRowPlayer, zoneAt } from '../src/world/rows.js';
+import { HOP_TICKS, PRESS_NONE, createRowScheme, fallPathClear, findLanding, playerDepth, stepRowPlayer, zoneAt } from '../src/world/rows.js';
 
 const STEP = 1 / 60;
 
@@ -60,18 +60,19 @@ test('scheme A descend: crouch, then jump within the window hops to the lower ro
   step(player, f(['moveDown']));
   run(player, 4, f([], ['moveDown']));
   step(player, f(['jump'], ['moveDown']));
-  assert.deepEqual(player.hop, { to: 1, t: 1, y0: 0, y1: -2 });
+  assert.deepEqual(player.hop, { to: 1, t: 1, y0: 0, y1: -2, fall: true });
   assert.equal(player.row, 0);
   assert.deepEqual(player.presses, { down: PRESS_NONE, jump: PRESS_NONE });
-  run(player, HOP_TICKS - 2, f(['jump']));
+  run(player, HOP_TICKS - 2, f(['jump'], ['moveRight']));
   assert.equal(player.row, 0, 'still hopping; input ignored');
+  assert.equal(player.x, 6.5, 'x held during the depth move');
   assert.ok(playerDepth(player) > 0.9 && playerDepth(player) < 1);
   step(player, f());
-  assert.deepEqual([player.row, player.y, player.hop, player.onGround], [1, -2, null, true]);
+  assert.deepEqual([player.row, player.hop?.t], [1, HOP_TICKS], "on row 1, still falling: the hop stays until landing");
   assert.equal(playerDepth(player), 1);
-  // The next ticks collide with row 1's floor.
-  run(player, 10);
-  assert.deepEqual([player.y, player.onGround, player.row], [-2, true, 1]);
+  // A 2-tile drop is finished within about 30 ticks, standing on row 1's floor.
+  run(player, 15);
+  assert.deepEqual([player.y, player.onGround, player.row, player.hop], [-2, true, 1, null]);
 });
 
 test('scheme A descend: presses too far apart, or outside a zone, give a normal jump', () => {
@@ -146,4 +147,160 @@ test('scheme A: down and jump pressed in the same frame descend (a merged guest 
   const player = standing(6.5);
   step(player, f(['moveDown', 'jump']));
   assert.equal(player.hop?.to, 1);
+});
+
+// Reach map: row 0 floor top 0 (x 0..39); row -1 floor top 3 at x 0..9 (zone G, x 5..8) and top 5 at
+// x 20..29 (zone H, x 25..28). A jump's y after n ticks: 1.125 (5), 1.903 (10), 2.428 at the peak (19).
+const reachMap = loadCellMap({
+  ...json(),
+  transfers: [
+    { x0: 5, x1: 8, low: 0, high: -1 },
+    { x0: 25, x1: 28, low: 0, high: -1 },
+  ],
+  cells: [
+    ...Array.from({ length: 40 }, (_, x) => [x, -1, 0]),
+    ...Array.from({ length: 10 }, (_, x) => [x, 2, -1]),
+    ...Array.from({ length: 10 }, (_, x) => [x + 20, 4, -1]),
+  ],
+});
+const rstep = (player, frame) => step(player, frame, reachMap);
+const rstanding = (x, row = 0, y = 0) => {
+  const player = createPlayer(x, y, reachMap.player);
+  player.row = row;
+  for (let i = 0; i < 5; i++) rstep(player, f());
+  assert.equal(player.onGround, true);
+  return player;
+};
+// Presses jump at tick 1, then idles until the tick before `n`, and returns the player.
+const jumped = (x, n, scheme = 'A') => {
+  const player = rstanding(x);
+  rstep(player, f(['jump'], [], scheme));
+  for (let i = 2; i < n; i++) rstep(player, f([], [], scheme));
+  return player;
+};
+
+test('reach, top 3: standing or an early double jump cannot reach; a crouch press on the ground does nothing', () => {
+  const early = rstanding(6.5);
+  rstep(early, f(['jump'], [], 'B'));
+  run(early, 2, f([], [], 'B'));
+  rstep(early, f(['jump'], [], 'B'));
+  assert.equal(early.hop, null);
+  const crouch = rstanding(6.5);
+  rstep(crouch, f(['moveDown']));
+  assert.equal(crouch.hop, null);
+  // Held from the ground into the air: not a press event.
+  const held = rstanding(6.5);
+  rstep(held, f(['jump'], ['moveDown']));
+  run(held, 15, f([], ['moveDown']));
+  assert.equal(held.hop, null);
+});
+
+test('reach, top 3: jump, then a crouch press near the top of the jump hops to y 3', () => {
+  for (const scheme of ['A', 'B']) {
+    const player = jumped(6.5, 15, scheme);
+    rstep(player, f(['moveDown'], [], scheme));
+    assert.equal(player.hop?.to, -1, scheme);
+    assert.equal(player.hop.y1, 3, scheme);
+  }
+  const low = jumped(6.5, 5);
+  rstep(low, f(['moveDown']));
+  assert.equal(low.hop, null, 'y 1.1: out of reach');
+});
+
+test('reach, top 3: scheme B two jump presses near the top of the jump hop', () => {
+  const player = jumped(6.5, 12, 'B');
+  rstep(player, f(['jump'], [], 'B'));
+  assert.equal(player.hop?.to, -1);
+});
+
+test('reach, top 5: out of reach even at the peak; descending from it works', () => {
+  for (const scheme of ['A', 'B']) {
+    const player = jumped(26.5, 19, scheme);
+    rstep(player, f(['moveDown'], [], scheme));
+    assert.equal(player.hop, null, scheme);
+  }
+  const second = jumped(26.5, 10, 'B');
+  rstep(second, f(['jump'], [], 'B'));
+  assert.equal(second.hop, null);
+  const down = rstanding(26.5, -1, 5);
+  rstep(down, f(['moveDown']));
+  rstep(down, f(['jump'], ['moveDown']));
+  assert.deepEqual([down.hop?.to, down.hop?.y1], [0, 0]);
+});
+
+test('air grab: a player falling past the ledge grabs the higher row with a crouch press', () => {
+  for (const scheme of ['A', 'B']) {
+    const player = createPlayer(6.5, 2.5, reachMap.player);
+    player.row = 0;
+    rstep(player, f([], [], scheme));
+    assert.equal(player.onGround, false);
+    assert.equal(player.presses.down, PRESS_NONE);
+    rstep(player, f(['moveDown'], [], scheme));
+    assert.deepEqual([player.hop?.to, player.hop?.y1], [-1, 3], scheme);
+  }
+});
+
+test('descend: a falling hop; 5 tiles take about as long as a 5-tile fall, and it never falls through the target row', () => {
+  const player = createPlayer(26.5, 5, reachMap.player);
+  player.row = -1;
+  for (let i = 0; i < 5; i++) rstep(player, f());
+  rstep(player, f(['moveDown', 'jump']));
+  assert.equal(player.hop.fall, true);
+  assert.deepEqual([player.hop.y0, player.hop.y1], [5, 0]);
+  assert.equal(player.onGround, false);
+  rstep(player, f());
+  assert.ok(player.y > 5, 'rises first');
+  let ticks = 2;
+  let peak = player.y;
+  while (!player.onGround && ticks < 200) {
+    rstep(player, f());
+    ticks += 1;
+    peak = Math.max(peak, player.y);
+    assert.ok(player.y >= 0, 'never below the target row floor');
+    if (ticks === HOP_TICKS) assert.deepEqual([player.row, player.hop?.t], [0, HOP_TICKS], 'on the target row; the hop stays until landing');
+  }
+  assert.equal(player.y, 0);
+  assert.ok(ticks >= 30 && ticks <= 45, `landed after ${ticks} ticks`);
+  assert.ok(peak > 5.3 && peak < 5.6, `peak ${peak}`);
+  assert.equal(player.row, 0);
+});
+
+test('descend: the depth move holds x; air control returns after it', () => {
+  const player = createPlayer(26.5, 5, reachMap.player);
+  player.row = -1;
+  for (let i = 0; i < 5; i++) rstep(player, f());
+  rstep(player, f(['moveDown', 'jump']));
+  for (let i = 1; i < HOP_TICKS; i++) rstep(player, f([], ['moveRight']));
+  assert.equal(player.x, 26.5);
+  assert.deepEqual([player.row, player.hop?.t], [0, HOP_TICKS]);
+  rstep(player, f([], ['moveRight']));
+  assert.ok(player.x > 26.5, 'air control after the depth move');
+});
+
+test('descend: a crouch press while still falling after the depth move does not grab back up', () => {
+  for (const scheme of ['A', 'B']) {
+    const player = createPlayer(26.5, 5, reachMap.player);
+    player.row = -1;
+    for (let i = 0; i < 5; i++) rstep(player, f([], [], scheme));
+    if (scheme === 'A') rstep(player, f(['moveDown', 'jump']));
+    else { rstep(player, f(['moveDown'], [], 'B')); rstep(player, f(['moveDown'], [], 'B')); }
+    for (let i = 1; i < HOP_TICKS; i++) rstep(player, f([], [], scheme));
+    assert.equal(player.onGround, false);
+    rstep(player, f(['moveDown'], [], scheme));
+    assert.equal(player.hop?.fall, true, `${scheme}: still the falling hop, no ascend`);
+    let n = 0;
+    while (!player.onGround && n++ < 100) rstep(player, f([], [], scheme));
+    assert.deepEqual([player.row, player.y, player.hop], [0, 0, null], `${scheme}: landed on the low row`);
+  }
+});
+
+test('blocked fall path: a solid tile on the target row between the landing and the head means no descend', () => {
+  const blocked = loadCellMap(json([[6, 0, 1]]));
+  const player = createPlayer(6.5, 0, blocked.player);
+  for (let i = 0; i < 5; i++) step(player, f(), blocked);
+  assert.equal(findLanding(blocked.rows.get(1), player, 0, 'descend'), -2, 'a landing exists');
+  assert.equal(fallPathClear(blocked.rows.get(1), player, -2), false);
+  assert.equal(fallPathClear(map.rows.get(1), player, -2), true);
+  step(player, f(['moveDown', 'jump']), blocked);
+  assert.equal(player.hop, null);
 });

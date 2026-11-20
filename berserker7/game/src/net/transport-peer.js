@@ -3,7 +3,7 @@
 // their own `loadPeer`. A raw connection delivers received data as an ArrayBuffer,
 // which becomes a Uint8Array before it reaches the channel.
 //
-// The host's peer id is `berserker7-v5-<CODE>`; on 'unavailable-id' (the code is taken) the host
+// The host's peer id is `berserker7-v6-<CODE>`; on 'unavailable-id' (the code is taken) the host
 // tries a new code, up to HOST_RETRIES times. The guest connects with
 // { reliable: true, serialization: 'raw' }, so codec bytes travel as they are. A second guest
 // gets a `reject full` codec message and is closed. A join that has not opened after
@@ -15,7 +15,7 @@
 import { encode, rejectMessage } from './codec.js';
 import { createRawChannel } from './link.js';
 
-export const PEER_ID_PREFIX = 'berserker7-v5-';
+export const PEER_ID_PREFIX = 'berserker7-v6-';
 export const HOST_RETRIES = 4;
 export const JOIN_TIMEOUT_MS = 15000;
 const REJECT_CLOSE_MS = 500; // time for the reject to leave before the connection closes
