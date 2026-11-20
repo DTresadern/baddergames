@@ -4184,7 +4184,7 @@
       "refs": [
         "TF-004"
       ],
-      "notes": "2026-11-20: first moving platform with riding (#95): a box on a waypoint path, position from the world tick only, one-way from above; riders are carried by its movement each tick."
+      "notes": "2026-11-20: first moving platform with riding (#95): a box on a waypoint path, position from the world tick only, one-way from above; riders are carried by its movement each tick. 2026-11-20: merged in #96. Platform positions are not sent: the guest computes them from the snapshot's world tick. A remote player or enemy standing on a platform is drawn moved with it to the guest's draw tick."
     },
     {
       "id": "T-035",
@@ -5133,7 +5133,7 @@
       "refs": [
         "TF-113"
       ],
-      "notes": "2026-11-19: ?net=local and ?lag are built (issue #81, PR #82)."
+      "notes": "2026-11-19: ?net=local and ?lag are built (issue #81, PR #82). 2026-11-20: with ?lag the guest's drawn host player and enemies were measured on every frame: they moved once per snapshot (30 per second) instead of every tick. Fixed in #99 (issue #97)."
     },
     {
       "id": "T-075",
@@ -5534,7 +5534,7 @@
       "category": "Enemies",
       "title": "Don't design enemies and level objects that ignore network delay",
       "detail": "Attack wind-ups clearly longer than the worst supported delay; no instant, unannounced enemy attacks. Spawns off-screen or behind a spawn animation. Generous hitboxes for fast enemies. Platforms and hazards move on scripted, tick-driven paths. Contested pickups are decided by the host, with a short \"claimed\" animation.",
-      "status": "accepted",
+      "status": "ongoing",
       "authors": [
         "Project owner"
       ],
@@ -5543,7 +5543,7 @@
         "T-109",
         "T-110"
       ],
-      "notes": ""
+      "notes": "2026-11-20: followed for moving platforms (#96): their position is a function of the world tick only."
     },
     {
       "id": "D-130",
@@ -5558,7 +5558,7 @@
       ],
       "sources": [],
       "refs": [],
-      "notes": "2026-11-20: first test version (issue #98)."
+      "notes": "2026-11-20: first test version (issue #98). 2026-11-20: merged in #100, with the test map depth-rows-test. Row, hop and press ages are in the snapshot and predicted on the guest (protocol 5). Still not built: enemies and shots changing rows, cutting away blocks in the way, moving platforms on rows other than z = 0."
     },
     {
       "id": "T-089",
@@ -5585,7 +5585,7 @@
         "T-019",
         "T-005"
       ],
-      "notes": "2026-11-17: deferred; the harness (PR #47) draws the current state each frame with no interpolation."
+      "notes": "2026-11-17: deferred; the harness (PR #47) draws the current state each frame with no interpolation. 2026-11-20: low priority. Measured in #99: at 144 Hz about 58% of frames repeat the previous position, because the game draws its 60 ticks a second without blending. Smooth at 60 fps is enough for now."
     },
     {
       "id": "T-090",
@@ -6078,7 +6078,7 @@
         "T-110",
         "T-111"
       ],
-      "notes": "2026-11-19: built for the Sandbox players (issue #81, PR #82; fixes in #84): host snapshots 30 times a second, per-tick guest inputs, own movement predicted with reconciliation, the other player interpolated 100 ms behind, a shared clock from pings. Enemies and projectiles do not exist yet (T-110)."
+      "notes": "2026-11-19: built for the Sandbox players (issue #81, PR #82; fixes in #84): host snapshots 30 times a second, per-tick guest inputs, own movement predicted with reconciliation, the other player interpolated 100 ms behind, a shared clock from pings. Enemies and projectiles did not exist yet (T-110). 2026-11-20: enemies are in the snapshot (#96): the full list every snapshot, each enemy with a fixed id and a type; the guest adds, updates and removes enemies by id, each with its own interpolation buffer. The guest draws the host player and enemies 6 ticks (100 ms) behind the newest host data arriving, timed from ping replies, so they move on every tick under delay (#99, issue #97). Projectiles do not exist yet."
     },
     {
       "id": "T-110",
@@ -6095,7 +6095,7 @@
       "refs": [
         "T-109"
       ],
-      "notes": ""
+      "notes": "2026-11-20: enemies exist (#96); the guest interpolates them from snapshots and does not predict them. Re-simulating the world from snapshots is not built."
     },
     {
       "id": "T-111",
@@ -6113,7 +6113,7 @@
         "T-109",
         "T-074"
       ],
-      "notes": "2026-11-20: platform and enemy checked with a host and a guest (#95), with ?net=local and ?lag=200."
+      "notes": "2026-11-20: platform and enemy checked with a host and a guest (#95), with ?net=local and ?lag=200. 2026-11-20: the guest's view of the host player and enemies measured on every frame with ?net=local and ?lag (#99); depth row switches checked with a host and a guest, also with ?lag=200 (#100)."
     },
     {
       "id": "T-112",
