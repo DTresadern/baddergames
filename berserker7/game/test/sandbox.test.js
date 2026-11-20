@@ -32,7 +32,7 @@ test('initSandbox: plain state, the player stands at the first player spawn', ()
   assert.deepEqual(state, {
     ticks: 0,
     map: MAP_KEY,
-    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE }, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1 }],
+    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE }, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1, crushed: false }],
     localSlot: 0,
     pointer: null,
     aimSource: null,

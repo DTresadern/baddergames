@@ -167,3 +167,10 @@ test('health HUD text: one line per present slot, health over PLAYER_HEALTH', ()
   assert.equal(healthText([{ health: 100 }]), 'P1 100/100');
   assert.equal(healthText([{ health: 100 }, { health: 70 }]), 'P1 100/100\nP2 70/100');
 });
+
+test('crush: a player a platform crushed this tick dies (health 0, in the dead list)', () => {
+  const player = Object.assign(createPlayer(3, 2, SIZE), { crushed: true });
+  const state = { players: [player], enemies: [] };
+  assert.deepEqual(resolveCombat(state), [0]);
+  assert.equal(player.health, 0);
+});

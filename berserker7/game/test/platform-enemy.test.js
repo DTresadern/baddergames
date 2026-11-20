@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ENEMY, createEnemy, stepEnemy } from '../src/world/enemy.js';
 import { platformAt, platformsStep, rideShift } from '../src/world/platform.js';
-import { createPlayer, stepPlayer } from '../src/world/player.js';
+import { createPlayer, pushByPlatforms, stepPlayer } from '../src/world/player.js';
 import { createTileMap } from '../src/world/tilemap.js';
 import { frame } from './frames.js';
 
@@ -147,4 +147,44 @@ test('tickSandbox: a fallen enemy with no spawn on this map is removed, not resp
   state.enemies[0].y = state.fallY - 1; // the map's own enemy falls too
   tickSandbox(state, [], 1 / 60, tiles);
   assert.deepEqual(state.enemies.map((e) => [e.id, e.y]), [[0, 0]]);
+});
+
+// Platform push and crush (issue #105). A step's boxes: `prev` before, `now` after.
+const box = (x, y, width = 3, height = 0.5) => ({ x, y, width, height });
+
+test('pushByPlatforms: a platform moving sideways into a player pushes it out of the way', () => {
+  const player = createPlayer(5, 0, SIZE); // box x 4.725..5.275, y 0..1.2
+  const step = { prev: box(1.75, 0.5), now: box(2, 0.5) }; // right edge 4.75 -> 5: into the player
+  assert.equal(pushByPlatforms(player, [step], tileMap()), false);
+  near(player.x, 5 + SIZE.width / 2, 'pushed to the platform right edge');
+  near(player.y, 0);
+});
+
+test('pushByPlatforms: a platform coming down onto a player with room below pushes it down', () => {
+  const player = createPlayer(5, 2, SIZE); // in the air, box y 2..3.2
+  const step = { prev: box(4, 3.25), now: box(4, 3) }; // bottom 3.25 -> 3: into the head
+  player.vy = 2;
+  assert.equal(pushByPlatforms(player, [step], tileMap()), false);
+  near(player.y, 3 - SIZE.height, 'pushed below the platform');
+  assert.equal(player.vy, 0, 'a rising player stops');
+});
+
+test('pushByPlatforms: a player pushed into a wall with no room is crushed and stays put', () => {
+  const player = createPlayer(0, 0, SIZE);
+  const tiles = tileMap([[6, 0], [6, 1]]);
+  player.x = 6 - SIZE.width / 2; // touching the wall
+  const step = { prev: box(2.5, 0.5), now: box(2.75, 0.5) }; // right edge 5.5 -> 5.75
+  assert.equal(pushByPlatforms(player, [step], tiles), true);
+  near(player.x, 6 - SIZE.width / 2, 'not moved into the wall');
+  assert.equal(player.crushed, true);
+});
+
+test('pushByPlatforms: a platform moving away, or a rider on its top, is not pushed', () => {
+  const inside = createPlayer(4.5, 0.2, SIZE); // inside the platform, right of its centre
+  assert.equal(pushByPlatforms(inside, [{ prev: box(2.25, 0.5), now: box(2, 0.5) }], tileMap()), false); // moving left
+  near(inside.x, 4.5);
+  const rider = createPlayer(3, 1, SIZE);
+  pushByPlatforms(rider, [{ prev: box(2, 0.5), now: box(2.25, 0.5) }], tileMap());
+  near(rider.x, 3);
+  near(rider.y, 1);
 });

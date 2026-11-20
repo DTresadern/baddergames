@@ -3,7 +3,8 @@
 // One damage function for every source: damage(target, amount) (tracker T-025).
 // Melee: the attack key (primaryFire) with an empty inventory, or the melee key (V, gamepad B),
 // starts a swing in the aim's direction; it hits every enemy in a box in front of the player once,
-// on the swing's first tick. Enemies attack a player close to them: damage and a push away.
+// on the swing's first tick. Enemies attack a player close to them: damage and a push away. A
+// player a moving platform crushes against a solid block dies.
 // Only the host (or offline) decides hits (resolveCombat); a guest predicts its own swing
 // (stepMelee) but never resolves it. A player at 0 health goes back to the spawn with full
 // health (scenes/sandbox.js owns the spawn).
@@ -43,8 +44,18 @@ export function inventoryFromMask(mask) {
   return ITEMS.filter((_, i) => (mask & (1 << i)) !== 0);
 }
 
-// The one damage function. Health never goes below 0. Returns true when it reached 0.
-export function damage(target, amount) {
+// Damage sources (the third argument of damage): the player's melee, an enemy's attack, a moving
+// platform crushing a player against a solid block.
+export const DAMAGE_SOURCES = Object.freeze(['melee', 'enemy', 'crush']);
+// A crush always kills: there is no room left, so any health left would leave the player stuck
+// inside the platform; at 0 health it goes back to the spawn, which has room.
+export const CRUSH_DAMAGE = Infinity;
+
+// The one damage function, for every source (one of DAMAGE_SOURCES; nothing depends on it yet,
+// it is there for later rules such as armour). Health never goes below 0. Returns true when it
+// reached 0.
+export function damage(target, amount, source) {
+  if (!DAMAGE_SOURCES.includes(source)) throw new Error(`combat: unknown damage source ${String(source)}`);
   target.health = Math.max(0, target.health - amount);
   return target.health === 0;
 }
@@ -125,16 +136,19 @@ function push(player, enemy) {
   player.onGround = false;
 }
 
-// Host and offline only, after players and enemies have stepped this tick: (a) every swing that
+// Host and offline only, after players and enemies have stepped this tick: (0) a crushed player
+// dies (CRUSH_DAMAGE); (a) every swing that
 // started this tick damages each enemy in its box once; (b) enemies at 0 health are removed from
 // state.enemies; (c) each remaining enemy counts its cooldown down and, at 0 and awake, attacks
 // the nearest player in range (damage, push, cooldown). Returns the slots of the players at 0
 // health (scenes/sandbox.js sends them back to the spawn).
 export function resolveCombat(state) {
   const players = state.players;
+  // (0) a player a moving platform crushed this tick (pushByPlatforms in world/player.js) dies.
+  for (const player of players) if (player?.crushed) damage(player, CRUSH_DAMAGE, 'crush');
   for (const player of players) {
     if (!player || !swingStarted(player)) continue;
-    for (const enemy of meleeHits(player, state.enemies)) damage(enemy, MELEE.damage);
+    for (const enemy of meleeHits(player, state.enemies)) damage(enemy, MELEE.damage, 'melee');
   }
   state.enemies = state.enemies.filter((enemy) => enemy.health > 0);
   for (const enemy of state.enemies) {
@@ -142,7 +156,7 @@ export function resolveCombat(state) {
     if (enemy.attackCooldown > 0 || !enemy.awake) continue;
     const target = enemyAttackTarget(enemy, players);
     if (!target) continue;
-    damage(target, ENEMY_ATTACK.damage);
+    damage(target, ENEMY_ATTACK.damage, 'enemy');
     push(target, enemy);
     enemy.attackCooldown = ENEMY_ATTACK.cooldownTicks;
   }

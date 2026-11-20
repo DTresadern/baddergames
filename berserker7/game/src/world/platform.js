@@ -5,7 +5,9 @@
 // (last point back to the first).
 // Position is a function of the world tick only (D-129): the same tick gives the same box on host
 // and guest, so platforms are never sent over the network.
-// Collision is one-way, from above only (see stepPlayer in player.js).
+// Collision is one-way, from above only (see stepPlayer in player.js), but a platform moving into a
+// player pushes it out of the way, and crushes it against a solid block (pushByPlatforms in
+// player.js; players only, enemies are not pushed).
 
 import { STEP_SECONDS } from '../engine/clock.js';
 

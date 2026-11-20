@@ -39,7 +39,7 @@ export const PRESS_NONE = 255;
 export const PLAYER_HEALTH = 100;
 
 export function createPlayer(x, y, size = PLAYER_SIZE) {
-  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...size }, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE }, health: PLAYER_HEALTH, inventory: [], meleeTicks: 0, meleeDir: 1 };
+  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...size }, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE }, health: PLAYER_HEALTH, inventory: [], meleeTicks: 0, meleeDir: 1, crushed: false };
 }
 
 // Moves `value` towards `target` by at most `amount`, never past it.
@@ -103,6 +103,54 @@ function carry(player, dx, dy, tiles) {
     const span = solidSpan(tiles, overlap(player.x, player.y, width, height), 'y');
     if (span) player.y = dy > 0 ? span.min - height : span.max + 1;
   }
+}
+
+// True when the box at `player` overlaps the platform box `box` ({ x, y, width, height }).
+function overlapsBox(player, box) {
+  const height = playerHeight(player);
+  return overlapsX(player, box) && player.y + height > box.y + EPSILON && player.y < box.y + box.height - EPSILON;
+}
+
+// Platforms push players (players only; enemies are not pushed). Called before the player's own
+// step with the step's platform boxes. A platform whose box after this step (`now`) overlaps the
+// player pushes it out of `now` along each direction the platform moved in (x and y apart), but
+// only when the player is on that leading side (its centre past the platform's centre that way),
+// so a player is never pulled through a platform. The shortest such exit wins. A platform that
+// moves away from the player, or does not move, does not push (platforms stay one-way). A rider
+// stands on the top, does not overlap, and is carried as before (stepPlayer). Pushed up, a falling
+// vy stops; pushed down, a rising vy stops; vx is unchanged.
+// Crushed: the exit would overlap a solid tile of `tiles` (a wall, floor or ceiling: no room
+// left). The player then stays where it was and `player.crushed` is true; the host kills it
+// (world/combat.js). Sets `player.crushed` on every call and returns it.
+export function pushByPlatforms(player, platforms, tiles) {
+  player.crushed = false;
+  for (const { prev, now } of platforms) {
+    if (!overlapsBox(player, now)) continue;
+    const dx = now.x - prev.x;
+    const dy = now.y - prev.y;
+    const half = player.size.width / 2;
+    const height = playerHeight(player);
+    const cx = now.x + now.width / 2;
+    const cy = now.y + now.height / 2;
+    const py = player.y + height / 2;
+    const exits = [];
+    if (dx > 0 && player.x >= cx) exits.push({ x: now.x + now.width + half, y: player.y });
+    if (dx < 0 && player.x <= cx) exits.push({ x: now.x - half, y: player.y });
+    if (dy > 0 && py >= cy) exits.push({ x: player.x, y: now.y + now.height });
+    if (dy < 0 && py <= cy) exits.push({ x: player.x, y: now.y - height });
+    if (exits.length === 0) continue;
+    const cost = (e) => Math.abs(e.x - player.x) + Math.abs(e.y - player.y);
+    const exit = exits.reduce((best, e) => (cost(e) < cost(best) ? e : best));
+    if (solidSpan(tiles, overlap(exit.x, exit.y, player.size.width, height), 'x')) {
+      player.crushed = true;
+      continue;
+    }
+    if (exit.y > player.y) player.vy = Math.max(player.vy, 0);
+    if (exit.y < player.y) player.vy = Math.min(player.vy, 0);
+    player.x = exit.x;
+    player.y = exit.y;
+  }
+  return player.crushed;
 }
 
 // Advances `player` by `dt` seconds. `frame` is the player's input frame (missing or not connected:
