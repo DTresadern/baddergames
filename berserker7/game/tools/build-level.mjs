@@ -1,10 +1,11 @@
 // Builds the moge3-cyberpunk-blocks test level: the generated blockout plus the authored sections.
 //
 // Reads tools/moge3-cyberpunk-blocks.base.json (written by `moge_blockout.py --mode blocks`, kept
-// byte for byte), adds the cells, platforms and spawns of tools/levels/moge3-cyberpunk-blocks.sections.mjs
-// (cells deduplicated; a base cell is never removed) and writes
-// public/content/maps/moge3-cyberpunk-blocks.json in the same layout as moge_blockout.py (one line
-// per top-level field, one line per cell; cells sorted by z, then y, then x). The base's own
+// byte for byte), adds the cells, platforms, spawns and transfer zones of
+// tools/levels/moge3-cyberpunk-blocks.sections.mjs (cells deduplicated; a base cell is never
+// removed) and writes public/content/maps/moge3-cyberpunk-blocks.json in the same layout as
+// moge_blockout.py (one line per top-level field, one line per cell; cells sorted by z, then y,
+// then x). The base's own
 // top-level lines are copied as they are (so its numbers keep Python's spelling, 995.0), except
 // `source`, which gains a `sections` note, and `spawns`, which gains the sections' spawns.
 //
@@ -14,14 +15,15 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { PLATFORMS, SECTIONS } from './levels/moge3-cyberpunk-blocks.sections.mjs';
+import { PLATFORMS, SECTIONS, TRANSFERS } from './levels/moge3-cyberpunk-blocks.sections.mjs';
 
 const BASE = new URL('./moge3-cyberpunk-blocks.base.json', import.meta.url);
 const OUT = new URL('../public/content/maps/moge3-cyberpunk-blocks.json', import.meta.url);
 const SECTIONS_FILE = 'tools/levels/moge3-cyberpunk-blocks.sections.mjs';
 
-// The map object: the base's fields in order, then platforms; spawns and cells extended.
-export function buildLevel(base = JSON.parse(readFileSync(BASE, 'utf8')), sections = SECTIONS, platforms = PLATFORMS) {
+// The map object: the base's fields in order, then platforms and transfers; spawns and cells
+// extended.
+export function buildLevel(base = JSON.parse(readFileSync(BASE, 'utf8')), sections = SECTIONS, platforms = PLATFORMS, transfers = TRANSFERS) {
   if (base.kind !== 'cells' || !Array.isArray(base.cells)) throw new Error('build-level: the base is not a cells map');
   const key = ([x, y, z]) => `${x},${y},${z}`;
   const seen = new Set(base.cells.map(key));
@@ -45,6 +47,7 @@ export function buildLevel(base = JSON.parse(readFileSync(BASE, 'utf8')), sectio
   out.source = { ...base.source, sections: SECTIONS_FILE };
   out.spawns = spawns;
   out.platforms = platforms.map((p) => ({ ...p, path: p.path.map((pt) => [...pt]) }));
+  out.transfers = transfers.map((t) => ({ ...t }));
   out.cells = cells;
   return out;
 }
@@ -95,5 +98,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   writeFileSync(OUT, text);
   const map = JSON.parse(text);
   const baseCells = JSON.parse(readFileSync(BASE, 'utf8')).cells.length;
-  console.log(`build-level: wrote public/content/maps/moge3-cyberpunk-blocks.json: ${map.cells.length} cells (${baseCells} from the base), ${map.spawns.length} spawns, ${map.platforms.length} platforms`);
+  console.log(`build-level: wrote public/content/maps/moge3-cyberpunk-blocks.json: ${map.cells.length} cells (${baseCells} from the base), ${map.spawns.length} spawns, ${map.platforms.length} platforms, ${map.transfers.length} transfers`);
 }

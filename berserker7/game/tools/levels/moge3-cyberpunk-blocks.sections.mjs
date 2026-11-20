@@ -22,7 +22,13 @@
 //   F  105-121 underpass: street at -2, ceiling at 1 (headroom 3); the lift (top -2 to 6) in a
 //              shaft at 114-118 is the only way up to the upper level at 6; enemy at 110
 //   G  122-150 rooftop: 6, steps to 7 and 9, a 3-wide gap (2-deep pit) at 137-139, enemies at
-//              135 and 145, end wall at 150 up to 16
+//              135 and 145; the roof at 9 runs on through 150 into H (no end wall)
+//   H  151-297 depth rows: a copy of the depth-rows-test layout (tools/levels/depth-rows-test.mjs)
+//              moved by +151 in x and +9 in y (its floor top 0 is 9 here), without its start
+//              wall; rows 0, +1 and -1, its nine transfer zones (TRANSFERS), end wall at 297;
+//              enemies on row 0 at 201 and 249
+
+import { depthRowsCells, depthRowsTransfers } from './depth-rows-test.mjs';
 
 // Cells x0..x1, y0..y1 (inclusive) at depth z.
 export function fill(x0, x1, y0, y1, z = 0) {
@@ -175,9 +181,8 @@ export const SECTIONS = [
       ...fill(128, 132, 5, 6, 0), // step, top 7
       ...fill(133, 136, 5, 8, 0), // step, top 9
       ...fill(137, 139, 5, 6, 0), // gap: a pit 2 deep, top 7
-      ...fill(140, 149, 5, 8, 0), // top 9
+      ...fill(140, 150, 5, 8, 0), // top 9, running on into H at 151
       ...fill(122, 149, 5, 5, -1),
-      ...fill(150, 150, -3, 15, 0), // end wall, up to 16
       ...fill(122, 149, -3, -3, 0), // ground below (out of reach)
       ...columns([126, 138, 146], -2, 4, 0), // supports
       ...columns([126, 138, 146], -3, 4, 1),
@@ -189,7 +194,16 @@ export const SECTIONS = [
     ],
     spawns: [enemy(135, 9), enemy(145, 9)],
   },
+  {
+    name: 'H depth rows',
+    x: [151, 297],
+    cells: depthRowsCells({ dx: 151, dy: 9, startWall: false }),
+    spawns: [enemy(201, 9), enemy(249, 9)], // depth-rows-test x 50 and 98, row 0
+  },
 ];
+
+// Transfer zones between depth rows (world/rows.js): section H's, the depth-rows-test zones at +151.
+export const TRANSFERS = depthRowsTransfers(151);
 
 // Moving platforms: { width, height, speed (tiles/s), mode, path: [[x, y], ...] } (bottom-left).
 export const PLATFORMS = [
