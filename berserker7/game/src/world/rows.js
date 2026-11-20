@@ -142,7 +142,9 @@ export function stepRowPlayer(player, frame, rows, transfers, dt, world) {
     if (downPressed && presses.down <= ROW_WINDOW_TICKS) intent = 'descend';
     else if (jumpPressed && presses.jump <= ROW_WINDOW_TICKS) intent = 'ascend';
   } else {
-    if (jumpPressed && presses.down <= ROW_WINDOW_TICKS) intent = 'descend';
+    // A down and a jump in the same frame also count: the host's guest-input queue can merge two
+    // consecutive frames into one (net/session.js), and the host must still see the descend.
+    if (jumpPressed && (downPressed || presses.down <= ROW_WINDOW_TICKS)) intent = 'descend';
     else if (downPressed && !player.onGround && presses.jump <= ROW_WINDOW_TICKS) intent = 'ascend';
   }
   if (downPressed) presses.down = 0;

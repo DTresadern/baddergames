@@ -155,6 +155,13 @@ export function snapCamera(state) {
   return state;
 }
 
+// The tile maps of the rows a player can be on: row 0 plus every row a transfer zone names (a map
+// without transfers: row 0 only, so decorative depth slices do not move the fall line).
+function reachableRows(map) {
+  const zs = new Set([0, ...(map.transfers ?? []).flatMap((t) => [t.low, t.high])]);
+  return [...zs].map((z) => (z === 0 ? map.tiles : map.rows?.get(z))).filter(Boolean);
+}
+
 // A new player at the state's spawn, with the map's player size.
 function spawnPlayer(state) {
   return createPlayer(state.spawn.x, state.spawn.y, state.size);
@@ -193,7 +200,7 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
     pointer: null,
     aimSource: null,
     spawn: { x: spawn.x + 0.5, y: spawn.y },
-    fallY: lowestTileY(map.rows?.values() ?? [map.tiles]) - FALL_MARGIN, // over all rows
+    fallY: lowestTileY(reachableRows(map)) - FALL_MARGIN,
     size: { ...map.player },
     camera: null,
     // An enemy's id is its index among the map's enemy spawns: the same on host and guest.

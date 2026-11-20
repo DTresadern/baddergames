@@ -141,3 +141,9 @@ test('createRowScheme: A by default; unknown values ignored', () => {
   assert.equal(scheme.set('C'), 'B');
   assert.equal(createRowScheme('x').get(), 'A');
 });
+
+test('scheme A: down and jump pressed in the same frame descend (a merged guest frame on the host)', () => {
+  const player = standing(6.5);
+  step(player, f(['moveDown', 'jump']));
+  assert.equal(player.hop?.to, 1);
+});
