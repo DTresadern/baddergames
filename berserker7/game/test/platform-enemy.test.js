@@ -136,3 +136,15 @@ test('rideShift: a remote body on a platform at an older tick is drawn moved wit
   assert.ok(Math.abs(shift.dy - 0.4) < 1e-9); // 12 ticks at 2 tiles/s
   assert.deepEqual(rideShift([lift], { ...body, y: body.y + 1 }, 30, 42), { dx: 0, dy: 0 }); // not on it
 });
+
+test('tickSandbox: a fallen enemy with no spawn on this map is removed, not respawned', async () => {
+  const { initSandbox, tickSandbox } = await import('../src/scenes/sandbox.js');
+  const tiles = createTileMap({ types: [{ solid: false }, { solid: true, color: '#888' }] });
+  for (let x = -5; x <= 5; x++) tiles.setTile(x, -1, 1);
+  const map = { name: 't', tiles, player: { width: 0.55, height: 1.2, crouchHeight: 0.6 }, platforms: [], spawns: [{ type: 'player', x: 0, y: 0 }, { type: 'enemy', x: 3, y: 0 }] };
+  const state = initSandbox(map);
+  state.enemies.push({ ...createEnemy(0, state.fallY - 1, 900), y: state.fallY - 1 });
+  state.enemies[0].y = state.fallY - 1; // the map's own enemy falls too
+  tickSandbox(state, [], 1 / 60, tiles);
+  assert.deepEqual(state.enemies.map((e) => [e.id, e.y]), [[0, 0]]);
+});

@@ -19,7 +19,7 @@ import { ENEMY_ID_MAX, ENEMY_TYPES, MAX_ENEMIES } from '../world/enemy.js';
 
 export const PROTOCOL_VERSION = 4; // 4: enemies carry id and type; 3: snap carries wt and enemies; 2: MessagePack bytes (1 was JSON text)
 // Largest message accepted or sent, in MessagePack bytes. The largest message (a snap with two
-// players and MAX_ENEMIES enemies) is 698 bytes at worst (every field at full-precision extremes);
+// players and MAX_ENEMIES enemies) is 998 bytes at worst (every field at full-precision extremes);
 // 2048 leaves wide margin.
 export const MAX_MESSAGE_BYTES = 2048;
 // Players a snapshot can carry (slot 0 is the host, slot 1 the guest).

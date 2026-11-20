@@ -12,7 +12,7 @@ export const ENEMY = Object.freeze({ width: 0.8, height: 0.9, triggerDistance: 7
 // Enemy movement: slower than a player, no jump; gravity and fall speed as MOVE.
 export const ENEMY_MOVE = Object.freeze({ ...MOVE, maxSpeed: 3, groundAccel: 30, groundFriction: 30, jumpSpeed: 0 });
 
-export const ENEMY_SIZE = Object.freeze({ width: ENEMY.width, height: ENEMY.height, crouchHeight: ENEMY.height });
+const ENEMY_SIZE = Object.freeze({ width: ENEMY.width, height: ENEMY.height, crouchHeight: ENEMY.height });
 
 // Enemy types, by name (the wire carries the name, checked against this list). One for now.
 export const ENEMY_TYPES = Object.freeze(['walker']);

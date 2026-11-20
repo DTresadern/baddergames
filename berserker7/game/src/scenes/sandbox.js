@@ -14,7 +14,7 @@ import { Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCam
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
-import { ENEMY, ENEMY_SIZE, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
+import { ENEMY, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
 import { platformAt, platformsStep, rideShift } from '../world/platform.js';
 import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
@@ -262,9 +262,15 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     state.players.forEach((player, i) => {
       if (stepWithFall(state, player, inputs[i], tiles, dt, world) && i === state.localSlot) respawned = true;
     });
-    state.enemies.forEach((enemy, i) => {
+    // A fallen enemy goes back to its spawn, idle; one with no spawn of this map (an id that came
+    // from elsewhere, e.g. a host's list kept after leaving a game) is removed instead.
+    state.enemies = state.enemies.filter((enemy) => {
       stepEnemy(enemy, state.players, tiles, dt, world);
-      if (enemy.y < state.fallY) Object.assign(enemy, createEnemy(state.enemySpawns[enemy.id].x, state.enemySpawns[enemy.id].y, enemy.id, enemy.type));
+      if (enemy.y >= state.fallY) return true;
+      const spawn = state.enemySpawns[enemy.id];
+      if (!spawn) return false;
+      Object.assign(enemy, createEnemy(spawn.x, spawn.y, enemy.id, enemy.type));
+      return true;
     });
     state.ticks += 1;
   }
