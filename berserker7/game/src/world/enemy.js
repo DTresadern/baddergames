@@ -1,6 +1,6 @@
 // Sandbox enemies: boxes that wait until a player comes near, then walk towards the nearest player
 // for good. Pure logic, no three.js. No damage, no attacks, no pushing or blocking players.
-// Enemy data is plain: { x, y, vx, vy, onGround, awake, aim, crouching, size }, with x, y the
+// Enemy data is plain: { id, type, x, y, vx, vy, onGround, awake, aim, crouching, size }, with x, y the
 // bottom-centre like a player, so stepPlayer moves it (aim and crouching are always 0 and false).
 
 import { MOVE, playerHeight, stepPlayer } from './player.js';
@@ -12,11 +12,19 @@ export const ENEMY = Object.freeze({ width: 0.8, height: 0.9, triggerDistance: 7
 // Enemy movement: slower than a player, no jump; gravity and fall speed as MOVE.
 export const ENEMY_MOVE = Object.freeze({ ...MOVE, maxSpeed: 3, groundAccel: 30, groundFriction: 30, jumpSpeed: 0 });
 
-const ENEMY_SIZE = Object.freeze({ width: ENEMY.width, height: ENEMY.height, crouchHeight: ENEMY.height });
+export const ENEMY_SIZE = Object.freeze({ width: ENEMY.width, height: ENEMY.height, crouchHeight: ENEMY.height });
 
-// A new idle enemy with its feet at (x, y).
-export function createEnemy(x, y) {
-  return { x, y, vx: 0, vy: 0, onGround: false, awake: false, aim: 0, crouching: false, size: { ...ENEMY_SIZE } };
+// Enemy types, by name (the wire carries the name, checked against this list). One for now.
+export const ENEMY_TYPES = Object.freeze(['walker']);
+// Largest enemy id. Ids are stable for an enemy's whole life and never reused while a map runs:
+// a pre-placed enemy's id is its index among the map's enemy spawns.
+export const ENEMY_ID_MAX = 65535;
+// Enemies a snapshot can carry (net/codec.js) and the Sandbox can draw at once.
+export const MAX_ENEMIES = 16;
+
+// A new idle enemy with its feet at (x, y). `id` is its stable id, `type` one of ENEMY_TYPES.
+export function createEnemy(x, y, id = 0, type = ENEMY_TYPES[0]) {
+  return { id, type, x, y, vx: 0, vy: 0, onGround: false, awake: false, aim: 0, crouching: false, size: { ...ENEMY_SIZE } };
 }
 
 const centre = (body) => ({ x: body.x, y: body.y + playerHeight(body) / 2 });

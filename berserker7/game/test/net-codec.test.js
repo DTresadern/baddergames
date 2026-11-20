@@ -31,7 +31,7 @@ const SAMPLES = {
   reject: { t: 'reject', reason: 'full' },
   map: { t: 'map', map: 'map.mvp-upper-1' },
   input: { t: 'input', tick: 99, held: 5, pressed: 1, aim: -0.5 },
-  snap: snapMessage({ tick: 10, ack: -1, wt: 8, players: [player(1), player(2, { crouching: true })], enemies: [{ x: 3, y: -2, awake: true }] }),
+  snap: snapMessage({ tick: 10, ack: -1, wt: 8, players: [player(1), player(2, { crouching: true })], enemies: [{ id: 4, type: 'walker', x: 3, y: -2, awake: true }] }),
   ping: { t: 'ping', id: 3, time: 12345.5 },
   pong: { t: 'pong', id: 3, time: 12345.5, tick: 600 },
   bye: { t: 'bye' },
@@ -77,7 +77,7 @@ test('encode: output is a fresh buffer of its own, not msgpackr\'s shared one', 
 
 test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
   const extreme = (x) => ({ x, y: -12345.678901234, vx: -777.123456789, vy: 0.25123456789, onGround: true, crouching: true, aim: -3.14159265358979 });
-  const enemy = (i) => ({ x: -99999.123456789 + i, y: 12345.678901234, awake: true });
+  const enemy = (i) => ({ id: 65535 - i, type: 'walker', x: -99999.123456789 + i, y: 12345.678901234, awake: true });
   const big = (count) => ({ tick: 2 ** 31 - 1, ack: 2 ** 31 - 1, wt: 2 ** 31 - 1, players: [extreme(99999.123456789), extreme(-99999.123456789)], enemies: Array.from({ length: count }, (_, i) => enemy(i)) });
   const worst = encode(snapMessage(big(MAX_ENEMIES))).byteLength;
   // The test level's real enemy count, values at the same extremes.
@@ -85,7 +85,7 @@ test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
   const levelEnemies = level.spawns.filter((s) => s.type === 'enemy').length;
   const levelBytes = encode(snapMessage(big(levelEnemies))).byteLength;
   console.log(`snap bytes: worst case (2 players, ${MAX_ENEMIES} enemies) ${worst}; this level (${levelEnemies} enemies) ${levelBytes}; limit ${MAX_MESSAGE_BYTES}`);
-  assert.ok(worst <= 698, `worst case ${worst}`);
+  assert.ok(worst <= 1000, `worst case ${worst}`);
   assert.ok(worst < MAX_MESSAGE_BYTES / 2);
   assert.ok(levelEnemies <= MAX_ENEMIES);
   assert.equal(MAX_MESSAGE_BYTES, 2048);
@@ -198,7 +198,7 @@ test('input frames: masks round-trip; released derived from the previous held ma
 
 test('snapshots: players, the world tick and enemies round-trip; n and ne limit the lists', () => {
   const players = [player(1), player(-7.25, { onGround: false, crouching: true, aim: -3 })];
-  const enemies = [{ x: 22.5, y: 0, awake: false }, { x: -3.25, y: 6, awake: true }];
+  const enemies = [{ id: 0, type: 'walker', x: 22.5, y: 0, awake: false }, { id: 7, type: 'walker', x: -3.25, y: 6, awake: true }];
   const msg = decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players, enemies })));
   assert.deepEqual(snapshotFromMessage(msg), { tick: 5, ack: 3, wt: 4, players, enemies });
   const one = decode(encode(snapMessage({ tick: 6, ack: -1, wt: 0, players: players.slice(0, 1) })));
@@ -211,6 +211,16 @@ test('snapshots: players, the world tick and enemies round-trip; n and ne limit 
   assert.equal('size' in snapshotFromMessage(sized).players[0], false);
   assert.deepEqual(snapshotFromMessage(sized).enemies, [enemies[0]]);
   // More than MAX_ENEMIES: the first MAX_ENEMIES are sent.
-  const many = Array.from({ length: MAX_ENEMIES + 3 }, (_, i) => ({ x: i, y: 0, awake: false }));
+  const many = Array.from({ length: MAX_ENEMIES + 3 }, (_, i) => ({ id: i, type: 'walker', x: i, y: 0, awake: false }));
   assert.deepEqual(snapshotFromMessage(decode(encode(snapMessage({ tick: 1, ack: -1, wt: 1, players, enemies: many })))).enemies, many.slice(0, MAX_ENEMIES));
+});
+
+test('snapshots: an unknown enemy type or a bad id makes the snap invalid; a repeated id is dropped', () => {
+  const base = encode(snapMessage({ tick: 5, ack: 3, wt: 4, players: [player(1)], enemies: [{ id: 1, type: 'walker', x: 0, y: 0, awake: false }] }));
+  const raw = decode(base);
+  assert.equal(decode(Uint8Array.from(plain.pack({ ...raw, et0: 'dragon' }))), null, 'unknown type');
+  assert.equal(decode(Uint8Array.from(plain.pack({ ...raw, ei0: 'one' }))), null, 'id not a number');
+  assert.throws(() => encode({ ...raw, et0: 'dragon' }), /et0/);
+  const twice = snapMessage({ tick: 5, ack: 3, wt: 4, players: [player(1)], enemies: [{ id: 2, type: 'walker', x: 1, y: 0, awake: false }, { id: 2, type: 'walker', x: 9, y: 0, awake: true }] });
+  assert.deepEqual(snapshotFromMessage(decode(encode(twice))).enemies, [{ id: 2, type: 'walker', x: 1, y: 0, awake: false }]);
 });

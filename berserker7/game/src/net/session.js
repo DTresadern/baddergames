@@ -128,8 +128,9 @@ export function createNetSession({
   let slot = 0;
   let history = createInputHistory();
   let interp = createInterpolationBuffer();
-  let enemyInterp = []; // one interpolation buffer per enemy index
-  let enemyCount = 0; // enemies in the newest snapshot
+  // The host's enemies by id: id -> { type, buffer } (insertion order = first seen). Null before
+  // the first snapshot (and after a map change), so the Sandbox keeps its own map's enemies.
+  let enemyBuffers = null;
   let pendingSnapshot = null;
   let lastSnapshotTick = -1;
   let worldOffset = null; // host world tick (wt) minus host net tick, from the newest snapshot
@@ -157,8 +158,7 @@ export function createNetSession({
     slot = 0;
     history = createInputHistory();
     interp = createInterpolationBuffer();
-    enemyInterp = [];
-    enemyCount = 0;
+    enemyBuffers = null;
     pendingSnapshot = null;
     lastSnapshotTick = -1;
     worldOffset = null;
@@ -313,8 +313,7 @@ export function createNetSession({
       case 'map':
         if (state !== 'connected') return;
         // The new map has its own enemies: forget the old map's.
-        enemyInterp = [];
-        enemyCount = 0;
+        enemyBuffers = null;
         emit({ type: 'map', map: msg.map });
         break;
       case 'snap': {
@@ -324,12 +323,7 @@ export function createNetSession({
         const snapshot = snapshotFromMessage(msg);
         pendingSnapshot = snapshot; // an older unapplied one is discarded
         if (snapshot.players[0]) interp.push(snapshot.tick, snapshot.players[0]);
-        // Enemies interpolate like a player (no velocity or aim sent).
-        snapshot.enemies.forEach((e, i) => {
-          enemyInterp[i] ??= createInterpolationBuffer();
-          enemyInterp[i].push(snapshot.tick, { x: e.x, y: e.y, vx: 0, vy: 0, aim: 0, awake: e.awake });
-        });
-        enemyCount = snapshot.enemies.length;
+        updateEnemies(snapshot);
         history.drop(snapshot.ack);
         break;
       }
@@ -344,6 +338,22 @@ export function createNetSession({
         break;
       default:
     }
+  }
+
+  // The snapshot carries the full enemy list. A new id gets a buffer (it appears at its snapshot
+  // position); a known id gets the new position pushed (enemies interpolate like a player, with no
+  // velocity or aim sent); a known id missing from the snapshot is removed.
+  function updateEnemies(snapshot) {
+    enemyBuffers ??= new Map();
+    const present = new Set();
+    for (const e of snapshot.enemies) {
+      present.add(e.id);
+      if (!enemyBuffers.has(e.id)) enemyBuffers.set(e.id, { type: e.type, buffer: createInterpolationBuffer() });
+      const entry = enemyBuffers.get(e.id);
+      entry.type = e.type;
+      entry.buffer.push(snapshot.tick, { x: e.x, y: e.y, vx: 0, vy: 0, aim: 0, awake: e.awake });
+    }
+    for (const id of enemyBuffers.keys()) if (!present.has(id)) enemyBuffers.delete(id);
   }
 
   function guestEnd(r) {
@@ -450,8 +460,6 @@ export function createNetSession({
       if (role !== 'guest' || interp.size() === 0) return null;
       return interp.sampleAt(localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS);
     },
-    // The host's enemies ([{ x, y, vx, vy, aim, awake }], by index) at the same tick as
-    // remotePlayer(), or null before the first snapshot with enemies.
     // The host world tick (wt) remotePlayer() and remoteEnemies() are drawn at (never past the
     // newest snapshot, as the interpolation holds there), or null before the first snapshot. The
     // Sandbox draws remote riders relative to the platforms with it (rideShift, world/platform.js).
@@ -459,10 +467,13 @@ export function createNetSession({
       if (role !== 'guest' || worldOffset === null) return null;
       return Math.min(localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS, lastSnapshotTick) + worldOffset;
     },
+    // The host's enemies ([{ id, type, x, y, vx, vy, aim, awake }], the ids of the newest snapshot
+    // in first-seen order) at the same tick as remotePlayer(); null before the first snapshot (and
+    // after a map change until the next one).
     remoteEnemies() {
-      if (role !== 'guest' || enemyCount === 0) return null;
+      if (role !== 'guest' || enemyBuffers === null) return null;
       const tick = localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS;
-      return enemyInterp.slice(0, enemyCount).map((buffer) => buffer.sampleAt(tick));
+      return [...enemyBuffers].map(([id, { type, buffer }]) => ({ ...buffer.sampleAt(tick), id, type }));
     },
   });
 

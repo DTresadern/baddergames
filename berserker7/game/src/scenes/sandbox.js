@@ -14,7 +14,7 @@ import { Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCam
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
-import { ENEMY, createEnemy, stepEnemy } from '../world/enemy.js';
+import { ENEMY, ENEMY_SIZE, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
 import { platformAt, platformsStep, rideShift } from '../world/platform.js';
 import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
 import { fitOrtho } from './shared.js';
@@ -27,6 +27,7 @@ import {
   OFFSET_LIMIT,
   cameraShift,
   createViewMode,
+  depthShade,
   depthCubes,
   perspectiveDistance,
   screenToPlane,
@@ -177,6 +178,7 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
   // per `enemy` spawn (same coordinates as the player spawn), idle; `enemySpawns` their spawn
   // points, for the fall respawn.
   const enemySpawns = map.spawns.filter((s) => s.type === 'enemy').map((s) => ({ x: s.x + 0.5, y: s.y }));
+  if (enemySpawns.length > MAX_ENEMIES) throw new Error(`sandbox: map '${map.name}' has ${enemySpawns.length} enemies (at most ${MAX_ENEMIES})`);
   const state = {
     ticks: 0,
     map: key,
@@ -188,7 +190,8 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
     fallY: lowestTileY(map.tiles) - FALL_MARGIN,
     size: { ...map.player },
     camera: null,
-    enemies: enemySpawns.map(({ x, y }) => createEnemy(x, y)),
+    // An enemy's id is its index among the map's enemy spawns: the same on host and guest.
+    enemies: enemySpawns.map(({ x, y }, id) => createEnemy(x, y, id)),
     enemySpawns,
   };
   return respawnAll(state, localSlot);
@@ -248,14 +251,9 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     // tick so draw pairs them correctly (a snapshot can arrive between this tick and the draw).
     state.remoteTick = net.remoteWorldTick();
     if (remote) state.players[0] = { ...remote, size: { ...state.size } };
-    // Enemies: the host's, interpolated; only indices this map has; kept when there are none.
+    // Enemies: the host's list (by id), interpolated; the map's own until the first snapshot.
     const enemies = net.remoteEnemies();
-    if (enemies) {
-      state.enemies.forEach((enemy, i) => {
-        const e = enemies[i];
-        if (e) Object.assign(enemy, { x: e.x, y: e.y, awake: e.awake });
-      });
-    }
+    if (enemies) state.enemies = enemies.map((e) => ({ ...createEnemy(e.x, e.y, e.id, e.type), awake: e.awake }));
   } else {
     const count = net.peerPresent() ? MAX_SLOTS : 1;
     while (state.players.length < count) state.players.push(spawnPlayer(state));
@@ -266,7 +264,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     });
     state.enemies.forEach((enemy, i) => {
       stepEnemy(enemy, state.players, tiles, dt, world);
-      if (enemy.y < state.fallY) Object.assign(enemy, createEnemy(state.enemySpawns[i].x, state.enemySpawns[i].y));
+      if (enemy.y < state.fallY) Object.assign(enemy, createEnemy(state.enemySpawns[enemy.id].x, state.enemySpawns[enemy.id].y, enemy.id, enemy.type));
     });
     state.ticks += 1;
   }
@@ -319,8 +317,9 @@ function addPlayer(scene, geometries, materials, slot, z) {
   return { body, aim, z };
 }
 
-// Moving platform meshes (one per platform, made in load) and enemy meshes (one per enemy spawn)
-// of one view; draw positions them from the state.
+// Moving platform meshes (one per platform) and a pool of MAX_ENEMIES enemy meshes (a guest's
+// enemy list follows the host's snapshots, so its length can change), made in load, of one view;
+// draw positions them from the state and hides unused enemy meshes.
 function addMovers(scene, geometries, materials, map, { platformGeometry, platformMaterial, enemyZ, platformZ }) {
   const platforms = map.platforms.map((p) => {
     const mesh = new Mesh(platformGeometry, platformMaterial);
@@ -329,7 +328,7 @@ function addMovers(scene, geometries, materials, map, { platformGeometry, platfo
     scene.add(mesh);
     return mesh;
   });
-  const enemies = map.spawns.filter((s) => s.type === 'enemy').map(() => {
+  const enemies = Array.from({ length: MAX_ENEMIES }, () => {
     const mesh = new Mesh(geometries.enemy, materials.enemy);
     mesh.position.z = enemyZ;
     scene.add(mesh);
@@ -366,6 +365,7 @@ export function createSandbox({
       // neighbouring tiles. Each view gets both materials; draw picks one by the Grid setting.
       const flatMaterials = new Map(); // tile id -> { checker, grid }
       const cubeMaterials = new Map();
+      const textures = new Map(); // tile id -> { checker, grid }
       tiles.types.forEach((type, id) => {
         if (id === 0 || type.color === undefined) return;
         const checker = track(createTileTexture(map.tileSize, type.color));
@@ -373,7 +373,21 @@ export function createSandbox({
         const material = (map, vertexColors) => track(new MeshBasicMaterial({ map, vertexColors }));
         flatMaterials.set(id, { checker: material(checker, false), grid: material(grid, false) });
         cubeMaterials.set(id, { checker: material(checker, true), grid: material(grid, true) });
+        textures.set(id, { checker, grid });
       });
+      // A cells map's off-plane cubes: one material pair per tile type and z, coloured by
+      // depthShade(z) (behind darker and cooler, in front darkest), made here, never per frame.
+      const shadedMaterials = new Map(); // "id,z" -> { checker, grid }
+      const shadedFor = (id, z) => {
+        const key = `${id},${z}`;
+        if (!shadedMaterials.has(key)) {
+          const color = new Color(...depthShade(z));
+          const { checker, grid } = textures.get(id);
+          const make = (map) => track(new MeshBasicMaterial({ map, vertexColors: true, color }));
+          shadedMaterials.set(key, { checker: make(checker), grid: make(grid) });
+        }
+        return shadedMaterials.get(key);
+      };
       const geometries = {
         tile: track(new PlaneGeometry(1, 1)),
         cube: track(shadedCubeGeometry()),
@@ -408,14 +422,16 @@ export function createSandbox({
       const deepScene = new Scene();
       const deepLevel = [];
       for (const [id, positions] of groups) addLevelGroup(deepScene, track, deepLevel, geometries.cube, cubeMaterials.get(id), positions);
-      const decor = new Map(); // tile id -> [[x, y, z], ...]
-      // Off-plane cubes: a cells map's own cells, or decorative depth cubes for a flat map.
+      const decor = new Map(); // "id,z" (cells map) or id -> { materials, positions: [[x, y, z], ...] }
+      // Off-plane cubes: a cells map's own cells, shaded by depth, or a flat map's decorative depth
+      // cubes, unshaded.
       for (const cube of map.cells ?? depthCubes(tiles)) {
         if (!cubeMaterials.has(cube.id)) continue;
-        if (!decor.has(cube.id)) decor.set(cube.id, []);
-        decor.get(cube.id).push([cube.x, cube.y, cube.z]);
+        const key = map.cells ? `${cube.id},${cube.z}` : cube.id;
+        if (!decor.has(key)) decor.set(key, { materials: map.cells ? shadedFor(cube.id, cube.z) : cubeMaterials.get(cube.id), positions: [] });
+        decor.get(key).positions.push([cube.x, cube.y, cube.z]);
       }
-      for (const [id, positions] of decor) addLevelGroup(deepScene, track, deepLevel, geometries.cube, cubeMaterials.get(id), positions);
+      for (const { materials: m, positions } of decor.values()) addLevelGroup(deepScene, track, deepLevel, geometries.cube, m, positions);
       // Background city blocks: wide enough for the widest normal view (FOV 50, the furthest
       // zoom, a 21:9 window) anywhere the camera can go (the level plus the largest offset and
       // aim-follow Max).

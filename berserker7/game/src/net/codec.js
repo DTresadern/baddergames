@@ -15,16 +15,17 @@
 
 import { ACTIONS } from '../input/actions.js';
 import { SANDBOX_MAPS } from '../scenes/sandbox.js';
+import { ENEMY_ID_MAX, ENEMY_TYPES, MAX_ENEMIES } from '../world/enemy.js';
 
-export const PROTOCOL_VERSION = 3; // 3: snap carries wt and enemies; 2: MessagePack bytes (1 was JSON text)
+export const PROTOCOL_VERSION = 4; // 4: enemies carry id and type; 3: snap carries wt and enemies; 2: MessagePack bytes (1 was JSON text)
 // Largest message accepted or sent, in MessagePack bytes. The largest message (a snap with two
 // players and MAX_ENEMIES enemies) is 698 bytes at worst (every field at full-precision extremes);
 // 2048 leaves wide margin.
 export const MAX_MESSAGE_BYTES = 2048;
 // Players a snapshot can carry (slot 0 is the host, slot 1 the guest).
 export const MAX_PLAYERS = 2;
-// Enemies a snapshot can carry.
-export const MAX_ENEMIES = 16;
+// Enemies a snapshot can carry (defined with the enemies, world/enemy.js).
+export { MAX_ENEMIES };
 
 // msgpackr, once loaded. loadCodec() takes the loader as an argument so tests can pass their own.
 let packr = null;
@@ -80,8 +81,11 @@ const PLAYER_FIELDS = Object.freeze({
   c: bool,
   a: num(-Math.PI, Math.PI),
 });
-// Per enemy slot i: ex, ey (bottom centre, tiles), ew (awake).
+// Per enemy slot i: ei (stable id), et (type name, one of ENEMY_TYPES), ex, ey (bottom centre,
+// tiles), ew (awake). An unknown type makes the whole message invalid, like any bad field.
 const ENEMY_FIELDS = Object.freeze({
+  ei: int(0, ENEMY_ID_MAX),
+  et: oneOf(...ENEMY_TYPES),
   ex: num(-POSITION_LIMIT, POSITION_LIMIT),
   ey: num(-POSITION_LIMIT, POSITION_LIMIT),
   ew: bool,
@@ -225,8 +229,8 @@ export function frameFromMasks({ held, pressed, aim }, prevHeld = 0, player = 1)
   return { player, connected: true, actions, aim, wheel: 0, pointer: null, activated: false };
 }
 
-// A snap message from Sandbox players (first MAX_PLAYERS) and enemies (first MAX_ENEMIES); empty
-// slots are zeros. `wt` is the host's world tick.
+// A snap message from Sandbox players (first MAX_PLAYERS) and enemies (first MAX_ENEMIES, the full
+// list each time); empty slots are zeros (enemy type: the first type). `wt` is the host's world tick.
 export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
   const msg = { t: 'snap', tick, ack, wt, n: Math.min(players.length, MAX_PLAYERS) };
   for (let i = 0; i < MAX_PLAYERS; i++) {
@@ -242,6 +246,8 @@ export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
   msg.ne = Math.min(enemies.length, MAX_ENEMIES);
   for (let i = 0; i < MAX_ENEMIES; i++) {
     const e = enemies[i];
+    msg[`ei${i}`] = e ? e.id : 0;
+    msg[`et${i}`] = e ? e.type : ENEMY_TYPES[0];
     msg[`ex${i}`] = e ? e.x : 0;
     msg[`ey${i}`] = e ? e.y : 0;
     msg[`ew${i}`] = e ? e.awake : false;
@@ -250,13 +256,20 @@ export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
 }
 
 // { tick, ack, wt, players, enemies }: players are { x, y, vx, vy, onGround, crouching, aim } (no
-// size: the receiver adds its own map's player size); enemies are { x, y, awake }.
+// size: the receiver adds its own map's player size); enemies are { id, type, x, y, awake }, an
+// id repeated in one message is dropped (the first one is kept).
 export function snapshotFromMessage(msg) {
   const players = [];
   for (let i = 0; i < msg.n; i++) {
     players.push({ x: msg[`x${i}`], y: msg[`y${i}`], vx: msg[`vx${i}`], vy: msg[`vy${i}`], onGround: msg[`g${i}`], crouching: msg[`c${i}`], aim: msg[`a${i}`] });
   }
   const enemies = [];
-  for (let i = 0; i < msg.ne; i++) enemies.push({ x: msg[`ex${i}`], y: msg[`ey${i}`], awake: msg[`ew${i}`] });
+  const ids = new Set();
+  for (let i = 0; i < msg.ne; i++) {
+    const id = msg[`ei${i}`];
+    if (ids.has(id)) continue;
+    ids.add(id);
+    enemies.push({ id, type: msg[`et${i}`], x: msg[`ex${i}`], y: msg[`ey${i}`], awake: msg[`ew${i}`] });
+  }
   return { tick: msg.tick, ack: msg.ack, wt: msg.wt, players, enemies };
 }
