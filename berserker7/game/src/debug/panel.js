@@ -22,6 +22,8 @@
 //                                       camera offset from the followed point, tiles
 //     #b7-follow-<key> (range), [data-value="follow-<key>"]  camera aim-follow settings
 //                                       (FOLLOW_SETTINGS: follow, min, max, scaleX, scaleYUp, scaleYDown)
+//     [data-value="inventory"]               each player's inventory (read-only): `P1: empty`, or
+//                                            the item ids comma-joined; `P2: ...` when slot 1 exists
 //   .b7-net (always shown): network section, refreshed with the panel
 //     [data-value="room-code"]               the room code while hosting
 //     button[data-action="copy-invite"]      copies the invite link (shown while hosting)
@@ -143,6 +145,7 @@ function hash(text) {
 // `sandboxZoom` and `sandboxViewMode` (optional) are the Sandbox camera's view height holder
 // (createCameraZoom) and its view mode and FOV holder (createViewMode).
 // `sandboxMap` (optional) is the Sandbox map choice (createMapChoice).
+// `sandboxState` (optional) gives the Sandbox state while it is the active main scene, else null.
 // `rowScheme` (optional) is the depth-row control scheme holder (createRowScheme, world/rows.js).
 // `net` (optional) is the net session (net/session.js) and `transport` the transport it hosts
 // with. A guest's "Leave game" ends the session; main.js takes the guest back to the main menu.
@@ -155,6 +158,7 @@ export function mountPanel({
   sandboxZoom = null,
   sandboxViewMode = null,
   sandboxMap = null,
+  sandboxState = () => null,
   rowScheme = null,
   net = null,
   transport = null,
@@ -208,6 +212,7 @@ export function mountPanel({
           <input id="b7-follow-${key}" data-follow="${key}" type="range" min="${min}" max="${max}" step="${step}">
           <span data-value="follow-${key}"></span></label>`,
         ).join('')}
+        <div>Inventory <span data-value="inventory"></span></div>
       </div>
       <div class="b7-net">
         <div class="b7-net-room" hidden>Room <b data-value="room-code"></b>
@@ -546,6 +551,8 @@ export function mountPanel({
     refreshNet();
     sandboxRow.hidden = !sandboxZoom || harness.layers.main !== 'sandbox';
     showZoom();
+    const players = sandboxState()?.players ?? [];
+    setValue('inventory', players.map((p, slot) => (p ? `P${slot + 1}: ${p.inventory.length > 0 ? p.inventory.join(', ') : 'empty'}` : null)).filter(Boolean).join(' · ') || '—');
     const { layers, lastLongFrame: long, transition: tr } = harness;
     setValue('frame-ms', `${(harness.lastFrameSeconds * 1000).toFixed(1)} ms`);
     setValue('work-ms', `${harness.lastWorkMs.toFixed(2)} ms`);

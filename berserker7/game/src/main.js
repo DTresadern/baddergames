@@ -31,6 +31,7 @@ import { createPeerTransport } from './net/transport-peer.js';
 import { createJoinForm, joinMessage, submitJoinCode } from './ui/join-form.js';
 import { createRowScheme } from './world/rows.js';
 import { createNotice } from './ui/notice.js';
+import { createHealthHud } from './ui/health-hud.js';
 import { checkForNewerBuild, createOutdatedNotice } from './ui/version-check.js';
 
 const versionLabel = document.getElementById('version');
@@ -90,6 +91,12 @@ const transport = withCodec(
 );
 // The Sandbox map; the debug panel changes it and reloads the scene; a guest takes the host's.
 const sandboxMap = createMapChoice();
+// The Sandbox state, read from the harness record (outside any scene) while the Sandbox is the
+// active main scene; else null. Used by the net session, the health HUD and the debug panel.
+function sandboxState() {
+  const record = harness.records.get('sandbox');
+  return harness.layers.main === 'sandbox' && record.life === 'active' ? record.state : null;
+}
 // The net session, outside the scenes. The harness samples input through it (a guest's input
 // becomes the host's player 2 frame); the Sandbox gets its read-only view.
 const net = createNetSession({
@@ -98,11 +105,7 @@ const net = createNetSession({
   randomUint32s,
   lagMs: netOptions.lagMs,
   mapKey: () => sandboxMap.get(),
-  // Read from the harness record (outside any scene) while the Sandbox is the active main scene.
-  sandboxState() {
-    const record = harness.records.get('sandbox');
-    return harness.layers.main === 'sandbox' && record.life === 'active' ? record.state : null;
-  },
+  sandboxState,
 });
 
 // The depth-row control scheme (world/rows.js), chosen in the debug panel. Every sampled frame
@@ -200,6 +203,8 @@ const joinForm = createJoinForm({
 });
 harness.register('join', createJoin({ form: joinForm, screens }));
 const notice = createNotice({ document, ...timers });
+// The players' health (ui/health-hud.js), shown while the Sandbox is the main scene.
+const healthHud = createHealthHud({ document });
 harness.register('loading', createLoading());
 harness.preload('loading');
 // The boot scene starts the same load on enter; starting it here saves a frame.
@@ -267,6 +272,8 @@ function runFrame(time) {
   const seconds = Math.max(0, time - last) / 1000;
   last = time;
   harness.frame(seconds);
+  const state = sandboxState();
+  healthHud.update(state ? state.players : null);
   net.afterFrame(time);
 }
 function loop(time) {
@@ -297,7 +304,7 @@ function backgroundTimer() {
 }
 document.addEventListener('visibilitychange', backgroundTimer);
 
-mountPanel({ harness, renderer, assets, settings, session, sandboxZoom, sandboxViewMode, sandboxMap, rowScheme, net, transport });
+mountPanel({ harness, renderer, assets, settings, session, sandboxZoom, sandboxViewMode, sandboxMap, sandboxState, rowScheme, net, transport });
 mountInputPanel({ input });
 
 // Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input (raw,
