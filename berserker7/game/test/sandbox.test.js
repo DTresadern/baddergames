@@ -32,7 +32,7 @@ test('initSandbox: plain state, the player stands at the first player spawn', ()
   assert.deepEqual(state, {
     ticks: 0,
     map: MAP_KEY,
-    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE }, row: 0, hop: null, presses: { down: 255, jump: 255 } }],
+    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE }, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1 }],
     localSlot: 0,
     pointer: null,
     aimSource: null,
@@ -408,7 +408,7 @@ test('tickSandbox: a guest reconciles its player from the snapshot plus replayed
   tickSandbox(state, [frame(['moveRight'])], STEP, map.tiles, 0, net);
   assert.ok(state.players[1].x > before);
   // With one: the snapshot's player plus the inputs after its ack, the current tick's included.
-  const confirmed = { x: 20.5, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0, row: 0, hop: null, presses: { down: 255, jump: 255 } };
+  const confirmed = { x: 20.5, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1 };
   net.history = [5, 6, 7, 8].map((tick) => ({ tick, frame: frame(['moveRight']) }));
   net.snapshots.push({ tick: 100, ack: 6, wt: 90, players: [{ ...confirmed, x: 3.5 }, confirmed], enemies: [] });
   net.remote = { ...confirmed, x: 3.5, aim: 1 };
