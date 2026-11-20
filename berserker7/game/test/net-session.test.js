@@ -135,7 +135,7 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   w.tick(30);
   w.sandbox.players = [
     { x: 4, y: 2, vx: 1, vy: 0, onGround: true, crouching: false, aim: 0.5, row: -1, hop: null, presses: { down: 255, jump: 255 } },
-    { x: 9, y: 3, vx: 0, vy: 0, onGround: false, crouching: true, aim: -1, row: 0, hop: { to: 1, t: 4, y0: 3, y1: 1 }, presses: { down: 255, jump: 2 } },
+    { x: 9, y: 3, vx: 0, vy: 0, onGround: false, crouching: true, aim: -1, row: 0, hop: { to: 1, t: 4, y0: 3, y1: 1, fall: false }, presses: { down: 255, jump: 2 } },
   ];
   w.sandbox.ticks = 500;
   w.sandbox.enemies = [{ id: 3, type: 'walker', x: 7, y: 0, vx: 1, vy: 0, onGround: true, awake: true, aim: 0, crouching: false }];

@@ -18,11 +18,11 @@ import { SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { ENEMY_ID_MAX, ENEMY_TYPES, MAX_ENEMIES } from '../world/enemy.js';
 import { HOP_TICKS, PRESS_NONE, ROW_LIMIT, ROW_SCHEMES } from '../world/rows.js';
 
-// 5: players carry row, hop and press ages; input carries the row scheme. 4: enemies carry id and
+// 6: players carry hf (the hop is a fall). 5: players carry row, hop and press ages; input carries the row scheme. 4: enemies carry id and
 // type; 3: snap carries wt and enemies; 2: MessagePack bytes (1 was JSON text).
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 // Largest message accepted or sent, in MessagePack bytes. The largest message (a snap with two
-// players and MAX_ENEMIES enemies) is 1118 bytes at worst (every field at full-precision extremes);
+// players and MAX_ENEMIES enemies) is 1128 bytes at worst (every field at full-precision extremes);
 // 2048 leaves wide margin.
 export const MAX_MESSAGE_BYTES = 2048;
 // Players a snapshot can carry (slot 0 is the host, slot 1 the guest).
@@ -75,7 +75,7 @@ export const SPECS = Object.freeze({ int, num, bool, oneOf, text });
 
 // Per player slot i: x, y (bottom centre, tiles), vx, vy (tiles/s), g (onGround), c (crouching),
 // a (aim, radians); depth rows (world/rows.js): r (row), h (a hop is active), ht (hop target row),
-// hn (hop ticks done), hy0, hy1 (hop start and landing y), pd, pj (down and jump press ages).
+// hn (hop ticks done), hy0, hy1 (hop start and landing y), hf (the hop is a fall), pd, pj (down and jump press ages).
 const PLAYER_FIELDS = Object.freeze({
   x: num(-POSITION_LIMIT, POSITION_LIMIT),
   y: num(-POSITION_LIMIT, POSITION_LIMIT),
@@ -90,6 +90,7 @@ const PLAYER_FIELDS = Object.freeze({
   hn: int(0, HOP_TICKS),
   hy0: num(-POSITION_LIMIT, POSITION_LIMIT),
   hy1: num(-POSITION_LIMIT, POSITION_LIMIT),
+  hf: bool,
   pd: int(0, PRESS_NONE),
   pj: int(0, PRESS_NONE),
 });
@@ -262,6 +263,7 @@ export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
     msg[`hn${i}`] = hop ? hop.t : 0;
     msg[`hy0${i}`] = hop ? hop.y0 : 0;
     msg[`hy1${i}`] = hop ? hop.y1 : 0;
+    msg[`hf${i}`] = hop ? hop.fall === true : false;
     msg[`pd${i}`] = p ? p.presses?.down ?? PRESS_NONE : 0;
     msg[`pj${i}`] = p ? p.presses?.jump ?? PRESS_NONE : 0;
   }
@@ -283,7 +285,7 @@ export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
 export function snapshotFromMessage(msg) {
   const players = [];
   for (let i = 0; i < msg.n; i++) {
-    const hop = msg[`h${i}`] ? { to: msg[`ht${i}`], t: msg[`hn${i}`], y0: msg[`hy0${i}`], y1: msg[`hy1${i}`] } : null;
+    const hop = msg[`h${i}`] ? { to: msg[`ht${i}`], t: msg[`hn${i}`], y0: msg[`hy0${i}`], y1: msg[`hy1${i}`], fall: msg[`hf${i}`] } : null;
     players.push({
       x: msg[`x${i}`], y: msg[`y${i}`], vx: msg[`vx${i}`], vy: msg[`vy${i}`], onGround: msg[`g${i}`], crouching: msg[`c${i}`], aim: msg[`a${i}`],
       row: msg[`r${i}`], hop, presses: { down: msg[`pd${i}`], jump: msg[`pj${i}`] },
