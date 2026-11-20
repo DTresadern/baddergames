@@ -5558,7 +5558,7 @@
       ],
       "sources": [],
       "refs": [],
-      "notes": "2026-11-20: first test version (issue #98). 2026-11-20: merged in #100, with the test map depth-rows-test. Row, hop and press ages are in the snapshot and predicted on the guest (protocol 5). Still not built: enemies and shots changing rows, cutting away blocks in the way, moving platforms on rows other than z = 0. 2026-11-20: reach rule and air grab (#103): an ascend needs the landing's floor at or below the top of the player's box at the press (ROW_RISE_MAX removed); a crouch press in the air inside a zone grabs the higher row, in both schemes. Test map: new reach section (zones G, H, J)."
+      "notes": "2026-11-20: first test version (issue #98). 2026-11-20: merged in #100, with the test map depth-rows-test. Row, hop and press ages are in the snapshot and predicted on the guest (protocol 5). Still not built: enemies and shots changing rows, cutting away blocks in the way, moving platforms on rows other than z = 0. 2026-11-20: reach rule and air grab (#103): an ascend needs the landing's floor at or below the top of the player's box at the press (ROW_RISE_MAX removed); a crouch press in the air inside a zone grabs the higher row, in both schemes. Test map: new reach section (zones G, H, J). 2026-11-20: descend falls under gravity (#103 follow-up): the depth move takes the usual 0.25 s, y follows normal physics on the target row after a small upward nudge, so a 5-tile drop takes as long as a 5-tile fall; ascend unchanged. Protocol 6."
     },
     {
       "id": "T-089",
