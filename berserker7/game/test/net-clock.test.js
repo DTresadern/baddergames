@@ -5,7 +5,7 @@ import { MAX_SAMPLES, STEP_MS, createClockSync } from '../src/net/clock-sync.js'
 const near = (a, b, label) => assert.ok(Math.abs(a - b) < 1e-9, `${label}: ${a} vs ${b}`);
 
 test('clock sync: nothing before the first sample', () => {
-  assert.deepEqual(createClockSync().estimate(), { rttMs: null, offsetTicks: 0, samples: 0 });
+  assert.deepEqual(createClockSync().estimate(), { rttMs: null, offsetTicks: 0, arrivalOffsetTicks: 0, samples: 0 });
 });
 
 test('clock sync: offset and RTT from one sample', () => {
@@ -15,6 +15,7 @@ test('clock sync: offset and RTT from one sample', () => {
   const e = clock.estimate();
   assert.equal(e.rttMs, 100);
   near(e.offsetTicks, 500 + 50 / STEP_MS - 200, 'offset');
+  assert.equal(e.arrivalOffsetTicks, 500 - 200, 'arrival offset: no RTT term');
 });
 
 test('clock sync: symmetric delay gives the true offset', () => {
@@ -27,6 +28,8 @@ test('clock sync: symmetric delay gives the true offset', () => {
   const received = reply + 120;
   clock.add({ sent, received, remoteTick: remoteTickAt(reply), localTick: localTickAt(received) });
   near(clock.estimate().offsetTicks, 1000, 'offset');
+  // Data arriving now left the remote one one-way delay (120 ms) ago.
+  near(clock.estimate().arrivalOffsetTicks, 1000 - 120 / STEP_MS, 'arrival offset');
 });
 
 test('clock sync: uses the smallest-RTT sample of the last 16', () => {
@@ -35,8 +38,10 @@ test('clock sync: uses the smallest-RTT sample of the last 16', () => {
   clock.add({ sent: 0, received: 300, remoteTick: 900, localTick: 0 });
   assert.equal(clock.estimate().rttMs, 30);
   near(clock.estimate().offsetTicks, 100 + 15 / STEP_MS, 'offset');
+  assert.equal(clock.estimate().arrivalOffsetTicks, 100, 'arrival offset from the same sample');
   // After 16 more samples, the best one has left the window.
-  for (let i = 0; i < MAX_SAMPLES; i++) clock.add({ sent: 0, received: 80 + i, remoteTick: 10, localTick: 0 });
+  for (let i = 0; i < MAX_SAMPLES; i++) clock.add({ sent: 0, received: 80 + i, remoteTick: 10 + i, localTick: i });
   assert.equal(clock.estimate().rttMs, 80);
+  assert.equal(clock.estimate().arrivalOffsetTicks, 10, 'arrival offset of the new best (remoteTick 10, localTick 0)');
   assert.equal(clock.estimate().samples, MAX_SAMPLES);
 });
