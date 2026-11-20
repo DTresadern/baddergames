@@ -34,7 +34,7 @@ export const ROW_WINDOW_TICKS = 12; // 200 ms at 60 Hz: the two presses at most 
 export const HOP_TICKS = 15; // 0.25 s
 export const HOP_ARC = 0.5; // tiles: the hop's height above the straight line at its middle
 export const REACH_MARGIN = 0; // tiles above the top of the box the hands reach
-export const DROP_NUDGE_SPEED = 7; // tiles/s upward at the start of a descend (rises about 0.5 tile)
+export const DROP_NUDGE_SPEED = 7; // tiles/s upward at the start of a descend (rises 0.43 tile at 60 Hz)
 export const DROP_AIR_CONTROL = false; // true: normal air control during a descend's depth move
 export const ROW_DROP_MAX = 6; // tiles below the current floor a landing is searched
 export { PRESS_NONE }; // press age meaning "no recent press" (ages are capped there; 255)
