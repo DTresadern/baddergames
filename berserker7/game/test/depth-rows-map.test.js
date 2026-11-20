@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { depthRowsText } from '../tools/levels/depth-rows-test.mjs';
 import { loadMap } from '../src/world/load-map.js';
 import { createPlayer } from '../src/world/player.js';
-import { findLanding, floorBelow } from '../src/world/rows.js';
+import { fallPathClear, findLanding, floorBelow } from '../src/world/rows.js';
 
 const JUMP_TOP_REACH = 3.628; // jump top 2.428 + height 1.2
 const STAND_REACH = 1.2;
@@ -28,6 +28,7 @@ test('depth-rows-test.json: loads with rows -1, 0, +1 and nine transfer zones; e
       const high = at(zone.high, highTop);
       assert.equal(floorBelow(map.rows.get(zone.high), high), highTop, `zone ${i} x ${x}: high floor`);
       assert.equal(findLanding(map.rows.get(zone.low), high, highTop, 'descend'), lowTop, `zone ${i} x ${x}: descend`);
+      assert.equal(fallPathClear(map.rows.get(zone.low), high, lowTop), true, `zone ${i} x ${x}: fall path`);
       const low = at(zone.low, lowTop);
       assert.equal(floorBelow(map.rows.get(zone.low), low), lowTop, `zone ${i} x ${x}: low floor`);
       // Ascend with the reach at the top of a jump (3.628 above the feet); H's top 5 is out of reach.

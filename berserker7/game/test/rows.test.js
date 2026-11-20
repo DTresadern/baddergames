@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
 import { loadCellMap } from '../src/world/cell-map.js';
 import { createPlayer } from '../src/world/player.js';
-import { HOP_TICKS, PRESS_NONE, createRowScheme, findLanding, playerDepth, stepRowPlayer, zoneAt } from '../src/world/rows.js';
+import { HOP_TICKS, PRESS_NONE, createRowScheme, fallPathClear, findLanding, playerDepth, stepRowPlayer, zoneAt } from '../src/world/rows.js';
 
 const STEP = 1 / 60;
 
@@ -60,17 +60,18 @@ test('scheme A descend: crouch, then jump within the window hops to the lower ro
   step(player, f(['moveDown']));
   run(player, 4, f([], ['moveDown']));
   step(player, f(['jump'], ['moveDown']));
-  assert.deepEqual(player.hop, { to: 1, t: 1, y0: 0, y1: -2 });
+  assert.deepEqual(player.hop, { to: 1, t: 1, y0: 0, y1: -2, fall: true });
   assert.equal(player.row, 0);
   assert.deepEqual(player.presses, { down: PRESS_NONE, jump: PRESS_NONE });
-  run(player, HOP_TICKS - 2, f(['jump']));
+  run(player, HOP_TICKS - 2, f(['jump'], ['moveRight']));
   assert.equal(player.row, 0, 'still hopping; input ignored');
+  assert.equal(player.x, 6.5, 'x held during the depth move');
   assert.ok(playerDepth(player) > 0.9 && playerDepth(player) < 1);
   step(player, f());
-  assert.deepEqual([player.row, player.y, player.hop, player.onGround], [1, -2, null, true]);
+  assert.deepEqual([player.row, player.hop], [1, null]);
   assert.equal(playerDepth(player), 1);
-  // The next ticks collide with row 1's floor.
-  run(player, 10);
+  // A 2-tile drop is finished within about 30 ticks, standing on row 1's floor.
+  run(player, 15);
   assert.deepEqual([player.y, player.onGround, player.row], [-2, true, 1]);
 });
 
@@ -237,4 +238,52 @@ test('air grab: a player falling past the ledge grabs the higher row with a crou
     rstep(player, f(['moveDown'], [], scheme));
     assert.deepEqual([player.hop?.to, player.hop?.y1], [-1, 3], scheme);
   }
+});
+
+test('descend: a falling hop; 5 tiles take about as long as a 5-tile fall, and it never falls through the target row', () => {
+  const player = createPlayer(26.5, 5, reachMap.player);
+  player.row = -1;
+  for (let i = 0; i < 5; i++) rstep(player, f());
+  rstep(player, f(['moveDown', 'jump']));
+  assert.equal(player.hop.fall, true);
+  assert.deepEqual([player.hop.y0, player.hop.y1], [5, 0]);
+  assert.equal(player.onGround, false);
+  rstep(player, f());
+  assert.ok(player.y > 5, 'rises first');
+  let ticks = 2;
+  let peak = player.y;
+  while (!player.onGround && ticks < 200) {
+    rstep(player, f());
+    ticks += 1;
+    peak = Math.max(peak, player.y);
+    assert.ok(player.y >= 0, 'never below the target row floor');
+    if (ticks === HOP_TICKS) assert.deepEqual([player.row, player.hop], [0, null]);
+  }
+  assert.equal(player.y, 0);
+  assert.ok(ticks >= 30 && ticks <= 45, `landed after ${ticks} ticks`);
+  assert.ok(peak > 5.3 && peak < 5.6, `peak ${peak}`);
+  assert.equal(player.row, 0);
+});
+
+test('descend: the depth move holds x; air control returns after it', () => {
+  const player = createPlayer(26.5, 5, reachMap.player);
+  player.row = -1;
+  for (let i = 0; i < 5; i++) rstep(player, f());
+  rstep(player, f(['moveDown', 'jump']));
+  for (let i = 1; i < HOP_TICKS; i++) rstep(player, f([], ['moveRight']));
+  assert.equal(player.x, 26.5);
+  assert.equal(player.hop, null);
+  rstep(player, f([], ['moveRight']));
+  assert.ok(player.x > 26.5, 'air control after the depth move');
+});
+
+test('blocked fall path: a solid tile on the target row between the landing and the head means no descend', () => {
+  const blocked = loadCellMap(json([[6, 0, 1]]));
+  const player = createPlayer(6.5, 0, blocked.player);
+  for (let i = 0; i < 5; i++) step(player, f(), blocked);
+  assert.equal(findLanding(blocked.rows.get(1), player, 0, 'descend'), -2, 'a landing exists');
+  assert.equal(fallPathClear(blocked.rows.get(1), player, -2), false);
+  assert.equal(fallPathClear(map.rows.get(1), player, -2), true);
+  step(player, f(['moveDown', 'jump']), blocked);
+  assert.equal(player.hop, null);
 });
