@@ -164,6 +164,37 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   assert.ok(stats.msgsIn > 20 && stats.msgsOut > 50, JSON.stringify(stats));
 });
 
+test('session: with a 200 ms one-way delay the guest draws the host player and enemies moving on every tick', () => {
+  // 12 ticks each way: snapshots (every 2nd tick) arrive 12 ticks late. Drawn at the estimated host
+  // tick now, the sample would be past the newest snapshot and hold there, so the drawn position
+  // would only change when a snapshot arrives (every 2nd tick).
+  const w = world({ delayMs: 12 * STEP_MS });
+  w.connect();
+  const move = (t) => {
+    w.sandbox.players = [{ x: t * 0.1, y: 2, vx: 6, vy: 0, onGround: true, crouching: false, aim: 0 }];
+    w.sandbox.enemies = [{ id: 4, type: 'walker', x: 20 - t * 0.1, y: 0, vx: -6, vy: 0, onGround: true, awake: true, aim: 0, crouching: false }];
+  };
+  // Let pings and snapshots fill the clock samples and the buffers.
+  for (let t = 0; t < 120; t++) {
+    move(t);
+    w.tick(1);
+  }
+  const gv = w.guest.session.netView();
+  assert.ok(w.guest.session.stats().pingMs >= 390, `ping ${w.guest.session.stats().pingMs}`);
+  let px = gv.remotePlayer().x;
+  let ex = gv.remoteEnemies()[0].x;
+  for (let t = 120; t < 180; t++) {
+    move(t);
+    w.tick(1);
+    const p = gv.remotePlayer().x;
+    const e = gv.remoteEnemies()[0].x;
+    assert.ok(p > px + 1e-6, `player x moved at tick ${t}: ${px} -> ${p}`);
+    assert.ok(e < ex - 1e-6, `enemy x moved at tick ${t}: ${ex} -> ${e}`);
+    px = p;
+    ex = e;
+  }
+});
+
 test('session: guest enemies by id: a new id appears, a missing id is removed, the others interpolate on untouched', () => {
   const enemy = (id, x) => ({ id, type: 'walker', x, y: 0, vx: 0, vy: 0, onGround: true, awake: true, aim: 0, crouching: false });
   // Two identical worlds; in `cut`, enemy 1 (the middle of the list) disappears halfway.

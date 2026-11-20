@@ -6,8 +6,8 @@
 // Before the oldest: the oldest; after the newest: the newest (no extrapolation).
 
 export const INTERP_CAP = 32;
-// How far behind the estimated host tick the remote player is drawn: 6 ticks (100 ms), three
-// snapshot intervals at 30 per second.
+// How far behind the newest host tick arriving now (the receive-side clock) the remote player is
+// drawn: 6 ticks (100 ms), so three snapshot intervals of buffer at 30 per second at any delay.
 export const INTERP_DELAY_TICKS = 6;
 
 const lerp = (a, b, t) => a + (b - a) * t;
