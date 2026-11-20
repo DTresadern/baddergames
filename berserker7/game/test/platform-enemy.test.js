@@ -154,7 +154,7 @@ const box = (x, y, width = 3, height = 0.5) => ({ x, y, width, height });
 
 test('pushByPlatforms: a platform moving sideways into a player pushes it out of the way', () => {
   const player = createPlayer(5, 0, SIZE); // box x 4.725..5.275, y 0..1.2
-  const step = { prev: box(1.75, 0.5), now: box(2, 0.5) }; // right edge 4.75 -> 5: into the player
+  const step = { prev: box(1.7, 0.5), now: box(2, 0.5) }; // right edge 4.7 -> 5: into the player
   assert.equal(pushByPlatforms(player, [step], tileMap()), false);
   near(player.x, 5 + SIZE.width / 2, 'pushed to the platform right edge');
   near(player.y, 0);
@@ -173,7 +173,7 @@ test('pushByPlatforms: a player pushed into a wall with no room is crushed and s
   const player = createPlayer(0, 0, SIZE);
   const tiles = tileMap([[6, 0], [6, 1]]);
   player.x = 6 - SIZE.width / 2; // touching the wall
-  const step = { prev: box(2.5, 0.5), now: box(2.75, 0.5) }; // right edge 5.5 -> 5.75
+  const step = { prev: box(2.4, 0.5), now: box(2.75, 0.5) }; // right edge 5.4 -> 5.75 (player from 5.45)
   assert.equal(pushByPlatforms(player, [step], tiles), true);
   near(player.x, 6 - SIZE.width / 2, 'not moved into the wall');
   assert.equal(player.crushed, true);
@@ -187,4 +187,21 @@ test('pushByPlatforms: a platform moving away, or a rider on its top, is not pus
   pushByPlatforms(rider, [{ prev: box(2, 0.5), now: box(2.25, 0.5) }], tileMap());
   near(rider.x, 3);
   near(rider.y, 1);
+});
+
+test('pushByPlatforms: a player already inside a platform (jumped up through it) is not pushed', () => {
+  const player = createPlayer(4.5, 0.2, SIZE); // overlaps the platform before and after the step
+  player.vy = 8;
+  assert.equal(pushByPlatforms(player, [{ prev: box(2, 0.5), now: box(2.25, 0.5) }], tileMap()), false);
+  near(player.x, 4.5);
+  near(player.y, 0.2);
+});
+
+test('pushByPlatforms: a rider of a rising platform is left to stepPlayer, which carries it', () => {
+  const player = Object.assign(createPlayer(3, 1, SIZE), { onGround: true }); // feet on the top (1)
+  const step = { prev: box(2, 0.5), now: box(2.1, 0.6) }; // up 0.1 and right 0.1
+  assert.equal(pushByPlatforms(player, [step], tileMap()), false);
+  near(player.y, 1, 'not pushed');
+  stepPlayer(player, null, tileMap(), 1 / 60, { platforms: [step] });
+  near(player.x, 3.1, 'carried sideways too');
 });

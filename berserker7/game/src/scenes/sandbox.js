@@ -44,6 +44,9 @@ export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk-blocks', 'map.mo
 export const MAP_KEY = SANDBOX_MAPS[0];
 // Below the lowest solid tile by this many tiles, the player goes back to the spawn.
 export const FALL_MARGIN = 10;
+// A guest's own player moved further than this (tiles) by one snapshot correction counts as a
+// respawn the host decided: the camera snaps to it.
+const RESPAWN_SNAP_DISTANCE = 3;
 
 // The map the Sandbox loads, chosen in the debug panel; the panel reloads the scene after a
 // change. Unknown keys are ignored. Not saved.
@@ -282,7 +285,11 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     const confirmed = snapshot?.players[slot];
     if (confirmed) {
       k = snapshot.wt;
+      const before = own;
       own = reconcile({ ...confirmed, size: { ...state.size } }, net.inputsAfter(snapshot.ack), step);
+      // A host-decided respawn (zero health) moves the own player far in one tick: snap the camera
+      // as the host does. A correction after a push or a hit is much shorter.
+      if (Math.hypot(own.x - before.x, own.y - before.y) > RESPAWN_SNAP_DISTANCE) respawned = true;
     } else step(own, frame);
     state.players[slot] = own;
     state.ticks = k;

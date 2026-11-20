@@ -105,6 +105,11 @@ function carry(player, dx, dy, tiles) {
   }
 }
 
+// True when `player` stands on the platform box `box` (on the ground, feet on its top): a rider.
+function ridesOn(player, box) {
+  return player.onGround && Math.abs(player.y - (box.y + box.height)) < RIDE_TOLERANCE && overlapsX(player, box);
+}
+
 // True when the box at `player` overlaps the platform box `box` ({ x, y, width, height }).
 function overlapsBox(player, box) {
   const height = playerHeight(player);
@@ -112,20 +117,21 @@ function overlapsBox(player, box) {
 }
 
 // Platforms push players (players only; enemies are not pushed). Called before the player's own
-// step with the step's platform boxes. A platform whose box after this step (`now`) overlaps the
-// player pushes it out of `now` along each direction the platform moved in (x and y apart), but
-// only when the player is on that leading side (its centre past the platform's centre that way),
-// so a player is never pulled through a platform. The shortest such exit wins. A platform that
-// moves away from the player, or does not move, does not push (platforms stay one-way). A rider
-// stands on the top, does not overlap, and is carried as before (stepPlayer). Pushed up, a falling
-// vy stops; pushed down, a rising vy stops; vx is unchanged.
+// step with the step's platform boxes. A platform pushes only when it moved into the player: its
+// box after this step (`now`) overlaps the player and its box before the step (`prev`) did not.
+// A player already inside a platform (it jumped up through it or walked into its side, since
+// platforms are one-way) is not pushed, and neither is a rider of that platform (carried by
+// stepPlayer as before). The push goes out of `now` along each direction the platform moved in
+// (x and y apart), only when the player is on that leading side (its centre past the platform's
+// centre that way); the shortest exit wins. Pushed up, a falling vy stops; pushed down, a rising
+// vy stops; vx is unchanged.
 // Crushed: the exit would overlap a solid tile of `tiles` (a wall, floor or ceiling: no room
 // left). The player then stays where it was and `player.crushed` is true; the host kills it
 // (world/combat.js). Sets `player.crushed` on every call and returns it.
 export function pushByPlatforms(player, platforms, tiles) {
   player.crushed = false;
   for (const { prev, now } of platforms) {
-    if (!overlapsBox(player, now)) continue;
+    if (!overlapsBox(player, now) || overlapsBox(player, prev) || ridesOn(player, prev)) continue;
     const dx = now.x - prev.x;
     const dy = now.y - prev.y;
     const half = player.size.width / 2;
@@ -166,8 +172,8 @@ export function pushByPlatforms(player, platforms, tiles) {
 export function stepPlayer(player, frame, tiles, dt, world) {
   const move = world?.move ?? MOVE;
   const platforms = world?.platforms ?? NO_PLATFORMS;
-  if (player.onGround) {
-    const ride = platforms.find(({ prev }) => Math.abs(player.y - (prev.y + prev.height)) < RIDE_TOLERANCE && overlapsX(player, prev));
+  {
+    const ride = platforms.find(({ prev }) => ridesOn(player, prev));
     if (ride) carry(player, ride.now.x - ride.prev.x, ride.now.y - ride.prev.y, tiles);
   }
 
