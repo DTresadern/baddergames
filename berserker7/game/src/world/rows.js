@@ -3,8 +3,10 @@
 // row it is on (`player.row`). The map's transfer zones (`transfers: [{ x0, x1, low, high }]`,
 // world/cell-map.js) are where a player can switch between two adjacent rows: inside a zone
 // "descend" moves to the row whose floor is lower there (`low`), "ascend" to the higher one
-// (`high`). The switch is a short scripted hop, HOP_TICKS long, driven by the tick: across in
-// depth and up or down to the landing found on the target row. A blocked landing: nothing happens.
+// (`high`). An ascend is a short scripted hop, HOP_TICKS long, driven by the tick: across in depth
+// and up to the landing found on the target row. A descend is a falling hop: the depth eases over
+// HOP_TICKS while y follows normal physics on the target row; the hop ends when the player lands
+// (no row switch until then). A blocked landing: nothing happens.
 // Outside a zone (or when blocked) crouch and jump behave exactly as before (world/player.js).
 //
 // Controls, two schemes (the input frame's `rowScheme`; anything but 'B' is 'A'). Which one applies
@@ -22,7 +24,8 @@
 //
 // Player fields (plain data, set by createPlayer):
 //   row      the z of the row the player is on
-//   hop      null, or an active hop { to, t, y0, y1, fall }: target row, ticks done (1..HOP_TICKS),
+//   hop      null, or an active hop { to, t, y0, y1, fall }: target row, ticks done (1..HOP_TICKS;
+//            a fall hop stays at HOP_TICKS, on the target row, until the player lands),
 //            start y, landing y (for a fall only what findLanding found; physics decides), fall
 //   presses  { down, jump }: ticks since the last moveDown / jump (jump or moveUp) press, capped at
 //            PRESS_NONE
@@ -152,11 +155,15 @@ function fallFrame(frame) {
 function advanceHop(player, frame, rows, dt, world) {
   const hop = player.hop;
   if (hop.fall) {
-    hop.t += 1;
-    stepPlayer(player, fallFrame(frame), rows.get(hop.to) ?? EMPTY, dt, hop.to === 0 ? world : undefined);
+    // The depth move (t < HOP_TICKS): input filtered (fallFrame). After it, the row is the target
+    // and the hop stays, at t = HOP_TICKS, until the player lands: normal control, but no row
+    // switch, so a crouch press while still falling cannot grab straight back up.
+    const moving = hop.t < HOP_TICKS;
+    if (moving) hop.t += 1;
+    stepPlayer(player, moving ? fallFrame(frame) : frame, rows.get(hop.to) ?? EMPTY, dt, hop.to === 0 ? world : undefined);
     if (hop.t >= HOP_TICKS) {
       player.row = hop.to;
-      player.hop = null;
+      if (player.onGround) player.hop = null;
     }
     return;
   }
