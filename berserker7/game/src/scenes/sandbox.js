@@ -92,10 +92,9 @@ function lowestTileY(tileMaps) {
   }
   return Number.isFinite(lowest) ? lowest : 0;
 }
-// Default view height: tiles shown from the bottom of the view to the top. The game camera is
-// expected to vary between 18 and 28 tiles high (adjusted per area later), with 22 as the default.
-// The debug range reaches down to 8 to try close views.
-export const CAMERA_TILES_HIGH = 22;
+// Default view height: tiles shown from the bottom of the view to the top. The default is 12 tiles
+// high; the debug range is 8 to 28.
+export const CAMERA_TILES_HIGH = 12;
 export const CAMERA_TILES_MIN = 8; // closest zoom
 export const CAMERA_TILES_MAX = 28; // furthest zoom
 
@@ -548,7 +547,7 @@ export function createSandbox({
       }
       for (const { materials: m, positions } of decor.values()) addLevelGroup(deepScene, track, deepLevel, geometries.cube, m, positions);
       addTransferMarkers(deepScene, track, map);
-      // Background city blocks: wide enough for the widest normal view (FOV 50, the furthest
+      // Background city blocks: wide enough for the widest normal view (the default FOV, the furthest
       // zoom, a 21:9 window) anywhere the camera can go (the level plus the largest offset and
       // aim-follow Max).
       const followMax = FOLLOW_SETTINGS.find(([key]) => key === 'max')[3];

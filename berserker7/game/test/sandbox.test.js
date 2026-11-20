@@ -86,7 +86,7 @@ test('sandbox scene: ticks while uncovered, draws when covered, suspends on leav
 });
 
 test('createCameraZoom: whole tiles, clamped to the limits, bad values ignored', () => {
-  assert.deepEqual([CAMERA_TILES_MIN, CAMERA_TILES_HIGH, CAMERA_TILES_MAX], [8, 22, 28]);
+  assert.deepEqual([CAMERA_TILES_MIN, CAMERA_TILES_HIGH, CAMERA_TILES_MAX], [8, 12, 28]);
   const zoom = createCameraZoom();
   assert.equal(zoom.get(), CAMERA_TILES_HIGH);
   assert.equal(zoom.set(25.4), 25);
@@ -126,9 +126,9 @@ test('tile texture: 8 px checker of the legend colour and a slightly lighter sha
   assert.equal(texture.generateMipmaps, false);
 });
 
-test('createViewMode: 2.5D and FOV 50 by default; unknown modes ignored; FOV whole degrees, 1 to 130', () => {
+test('createViewMode: 2.5D and FOV 60 by default; unknown modes ignored; FOV whole degrees, 1 to 130', () => {
   const v = createViewMode();
-  assert.deepEqual([v.mode(), v.fov()], ['2.5d', 50]);
+  assert.deepEqual([v.mode(), v.fov()], ['2.5d', 60]);
   assert.equal(v.setMode('2d'), '2d');
   assert.equal(v.setMode('3d'), '2d');
   assert.equal(v.setFov(0), 1);
