@@ -23,14 +23,14 @@ await loadCodec();
 // A plain msgpackr instance, to craft raw input the codec itself would never produce.
 const plain = new Packr({ useRecords: false, moreTypes: false, mapsAsObjects: true });
 
-const player = (x, extra = {}) => ({ x, y: 2.5, vx: -3, vy: 0.25, onGround: true, crouching: false, aim: 1.5, ...extra });
+const player = (x, extra = {}) => ({ x, y: 2.5, vx: -3, vy: 0.25, onGround: true, crouching: false, aim: 1.5, row: 0, hop: null, presses: { down: 255, jump: 255 }, ...extra });
 
 const SAMPLES = {
   hello: { t: 'hello', v: PROTOCOL_VERSION },
   welcome: { t: 'welcome', map: 'map.walkway', slot: 1, tick: 1234 },
   reject: { t: 'reject', reason: 'full' },
   map: { t: 'map', map: 'map.mvp-upper-1' },
-  input: { t: 'input', tick: 99, held: 5, pressed: 1, aim: -0.5 },
+  input: { t: 'input', tick: 99, held: 5, pressed: 1, aim: -0.5, rs: 'A' },
   snap: snapMessage({ tick: 10, ack: -1, wt: 8, players: [player(1), player(2, { crouching: true })], enemies: [{ id: 4, type: 'walker', x: 3, y: -2, awake: true }] }),
   ping: { t: 'ping', id: 3, time: 12345.5 },
   pong: { t: 'pong', id: 3, time: 12345.5, tick: 600 },
@@ -76,7 +76,10 @@ test('encode: output is a fresh buffer of its own, not msgpackr\'s shared one', 
 });
 
 test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
-  const extreme = (x) => ({ x, y: -12345.678901234, vx: -777.123456789, vy: 0.25123456789, onGround: true, crouching: true, aim: -3.14159265358979 });
+  const extreme = (x) => ({
+    x, y: -12345.678901234, vx: -777.123456789, vy: 0.25123456789, onGround: true, crouching: true, aim: -3.14159265358979,
+    row: -64, hop: { to: -63, t: 14, y0: -99999.123456789, y1: -99998.123456789 }, presses: { down: 254, jump: 254 },
+  });
   const enemy = (i) => ({ id: 65535 - i, type: 'walker', x: -99999.123456789 + i, y: 12345.678901234, awake: true });
   const big = (count) => ({ tick: 2 ** 31 - 1, ack: 2 ** 31 - 1, wt: 2 ** 31 - 1, players: [extreme(99999.123456789), extreme(-99999.123456789)], enemies: Array.from({ length: count }, (_, i) => enemy(i)) });
   const worst = encode(snapMessage(big(MAX_ENEMIES))).byteLength;
@@ -85,15 +88,15 @@ test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
   const levelEnemies = level.spawns.filter((s) => s.type === 'enemy').length;
   const levelBytes = encode(snapMessage(big(levelEnemies))).byteLength;
   console.log(`snap bytes: worst case (2 players, ${MAX_ENEMIES} enemies) ${worst}; this level (${levelEnemies} enemies) ${levelBytes}; limit ${MAX_MESSAGE_BYTES}`);
-  assert.ok(worst <= 1000, `worst case ${worst}`);
-  assert.ok(worst < MAX_MESSAGE_BYTES / 2);
+  assert.ok(worst <= 1200, `worst case ${worst}`);
+  assert.ok(worst < MAX_MESSAGE_BYTES * 0.6, 'wide margin (1118 bytes with depth rows, protocol 5)');
   assert.ok(levelEnemies <= MAX_ENEMIES);
   assert.equal(MAX_MESSAGE_BYTES, 2048);
 });
 
 test('decode: unknown fields dropped, numbers clamped, integers rounded; a new object', () => {
-  const raw = plain.pack({ t: 'input', tick: 7.6, held: -4, pressed: 1, aim: 99, extra: { a: 1 } });
-  assert.deepEqual(decode(Uint8Array.from(raw)), { t: 'input', tick: 8, held: 0, pressed: 1, aim: Math.PI });
+  const raw = plain.pack({ t: 'input', tick: 7.6, held: -4, pressed: 1, aim: 99, rs: 'B', extra: { a: 1 } });
+  assert.deepEqual(decode(Uint8Array.from(raw)), { t: 'input', tick: 8, held: 0, pressed: 1, aim: Math.PI, rs: 'B' });
   const snap = decode(Uint8Array.from(plain.pack({ ...SAMPLES.snap, x0: 1e9, vx1: -5000 })));
   assert.equal(snap.x0, 100000);
   assert.equal(snap.vx1, -1000);
@@ -190,6 +193,7 @@ test('input frames: masks round-trip; released derived from the previous held ma
     wheel: 0,
     pointer: null,
     activated: false,
+    rowScheme: 'A',
   });
   assert.deepEqual(frameMasks(back), { held: msg.held, pressed: msg.pressed });
   // A disconnected frame sends nothing held.
@@ -213,6 +217,28 @@ test('snapshots: players, the world tick and enemies round-trip; n and ne limit 
   // More than MAX_ENEMIES: the first MAX_ENEMIES are sent.
   const many = Array.from({ length: MAX_ENEMIES + 3 }, (_, i) => ({ id: i, type: 'walker', x: i, y: 0, awake: false }));
   assert.deepEqual(snapshotFromMessage(decode(encode(snapMessage({ tick: 1, ack: -1, wt: 1, players, enemies: many })))).enemies, many.slice(0, MAX_ENEMIES));
+});
+
+test('input frames: the row scheme travels as rs into frameFromMasks\' rowScheme', () => {
+  const f = { ...frame(['moveDown']), rowScheme: 'B' };
+  const msg = decode(encode(inputMessage(3, f)));
+  assert.equal(msg.rs, 'B');
+  assert.equal(frameFromMasks(msg).rowScheme, 'B');
+  assert.equal(inputMessage(3, frame([])).rs, 'A', 'no scheme on the frame: A');
+  assert.equal(frameFromMasks({ held: 0, pressed: 0, aim: 0 }).rowScheme, 'A');
+  assert.equal(decode(Uint8Array.from(plain.pack({ ...msg, rs: 'C' }))), null, 'unknown scheme');
+});
+
+test('snapshots: each player slot carries its row, hop and press ages', () => {
+  const players = [
+    player(1, { row: -1, hop: { to: 0, t: 7, y0: -2.5, y1: 0 }, presses: { down: 255, jump: 3 } }),
+    player(2, { row: 1, presses: { down: 0, jump: 12 } }),
+  ];
+  const back = snapshotFromMessage(decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players }))));
+  assert.deepEqual(back.players, players);
+  // Missing fields (a player made before rows): row 0, no hop, no recent press.
+  const old = snapshotFromMessage(decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players: [{ x: 0, y: 0, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0 }] }))));
+  assert.deepEqual([old.players[0].row, old.players[0].hop, old.players[0].presses], [0, null, { down: 255, jump: 255 }]);
 });
 
 test('snapshots: an unknown enemy type or a bad id makes the snap invalid; a repeated id is dropped', () => {

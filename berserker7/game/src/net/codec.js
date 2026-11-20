@@ -16,10 +16,13 @@
 import { ACTIONS } from '../input/actions.js';
 import { SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { ENEMY_ID_MAX, ENEMY_TYPES, MAX_ENEMIES } from '../world/enemy.js';
+import { HOP_TICKS, PRESS_NONE, ROW_LIMIT, ROW_SCHEMES } from '../world/rows.js';
 
-export const PROTOCOL_VERSION = 4; // 4: enemies carry id and type; 3: snap carries wt and enemies; 2: MessagePack bytes (1 was JSON text)
+// 5: players carry row, hop and press ages; input carries the row scheme. 4: enemies carry id and
+// type; 3: snap carries wt and enemies; 2: MessagePack bytes (1 was JSON text).
+export const PROTOCOL_VERSION = 5;
 // Largest message accepted or sent, in MessagePack bytes. The largest message (a snap with two
-// players and MAX_ENEMIES enemies) is 998 bytes at worst (every field at full-precision extremes);
+// players and MAX_ENEMIES enemies) is 1118 bytes at worst (every field at full-precision extremes);
 // 2048 leaves wide margin.
 export const MAX_MESSAGE_BYTES = 2048;
 // Players a snapshot can carry (slot 0 is the host, slot 1 the guest).
@@ -71,7 +74,8 @@ const text = (pattern, maxLength) => Object.freeze({ kind: 'string', pattern, ma
 export const SPECS = Object.freeze({ int, num, bool, oneOf, text });
 
 // Per player slot i: x, y (bottom centre, tiles), vx, vy (tiles/s), g (onGround), c (crouching),
-// a (aim, radians).
+// a (aim, radians); depth rows (world/rows.js): r (row), h (a hop is active), ht (hop target row),
+// hn (hop ticks done), hy0, hy1 (hop start and landing y), pd, pj (down and jump press ages).
 const PLAYER_FIELDS = Object.freeze({
   x: num(-POSITION_LIMIT, POSITION_LIMIT),
   y: num(-POSITION_LIMIT, POSITION_LIMIT),
@@ -80,6 +84,14 @@ const PLAYER_FIELDS = Object.freeze({
   g: bool,
   c: bool,
   a: num(-Math.PI, Math.PI),
+  r: int(-ROW_LIMIT, ROW_LIMIT),
+  h: bool,
+  ht: int(-ROW_LIMIT, ROW_LIMIT),
+  hn: int(0, HOP_TICKS),
+  hy0: num(-POSITION_LIMIT, POSITION_LIMIT),
+  hy1: num(-POSITION_LIMIT, POSITION_LIMIT),
+  pd: int(0, PRESS_NONE),
+  pj: int(0, PRESS_NONE),
 });
 // Per enemy slot i: ei (stable id), et (type name, one of ENEMY_TYPES), ex, ey (bottom centre,
 // tiles), ew (awake). An unknown type makes the whole message invalid, like any bad field.
@@ -108,8 +120,9 @@ export const MESSAGES = Object.freeze({
   reject: Object.freeze({ reason: oneOf('full', 'version') }),
   // (host -> guest) the host's Sandbox map changed
   map: Object.freeze({ map: oneOf(...SANDBOX_MAPS) }),
-  // (guest -> host) one input frame: held and pressed bit masks over ACTIONS, aim in radians
-  input: Object.freeze({ tick: int(0, TICK_MAX), held: int(0, MASK_MAX), pressed: int(0, MASK_MAX), aim: num(-Math.PI, Math.PI) }),
+  // (guest -> host) one input frame: held and pressed bit masks over ACTIONS, aim in radians, rs
+  // the row scheme (the host simulates the guest's player with it)
+  input: Object.freeze({ tick: int(0, TICK_MAX), held: int(0, MASK_MAX), pressed: int(0, MASK_MAX), aim: num(-Math.PI, Math.PI), rs: oneOf(...ROW_SCHEMES) }),
   // (host -> guest) Sandbox players and enemies: ack = last guest input tick applied (-1 none),
   // wt = the host's world tick (its Sandbox state.ticks), n = player count, ne = enemy count
   snap: Object.freeze({
@@ -215,18 +228,18 @@ export function frameMasks(frame) {
 // The input message for a player's frame on `tick`.
 export function inputMessage(tick, frame) {
   const aim = frame?.connected && Number.isFinite(frame.aim) ? frame.aim : 0;
-  return { t: 'input', tick, ...frameMasks(frame), aim };
+  return { t: 'input', tick, ...frameMasks(frame), aim, rs: frame?.rowScheme === 'B' ? 'B' : 'A' };
 }
 
 // A full input frame from masks: `released` from the previous held mask; no pointer, no wheel,
-// not an activation; always connected.
-export function frameFromMasks({ held, pressed, aim }, prevHeld = 0, player = 1) {
+// not an activation; always connected; `rowScheme` from rs ('A' when missing).
+export function frameFromMasks({ held, pressed, aim, rs }, prevHeld = 0, player = 1) {
   const actions = {};
   ACTIONS.forEach((action, i) => {
     const bit = 1 << i;
     actions[action] = { held: (held & bit) !== 0, pressed: (pressed & bit) !== 0, released: (prevHeld & bit) !== 0 && (held & bit) === 0 };
   });
-  return { player, connected: true, actions, aim, wheel: 0, pointer: null, activated: false };
+  return { player, connected: true, actions, aim, wheel: 0, pointer: null, activated: false, rowScheme: rs ?? 'A' };
 }
 
 // A snap message from Sandbox players (first MAX_PLAYERS) and enemies (first MAX_ENEMIES, the full
@@ -242,6 +255,15 @@ export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
     msg[`g${i}`] = p ? p.onGround : false;
     msg[`c${i}`] = p ? p.crouching : false;
     msg[`a${i}`] = p ? p.aim : 0;
+    const hop = p?.hop ?? null;
+    msg[`r${i}`] = p?.row ?? 0;
+    msg[`h${i}`] = hop !== null;
+    msg[`ht${i}`] = hop ? hop.to : 0;
+    msg[`hn${i}`] = hop ? hop.t : 0;
+    msg[`hy0${i}`] = hop ? hop.y0 : 0;
+    msg[`hy1${i}`] = hop ? hop.y1 : 0;
+    msg[`pd${i}`] = p ? p.presses?.down ?? PRESS_NONE : 0;
+    msg[`pj${i}`] = p ? p.presses?.jump ?? PRESS_NONE : 0;
   }
   msg.ne = Math.min(enemies.length, MAX_ENEMIES);
   for (let i = 0; i < MAX_ENEMIES; i++) {
@@ -255,13 +277,17 @@ export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
   return msg;
 }
 
-// { tick, ack, wt, players, enemies }: players are { x, y, vx, vy, onGround, crouching, aim } (no
-// size: the receiver adds its own map's player size); enemies are { id, type, x, y, awake }, an
+// { tick, ack, wt, players, enemies }: players are { x, y, vx, vy, onGround, crouching, aim, row,
+// hop, presses } (no size: the receiver adds its own map's player size); enemies are { id, type, x, y, awake }, an
 // id repeated in one message is dropped (the first one is kept).
 export function snapshotFromMessage(msg) {
   const players = [];
   for (let i = 0; i < msg.n; i++) {
-    players.push({ x: msg[`x${i}`], y: msg[`y${i}`], vx: msg[`vx${i}`], vy: msg[`vy${i}`], onGround: msg[`g${i}`], crouching: msg[`c${i}`], aim: msg[`a${i}`] });
+    const hop = msg[`h${i}`] ? { to: msg[`ht${i}`], t: msg[`hn${i}`], y0: msg[`hy0${i}`], y1: msg[`hy1${i}`] } : null;
+    players.push({
+      x: msg[`x${i}`], y: msg[`y${i}`], vx: msg[`vx${i}`], vy: msg[`vy${i}`], onGround: msg[`g${i}`], crouching: msg[`c${i}`], aim: msg[`a${i}`],
+      row: msg[`r${i}`], hop, presses: { down: msg[`pd${i}`], jump: msg[`pj${i}`] },
+    });
   }
   const enemies = [];
   const ids = new Set();

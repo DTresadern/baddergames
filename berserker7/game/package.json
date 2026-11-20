@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "test": "node --test test/*.test.js",
     "bench:codec": "node tools/bench-codec.mjs",
-    "build:level": "node tools/build-level.mjs"
+    "build:level": "node tools/build-level.mjs",
+    "build:depth-rows": "node tools/levels/depth-rows-test.mjs"
   },
   "dependencies": {
     "msgpackr": "2.1.4",

@@ -29,6 +29,7 @@ import { withCodec } from './net/lazy-transport.js';
 import { createLocalTransport } from './net/transport-local.js';
 import { createPeerTransport } from './net/transport-peer.js';
 import { createJoinForm, joinMessage, submitJoinCode } from './ui/join-form.js';
+import { createRowScheme } from './world/rows.js';
 import { createNotice } from './ui/notice.js';
 import { checkForNewerBuild, createOutdatedNotice } from './ui/version-check.js';
 
@@ -104,8 +105,16 @@ const net = createNetSession({
   },
 });
 
+// The depth-row control scheme (world/rows.js), chosen in the debug panel. Every sampled frame
+// carries it as `rowScheme`, so the Sandbox steps with it and a guest sends it to the host.
+const rowScheme = createRowScheme();
+const schemedInput = {
+  setAimOrigin: (...args) => input.setAimOrigin(...args),
+  clearAimOrigins: () => input.clearAimOrigins(),
+  sample: () => input.sample().map((f) => ({ ...f, rowScheme: rowScheme.get() })),
+};
 const onInputs = (inputs) => togglePauseOnPress(harness, inputs);
-const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input: net.wrapInput(input), onInputs });
+const harness = createHarness({ renderer, drawTransition, loadingScene: 'loading', input: net.wrapInput(schemedInput), onInputs });
 const { assets } = harness;
 // The menu background, picked once per page load and used by the main menu and New Game. The pick
 // is not gameplay, so it uses Math.random, not the seeded generator. `?menubg=classic|thrash` forces one.
@@ -288,7 +297,7 @@ function backgroundTimer() {
 }
 document.addEventListener('visibilitychange', backgroundTimer);
 
-mountPanel({ harness, renderer, assets, settings, session, sandboxZoom, sandboxViewMode, sandboxMap, net, transport });
+mountPanel({ harness, renderer, assets, settings, session, sandboxZoom, sandboxViewMode, sandboxMap, rowScheme, net, transport });
 mountInputPanel({ input });
 
 // Debug only: lets browser scripts read the harness, renderer, shared assets, loader, input (raw,

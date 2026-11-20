@@ -15,6 +15,8 @@
 //     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
 //     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
 //     #b7-grid (checkbox)                    level tiles and cubes with the grid texture, off by default
+//     #b7-row-scheme (select)                depth-row switch controls, A (default) or B (world/rows.js)
+//     #b7-row-camera (checkbox)              2.5D camera follows the player's row depth, on by default
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
 //     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
 //                                       camera offset from the followed point, tiles
@@ -141,6 +143,7 @@ function hash(text) {
 // `sandboxZoom` and `sandboxViewMode` (optional) are the Sandbox camera's view height holder
 // (createCameraZoom) and its view mode and FOV holder (createViewMode).
 // `sandboxMap` (optional) is the Sandbox map choice (createMapChoice).
+// `rowScheme` (optional) is the depth-row control scheme holder (createRowScheme, world/rows.js).
 // `net` (optional) is the net session (net/session.js) and `transport` the transport it hosts
 // with. A guest's "Leave game" ends the session; main.js takes the guest back to the main menu.
 export function mountPanel({
@@ -152,6 +155,7 @@ export function mountPanel({
   sandboxZoom = null,
   sandboxViewMode = null,
   sandboxMap = null,
+  rowScheme = null,
   net = null,
   transport = null,
   location = window.location,
@@ -183,6 +187,12 @@ export function mountPanel({
           <span data-value="zoom"></span></label>
         <label class="b7-check"><input id="b7-city" type="checkbox"> City backdrop (2.5D)</label>
         <label class="b7-check"><input id="b7-grid" type="checkbox"> Grid</label>
+        <label>Row switch
+          <select id="b7-row-scheme">
+            <option value="A">A: crouch→jump / jump→crouch</option>
+            <option value="B">B: double crouch / double jump</option>
+          </select></label>
+        <label class="b7-check"><input id="b7-row-camera" type="checkbox"> Camera follows row depth</label>
         <label>FOV
           <input id="b7-fov" type="range" min="${FOV_MIN}" max="${FOV_MAX}" step="1">
           <span data-value="fov"></span></label>
@@ -334,6 +344,8 @@ export function mountPanel({
   const offsetSliders = [...root.querySelectorAll('[data-axis]')];
   const cityCheck = root.querySelector('#b7-city');
   const gridCheck = root.querySelector('#b7-grid');
+  const rowCameraCheck = root.querySelector('#b7-row-camera');
+  const rowSchemeSelect = root.querySelector('#b7-row-scheme');
   const followSliders = [...root.querySelectorAll('[data-follow]')];
   function showZoom() {
     if (sandboxZoom) {
@@ -345,6 +357,8 @@ export function mountPanel({
       for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
       cityCheck.checked = sandboxViewMode.backdrop();
       gridCheck.checked = sandboxViewMode.grid();
+      rowCameraCheck.checked = sandboxViewMode.rowCamera();
+      rowCameraCheck.disabled = mode !== '2.5d';
       fovSlider.value = String(sandboxViewMode.fov());
       fovSlider.disabled = mode !== '2.5d';
       setValue('fov', `${sandboxViewMode.fov()}°`);
@@ -360,6 +374,13 @@ export function mountPanel({
         setValue(`follow-${slider.dataset.follow}`, follow[slider.dataset.follow].toFixed(2));
       }
     }
+  }
+  if (rowScheme) {
+    rowSchemeSelect.value = rowScheme.get();
+    rowSchemeSelect.addEventListener('change', () => {
+      rowSchemeSelect.blur();
+      rowSchemeSelect.value = rowScheme.set(rowSchemeSelect.value);
+    });
   }
   const mapSelect = root.querySelector('#b7-map');
   if (sandboxMap) {
@@ -395,6 +416,11 @@ export function mountPanel({
     gridCheck.addEventListener('change', () => {
       gridCheck.blur();
       sandboxViewMode.setGrid(gridCheck.checked);
+      showZoom();
+    });
+    rowCameraCheck.addEventListener('change', () => {
+      rowCameraCheck.blur();
+      sandboxViewMode.setRowCamera(rowCameraCheck.checked);
       showZoom();
     });
     for (const slider of offsetSliders) {

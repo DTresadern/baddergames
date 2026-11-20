@@ -134,8 +134,8 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   w.connect();
   w.tick(30);
   w.sandbox.players = [
-    { x: 4, y: 2, vx: 1, vy: 0, onGround: true, crouching: false, aim: 0.5 },
-    { x: 9, y: 3, vx: 0, vy: 0, onGround: false, crouching: true, aim: -1 },
+    { x: 4, y: 2, vx: 1, vy: 0, onGround: true, crouching: false, aim: 0.5, row: -1, hop: null, presses: { down: 255, jump: 255 } },
+    { x: 9, y: 3, vx: 0, vy: 0, onGround: false, crouching: true, aim: -1, row: 0, hop: { to: 1, t: 4, y0: 3, y1: 1 }, presses: { down: 255, jump: 2 } },
   ];
   w.sandbox.ticks = 500;
   w.sandbox.enemies = [{ id: 3, type: 'walker', x: 7, y: 0, vx: 1, vy: 0, onGround: true, awake: true, aim: 0, crouching: false }];
@@ -156,6 +156,7 @@ test('session: snapshots reach the guest with the ack; the host player is interp
   assert.ok(pending.every((e) => e.tick > snap.ack));
   const remote = gv.remotePlayer();
   assert.ok(Math.abs(remote.x - 4) < 1e-9);
+  assert.equal(remote.depth, -1, 'the host player carries its drawn depth');
   assert.deepEqual(gv.remoteEnemies(), [{ id: 3, type: 'walker', x: 7, y: 0, vx: 0, vy: 0, aim: 0, awake: true }]);
   const stats = w.guest.session.stats();
   assert.equal(stats.role, 'guest');
@@ -324,6 +325,12 @@ test('guest input queue: waits for 2 entries, repeats held when empty, keeps pre
   assert.deepEqual([q.ack(), f.actions.jump.pressed, f.actions.jump.held], [4, true, false]);
   // released comes from the previous held mask.
   assert.equal(f.actions.moveRight.released, true);
+  assert.equal(f.rowScheme, 'A', 'no rs: scheme A');
+  // The row scheme travels with each entry and repeats while the queue is empty.
+  const r = createGuestInputQueue();
+  r.push({ tick: 1, held: 0, pressed: 0, aim: 0, rs: 'B' });
+  r.push({ tick: 2, held: 0, pressed: 0, aim: 0, rs: 'B' });
+  assert.deepEqual([r.next().rowScheme, r.next().rowScheme, r.next().rowScheme], ['B', 'B', 'B']);
 });
 
 test('session: an invalid code typed while hosting changes nothing', () => {

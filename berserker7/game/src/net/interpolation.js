@@ -1,9 +1,9 @@
 // Interpolation of a remote player between host snapshots. Pure.
 // The buffer holds { tick, player } (host ticks), ordered, at most `cap`; duplicate ticks and
 // ticks older than the newest are ignored. sampleAt(tick) lerps x, y, vx and vy between the two
-// entries around `tick`, turns the aim the short way round, and takes onGround, crouching and size
-// from the earlier entry. Before the oldest: the oldest; after the newest: the newest (no
-// extrapolation).
+// entries around `tick` (and `depth`, the drawn depth, when both entries have one), turns the aim
+// the short way round, and takes onGround, crouching, size, row and hop from the earlier entry.
+// Before the oldest: the oldest; after the newest: the newest (no extrapolation).
 
 export const INTERP_CAP = 32;
 // How far behind the newest host tick arriving now (the receive-side clock) the remote player is
@@ -55,6 +55,7 @@ export function createInterpolationBuffer(cap = INTERP_CAP) {
         vx: lerp(a.vx, b.vx, t),
         vy: lerp(a.vy, b.vy, t),
         aim: lerpAngle(a.aim, b.aim, t),
+        ...(typeof a.depth === 'number' && typeof b.depth === 'number' ? { depth: lerp(a.depth, b.depth, t) } : {}),
       };
     },
   };

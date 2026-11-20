@@ -10,13 +10,14 @@
 // Networking reaches the scene only through `net` (the net session's read-only view, see
 // net/session.js): the scene never sees the transport, and input still arrives only as `inputs`.
 
-import { Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
+import { BoxGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
 import { acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
 import { ENEMY, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
 import { platformAt, platformsStep, rideShift } from '../world/platform.js';
-import { createPlayer, playerHeight, stepPlayer } from '../world/player.js';
+import { createPlayer, playerHeight } from '../world/player.js';
+import { PRESS_NONE, playerDepth, stepRowPlayer } from '../world/rows.js';
 import { fitOrtho } from './shared.js';
 import { createGridTexture, createTileTexture } from './tile-texture.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
@@ -36,8 +37,8 @@ import {
 } from './sandbox-3d.js';
 
 // The maps the Sandbox can load (manifest keys), and the default: the block-markup blockout,
-// extended into the test level.
-export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk-blocks', 'map.moge3-cyberpunk', 'map.mvp-upper-1', 'map.walkway']);
+// extended into the test level. map.depth-rows-test tries depth rows (world/rows.js).
+export const SANDBOX_MAPS = Object.freeze(['map.moge3-cyberpunk-blocks', 'map.moge3-cyberpunk', 'map.mvp-upper-1', 'map.walkway', 'map.depth-rows-test']);
 export const MAP_KEY = SANDBOX_MAPS[0];
 // Below the lowest solid tile by this many tiles, the player goes back to the spawn.
 export const FALL_MARGIN = 10;
@@ -73,14 +74,16 @@ function levelBounds(tiles, cells = []) {
   return Number.isFinite(b.minX) ? b : { minX: 0, maxX: 0, minY: 0 };
 }
 
-// Lowest y of any solid tile, or 0 for an empty map.
-function lowestTileY(tiles) {
+// Lowest y of any solid tile over all the given tile maps (a map's rows), or 0 when all are empty.
+function lowestTileY(tileMaps) {
   let lowest = Infinity;
-  const size = tiles.chunkSize;
-  for (const chunk of tiles.chunks()) {
-    chunk.tiles.forEach((id, index) => {
-      if (id !== 0) lowest = Math.min(lowest, chunk.cy * size + Math.floor(index / size));
-    });
+  for (const tiles of tileMaps) {
+    const size = tiles.chunkSize;
+    for (const chunk of tiles.chunks()) {
+      chunk.tiles.forEach((id, index) => {
+        if (id !== 0) lowest = Math.min(lowest, chunk.cy * size + Math.floor(index / size));
+      });
+    }
   }
   return Number.isFinite(lowest) ? lowest : 0;
 }
@@ -120,10 +123,13 @@ export const OFFLINE_NET = Object.freeze({
   remoteEnemies: () => null,
   remoteWorldTick: () => null,
 });
-// Level data with no moving platforms (tickSandbox's default).
-const NO_LEVEL = Object.freeze({ platforms: Object.freeze([]) });
+// Level data with no moving platforms, one row and no transfer zones (tickSandbox's default; with
+// `rows` null the tiles are row 0).
+const NO_LEVEL = Object.freeze({ platforms: Object.freeze([]), rows: null, transfers: Object.freeze([]) });
 export const PLATFORM_COLOR = 0xc9a23a; // hazard yellow
 export const ENEMY_COLOR = 0xe03030;
+export const MARKER_COLOR = 0x3ee8ff; // transfer zone markers (2.5D)
+const MARKER_THICKNESS = 0.06; // tiles
 const PLATFORM_Z = 0.05; // in front of the tiles, behind the players (2D)
 const ENEMY_Z = 0.08; // in front of the tiles and platforms, behind the players (2D)
 const PLAYER_Z = 0.1; // in front of the tiles
@@ -147,6 +153,13 @@ export function localPlayer(state) {
 export function snapCamera(state) {
   state.camera = playerHead(localPlayer(state));
   return state;
+}
+
+// The tile maps of the rows a player can be on: row 0 plus every row a transfer zone names (a map
+// without transfers: row 0 only, so decorative depth slices do not move the fall line).
+function reachableRows(map) {
+  const zs = new Set([0, ...(map.transfers ?? []).flatMap((t) => [t.low, t.high])]);
+  return [...zs].map((z) => (z === 0 ? map.tiles : map.rows?.get(z))).filter(Boolean);
 }
 
 // A new player at the state's spawn, with the map's player size.
@@ -187,7 +200,7 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
     pointer: null,
     aimSource: null,
     spawn: { x: spawn.x + 0.5, y: spawn.y },
-    fallY: lowestTileY(map.tiles) - FALL_MARGIN,
+    fallY: lowestTileY(reachableRows(map)) - FALL_MARGIN,
     size: { ...map.player },
     camera: null,
     // An enemy's id is its index among the map's enemy spawns: the same on host and guest.
@@ -197,16 +210,18 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
   return respawnAll(state, localSlot);
 }
 
-// One player step plus the fall respawn. Returns true when the player respawned.
-function stepWithFall(state, player, frame, tiles, dt, world) {
-  stepPlayer(player, frame, tiles, dt, world);
+// One player step (with depth rows, world/rows.js) plus the fall respawn, on the spawn's row 0.
+// `level` is { rows, transfers }. Returns true when the player respawned.
+function stepWithFall(state, player, frame, level, dt, world) {
+  stepRowPlayer(player, frame, level.rows, level.transfers, dt, world);
   if (player.y >= state.fallY) return false;
-  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false });
+  Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE } });
   return true;
 }
 
-// `tiles` is the tile map and `level` the map's other level data ({ platforms }); neither is part of
-// the state. `halfLife` (seconds) smooths the camera's
+// `tiles` is the play plane's tile map and `level` the map's other level data ({ platforms, rows,
+// transfers }: rows a Map z -> tile map, null for `tiles` as row 0); neither is part of the state.
+// Players step through stepRowPlayer (depth rows); enemies stay on row 0. `halfLife` (seconds) smooths the camera's
 // source towards the local head (smerp); 0 snaps. A local respawn snaps it too.
 // `net` is the net view (OFFLINE_NET when there is no session):
 //   - its localSlot differs from the state's: the state starts again for that slot
@@ -224,6 +239,7 @@ function stepWithFall(state, player, frame, tiles, dt, world) {
 export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLINE_NET, level = NO_LEVEL) {
   const slot = net.localSlot();
   if (slot !== state.localSlot) respawnAll(state, slot);
+  const rowLevel = { rows: level.rows ?? new Map([[0, tiles]]), transfers: level.transfers ?? [] };
   const frame = inputs[0];
   if (frame?.connected) {
     if (frame.pointer) state.pointer = { x: frame.pointer.x, y: frame.pointer.y };
@@ -235,7 +251,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     let own = state.players[slot];
     let k = state.ticks; // the world tick the next step starts from
     const step = (player, f) => {
-      if (stepWithFall(state, player, f, tiles, dt, { platforms: platformsStep(level.platforms, k) })) respawned = true;
+      if (stepWithFall(state, player, f, rowLevel, dt, { platforms: platformsStep(level.platforms, k) })) respawned = true;
       k += 1;
     };
     const snapshot = net.takeSnapshot();
@@ -250,6 +266,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     // The host world tick the remote player and enemies below are sampled at, read in the same
     // tick so draw pairs them correctly (a snapshot can arrive between this tick and the draw).
     state.remoteTick = net.remoteWorldTick();
+    // `remote` carries `depth` (its drawn depth, interpolated; see net/session.js), kept here.
     if (remote) state.players[0] = { ...remote, size: { ...state.size } };
     // Enemies: the host's list (by id), interpolated; the map's own until the first snapshot.
     const enemies = net.remoteEnemies();
@@ -260,7 +277,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     state.players.length = count;
     const world = { platforms: platformsStep(level.platforms, state.ticks) };
     state.players.forEach((player, i) => {
-      if (stepWithFall(state, player, inputs[i], tiles, dt, world) && i === state.localSlot) respawned = true;
+      if (stepWithFall(state, player, inputs[i], rowLevel, dt, world) && i === state.localSlot) respawned = true;
     });
     // A fallen enemy goes back to its spawn, idle; one with no spawn of this map (an id that came
     // from elsewhere, e.g. a host's list kept after leaving a game) is removed instead.
@@ -323,6 +340,38 @@ function addPlayer(scene, geometries, materials, slot, z) {
   return { body, aim, z };
 }
 
+// The highest solid top over columns x0..x1 of `tiles` (each column scanned from y 64 down to
+// -64), or null when there is none.
+function floorTop(tiles, x0, x1) {
+  let top = null;
+  for (let x = x0; x <= x1; x++) {
+    for (let y = 64; y >= -64; y--) {
+      if (!tiles.isSolid(x, y)) continue;
+      if (top === null || y + 1 > top) top = y + 1;
+      break;
+    }
+  }
+  return top;
+}
+
+// Transfer zone markers (2.5D): per zone and each of its two rows, a thin box the zone's width
+// and one tile deep, lying on that row's floor top in the zone (skipped when the row has none).
+function addTransferMarkers(scene, track, map) {
+  const geometry = track(new BoxGeometry(1, MARKER_THICKNESS, 1));
+  const material = track(new MeshBasicMaterial({ color: MARKER_COLOR, transparent: true, opacity: 0.85 }));
+  for (const { x0, x1, low, high } of map.transfers ?? []) {
+    for (const z of [low, high]) {
+      const tiles = map.rows?.get(z);
+      const top = tiles ? floorTop(tiles, x0, x1) : null;
+      if (top === null) continue;
+      const mesh = new Mesh(geometry, material);
+      mesh.scale.x = x1 - x0 + 1;
+      mesh.position.set((x0 + x1 + 1) / 2, top + MARKER_THICKNESS / 2, z);
+      scene.add(mesh);
+    }
+  }
+}
+
 // Moving platform meshes (one per platform) and a pool of MAX_ENEMIES enemy meshes (a guest's
 // enemy list follows the host's snapshots, so its length can change), made in load, of one view;
 // draw positions them from the state and hides unused enemy meshes.
@@ -360,6 +409,10 @@ export function createSandbox({
   // Last non-zero aim direction for the camera's Min radius when the mouse is exactly at the head.
   // Presentation only (draw-side, like the camera itself), so it is not in the state.
   let lastAimDir = null;
+  // A cells map's shaded material pairs ({ checker, grid, z }), recoloured by depth relative to the
+  // local player's row whenever its drawn depth changes (shadeDepth: the depth they show now).
+  let shaded = [];
+  let shadeDepth = 0;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
     async load({ track, acquire }) {
@@ -383,14 +436,19 @@ export function createSandbox({
       });
       // A cells map's off-plane cubes: one material pair per tile type and z, coloured by
       // depthShade(z) (behind darker and cooler, in front darkest), made here, never per frame.
-      const shadedMaterials = new Map(); // "id,z" -> { checker, grid }
+      // The colours are relative to the local player's row; draw updates them (see shaded).
+      const shadedMaterials = new Map(); // "id,z" -> { checker, grid, z }
+      shaded = [];
+      shadeDepth = 0;
       const shadedFor = (id, z) => {
         const key = `${id},${z}`;
         if (!shadedMaterials.has(key)) {
           const color = new Color(...depthShade(z));
           const { checker, grid } = textures.get(id);
           const make = (map) => track(new MeshBasicMaterial({ map, vertexColors: true, color }));
-          shadedMaterials.set(key, { checker: make(checker), grid: make(grid) });
+          const pair = { checker: make(checker), grid: make(grid), z };
+          shadedMaterials.set(key, pair);
+          shaded.push(pair);
         }
         return shadedMaterials.get(key);
       };
@@ -424,10 +482,11 @@ export function createSandbox({
         ...addMovers(flatScene, geometries, materials, map, { platformGeometry: geometries.tile, platformMaterial: materials.platform, platformZ: PLATFORM_Z, enemyZ: ENEMY_Z }),
       };
 
-      // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera.
+      // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera. A cells map's
+      // play plane cubes are shaded too (by depth relative to the local player's row).
       const deepScene = new Scene();
       const deepLevel = [];
-      for (const [id, positions] of groups) addLevelGroup(deepScene, track, deepLevel, geometries.cube, cubeMaterials.get(id), positions);
+      for (const [id, positions] of groups) addLevelGroup(deepScene, track, deepLevel, geometries.cube, map.cells ? shadedFor(id, 0) : cubeMaterials.get(id), positions);
       const decor = new Map(); // "id,z" (cells map) or id -> { materials, positions: [[x, y, z], ...] }
       // Off-plane cubes: a cells map's own cells, shaded by depth, or a flat map's decorative depth
       // cubes, unshaded.
@@ -438,6 +497,7 @@ export function createSandbox({
         decor.get(key).positions.push([cube.x, cube.y, cube.z]);
       }
       for (const { materials: m, positions } of decor.values()) addLevelGroup(deepScene, track, deepLevel, geometries.cube, m, positions);
+      addTransferMarkers(deepScene, track, map);
       // Background city blocks: wide enough for the widest normal view (FOV 50, the furthest
       // zoom, a 21:9 window) anywhere the camera can go (the level plus the largest offset and
       // aim-follow Max).
@@ -472,6 +532,16 @@ export function createSandbox({
       const headY = player.y + height; // top centre of the box
       const active = viewMode.mode() === '2d' ? flat : deep;
       const { camera } = active;
+      // 2.5D depth: each player is drawn at its row's depth (eased during a hop; a guest's remote
+      // player carries an interpolated `depth`). The 2D view draws z = 0 only.
+      const depthOf = (p) => (active === deep ? p.depth ?? playerDepth(p) : 0);
+      const viewDepth = depthOf(player);
+      // With the row camera on, the camera moves in depth with the local player, so its plane
+      // shows tilesHigh tiles. Off (2.5D), the camera stays on the play plane's distance and the
+      // player's plane shows planeTiles. Used for the mouse and the aim origin.
+      const distance = active === deep ? perspectiveDistance(tilesHigh, viewMode.fov()) : 0;
+      const rowCamera = viewMode.rowCamera();
+      const planeTiles = active === deep && !rowCamera ? (tilesHigh * (distance - viewDepth)) / distance : tilesHigh;
       // Camera: rest = head + offset; with a mouse aim, plus the aim-follow shift. The aim point is
       // the mouse projected through a camera at the rest position, never the actual camera (that
       // would chase itself). No smoothing: the camera snaps there every frame and always looks
@@ -484,7 +554,7 @@ export function createSandbox({
       const mouse = state.aimSource === 'mouse' && state.pointer ? state.pointer : null;
       let shift = { x: 0, y: 0 };
       if (mouse) {
-        shift = cameraShift(head, screenToPlane(rest, mouse, view.width, view.height, tilesHigh), viewMode.follow(), lastAimDir);
+        shift = cameraShift(head, screenToPlane(rest, mouse, view.width, view.height, planeTiles), viewMode.follow(), lastAimDir);
         lastAimDir = shift.dir;
       }
       const camX = rest.x + shift.x;
@@ -493,9 +563,9 @@ export function createSandbox({
         fitOrtho(camera, view, tilesHigh / 2);
         camera.position.set(camX, camY, 0);
       } else {
-        // The play plane (z = 0) shows exactly `tilesHigh` tiles, as in 2D, at any FOV.
+        // The play plane (z = 0; the player's row with the row camera) shows exactly `tilesHigh`
+        // tiles, as in 2D, at any FOV. Near and far are relative to the camera, so they follow it.
         const fov = viewMode.fov();
-        const distance = perspectiveDistance(tilesHigh, fov);
         const aspect = view.width / view.height;
         const near = Math.max(0.1, distance - DEPTH_MARGIN);
         // While the city backdrop shows, the far plane reaches behind its farthest layer.
@@ -504,7 +574,16 @@ export function createSandbox({
           Object.assign(camera, { fov, aspect, near, far });
           camera.updateProjectionMatrix();
         }
-        camera.position.set(camX, camY, distance);
+        camera.position.set(camX, camY, distance + (rowCamera ? viewDepth : 0));
+        // Depth shading relative to the local player's row (eased during a hop).
+        if (viewDepth !== shadeDepth) {
+          shadeDepth = viewDepth;
+          for (const pair of shaded) {
+            const [r, g, b] = depthShade(pair.z - viewDepth);
+            pair.checker.color.setRGB(r, g, b);
+            pair.grid.color.setRGB(r, g, b);
+          }
+        }
       }
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
       const grid = viewMode.grid();
@@ -527,27 +606,28 @@ export function createSandbox({
         mesh.position.set(e.x + dx, e.y + dy + ENEMY.height / 2, mesh.position.z);
       });
       // One body and aim line per player; empty slots are hidden.
-      active.players.forEach(({ body, aim }, slot) => {
+      active.players.forEach(({ body, aim, z }, slot) => {
         const p = state.players[slot];
         body.visible = aim.visible = Boolean(p);
         if (!p) return;
         const h = playerHeight(p);
         const { dx, dy } = slot === state.localSlot ? { dx: 0, dy: 0 } : rideOffset(p);
-        body.position.set(p.x + dx, p.y + dy + h / 2, body.position.z);
+        const depth = depthOf(p);
+        body.position.set(p.x + dx, p.y + dy + h / 2, z.player + depth);
         body.scale.y = h / map.player.height; // the body geometry is the standing height tall
-        aim.position.set(p.x + dx, p.y + dy + h, aim.position.z);
+        aim.position.set(p.x + dx, p.y + dy + h, z.aim + depth);
         aim.rotation.z = p.aim;
       });
       // The local aim line points at the mouse's true world position: the pointer projected
       // through the actual camera. With a stick (or before the mouse moves) it uses the aim angle.
       if (mouse) {
-        const target = screenToPlane({ x: camX, y: camY }, mouse, view.width, view.height, tilesHigh);
+        const target = screenToPlane({ x: camX, y: camY }, mouse, view.width, view.height, planeTiles);
         active.players[state.localSlot].aim.rotation.z = Math.atan2(target.y - headY, target.x - player.x);
       }
       // The input system measures frame.aim from the head's position on screen under the actual
       // camera, so the camera shift does not offset it. The view centre is the camera position and
-      // the play plane shows `tilesHigh` tiles in both views, so this mapping holds for both.
-      const pxPerTile = view.height / tilesHigh;
+      // the player's plane shows `planeTiles` tiles, so this mapping holds for both views.
+      const pxPerTile = view.height / planeTiles;
       view.setAimOrigin(0, view.width / 2 + (player.x - camera.position.x) * pxPerTile, view.height / 2 - (headY - camera.position.y) * pxPerTile);
       view.renderer.render(active.scene, camera);
     },
