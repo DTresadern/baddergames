@@ -66,18 +66,59 @@ function solidSpan(tiles, range, axis) {
   return max < min ? null : { min, max };
 }
 
+// Gap within which feet count as standing on a platform's top (riding), tiles.
+const RIDE_TOLERANCE = 1e-3;
+const NO_PLATFORMS = Object.freeze([]);
+
+// True when the box at `player` overlaps `box` ({ x, width }, bottom-left x) horizontally.
+function overlapsX(player, box) {
+  const half = player.size.width / 2;
+  return player.x + half > box.x + EPSILON && player.x - half < box.x + box.width - EPSILON;
+}
+
+// Carries a rider by the platform's movement this step: x first, pushed out of solid tiles like
+// the side collision (a wall stops the rider; no crush, no teleport), then y (a ceiling clamps the
+// head and the rider drops off; a floor below stops it). The rider's own velocity is unchanged.
+function carry(player, dx, dy, tiles) {
+  const height = playerHeight(player);
+  const width = player.size.width;
+  if (dx !== 0) {
+    player.x += dx;
+    const span = solidSpan(tiles, overlap(player.x, player.y, width, height), 'x');
+    if (span) player.x = dx > 0 ? span.min - width / 2 : span.max + 1 + width / 2;
+  }
+  if (dy !== 0) {
+    player.y += dy;
+    const span = solidSpan(tiles, overlap(player.x, player.y, width, height), 'y');
+    if (span) player.y = dy > 0 ? span.min - height : span.max + 1;
+  }
+}
+
 // Advances `player` by `dt` seconds. `frame` is the player's input frame (missing or not connected:
 // no input, gravity still applies). `tiles` is a tile map.
+// `world` (optional): { platforms: [{ prev, now }], move }. `prev` and `now` are a moving
+// platform's boxes (platformAt) at the world tick before and after this step; `move` replaces MOVE
+// (enemies). Without it the step is exactly the tiles-only one.
+// Platforms are one-way, from above only: a player passes up through them and lands on them when
+// falling. A player standing on one (onGround, feet on its `prev` top) is first carried by its
+// movement this step, then moves on its own.
 // No swept collision: at maxFallSpeed (30 tiles/s) and 1/60 s a step is 0.5 tile, less than the
 // box's width and height, so a box cannot skip over a tile. Keep dt small to keep that true.
-export function stepPlayer(player, frame, tiles, dt) {
+export function stepPlayer(player, frame, tiles, dt, world) {
+  const move = world?.move ?? MOVE;
+  const platforms = world?.platforms ?? NO_PLATFORMS;
+  if (player.onGround) {
+    const ride = platforms.find(({ prev }) => Math.abs(player.y - (prev.y + prev.height)) < RIDE_TOLERANCE && overlapsX(player, prev));
+    if (ride) carry(player, ride.now.x - ride.prev.x, ride.now.y - ride.prev.y, tiles);
+  }
+
   const actions = frame?.connected ? frame.actions : undefined;
   const dir = (actions?.moveRight?.held ? 1 : 0) - (actions?.moveLeft?.held ? 1 : 0);
 
   if (dir !== 0) {
-    player.vx = approach(player.vx, dir * MOVE.maxSpeed, (player.onGround ? MOVE.groundAccel : MOVE.airAccel) * dt);
+    player.vx = approach(player.vx, dir * move.maxSpeed, (player.onGround ? move.groundAccel : move.airAccel) * dt);
   } else {
-    player.vx = approach(player.vx, 0, (player.onGround ? MOVE.groundFriction : MOVE.airFriction) * dt);
+    player.vx = approach(player.vx, 0, (player.onGround ? move.groundFriction : move.airFriction) * dt);
   }
   // Crouch: holding moveDown on the ground makes the box size.crouchHeight tall, feet in place
   // (down in mid-air does nothing). Releasing it, or jumping, stands back up only when the full
@@ -89,9 +130,9 @@ export function stepPlayer(player, frame, tiles, dt) {
   const jumpPressed = actions?.jump?.pressed || actions?.moveUp?.pressed;
   const jumping = jumpPressed && player.onGround;
   if (player.crouching && (!downHeld || jumping) && roomToStand()) player.crouching = false;
-  if (jumping) player.vy = MOVE.jumpSpeed;
+  if (jumping) player.vy = move.jumpSpeed;
   if (frame?.connected && Number.isFinite(frame.aim)) player.aim = frame.aim;
-  player.vy = Math.max(player.vy - MOVE.gravity * dt, -MOVE.maxFallSpeed);
+  player.vy = Math.max(player.vy - move.gravity * dt, -move.maxFallSpeed);
 
   // One axis at a time: move, then push out of any solid tile it now overlaps.
   player.x += player.vx * dt;
@@ -104,7 +145,19 @@ export function stepPlayer(player, frame, tiles, dt) {
   }
 
   player.onGround = false;
+  const before = player.y;
+  const falling = player.vy <= 0;
   player.y += player.vy * dt;
+  // Platform landing (falling only): the highest platform top the feet crossed this step. The feet
+  // must have been at or above the top before the move, give or take the platform's own rise.
+  let platformTop = -Infinity;
+  if (falling) {
+    for (const { prev, now } of platforms) {
+      const top = now.y + now.height;
+      const rise = Math.max(0, now.y - prev.y);
+      if (top > platformTop && before >= top - rise - EPSILON && player.y < top && overlapsX(player, now)) platformTop = top;
+    }
+  }
   const vertSpan = solidSpan(tiles, overlap(player.x, player.y, player.size.width, height), 'y');
   if (vertSpan) {
     if (player.vy < 0) {
@@ -113,6 +166,12 @@ export function stepPlayer(player, frame, tiles, dt) {
     } else if (player.vy > 0) {
       player.y = vertSpan.min - height;
     }
+    player.vy = 0;
+  }
+  // The higher of a tile landing and a platform landing wins.
+  if (platformTop > -Infinity && (!player.onGround || platformTop > player.y)) {
+    player.y = platformTop;
+    player.onGround = true;
     player.vy = 0;
   }
   return player;
