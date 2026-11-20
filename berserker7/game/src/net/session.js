@@ -443,6 +443,12 @@ export function createNetSession({
     }
   }
 
+  // The host tick the guest draws the host player and enemies at: INTERP_DELAY_TICKS behind the
+  // newest host tick arriving now (the clock's arrival offset, measured on pongs, which come the
+  // same way as snapshots). The host tick now (offsetTicks) is one one-way delay later, past the
+  // newest snapshot once that delay is over about 100 ms, where the interpolation would hold.
+  const remoteDrawTick = () => localTick + clock.estimate().arrivalOffsetTicks - INTERP_DELAY_TICKS;
+
   const view = Object.freeze({
     role: () => role,
     localSlot: () => (role === 'guest' && state === 'connected' ? slot : 0),
@@ -455,24 +461,25 @@ export function createNetSession({
     },
     // The guest's recorded input frames after `ack`, oldest first: [{ tick, frame }].
     inputsAfter: (ack) => history.after(ack),
-    // The host's player drawn INTERP_DELAY_TICKS behind the estimated host tick, or null.
+    // The host's player drawn at remoteDrawTick(), or null.
     remotePlayer() {
       if (role !== 'guest' || interp.size() === 0) return null;
-      return interp.sampleAt(localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS);
+      return interp.sampleAt(remoteDrawTick());
     },
-    // The host world tick (wt) remotePlayer() and remoteEnemies() are drawn at (never past the
-    // newest snapshot, as the interpolation holds there), or null before the first snapshot. The
-    // Sandbox draws remote riders relative to the platforms with it (rideShift, world/platform.js).
+    // The host world tick (wt) remotePlayer() and remoteEnemies() are drawn at (remoteDrawTick(),
+    // never past the newest snapshot, as the interpolation holds there), or null before the first
+    // snapshot. The Sandbox draws remote riders relative to the platforms with it (rideShift,
+    // world/platform.js).
     remoteWorldTick() {
       if (role !== 'guest' || worldOffset === null) return null;
-      return Math.min(localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS, lastSnapshotTick) + worldOffset;
+      return Math.min(remoteDrawTick(), lastSnapshotTick) + worldOffset;
     },
     // The host's enemies ([{ id, type, x, y, vx, vy, aim, awake }], the ids of the newest snapshot
     // in first-seen order) at the same tick as remotePlayer(); null before the first snapshot (and
     // after a map change until the next one).
     remoteEnemies() {
       if (role !== 'guest' || enemyBuffers === null) return null;
-      const tick = localTick + clock.estimate().offsetTicks - INTERP_DELAY_TICKS;
+      const tick = remoteDrawTick();
       return [...enemyBuffers].map(([id, { type, buffer }]) => ({ ...buffer.sampleAt(tick), id, type }));
     },
   });
