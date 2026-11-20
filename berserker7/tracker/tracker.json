@@ -5546,6 +5546,21 @@
       "notes": ""
     },
     {
+      "id": "D-130",
+      "list": "design",
+      "kind": "feature",
+      "category": "Levels",
+      "title": "Depth rows: move between adjacent rows at marked places",
+      "detail": "A cells map's depth slices (z values) are rows; the player collides only with the blocks of the row it is on. The map lists transfer zones (an x range and the two adjacent rows it connects); only inside one can the player switch: descend to the row whose floor is lower there, ascend to the higher one. The switch is a 0.25 s scripted hop across in depth and up or down to the landing on the target row; a blocked landing does nothing. Two control schemes, chosen in the debug panel: A (default) descend = crouch then jump, ascend = jump then crouch in the air; B descend = crouch twice, ascend = jump twice; the two presses at most 200 ms apart. Outside a zone crouch and jump are unchanged. The 2.5D camera follows the row in depth (a debug toggle keeps it on the play plane), depth shading is brightest on the player's row, and zones are drawn with a marker. Row and hop are player state, predicted and sent in snapshots. Test map: depth-rows-test. Open: enemies and shots changing rows, cutting away blocks in the way, moving platforms on rows other than z = 0.",
+      "status": "ongoing",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [],
+      "notes": "2026-11-20: first test version (issue #98)."
+    },
+    {
       "id": "T-089",
       "list": "technical",
       "kind": "feature",
