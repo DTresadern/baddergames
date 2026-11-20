@@ -115,12 +115,13 @@ export function findLanding(targetTiles, player, from, dir, reach) {
   return null;
 }
 
-// True when every tile of the box's columns from the landing `top` up to the box's top, standing
-// at the player's current y, is non-solid on the target row's tiles: nothing in the way of the fall.
+// True when every tile of the box's columns from the landing `top` up to the top of the standing box
+// at the player's current y (the descend stands a crouched player up) is non-solid on the target
+// row's tiles: nothing in the way of the fall.
 export function fallPathClear(tiles, player, top) {
   const { x0, x1 } = columnsOf(player);
   const y0 = Math.floor(top + EPSILON);
-  const y1 = Math.floor(player.y + playerHeight(player) - EPSILON);
+  const y1 = Math.floor(player.y + player.size.height - EPSILON);
   for (let ty = y0; ty <= y1; ty++) {
     for (let tx = x0; tx <= x1; tx++) if (tiles.isSolid(tx, ty)) return false;
   }
