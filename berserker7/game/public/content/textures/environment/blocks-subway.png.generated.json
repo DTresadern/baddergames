@@ -298,5 +298,73 @@
       "kind": "floor",
       "tiles": "x"
     }
+  },
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "A 7 x 3 grid of 21 pixel-art 64 px tiles for a ruined subway / railway theme: track, platform, station wall, tunnel, train parts, pillars, bench, rubble, water, pipes, beam, crate, drain, vault door, plate, mine cart and ledge.",
+    "composition": "Tiles sit edge to edge with no gaps or labels. Each tile is a separate side-on (2D) view, not one continuous scene. Rows are 7, 7 and 7 tiles. Tiles with a dark navy background (pillars, bench, rubble, water, pipes, cart, ledge) have empty space around the object.",
+    "environment": "Abandoned underground transit: platform, tunnel, rolling stock, flooded track and a sealed vault door. Wet, rusty and derelict feel.",
+    "colors": "Dominant dark slate / navy and mid greys, with rust orange-brown streaks and pipes, amber-and-black hazard stripes, red stripes on train parts and a pillar, teal water and small teal glints, a single yellow-green glow (tunnel, vault slit), cream and lavender-grey wall bricks.",
+    "materials": "Looks like grimy painted steel with rivets, rough concrete, glazed ceramic tile, rusted pipe, weathered wood planks, dark murky water, loose rock and perforated metal. Thin vertical rust streaks overlay most tiles.",
+    "lighting": "Flat, unlit pixel-art shading with a light top edge and darker lower edge on some forms. No cast shadows. The only emissive elements are the green glow in the tunnel and the green slit in the vault hub. Roughly consistent across tiles.",
+    "standout_features": [
+      "Tunnel arch with a glowing green light and converging rails at the far end",
+      "Large vault door hub with eight spokes and a green light slit",
+      "Consistent rust-streak overlay unifying all tiles",
+      "Amber hazard stripes on pillar and vault plate",
+      "Mine cart loaded with rock on a rail"
+    ],
+    "important_details": [
+      "Row 1 tile 1 (rail-track): dark band above, a grey rail with four brown sleepers, dark ballast below with small cyan puddle glints - recognisable",
+      "Row 1 tile 2 (platform-edge): yellow line and dotted tactile strip at top over a grey grimy concrete face with seams - recognisable",
+      "Row 1 tile 3 (platform-arch): grey beam at top, arched dark recess with a rust pipe cross and rubble at the base - recognisable",
+      "Row 1 tile 4 (station-tile-wall): offset rows of grey, lavender and cream glazed tiles with rust streaks and a few dark chips - recognisable",
+      "Row 1 tile 5 (tunnel-arch): grey stone arch ring, dark interior, yellow-green glow with a rail converging at the bottom - recognisable",
+      "Row 1 tile 6 (train-window): grey carriage panel with a large dark rounded window, red stripe, rivet rows below - recognisable",
+      "Row 1 tile 7 (train-door): two grey door leaves with small rounded windows, red stripe across and a small plaque - recognisable",
+      "Row 2 tile 1 (train-bogie): dark undercarriage with two round wheels with brown axle boxes on a rail strip - recognisable as wheels; reads more as machinery than a bogie",
+      "Row 2 tile 2 (concrete-pillar): lavender-grey column with a red band near the bottom on a dark background, rust streaks - recognisable",
+      "Row 2 tile 3 (pillar-hazard): grey steel column with an amber-and-black hazard band at the bottom and rivets - recognisable",
+      "Row 2 tile 4 (bench): grey perforated seat and back panels with a dark leg frame on a grey wall panel - recognisable",
+      "Row 2 tile 5 (rubble): pile of dark and grey broken chunks with brown bent bars - recognisable as debris; shapes are jumbled",
+      "Row 2 tile 6 (water-surface): dark teal water with a lighter top line, amber dashes and horizontal ripple streaks - recognisable",
+      "Row 2 tile 7 (pipe-bundle): horizontal rust, grey and teal pipes with flanges, vertical dark brackets - recognisable",
+      "Row 3 tile 1 (monorail-beam): grey concrete beam with a rail on top, seam, dark murky band below with faint hangers - recognisable as a beam; the underside is hard to read",
+      "Row 3 tile 2 (wood-crate): brown planks with diagonal brace and grey corner plates - recognisable",
+      "Row 3 tile 3 (quay-drain): grey wall with a recessed barred opening in rust bars, a small cyan trickle below - recognisable",
+      "Row 3 tile 4 (vault-door-hub): concentric grey and brown rings with a yellow-green slit and eight brown spokes - recognisable",
+      "Row 3 tile 5 (vault-door-plate): four riveted grey plates with a diagonal amber-and-black stripe crossing them - recognisable",
+      "Row 3 tile 6 (mine-cart): brown ore cart with ribs, rock pile on top, two small wheels on a rail line - recognisable",
+      "Row 3 tile 7 (cracked-ledge): grey cracked slab on top with a jagged underside and teal drips on dark navy - recognisable"
+    ],
+    "synopsis": "A coherent set of 21 flat pixel-art tiles for a derelict subway level. Palette, outline weight and rust overlay are consistent. All tiles read as their names. Tiles are separate side views, so there is no shared perspective to check.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Rubble tile shapes are jumbled; individual chunks and bent bars are hard to separate",
+          "location": "Row 2 tile 5 (rubble)",
+          "confidence": "low",
+          "impact": "minor; still reads as debris"
+        },
+        {
+          "issue": "Underside of the beam is dark and murky; hangers and drips are hard to see, so it reads partly as a platform base or water",
+          "location": "Row 3 tile 1 (monorail-beam)",
+          "confidence": "low",
+          "impact": "minor"
+        },
+        {
+          "issue": "Train-bogie reads as two round machines with brown boxes more than as a bogie with a frame",
+          "location": "Row 2 tile 1 (train-bogie)",
+          "confidence": "low",
+          "impact": "minor"
+        }
+      ],
+      "overall": "No obvious structural, perspective, floating-object or lighting defect is seen. Only minor readability issues listed above."
+    },
+    "mismatches_or_uncertainties": [
+      "Vault-door-hub spokes extend past the tile edge by design; seamless joining to neighbouring tiles was not checked.",
+      "Tiling behaviour (seams) was not checked visually; only single tiles are visible.",
+      "Rust streaks look the same across unrelated tiles, so they read as a global overlay rather than per-object wear."
+    ]
   }
 }

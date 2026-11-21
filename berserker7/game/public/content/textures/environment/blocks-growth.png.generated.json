@@ -281,5 +281,77 @@
       "kind": "organic",
       "tiles": "y"
     }
+  },
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "A 6 x 3 sheet of 18 pixel-art square tiles showing alien-organic growth (flesh, tendrils, eggs, pods, slime, acid) over a steel and concrete industrial setting, plus cave rock tiles and one large eye.",
+    "composition": "Even grid, 6 columns by 3 rows, no gaps or labels. Each tile is a self-contained flat front-on (side-view) texture. Several tiles (hanging tendrils, slime drip, stalactite, bone ribs) have an anchored top edge with elements hanging down. Row 1 is mostly flesh and growth, row 2 is acid, pipe and bone/fungus, row 3 is rock plus the eye, floor and column.",
+    "environment": "Implied derelict industrial or subway interior infested by organic matter: steel panels, a pipe, concrete pillars and floor slabs, with cave rock and dark cavity space in places.",
+    "colors": "Dominant burgundy, maroon and pink for flesh and tendrils; acid and slime in yellow-green; dark charcoal and grey-blue for panels and voids; browns for rock; cream/bone for ribs and fungus; one strong orange-yellow accent in the eye.",
+    "materials": "Wet, glossy flesh with highlights; matte dark steel panels; slick translucent green slime and liquid; glossy purple pods; pale bone-like segments; rough angular brown rock; dithered checker patterns used for shaded or webbed flesh backgrounds.",
+    "lighting": "No global light source; each tile is flat with small local highlights (pale spots on pods and eggs, bright streaks in the acid, a catchlight on the eye). Highlights are mostly upper-left on pods and eggs. Lighting is consistent enough for a texture sheet.",
+    "standout_features": [
+      "Large orange eye with vertical slit pupil in a flesh socket (row 3 tile 4)",
+      "Green egg sacs and purple pods in dithered flesh webbing",
+      "Bright green acid fall with vertical streaks",
+      "Bone-like spine with curved ribs",
+      "Steel pipe with flesh cuffs and hanging strands"
+    ],
+    "important_details": [
+      "Row 1 tile 1 (flesh-wall): burgundy and pink blobby folds with dark pores and small dark slits - recognisable as flesh",
+      "Row 1 tile 2 (tendrils-on-panel): grey steel panel with rivets and dark red tendrils crossing it - recognisable",
+      "Row 1 tile 3 (tendrils-hanging): flesh band at the top with strands hanging over a dark panel, drips at ends - recognisable",
+      "Row 1 tile 4 (egg-sacs): round green glossy sacs with yellow highlights joined by thin green veins over dithered red webbing - recognisable as egg/spore sacs; embryos are not visible, ambiguous",
+      "Row 1 tile 5 (pod-cluster): glossy dark purple round pods with pink highlights, small green drips below, red webbing - recognisable",
+      "Row 1 tile 6 (slime-drip): green band at the top with thin green drips with blobby ends over a dark panel - recognisable; reads more like dripping lines than a thick slime band",
+      "Row 2 tile 1 (acid-pool): light green liquid body with a bright surface line, small ring bubbles and yellow square flecks over darker green layers, dark upper area - recognisable as liquid; the square flecks are slightly odd as bubbles",
+      "Row 2 tile 2 (acid-fall): vertical bright green stream with light streaks between dark speckled side walls - recognisable",
+      "Row 2 tile 3 (flesh-pipe): grey horizontal pipe with two flesh cuffs and red tendrils winding round it, drips below, dark panel behind - recognisable",
+      "Row 2 tile 4 (honeycomb): grid of dark oval holes with pink rims in pink-brown flesh - recognisable as a perforated membrane; reads more as pores or eyes than honeycomb cells, ambiguous",
+      "Row 2 tile 5 (bone-ribs): row of cream vertebra blocks across the top with curved cream ribs hanging down over dithered red flesh - recognisable",
+      "Row 2 tile 6 (glow-fungus): three cream shelf caps with pink undersides at the right, grey pillar at the left, dark red background - recognisable as shelf fungus; glow is faint, ambiguous",
+      "Row 3 tile 1 (rock-wall): angular brown polygonal rock cells with dark cracks - recognisable",
+      "Row 3 tile 2 (stalactite): brown rock ceiling at the top with dark triangular spikes pointing down and faint cyan drip dots - recognisable; the spikes read as dark negative-space points, so they could be read as the dark gaps between rock teeth, ambiguous",
+      "Row 3 tile 3 (spore-growth): brown cracked rock with small pale green crystal spots and dust - recognisable",
+      "Row 3 tile 4 (eye-pustule): large orange-yellow eye, black slit pupil with radial iris lines, in a red-pink flesh socket - clearly recognisable",
+      "Row 3 tile 5 (flesh-floor): grey slab with dark flesh crust on top edge and red tendrils hanging down its front, dark void below - recognisable; the slab reads more as a ceiling-hung panel than a floor, ambiguous",
+      "Row 3 tile 6 (tendril-column): grey concrete pillar with a thick red sinew trunk on the left and diagonal sinew bands crossing it - recognisable"
+    ],
+    "synopsis": "A coherent pixel-art texture sheet of infested industrial surfaces and cave elements in burgundy, green and brown. Most tiles read clearly as their names. The style and palette are consistent across the sheet.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Honeycomb tile reads as pores or eyes rather than a honeycomb membrane",
+          "location": "Row 2 tile 4 (honeycomb)",
+          "confidence": "medium",
+          "impact": "Low; identity is still organic and usable as a texture"
+        },
+        {
+          "issue": "Flesh floor tile reads as a slab with tendrils hanging from the top, so the floor/crust orientation is unclear",
+          "location": "Row 3 tile 5 (flesh-floor)",
+          "confidence": "low",
+          "impact": "Low; may be confused with the tendrils-hanging tile in row 1"
+        },
+        {
+          "issue": "Glow-fungus glow is faint and the tile is mostly dark",
+          "location": "Row 2 tile 6 (glow-fungus)",
+          "confidence": "low",
+          "impact": "Low; caps are recognisable but not clearly luminous"
+        },
+        {
+          "issue": "Square yellow flecks in the acid pool look like pixel noise rather than bubbles",
+          "location": "Row 2 tile 1 (acid-pool)",
+          "confidence": "low",
+          "impact": "Low; cosmetic"
+        }
+      ],
+      "overall": "No obvious structural defects, floating objects, distortion, perspective errors or lighting inconsistencies are seen. Minor readability issues only, listed above."
+    },
+    "mismatches_or_uncertainties": [
+      "Egg sacs: embryos named in the notes are not visible at this scale.",
+      "Honeycomb: reads as pores or eyes, not clearly a honeycomb.",
+      "Glow-fungus: glow is weak.",
+      "Seamless tiling along the axes named in the index was not checked from the image alone."
+    ]
   }
 }

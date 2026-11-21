@@ -308,5 +308,83 @@
       "kind": "machine",
       "tiles": "y"
     }
+  },
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "A 7 x 3 sheet of 21 pixel-art industrial tiles: pipes, machines, lift parts, girders, bridge parts, road barriers, a banner, lamps, a shutter, a conveyor, a drill face, a tread and a battery rack.",
+    "composition": "Seven columns, three rows, each tile a separate square with its own flat side-on view. Tiles abut with no gaps or labels. Several tiles have strong horizontal bands (pipes, barriers, decks); others are centred single objects (banner, floodlight, drill face, tank trap).",
+    "environment": "Dark navy-grey backdrops with grit specks in most tiles. Backgrounds read as shaft, street or machine-room walls. Two tiles have a wet-looking dark street strip at the bottom (barriers, tank trap). Pipe-outlet has a rust wall; banner-red has a grey wall.",
+    "colors": "Dark slate and near-black base. Rust orange and brown, amber and yellow glows, black and yellow hazard stripes, teal on two pipes, red and white on one barrier, a flat red banner with gold, olive green on the drill face and the pouring liquid, grey steel and lavender-grey concrete. Small red and cyan indicator dots.",
+    "materials": "Rusty metal with speckled corrosion; riveted steel plates and bands; glowing amber glass and grilles; painted hazard stripes; pale concrete with chips; cloth banner; dark lattice and mesh. Surfaces are shaded in flat pixel steps with dark outlines.",
+    "lighting": "Self-lit amber windows, lamps and slats are the main light sources. Dithered dots suggest glow around lamps. Shading on pipes and posts is mostly vertical gradients, lighter at the top or left. No cast shadows. Lighting is consistent in style across the sheet.",
+    "standout_features": [
+      "Strong amber glow tiles: furnace window, lift windows, shutter slats, floodlight head, battery cells",
+      "Black and yellow hazard stripes on four tiles",
+      "Red and white diagonal barrier is the highest-contrast tile",
+      "Red banner with a gold winged emblem",
+      "Circular drill face with green speckled gaps",
+      "Green liquid pouring from the pipe mouth"
+    ],
+    "important_details": [
+      "Row 1 tile 1 (furnace-drum): horizontal teal pipe-like drum with rust bands, amber grille window on the right, hazard stripe along the bottom - recognisable as an industrial machine; reads more as a pipe with a window than a drum",
+      "Row 1 tile 2 (pipe-outlet): rust-brown riveted wall with a round dark pipe mouth and bolted ring, olive-green liquid with speckles pouring down, teal pipe stub at left - recognisable",
+      "Row 1 tile 3 (valve-wheel): rust handwheel drawn as an ellipse with spokes, stem, over a rust pipe at the bottom, grey speckled background - recognisable; no steam visible",
+      "Row 1 tile 4 (pipe-large-riveted): wide rust-orange pipe with two vertical riveted flange bands and speckles - recognisable",
+      "Row 1 tile 5 (lamp-strip-v): vertical grey rail with two amber lamp segments and dark gaps, dithered side marks - recognisable",
+      "Row 1 tile 6 (lift-cage): amber-lit barred window in a steel frame, roof beam with a cable above, hazard band and floor below - recognisable as a lift car",
+      "Row 1 tile 7 (lift-platform-edge): hazard-striped top band, riveted beam with amber and red lamps, zig-zag struts below - recognisable",
+      "Row 2 tile 1 (cable-spool): drum of fine rust-brown horizontal windings between grey end flanges in a steel frame, thin cable at top - recognisable",
+      "Row 2 tile 2 (girder-rust-v): two rust posts with large X bracing and a centre plate on a dark background - recognisable",
+      "Row 2 tile 3 (bridge-deck): grey concrete top, steel girder with posts, orange lamp strip, two small red lamps hanging below - recognisable",
+      "Row 2 tile 4 (bridge-pier): lavender-grey column with two riveted steel bands and a small red lamp at the left edge - recognisable; the lamp sits partly off the column",
+      "Row 2 tile 5 (jersey-barrier): two blocks with orange and dark diagonal stripes, small dark slots, grey base, wet street strip below - recognisable",
+      "Row 2 tile 6 (barrier-red-white): two pale blocks with bold red diagonal stripes and chips, street strip below - recognisable",
+      "Row 2 tile 7 (tank-trap): two crossed grey beams in an X above a horizontal beam, dark street below - ambiguous; reads as a crossed X on a bar rather than a three-beam hedgehog",
+      "Row 3 tile 1 (banner-red): red banner with swallowtail bottom and gold winged emblem hanging from a gold rod on a grey wall - recognisable",
+      "Row 3 tile 2 (floodlight): lamp head with six yellow panes (3 x 2) on a dark lattice mast, dithered glow around it - recognisable",
+      "Row 3 tile 3 (shutter-door): amber horizontal slats in two bays with grey posts, header and base - recognisable",
+      "Row 3 tile 4 (conveyor): top belt with four round rollers, amber rail with rivets, dark legs below - recognisable",
+      "Row 3 tile 5 (drill-face): concentric grey toothed rings with green dotted gaps and a pale green centre on an olive background - recognisable as a cutter face; fine ring detail is noisy",
+      "Row 3 tile 6 (tread): top and bottom link plates with two large grey road wheels and small rollers on a dark body - recognisable as a track",
+      "Row 3 tile 7 (server-rack): two rows of four amber cells in steel shelves with green cable lines and a cyan dot at the right edge - recognisable as a cell or battery rack"
+    ],
+    "synopsis": "A coherent pixel-art set of industrial tiles in one palette and one flat side-on style. Almost all tiles read as their names. The only weak reads are the tank trap and, slightly, the furnace drum and the missing steam on the valve wheel.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Tank trap reads as a flat X on a bar, not a three-beam steel hedgehog",
+          "location": "Row 2 tile 7 (tank-trap)",
+          "confidence": "medium",
+          "impact": "Low; still recognisable as crossed beams"
+        },
+        {
+          "issue": "Valve handwheel drawn as a tilted ellipse while neighbouring tiles are flat side-on; no steam visible although the note mentions it",
+          "location": "Row 1 tile 3 (valve-wheel)",
+          "confidence": "medium",
+          "impact": "Low; minor perspective mix and a missing detail"
+        },
+        {
+          "issue": "Red lamp sits half off the column edge and looks detached",
+          "location": "Row 2 tile 4 (bridge-pier)",
+          "confidence": "low",
+          "impact": "Low; may be intended as a side-mounted lamp"
+        },
+        {
+          "issue": "Drill rings are busy with dotted noise; the teeth are hard to read at 64 px",
+          "location": "Row 3 tile 5 (drill-face)",
+          "confidence": "low",
+          "impact": "Low; overall shape still reads"
+        }
+      ],
+      "overall": "No serious defect seen: no floating objects, broken structure, distortion or lighting conflicts. Only minor readability notes above."
+    },
+    "mismatches_or_uncertainties": [
+      "Furnace-drum reads as a teal pipe section with a window; the drum shape is not obvious",
+      "Valve-wheel: steam behind the wheel is not visible",
+      "Tank-trap: only two crossed beams are visible, no third beam",
+      "Pipe-outlet liquid is olive green; the note says dirty water (colour is not clearly brown)",
+      "Floodlight rays appear only as dithered dots, not clear rays",
+      "Seamless tiling is not assessed from a single tile view"
+    ]
   }
 }

@@ -241,5 +241,70 @@
       "kind": "vent",
       "tiles": "none"
     }
+  },
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "A 6x3 atlas of 64 px pixel-art tiles for a sci-fi lab / facility / prison environment: windows, specimen tanks, doors, bars, lockers, a light, a terminal, wall tiles, stairs, ladder, railing and a drain.",
+    "composition": "Flat grid of 18 square tiles, six columns by three rows, no gaps. Each tile is a front-on side view. Most are a single object centred on a dark grey wall; some fill the tile edge to edge (windows, bars, tile wall, railing, ceiling light).",
+    "environment": "Industrial sci-fi laboratory and detention facility. Dark steel wall backgrounds with rivets, hazard striping, glass, water and caged openings.",
+    "colors": "Dark charcoal grey base. Accents: cyan and pale blue (water, glass, screens, tile wall), amber / orange (hazard stripes, lit rooms, locker suit), red (lights, tube, door chevrons), yellow (rails, ladder, stairs handrail), olive green (specimen tanks).",
+    "materials": "Brushed and riveted dark steel, glass with highlights, translucent coloured liquid, pale glazed tiles with grout, painted hazard stripes, vertical metal bars, grey concrete bricks, falling water.",
+    "lighting": "Lit from within by coloured sources: cyan tank and window glow, amber room glow, red lamps. Highlights run along the top/left edges of metal frames; no cast shadows. Light direction is consistent in most tiles.",
+    "standout_features": [
+      "Three coloured specimen tank tiles (cyan, green, red) with dark silhouettes",
+      "Octagonal hazard-striped door with nested red frames",
+      "Red chevron blast door with centre boss",
+      "Yellow safety elements (stairs handrail, ladder, railing) with strong contrast on dark wall",
+      "Drain culvert with falling cyan water"
+    ],
+    "important_details": [
+      "Row 1 tile 1 (observation-window): control-room glazing with slanted posts, amber lit room, seated figures at desks with monitors, one standing figure in white - recognisable",
+      "Row 1 tile 2 (lab-window-cyan): two cyan-lit window panes with white ceiling light bars, mullions, hazard strip on the sill - recognisable",
+      "Row 1 tile 3 (specimen-tank-cyan): steel-capped glass cylinder of cyan liquid with a dark humanoid silhouette and bubbles - recognisable",
+      "Row 1 tile 4 (specimen-tank-green): two yellow-green tanks with dark curled specimens, base strip of orange squares - recognisable; the specimens read as blobs more than curled forms",
+      "Row 1 tile 5 (containment-tube-red): red-lit tube with dark humanoid figure, rust-coloured collars, pipe above - recognisable",
+      "Row 1 tile 6 (bay-door-red): octagonal grey frame around a red recessed panel with vertical bars, red lamp above - recognisable",
+      "Row 2 tile 1 (hazard-door-octagon): octagonal frame with amber and black stripes, nested dark red octagons with small red lights - recognisable",
+      "Row 2 tile 2 (blast-door-diagonal): riveted square door with red and grey chevron panels split into four, centre boss - recognisable",
+      "Row 2 tile 3 (cell-bars): dark vertical bars with two crossbars, faint amber glow behind, stone-grey floor slab at bottom - recognisable",
+      "Row 2 tile 4 (cell-gate-arch): arched barred gate in a grey brick wall with dark red interior, red lamp on top - recognisable",
+      "Row 2 tile 5 (locker): left a closed grey locker with vents, handle and label; right an open locker holding an amber suit - recognisable",
+      "Row 2 tile 6 (ceiling-light-cyan): dark upper band with rivets, two white light tubes, cyan glow with hatched fade below - recognisable as a light; the lower wall reads somewhat like water",
+      "Row 3 tile 1 (terminal): console with two cyan screens above a slanted button desk and a cabinet with coloured lights - recognisable",
+      "Row 3 tile 2 (lab-tile-wall): grid of pale blue-grey tiles with grout and faint streaks - recognisable",
+      "Row 3 tile 3 (stairs-yellow): diagonal grey stair flight rising left to right with a yellow handrail - recognisable",
+      "Row 3 tile 4 (ladder-yellow): vertical yellow ladder with rungs and small wall brackets on dark wall - recognisable",
+      "Row 3 tile 5 (railing-yellow): yellow top rail, mid rail and posts above a grey toe board and riveted walkway edge - recognisable",
+      "Row 3 tile 6 (drain-culvert): arched barred opening in a riveted wall with cyan water falling from the bottom - recognisable"
+    ],
+    "synopsis": "A coherent, consistent pixel-art set of lab and prison props. Palette, outline weight and lighting style match across tiles. All 18 tiles read as their names.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Specimen shapes in the green tank are vague blobs rather than clearly curled creatures",
+          "location": "Row 1 tile 4 (specimen-tank-green)",
+          "confidence": "medium",
+          "impact": "Minor; reads as a specimen jar regardless"
+        },
+        {
+          "issue": "Lower half of the light tile is a cyan hatched gradient that could be read as water or a screen rather than light spill",
+          "location": "Row 2 tile 6 (ceiling-light-cyan)",
+          "confidence": "low",
+          "impact": "Minor; the tube strip still identifies it as a light"
+        },
+        {
+          "issue": "Water at the bottom of the culvert ends in a scattered pixel splash at the tile edge, which will not join cleanly to a tile placed below",
+          "location": "Row 3 tile 6 (drain-culvert)",
+          "confidence": "low",
+          "impact": "Minor; tile is marked non-tiling"
+        }
+      ],
+      "overall": "No obvious structural, perspective, floating-object or lighting defects. Only minor readability issues noted above."
+    },
+    "mismatches_or_uncertainties": [
+      "Row 1 tile 1 figures are very small; seated versus standing staff are hard to tell apart at 64 px.",
+      "Tiling behaviour (seams) was not checked; only single tiles were viewed.",
+      "The reference images named in the JSON were not compared."
+    ]
   }
 }
