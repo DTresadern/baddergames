@@ -5,6 +5,7 @@
   "tileSize": 64,
   "tile": {"type": "solid", "color": "#6b7a8f"},
   "atlas": "blocks-placeholder",
+  "lighting": {"background": "#344a4c", "ambient": [0.205, 0.218, 0.232], "nearShade": 0.21, "fog": {"color": "#324f5c", "density": 0.035, "eye": 4.48}, "lights": {"wall-light": {"color": "#ffc144", "intensity": 2.5, "radius": 1.5}, "warning-lamp": {"color": "#ff9d96", "intensity": 2.5, "radius": 1.5}, "lit-sign": {"color": "#ffc862", "intensity": 1.6, "radius": 1.5}, "lit-screen": {"color": "#ff28d7", "intensity": 1.6, "radius": 1.5}, "lit-window": {"color": "#ffba35", "intensity": 2.6, "radius": 3.25}}},
   "source": {"tool": "tools/moge_blockout.py --mode blocks", "principalPx": [995.0, 415.0], "focalPx": 400.0, "blocksPerMetre": 0.21, "maxBlocks": 7.25, "minPoints": 100, "cameraHeightBlocks": 0.75, "playPlaneDepthBlocks": 4.479, "columnShiftBlocks": 0.51, "imageBlocksHighAtPlayPlane": 9.17, "removedCells": 28, "removeFile": "tools/moge3-cyberpunk-blocks.remove.json", "sections": "tools/levels/moge3-cyberpunk-blocks.sections.mjs"},
   "player": {"width": 0.55, "height": 1.2, "crouchHeight": 0.6},
   "spawns": [{"type": "player", "x": -4, "y": 0}, {"type": "enemy", "x": 22, "y": 0}, {"type": "enemy", "x": 40, "y": 0}, {"type": "enemy", "x": 60, "y": 6}, {"type": "enemy", "x": 95, "y": -2}, {"type": "enemy", "x": 100, "y": -2}, {"type": "enemy", "x": 110, "y": -2}, {"type": "enemy", "x": 135, "y": 9}, {"type": "enemy", "x": 145, "y": 9}, {"type": "enemy", "x": 201, "y": 9}, {"type": "enemy", "x": 249, "y": 9}],
