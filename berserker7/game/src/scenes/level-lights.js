@@ -56,8 +56,8 @@ function makeLight(x, y, z, { color, intensity, radius }) {
 
 // The shader's light slots for a fixed list of lights. `uniforms` holds three.js uniform objects
 // ({ value }): litLightPos and litLightColor (MAX_LIGHTS Vector3 each) and litLightRadius
-// (MAX_LIGHTS numbers). `select(x, y, z)` puts the MAX_LIGHTS lights nearest the point (squared 3D
-// distance) into the slots, nearest first; unused slots get colour 0 and radius 1 (intensity 0,
+// (MAX_LIGHTS numbers). `select` puts the MAX_LIGHTS lights that reach furthest into the view into
+// the slots, in that order (see select); unused slots get colour 0 and radius 1 (intensity 0,
 // never removed). Nothing is allocated in select. Returns true when the chosen set changed (a new
 // order of the same lights is not a change).
 export function createLightPool(lights) {
@@ -73,17 +73,19 @@ export function createLightPool(lights) {
   const before = new Uint8Array(n); // 1: chosen in the previous select
   // (x, y, z): the view's centre on the player's row; halfWidth, halfHeight: the view's half size
   // there (tiles; 0 gives the lights nearest the point, by distance minus radius); cameraZ: the
-  // perspective camera's z (Infinity: orthographic). A light ranks by its 3D distance to the view
+  // perspective camera's z (Infinity: orthographic). A light ranks by its distance to the view
   // rectangle, minus its radius: negative when its light reaches into the view. With a perspective
-  // camera the rectangle is the view's size at the light's depth: (cameraZ - l.z) / (cameraZ - z)
-  // times the size on the row.
+  // camera the rectangle is the view's size at the light's own depth ((cameraZ - l.z) /
+  // (cameraZ - z) times the size on the row), so the distance is in x and y only; orthographic
+  // (only z = 0 drawn) it is the 3D distance to the rectangle at depth z.
   function select(x, y, z, halfWidth = 0, halfHeight = 0, cameraZ = Infinity) {
     for (let i = 0; i < n; i++) {
       const l = lights[i];
       const scale = Number.isFinite(cameraZ) ? Math.max(0, (cameraZ - l.z) / (cameraZ - z)) : 1;
       const dx = Math.max(0, Math.abs(l.x - x) - halfWidth * scale);
       const dy = Math.max(0, Math.abs(l.y - y) - halfHeight * scale);
-      distance[i] = Math.sqrt(dx * dx + dy * dy + (l.z - z) ** 2) - l.radius;
+      const dz = Number.isFinite(cameraZ) ? 0 : l.z - z;
+      distance[i] = Math.sqrt(dx * dx + dy * dy + dz * dz) - l.radius;
       taken[i] = 0;
     }
     // Partial selection sort: the lowest-ranked remaining light per slot (ties: the lower index).

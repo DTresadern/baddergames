@@ -155,15 +155,16 @@ test('createLightPool: lights rank by distance to the view rectangle minus their
   assert.equal(pool.uniforms.litLightPos.value[0].toArray().join(','), '-12,6,0');
 });
 
-test('createLightPool: with a perspective camera the view rectangle is wider at a light behind the row', () => {
+test('createLightPool: with a perspective camera the view rectangle is the view at the light\'s depth', () => {
   const at = (x, y, z) => Object.freeze({ x, y, z, color: Object.freeze([1, 1, 1]), radius: 0.5 });
-  // Camera at z 10, row at 0, half width 5 on the row: at z -2 the half width is 6, so the light at
-  // x 5.8, z -2 is inside the view (rank 2 - 0.5 = 1.5) and ranks before the one at x 0, z -2.1
-  // (1.6). Orthographic, it is 0.8 outside (rank sqrt(0.64 + 4) - 0.5 = 1.65) and ranks after.
-  const pool = createLightPool([at(0, 0, -2.1), at(5.8, 0, -2)]);
+  // Camera at z 10, row at 0, half width 5 on the row: at z -3 the half width is 6.5, so the light
+  // at x 6.2, z -3 is inside the view (rank -0.5, no depth term in perspective) and ranks before
+  // the one at x 5.6, z 0, just outside it (0.6 - 0.5 = 0.1). Orthographic, the first is 1.2 out
+  // and 3 deep (rank sqrt(1.44 + 9) - 0.5 = 2.73) and ranks after.
+  const pool = createLightPool([at(5.6, 0, 0), at(6.2, 0, -3)]);
   const first = () => pool.uniforms.litLightPos.value[0].toArray().join(',');
   pool.select(0, 0, 0, 5, 3, 10);
-  assert.equal(first(), '5.8,0,-2', 'perspective: inside the wider view at its depth');
+  assert.equal(first(), '6.2,0,-3', 'perspective: inside the wider view at its depth');
   pool.select(0, 0, 0, 5, 3);
-  assert.equal(first(), '0,0,-2.1', 'orthographic: the light at 5.8 is outside the view');
+  assert.equal(first(), '5.6,0,0', 'orthographic: nearer the plane wins');
 });
