@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Berserker 7 retro 4</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --text: #1d1f24; --muted: #5d6270; --line: #dcd9d2;
+  --accent: #2f5fbf; --good: #1e7a4a; --good-bg: #e3f3ea; --warn: #8a5a00; --warn-bg: #fff4dc;
+  --bad: #a3302a; --bad-bg: #fbe7e5; --code-bg: #efede8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161b; --panel: #1c1f26; --text: #e6e8ee; --muted: #9aa1b0; --line: #2e333d;
+    --accent: #86aef5; --good: #7fd3a4; --good-bg: #17301f; --warn: #f0c36a; --warn-bg: #2e2715;
+    --bad: #f19a92; --bad-bg: #3a1d1b; --code-bg: #262a33;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 1.9rem; margin: 0 0 4px; }
+h2 { font-size: 1.3rem; margin: 40px 0 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+p, li { max-width: 78ch; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+a { color: var(--accent); }
+code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.stat b { display: block; font-size: 1.5rem; }
+.stat span { color: var(--muted); font-size: .85rem; }
+.tablewrap { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); font-size: .92rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--code-bg); font-weight: 600; }
+.pill { font-size: .75rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.ok { color: var(--good); background: var(--good-bg); }
+.wn { color: var(--warn); background: var(--warn-bg); }
+.no { color: var(--bad); background: var(--bad-bg); }
+figure { margin: 20px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+figure img { display: block; width: 100%; height: auto; }
+figure.narrow { max-width: 420px; }
+figcaption { padding: 10px 14px; font-size: .9rem; color: var(--muted); }
+figcaption b { color: var(--text); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 figure { margin: 0; }
+.note { background: var(--warn-bg); border-left: 4px solid var(--warn); padding: 10px 14px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Berserker 7 · Milestone retro 4: test level, enemies and depth rows</h1>
+<p class="sub">Written 20 November 2026. Covers 19 November 23:30 to 20 November 17:16 UTC, from the tracker update (PR #94, the end of retro 3) to the depth rows reach rule and air grab (PR #104). Live build <code>68876a9</code>. Screenshots come from the lanes' local builds.</p>
+
+<p><b>In one paragraph:</b> The Sandbox now opens on a real test level: the second cyberpunk blockout extended from 24 to about 160 tiles, with indoor sections, a crawl space, climbs, drops, an underpass and rooftops, in front of a city backdrop with stepped towers, antennas, signs and skyways. The first moving platforms and the first enemies are in. Platforms move on paths computed from the game tick, so the guest works out their positions itself. Enemies stay idle until a player comes within 7 tiles, then chase. The host sends them in every snapshot, each with a fixed id and a type. Blocks are shaded by depth so the walkable row stands out. A measurement in the level work showed that, under added delay, the guest drew the host's player and the enemies in steps 30 times a second. The cause was found in the code and fixed. Last, depth rows: at marked places the player can hop to an adjacent row in front or behind that is higher or lower, with two control schemes, tried on a dedicated test map and checked with two players.</p>
+
+<div class="stats">
+  <div class="stat"><b>5</b><span>pull requests merged (#96, #99, #100, #102, #104)</span></div>
+  <div class="stat"><b>515</b><span>tests (490 at retro 3)</span></div>
+  <div class="stat"><b>7,991</b><span>lines of game code (7,125 at retro 3)</span></div>
+  <div class="stat"><b>7,784</b><span>lines of tests (7,271 at retro 3)</span></div>
+  <div class="stat"><b>4</b><span>protocol versions in one day (3 to 6)</span></div>
+</div>
+
+<h2>Timeline</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Merged (UTC)</th><th>PR</th><th>What</th></tr></thead>
+<tbody>
+<tr><td>14:25</td><td>#96</td><td><b>Test level, moving platforms and enemies</b> (issue #95). The <code>moge3-cyberpunk-blocks</code> map extended to x 150 and made the Sandbox default; varied city backdrop; a moving platform and a lift; 8 enemies; the snapshot gains the host's world tick and the enemy list. After the owner's review in the same PR: enemies get a fixed id and a type, and blocks are shaded by depth. Protocol versions 3 and 4. 13 commits.</td></tr>
+<tr><td>14:53</td><td>#99</td><td><b>Smooth remote movement under delay</b> (issue #97). The guest draws the host's player and enemies 6 ticks behind the newest data that has arrived, not behind an estimate of the host's current tick.</td></tr>
+<tr><td>15:03</td><td>#100</td><td><b>Depth rows</b> (issue #98): transfer zones, a 0.25 s hop between adjacent rows, control schemes A and B, a camera that follows the row's depth, the <code>depth-rows-test</code> map. Protocol version 5. 13 commits.</td></tr>
+<tr><td>17:15</td><td>#104</td><td><b>Depth rows: reach rule, air grab and gravity drop</b> (issue #103). Going up only to a row within reach (top of the box: 1.2 tiles standing, 3.63 at the top of a jump); a crouch in the air inside a zone grabs the higher row; going down moves across in depth over 0.25 s while normal gravity does the height (a 5-tile drop takes about 0.6 s). New test section x 103–146. Protocol version 6.</td></tr>
+</tbody></table></div>
+
+<h2>Decisions made</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Decision</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>"If we know better, do better"</td><td>The owner's rule for reviewing lane work: whatever a lane builds, if a better approach is known, say so and change it. The owner's questions are for understanding and do not steer a running lane, which may find something better.</td></tr>
+<tr><td>Enemy ids now, not later</td><td>Once enemies are in the network state they are sent properly: a fixed id for each enemy's whole life and a type, the full list in every snapshot, and the guest adds, updates and removes by id. The owner called it foundation work and put it in #96 rather than a later issue.</td></tr>
+<tr><td>Platforms from the tick (D-129)</td><td>A platform's position is a function of the world tick only. Platforms are never sent; the snapshot carries the host's world tick (<code>wt</code>) so the guest computes the same positions, also while predicting its own player.</td></tr>
+<tr><td>First enemy behaviour</td><td>Idle until a player's centre is within 7 tiles, then moves towards the nearest player at 3 tiles/s for good. No damage, health, pushing or attacks. Pre-placed in the map; no spawner yet.</td></tr>
+<tr><td>How the level is made</td><td>The generated blockout is kept byte for byte (<code>tools/moge3-cyberpunk-blocks.base.json</code>); authored sections in <code>tools/levels/moge3-cyberpunk-blocks.sections.mjs</code> are merged by <code>npm run build:level</code>, and a test checks the committed map matches. Edit the sections, never the map. The depth rows map follows the same rule.</td></tr>
+<tr><td>Depth shading</td><td>Blocks on the player's row are unchanged; behind are darker and cooler (0.62, 0.48, 0.38), in front darker and warmer (0.34). Relative to the player's row, easing during a hop.</td></tr>
+<tr><td>Remote draw time</td><td>6 ticks (100 ms) behind the host tick of the data arriving now, measured from ping replies, which travel the same way as snapshots. Correct at any delay and with different delays each way.</td></tr>
+<tr><td>Frame blending: low priority</td><td>The game draws its 60 ticks a second without blending between them, so on a 144 Hz display positions change 60 times a second. The owner: smooth at 60 fps is enough for now; it is on the to-do list.</td></tr>
+<tr><td>Depth rows (D-130)</td><td>Rows are a cells map's depth slices; the player collides with its own row. The map lists transfer zones; switching works only inside them. A scripted hop of 15 ticks with a 0.5-tile arc. Scheme A: crouch then jump descends, jump then crouch ascends. Scheme B: double crouch, double jump. Presses at most 12 ticks (200 ms) apart. The camera follows the row's depth by default so the player keeps its size.</td></tr>
+</tbody></table></div>
+
+<h2>The test level</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>x (tiles)</th><th>Section</th></tr></thead>
+<tbody>
+<tr><td>-11 to 10</td><td>The original blockout, unchanged</td></tr>
+<tr><td>11 to 24</td><td>Outdoor walkway with a crate step</td></tr>
+<tr><td>25 to 44</td><td>Indoor station, ceiling at 3, a crouch crawl at 34–37</td></tr>
+<tr><td>45 to 62</td><td>Climb to a deck at 6 over a lower walkway</td></tr>
+<tr><td>63 to 84</td><td>Gap crossed by the moving platform (x 63 to 76, 3 tiles/s); a pit below with a way back up</td></tr>
+<tr><td>80 to 104</td><td>8-tile drop to a street under a bridge</td></tr>
+<tr><td>105 to 121</td><td>Indoor underpass; the lift at 115–118 (y -2 to 6, 2 tiles/s) is the only way up</td></tr>
+<tr><td>122 to 150</td><td>Rooftops at 6, 7 and 9, a 3-wide gap, the end wall</td></tr>
+</tbody></table></div>
+<p>2,219 cells, 2 platforms, 8 enemies at x 22, 40, 60, 95, 100, 110, 135 and 145. Layout rules: step-ups at most 2, same-height gaps at most 3, standing headroom at least 2, a crawl exactly 1.</p>
+
+<figure><img src="retro4/01-outdoor-backdrop.webp" alt="Outdoor walkway with the city backdrop, the player and an enemy">
+  <figcaption><b>Outdoor, before depth shading.</b> The backdrop's three layers have stepped tops, skyways and signs. Yellow is the player, red an enemy.</figcaption></figure>
+
+<div class="grid2">
+  <figure><img src="retro4/02-indoor-flat.webp" alt="Indoor station with every block the same colour">
+    <figcaption><b>Indoor, one colour.</b> The ceiling, back wall and floor are hard to tell apart.</figcaption></figure>
+  <figure><img src="retro4/03-indoor-shaded.webp" alt="The same indoor view with depth shading">
+    <figcaption><b>Indoor, shaded by depth.</b> The walkable row stays bright; blocks behind are darker and cooler, in front darker and warmer.</figcaption></figure>
+</div>
+
+<div class="grid2">
+  <figure><img src="retro4/04-lift-rider.webp" alt="The player riding the yellow lift in the underpass">
+    <figcaption><b>The lift</b>, the only way up from the underpass.</figcaption></figure>
+  <figure><img src="retro4/05-enemy-chase.webp" alt="Two awake enemies near the player">
+    <figcaption><b>Enemies awake</b>, moving towards the player.</figcaption></figure>
+</div>
+
+<h2>Networking</h2>
+<figure class="narrow"><img src="retro4/06-guest-platform-lag200.webp" alt="The guest, in blue, riding the moving platform">
+  <figcaption><b>Guest riding the platform with <code>?lag=200</code>.</b> Its offset on the platform was exactly 1.5000 tiles on every frame.</figcaption></figure>
+
+<h3>Stepped movement under delay (#97, PR #99)</h3>
+<p>Measured on the guest, every frame for 4 s, two visible windows, <code>?net=local</code>. "Moves" counts the positions per second that change; the step is the median size of a change.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Lag (host / guest)</th><th>Before: player</th><th>Before: enemy</th><th>After: player</th><th>After: enemy</th></tr></thead>
+<tbody>
+<tr><td>0 / 0 ms</td><td>60/s, 0.133</td><td>60/s, 0.05</td><td>60/s, 0.133</td><td>60/s, 0.05</td></tr>
+<tr><td>100 / 100 ms</td><td>30/s, 0.267</td><td>30/s, 0.10</td><td>60/s, 0.133</td><td>60/s, 0.05</td></tr>
+<tr><td>200 / 200 ms</td><td>30/s, 0.267</td><td>30/s, 0.10</td><td>60/s, 0.133</td><td>60/s, 0.05</td></tr>
+<tr><td>200 / 0 ms</td><td>30/s, 0.267</td><td>30/s, 0.10</td><td>60/s, 0.133</td><td>60/s, 0.05</td></tr>
+</tbody></table></div>
+<p class="note"><b>Cause:</b> the guest drew remote bodies at its estimate of the host's current tick minus 6. Snapshots arrive one one-way delay late, so above about 100 ms that point was past the newest snapshot on every frame, and the interpolation held it until the next one arrived. At 200 / 200 ms the draw tick was a median 8.1 ticks past the newest data. A new test fails on the old code and passes on the new.</p>
+
+<h3>Snapshot size</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Protocol</th><th>Change</th><th>8 enemies, every value at its extreme</th><th>Worst case (16 enemies)</th></tr></thead>
+<tbody>
+<tr><td>3</td><td>world tick and enemies (x, y, awake)</td><td>570 B</td><td>698 B</td></tr>
+<tr><td>4</td><td>enemy id and type</td><td>854 B</td><td>998 B</td></tr>
+<tr><td>5</td><td>player row, hop and press ages; scheme in the input</td><td>974 B</td><td>1,118 B</td></tr>
+</tbody></table></div>
+<p>The limit per message is 2,048 bytes. Each version change also changes the PeerJS id prefix and the local channel name, so an older build finds no room instead of misreading messages.</p>
+
+<h2>Depth rows</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>x (tiles)</th><th>Rows</th><th>What it tests</th></tr></thead>
+<tbody>
+<tr><td>0–12</td><td>row 0, floor 0</td><td>start</td></tr>
+<tr><td>8–11</td><td>zone 0 → +1</td><td>descend towards the camera</td></tr>
+<tr><td>13–26</td><td>wall on row 0</td><td>the front row is the only way past</td></tr>
+<tr><td>28–31</td><td>zone +1 → 0</td><td>ascend away from the camera</td></tr>
+<tr><td>35–37</td><td>zone 0 → -1</td><td>ascend away, onto the branch</td></tr>
+<tr><td>38–56</td><td>rows 0 and -1 side by side</td><td>no zone: switching does nothing</td></tr>
+<tr><td>57–60</td><td>zone -1 → 0</td><td>descend towards the camera; the branch rejoins</td></tr>
+<tr><td>64–67</td><td>zone 0 → -1</td><td>descend away, onto a low back path</td></tr>
+<tr><td>70–84</td><td>row -1 behind a row-0 wall and pillars</td><td>back row partly hidden</td></tr>
+<tr><td>87–90</td><td>zone -1 → 0</td><td>ascend towards the camera</td></tr>
+<tr><td>100</td><td></td><td>end wall</td></tr>
+</tbody></table></div>
+
+<div class="grid2">
+  <figure><img src="retro4/07-hop-midway.webp" alt="The player mid-hop between two rows, cyan zone markers on both">
+    <figcaption><b>A hop, half-way.</b> Cyan strips mark the transfer zone on both rows.</figcaption></figure>
+  <figure><img src="retro4/08-branch-both-rows.webp" alt="Two rows side by side at different heights">
+    <figcaption><b>The branch.</b> The player's row is bright; the other row is shaded.</figcaption></figure>
+</div>
+<div class="grid2">
+  <figure><img src="retro4/09-back-row-hidden.webp" alt="The player on the back row behind front-row pillars">
+    <figcaption><b>Back row behind pillars</b>, camera following the row.</figcaption></figure>
+  <figure><img src="retro4/10-camera-toggle-off.webp" alt="The same view with the camera kept on the play plane">
+    <figcaption><b>Camera toggle off</b> (kept on the play plane). One row deep, the difference is small.</figcaption></figure>
+</div>
+
+<h3>Results</h3>
+<ul>
+  <li>Both schemes walk the whole map, ending on row 0 at x 100; switching does nothing between zones.</li>
+  <li>Two windows: each player sees the other's hop; the drawn depth changes at most 0.1 per frame with no lag and with <code>?lag=200</code>. Before #99 was merged in, the guest saw the host's hop in steps of up to 0.2 about 30 times a second at <code>?lag=200</code>. That matches the #97 cause, but the lane did not trace it.</li>
+</ul>
+
+<h2>Process</h2>
+<ul>
+  <li><b>Owner tries it first:</b> both feature lanes sent a notice as soon as their work ran in one browser, and the dev server was switched to their worktree before review.</li>
+  <li><b>Changes go into the open PR:</b> the owner's enemy ids and depth shading went back to the #96 lane, with one more r9000 round on the new commits only.</li>
+  <li><b>Merges approved in advance:</b> the owner approved merging #96, #99 and #100 once done, reviewed and green; each was merged when its lane reported it held, then checked live (<code>version.json</code>, and the map and tracker byte for byte).</li>
+  <li><b>Measure, then fix:</b> the #97 lane measured every frame at three delays before changing code, proved the cause, and kept the delay value and the snapshot format as they were.</li>
+  <li><b>Two lanes in parallel on the network code:</b> #97 and #98 were told about each other and kept their changes small; the depth rows lane merged main after #99 and re-ran its checks. No conflicts.</li>
+  <li><b>Review rounds capped at two:</b> leftover findings were listed in the reports, not looped on.</li>
+</ul>
+
+<h2>What went wrong or needs watching</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Issue</th><th>What happened</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>A passed check that was wrong</td><td>Networking slice 1 (#81) listed "with <code>?lag=200</code> the other player is smooth, just later" as checked. Per-frame numbers in #96 showed it had stepped at 30 a second all along. The #97 and #100 checks measured every frame instead of judging by eye.</td><td><span class="pill ok">fixed</span> PR #99</td></tr>
+<tr><td>Enemies first sent without ids</td><td>The first #96 version identified enemies by list position. Harmless until an enemy can die; fixed in the same PR on the owner's call.</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>Headless browsers too slow</td><td>Two game tabs headless ran at about 2 fps, too slow to judge movement. Two-player checks now use two visible windows.</td><td><span class="pill ok">known</span></td></tr>
+<tr><td>Hidden host tab</td><td>Enemies once jumped about once a second on the guest with the host tab hidden at <code>?lag=200</code>. Not reproduced in #97 (minimised and background tab, 15 s each).</td><td><span class="pill wn">open</span> unproven</td></tr>
+<tr><td>Frame blending above 60 Hz</td><td>About 58% of frames on a 144 Hz display repeat the previous position.</td><td><span class="pill wn">to-do</span> low priority</td></tr>
+<tr><td>Merged presses lost (#100, round 2)</td><td>When the host's queue of guest inputs overflows and merges frames, a scheme A ascend (jump then crouch) or a scheme B double press is lost; the next snapshot corrects the guest. A row beyond ±64 would be clamped on the wire (no map has one).</td><td><span class="pill wn">open</span> documented</td></tr>
+<tr><td>Depth rows limits</td><td>The 2D view shows row 0 only. On row +1 the end walls at x 5 and 33 can be jumped over, and the player falls back to the spawn. Front blocks can hide a player on a back row (no cut-away yet).</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>Test level limits</td><td>Walking on or off the moving platform has a window of about 0.2 s (jumping is easy). Awake enemies chase through walls and between levels. Five cells of the original blockout sit in front of the play plane above the walkway (x -8, 6, 7).</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>One failed grab with two players</td><td>In one of three two-window runs in #104 (no lag), the guest's air grab at zone J ended on row 0 instead of the ledge; the guest was already moving before its walk-off. Not repeated; cause not found.</td><td><span class="pill wn">watch</span></td></tr>
+<tr><td>Dev server</td><td>Every merge removes the worktree the server ran from, and background commands stop after 2 hours; started four times today.</td><td><span class="pill wn">watch</span></td></tr>
+</tbody></table></div>
+
+<h2>Next</h2>
+<ul>
+  <li>Owner play test of depth rows: which control scheme, hop timing, whether the camera should follow the row.</li>
+  <li>If depth rows stay: enemies and shots across rows, cutting away blocks in front of a player on a back row.</li>
+  <li>Hit decisions under delay (T-112), before enemies deal or take damage.</li>
+  <li>Maps set base camera values (T-107); map editor draft (T-108).</li>
+  <li>Networking: fewer packets, then integers with fixed point; lobby Ready, Start and drop-in (T-052).</li>
+  <li>Low priority: blend drawn positions between ticks above 60 Hz; the menu background 2:1 rule (D-128).</li>
+  <li>Tracker and <code>AGENTS.md</code> brought up to date in PR #102 (issue #101): notes on T-109, T-110, T-074, T-034, D-130, T-111 and T-089 (frame blending, low priority); D-129 moved to ongoing.</li>
+</ul>
+
+</main>
+</body>
+</html>

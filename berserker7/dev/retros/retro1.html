@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Berserker 7 retro 1</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --text: #1d1f24; --muted: #5d6270; --line: #dcd9d2;
+  --accent: #2f5fbf; --good: #1e7a4a; --good-bg: #e3f3ea; --warn: #8a5a00; --warn-bg: #fff4dc;
+  --bad: #a3302a; --bad-bg: #fbe7e5; --code-bg: #efede8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161b; --panel: #1c1f26; --text: #e6e8ee; --muted: #9aa1b0; --line: #2e333d;
+    --accent: #86aef5; --good: #7fd3a4; --good-bg: #17301f; --warn: #f0c36a; --warn-bg: #2e2715;
+    --bad: #f19a92; --bad-bg: #3a1d1b; --code-bg: #262a33;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 1.9rem; margin: 0 0 4px; }
+h2 { font-size: 1.3rem; margin: 40px 0 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+p, li { max-width: 78ch; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+a { color: var(--accent); }
+code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.stat b { display: block; font-size: 1.5rem; }
+.stat span { color: var(--muted); font-size: .85rem; }
+.tablewrap { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); font-size: .92rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--code-bg); font-weight: 600; }
+.pill { font-size: .75rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.ok { color: var(--good); background: var(--good-bg); }
+.wn { color: var(--warn); background: var(--warn-bg); }
+.no { color: var(--bad); background: var(--bad-bg); }
+figure { margin: 20px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+figure img { display: block; width: 100%; height: auto; }
+figure.narrow { max-width: 420px; }
+figcaption { padding: 10px 14px; font-size: .9rem; color: var(--muted); }
+figcaption b { color: var(--text); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 figure { margin: 0; }
+.note { background: var(--warn-bg); border-left: 4px solid var(--warn); padding: 10px 14px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Berserker 7 · Milestone retro 1</h1>
+<p class="sub">Written 18 November 2026. Covers 16–17 November 2026: from the decision to rebuild Technophage as Berserker 7 up to the merged game harness (PR #47). Screenshots taken from the live site on 18 November, build <code>d2fd9d7</code>.</p>
+
+<p><b>In one paragraph:</b> Berserker 7 went from a folder of feedback notes to a published, tested game foundation in two days. All the feedback, design notes and research were turned into a 229-item feature tracker that can be marked up on its live page. A Vite + three.js project is built and deployed on every merge with a visible version label. On top of it sits a game harness: a fixed 60 Hz loop, layered scenes (background, main, overlays), queued scene changes, fades, a loading scene, and three ways to leave a scene (suspend, unload, snapshot), with the harness itself freeing GPU memory. A debug panel on the live page shows all of it working.</p>
+
+<div class="stats">
+  <div class="stat"><b>13</b><span>Berserker 7 pull requests merged (#21–#47)</span></div>
+  <div class="stat"><b>229</b><span>tracker items (125 design, 104 technical)</span></div>
+  <div class="stat"><b>1,259</b><span>lines of game code (<code>src/</code>)</span></div>
+  <div class="stat"><b>1,084</b><span>lines of tests; 75 tests (lane's last run)</span></div>
+  <div class="stat"><b>5 + 6</b><span>tracker items implemented + ongoing</span></div>
+</div>
+
+<h2>Timeline</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>When (UTC)</th><th>PR</th><th>What</th></tr></thead>
+<tbody>
+<tr><td>16 Nov 22:56</td><td>#21</td><td>Sub-project renamed from Technophage to Berserker 7 (namespace <code>dev.baddergames.berserker7</code>, folder <code>berserker7/</code>).</td></tr>
+<tr><td>17 Nov 00:08</td><td>#23</td><td>Feature tracker published at <code>/berserker7/tracker/</code>: 215 items collated from feedback, level ideas, character studies, the MVP retro and the Impact engine research.</td></tr>
+<tr><td>17 Nov 01:24</td><td>#27</td><td>Tracker: cycle an item's status on the page and copy the changes as text to paste into chat.</td></tr>
+<tr><td>17 Nov 12:46</td><td>#29</td><td>Audio item split: sound effects (T-066) and music with song sections (T-091).</td></tr>
+<tr><td>17 Nov 12:54–19:25</td><td>#31, #33, #35, #37</td><td>Four batches of triage: 52 items accepted (8 + 23 + 7 + 14). T-079 wording corrected ("try" was "DRY").</td></tr>
+<tr><td>17 Nov 20:14</td><td>#39</td><td>13 rendering items (T-092 to T-104) added from the three.js optimisation research.</td></tr>
+<tr><td>17 Nov 20:56</td><td>#41</td><td>Tracker search takes comma-separated terms.</td></tr>
+<tr><td>17 Nov 21:39</td><td>#43</td><td><b>Project skeleton</b>: Vite 8.3.8 + three.js 0.187.0, built in CI, published at <code>/berserker7/</code> with a version label.</td></tr>
+<tr><td>17 Nov 21:56</td><td>#45</td><td>Tracker gains the <code>ongoing</code> status; skeleton items marked.</td></tr>
+<tr><td>17 Nov 23:49</td><td>#47</td><td><b>Game harness</b>: fixed-step loop, scene layers and lifecycle, fades, loading scene, harness-owned resources, test scenes, debug panel, 75 tests.</td></tr>
+</tbody></table></div>
+
+<h2>Decisions made</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Decision</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>Renderer</td><td>three.js, 2.5D: a 3D world with 2D gameplay. The pixel-art look comes from basic textures, with no post-processing. PixiJS was evaluated and rejected (T-004).</td></tr>
+<tr><td>Tracker as the plan</td><td>Every feature and "don't" lives in <code>tracker.json</code> with sources and quotes. Statuses: open, accepted, ongoing, implemented, rejected. Changes go through pull requests; the page only proposes them.</td></tr>
+<tr><td>Contributor names</td><td>Pseudonyms Andy and Deano in everything published.</td></tr>
+<tr><td>Publishing</td><td>Game at <code>/berserker7/</code>, tracker at <code>/berserker7/tracker/</code>, both deployed on every merge to <code>main</code>. Feedback, design notes and the three.js research documents are not committed yet.</td></tr>
+<tr><td>Code style</td><td>ES modules and plain functions; no class system of our own; no changes to built-in prototypes (T-080, T-081, T-082, now <code>ongoing</code>).</td></tr>
+<tr><td>Scene system before input</td><td>The harness runs the loop, and scenes are what it runs, so both were built together (T-017 with T-019, T-020, T-090).</td></tr>
+<tr><td>State as plain data</td><td>Each scene's simulation state is one plain object, separate from the three.js objects that show it. This makes snapshots, replays and network sync possible later at no extra cost now.</td></tr>
+<tr><td>Pausing</td><td>Only local play pauses. In online play the main scene keeps ticking under the pause menu.</td></tr>
+<tr><td>Freeing memory (option C)</td><td>The harness, not the scene, owns each scene's tracked resources and shared assets, and frees them after a failed load and on every unload. A scene cannot forget.</td></tr>
+<tr><td>Deferred</td><td>Drawing blends between simulation states (T-089) left for later.</td></tr>
+</tbody></table></div>
+
+<h2>The game today: screenshots</h2>
+<p>All taken in headless Chromium against the live site. The numbers under each come from the harness itself (<code>window.__b7</code>), read during the same run.</p>
+
+<figure>
+  <img src="retro1/01-scene-a.webp" alt="Scene A: six textured cubes orbiting over a drifting backdrop, debug panel on the right">
+  <figcaption><b>Scene A over the backdrop.</b> Layers: background <code>[backdrop]</code>, main <code>sceneA</code>, no overlays. The backdrop is a separate scene that always ticks. The cubes share one checker texture through the asset cache (1 user). Version label bottom-left: <code>d2fd9d7 · 2026-11-17 23:49 UTC</code>.</figcaption>
+</figure>
+
+<div class="grid2">
+  <figure>
+    <img src="retro1/02-pause-local.webp" alt="Pause overlay over scene A in local play">
+    <figcaption><b>Local pause.</b> Scene A's tick count stayed at <b>130 → 130</b> while the backdrop went <b>137 → 244</b>. The paused scene is still drawn under the overlay.</figcaption>
+  </figure>
+  <figure>
+    <img src="retro1/03-pause-online.webp" alt="Pause overlay over scene A in online play">
+    <figcaption><b>Online pause.</b> Same overlay, but scene A kept ticking: <b>140 → 247</b>. Online play can't be paused, by design.</figcaption>
+  </figure>
+</div>
+
+<div class="grid2">
+  <figure>
+    <img src="retro1/04-fade.webp" alt="Fade from scene A to scene B in progress">
+    <figcaption><b>Fade A → B</b>, caught at the start (panel: "to sceneB, 3%"). The swap happens at the fade's midpoint, at the end of a frame. Scene A leaves by <code>suspend</code>: it keeps its state and objects.</figcaption>
+  </figure>
+  <figure>
+    <img src="retro1/05-scene-b.webp" alt="Scene B: bouncing textured balls">
+    <figcaption><b>Scene B.</b> Bouncing balls, simulated in whole numbers so every run is identical. Both A (suspended) and B use the checker texture: the cache shows <b>2 users</b>; GPU geometries 6, textures 2.</figcaption>
+  </figure>
+</div>
+
+<div class="grid2">
+  <figure>
+    <img src="retro1/06-snapshot-away.webp" alt="Scene B left by snapshot; only the backdrop is drawn">
+    <figcaption><b>Snapshot leave.</b> Scene B's state is saved and everything else freed: geometries <b>6 → 5</b>, checker users <b>2 → 1</b>. On return it was rebuilt and its state was <b>identical</b> to when it left; memory went back to 6 and 2 users.</figcaption>
+  </figure>
+  <figure>
+    <img src="retro1/07-loading.webp" alt="Loading spinner shown while the slow scene loads">
+    <figcaption><b>Loading scene.</b> The slow scene takes about 2 s to load. Meanwhile the loading scene is drawn in its place (panel: "main slow (showing loading)"), and the backdrop keeps running.</figcaption>
+  </figure>
+</div>
+
+<div class="grid2">
+  <figure>
+    <img src="retro1/08-slow.webp" alt="Slow scene: a rotating torus">
+    <figcaption><b>Slow scene loaded.</b> It leaves by <code>unload</code>, so each visit starts fresh.</figcaption>
+  </figure>
+  <figure>
+    <img src="retro1/09-failed-load.webp" alt="Failed load test in progress">
+    <figcaption><b>Failed load test.</b> "Slow scene's next load fails: on". The load creates a GPU texture, acquires the shared texture, then throws. Result read after: error <code>simulated load failure (GPU textures at failure: 3)</code>; GPU geometries <b>5 → 5</b>, textures <b>2 → 2</b>, checker users <b>1 → 1</b>. Everything it built was freed by the harness.</figcaption>
+  </figure>
+</div>
+
+<div class="grid2">
+  <figure class="narrow">
+    <img src="retro1/10-phone.webp" alt="Game page at phone width with the debug panel">
+    <figcaption><b>Phone width (390 px)</b>, after the failed load: main layer empty, backdrop still running, page width exactly 390 px (no sideways scroll).</figcaption>
+  </figure>
+  <div>
+    <figure>
+      <img src="retro1/11-tracker.webp" alt="Feature tracker page with counts and legend">
+      <figcaption><b>Feature tracker</b>: counts by status, legend, filters, multi-term search.</figcaption>
+    </figure>
+    <figure>
+      <img src="retro1/12-tracker-ongoing.webp" alt="Tracker filtered to ongoing items">
+      <figcaption><b>Filtered to <code>ongoing</code></b>: 6 rules now in force for all game code (T-018, T-019, T-020, T-080, T-081, T-082).</figcaption>
+    </figure>
+  </div>
+</div>
+
+<h2>How the harness works</h2>
+<pre>each frame(seconds):
+  1. clock: add frame time (capped at 0.25 s), run whole 1/60 s steps (at most 8)
+     → tick every scene allowed to tick, in layer order: background, main, overlays
+  2. clear, draw every scene allowed to draw, in layer order, then the fade
+  3. end failed loads, apply queued requests in request order,
+     activate scenes whose load finished
+  4. advance the fade; swap the main scene at its midpoint</pre>
+
+<div class="tablewrap"><table>
+<thead><tr><th>Module</th><th>Job</th></tr></thead>
+<tbody>
+<tr><td><code>engine/clock.js</code></td><td>Fixed-step accumulator with frame-time and step caps (T-019, T-020, T-090).</td></tr>
+<tr><td><code>engine/harness.js</code></td><td>Layers, request queue, lifecycle driving, play mode, loading scene, freeing each scene's resources.</td></tr>
+<tr><td><code>engine/scene.js</code></td><td>Scene records, legal lifecycle steps, settings (<code>tick</code>, <code>drawCovered</code>, <code>leave</code>).</td></tr>
+<tr><td><code>engine/resources.js</code></td><td>List of things with <code>dispose()</code>, freed in reverse order.</td></tr>
+<tr><td><code>engine/asset-cache.js</code></td><td>Shared assets counted by user; the last release disposes.</td></tr>
+<tr><td><code>engine/transition.js</code></td><td>Fade timing and midpoint swap.</td></tr>
+<tr><td><code>scenes/*</code></td><td>Test scenes: backdrop, A, B, pause, slow, loading.</td></tr>
+<tr><td><code>debug/panel.js</code></td><td>Buttons for every behaviour; live state, ticks, memory counts.</td></tr>
+</tbody></table></div>
+
+<h3>Scene contract in short</h3>
+<ul>
+<li>A scene is a plain object: <code>{ settings, load, enter, tick, draw, suspend, resume, exit, unload }</code>.</li>
+<li><code>load(context)</code> builds three.js objects, passing each to <code>context.track()</code> and getting shared assets with <code>context.acquire()</code>.</li>
+<li><code>enter()</code> returns the state; <code>tick()</code> changes only the state; <code>draw()</code> makes the three.js objects match it. Lookups from state to meshes use a <code>WeakMap</code>.</li>
+<li>Leaving: <code>suspend</code> keeps everything; <code>unload</code> frees everything; <code>snapshot</code> keeps a copy of the state and frees the rest.</li>
+</ul>
+
+<h2>Process</h2>
+<ul>
+<li>Every change went through a lane: one issue, one worktree, one pull request, reviewed and checked, merged only on the project owner's word. The live site was checked after each merge.</li>
+<li>Code reviews caught real problems before merge. On the harness, gristle found that a failed load left a scene stuck in <code>loading</code>, a scene left while loading was never unloaded, leaving by unload kept a stale snapshot, and requests between frames could be lost. All fixed.</li>
+<li>Discussion before building paid off twice: the scene system was designed before the loop, and the "how would a scene forget?" question turned option A into option C, so memory clean-up can't be missed by scene authors.</li>
+<li>Tracker triage through "Copy state" worked well: 52 items accepted in four pastes.</li>
+</ul>
+
+<h2>What went wrong or needs watching</h2>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>Issue</th><th>State</th></tr></thead>
+<tbody>
+<tr><td><span class="pill wn">tooling</span></td><td>"Provider turn failed" errors interrupted several turns on 16–17 Nov, mostly at steps that started background servers or browsers. Workaround: server and browser inside one Node script. Cause not found.</td><td>Workaround in every brief</td></tr>
+<tr><td><span class="pill no">process</span></td><td>The devlog's end-of-day "finalise" message is never sent when a summary already exists, so day summaries miss late events.</td><td>Backlog task recorded</td></tr>
+<tr><td><span class="pill wn">check</span></td><td>One lane's browser check misread T-019 as open (it matched a reference inside another item). The data was right; the check was narrowed.</td><td>Resolved</td></tr>
+<tr><td><span class="pill wn">rendering</span></td><td>The game uses antialiasing with pixel ratio capped at 2; T-092 advises against antialiasing at high pixel ratios.</td><td>Open, for the camera and pixel-look work</td></tr>
+<tr><td><span class="pill wn">dependency</span></td><td><code>npm audit</code> reports a high-severity ReDoS (GHSA-fc5q-39xc-vjpf) in <code>picomatch</code> 4.0.7, a file-pattern matcher used by Vite while building. Development tooling only: not in the published game, and the patterns it matches are our own.</td><td>Disregarded by the project owner</td></tr>
+<tr><td><span class="pill wn">site</span></td><td>The landing page has no favicon; the Technophage MVP lays out 961 px wide on a phone. Both predate Berserker 7.</td><td>Open</td></tr>
+</tbody></table></div>
+
+<h2>Tracker state at this milestone</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>List</th><th>Open</th><th>Accepted</th><th>Ongoing</th><th>Implemented</th><th>Rejected</th><th>Total</th></tr></thead>
+<tbody>
+<tr><td>Design</td><td>95</td><td>23</td><td>0</td><td>0</td><td>7</td><td>125</td></tr>
+<tr><td>Technical</td><td>73</td><td>19</td><td>6</td><td>5</td><td>1</td><td>104</td></tr>
+</tbody></table></div>
+<p><span class="pill ok">implemented</span> T-001 three.js · T-017 scenes and transitions · T-084 Vite · T-085 deploy with version stamp · T-090 frame-time cap<br>
+<span class="pill ok">ongoing</span> T-018 · T-019 · T-020 · T-080 · T-081 · T-082</p>
+
+<h2>Next</h2>
+<ol>
+<li><b>Input</b>: keys as named actions, one input frame per player per tick (T-053, T-022).</li>
+<li><b>Camera and pixel look</b>: perspective or orthographic, pixel-stable rendering (T-006, T-005, T-003, T-092).</li>
+<li><b>First movement</b>: a grey-box room on a 2D collision grid with a placeholder player (T-029).</li>
+<li>Later: interpolation (T-089), the devlog finalise fix.</li>
+</ol>
+
+</main>
+</body>
+</html>
