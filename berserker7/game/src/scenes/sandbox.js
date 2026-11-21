@@ -28,6 +28,7 @@ import { addFog, atlasCubeGeometry, atlasGroupGeometry, atlasPlaneGeometry, conf
 import { atlasLayout, atlasPools, decorTiles } from './block-decor.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
 import { createLightPool, levelLights } from './level-lights.js';
+import { FRONT_FACE, bufferSize, pixelScaleFor, scaleTiles, snapAxis } from './pixel-snap.js';
 import { addPaletteLut, createPaletteLutUniforms, selectPaletteLut } from './palette-lut.js';
 import {
   DEPTH_MARGIN,
@@ -679,7 +680,7 @@ export function createSandbox({
     tick: (state, inputs, dt) => tickSandbox(state, inputs, dt, tiles, viewMode.follow().smoothing, net, map),
     draw(state, view) {
       const player = localPlayer(state);
-      const tilesHigh = zoom.get();
+      let tilesHigh = zoom.get();
       const height = playerHeight(player); // crouchHeight while crouched, else height
       const headY = player.y + height; // top centre of the box
       const active = viewMode.mode() === '2d' ? flat : deep;
@@ -688,11 +689,26 @@ export function createSandbox({
       // player carries an interpolated `depth`). The 2D view draws z = 0 only.
       const depthOf = (p) => (active === deep ? p.depth ?? playerDepth(p) : 0);
       const viewDepth = depthOf(player);
+      const rowCamera = viewMode.rowCamera();
+      // Pixel snap and pixel scale (pixel-snap.js; off by default, then nothing below changes):
+      // they act on the snap plane, the play plane in 2D and the front faces of the local player's
+      // row in 2.5D, `faceOffset` tiles in front of the plane the camera distance is measured from
+      // (the player's row with the row camera, else z = 0). tan is 0 in 2D, so 2D ignores it.
+      const pixelSnap = viewMode.pixelSnap();
+      const pixelMode = viewMode.pixelScale();
+      const pixelOn = pixelSnap || pixelMode !== 'off';
+      const buffer = pixelOn ? bufferSize(view) : null;
+      const tan = active === deep ? Math.tan((viewMode.fov() * Math.PI) / 360) : 0;
+      const faceOffset = active === deep ? FRONT_FACE + (rowCamera ? 0 : viewDepth) : 0;
+      const scale = pixelOn ? pixelScaleFor(pixelMode, buffer.height, map.tileSize || 64, tilesHigh, CAMERA_TILES_MIN, CAMERA_TILES_MAX) : 0;
+      // A k x scale: the snap plane shows bufferHeight / (64 k) tiles, so the reference plane,
+      // faceOffset further away, shows 2 tan(fov / 2) faceOffset more.
+      if (scale) tilesHigh = scaleTiles(buffer.height, map.tileSize || 64, scale) + 2 * tan * faceOffset;
+      viewMode.setPixelDrawn(scale, scale ? tilesHigh - 2 * tan * faceOffset : 0);
       // With the row camera on, the camera moves in depth with the local player, so its plane
       // shows tilesHigh tiles. Off (2.5D), the camera stays on the play plane's distance and the
       // player's plane shows planeTiles. Used for the mouse and the aim origin.
       const distance = active === deep ? perspectiveDistance(tilesHigh, viewMode.fov()) : 0;
-      const rowCamera = viewMode.rowCamera();
       const planeTiles = active === deep && !rowCamera ? (tilesHigh * (distance - viewDepth)) / distance : tilesHigh;
       // Camera: rest = head + offset; with a mouse aim, plus the aim-follow shift. The aim point is
       // the mouse projected through a camera at the rest position, never the actual camera (that
@@ -709,8 +725,20 @@ export function createSandbox({
         shift = cameraShift(head, screenToPlane(rest, mouse, view.width, view.height, planeTiles), viewMode.follow(), lastAimDir);
         lastAimDir = shift.dir;
       }
-      const camX = rest.x + shift.x;
-      const camY = rest.y + shift.y;
+      let camX = rest.x + shift.x;
+      let camY = rest.y + shift.y;
+      // Pixel snap: whole buffer pixels on the snap plane (snapTiles high; none when that plane is
+      // at or behind the camera). The light pool, the aim line and the aim origin use the snapped
+      // camera, like the drawing.
+      const snapTiles = tilesHigh - 2 * tan * faceOffset;
+      if (pixelSnap && snapTiles > 0) {
+        const pxPerTile = buffer.height / snapTiles;
+        camX = snapAxis(camX, pxPerTile, buffer.width);
+        camY = snapAxis(camY, pxPerTile, buffer.height);
+      }
+      // With either option on, the camera's aspect is the buffer's, so a tile is as many pixels
+      // wide as high (the CSS aspect can differ by a rounded pixel at fractional pixel ratios).
+      const frame = pixelOn ? buffer : view;
       // A lit map: the fog's virtual eye is lighting.fog.eye in front of the local player's row
       // (viewDepth; 0 in 2D), and the light slots take the lights that reach the view (planeTiles
       // high on the player's plane, wider at a light's depth behind it in 2.5D), the furthest
@@ -721,13 +749,13 @@ export function createSandbox({
         lit.pool.select(camX, camY, viewDepth, (planeTiles / 2) * (view.width / view.height), planeTiles / 2, active === deep ? distance + (rowCamera ? viewDepth : 0) : Infinity);
       }
       if (active === flat) {
-        fitOrtho(camera, view, tilesHigh / 2);
+        fitOrtho(camera, frame, tilesHigh / 2);
         camera.position.set(camX, camY, 0);
       } else {
         // The play plane (z = 0; the player's row with the row camera) shows exactly `tilesHigh`
         // tiles, as in 2D, at any FOV. Near and far are relative to the camera, so they follow it.
         const fov = viewMode.fov();
-        const aspect = view.width / view.height;
+        const aspect = frame.width / frame.height;
         const near = Math.max(0.1, distance - DEPTH_MARGIN);
         // While the city backdrop shows, the far plane reaches behind its farthest layer.
         const far = distance + (viewMode.backdrop() ? CITY_FAR : DEPTH_MARGIN);

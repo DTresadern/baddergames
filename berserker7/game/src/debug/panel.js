@@ -13,6 +13,9 @@
 //     #b7-map (select)                       Sandbox map; a change reloads the scene
 //     #b7-zoom (range), [data-value="zoom"]  camera view height in tiles; [ and ] change it by 2
 //     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
+//     #b7-pixel-snap (checkbox)              camera snapped to whole screen pixels (pixel-snap.js), off by default
+//     #b7-pixel-scale (select)               pixel scale: Off (default), Auto, 1× to 4×; the zoom text shows the
+//                                            view height it gives at the snap plane
 //     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
 //     #b7-grid (checkbox)                    level tiles and cubes with the grid texture, off by default
 //     #b7-lut (select)                       palette LUT for solid surfaces: Off, 32 or 64 steps (default 64)
@@ -37,6 +40,7 @@
 //                                            selected ICE pair, e.g. `srflx ↔ srflx udp`; refreshed every 3 s)
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
+import { PIXEL_SCALE_MODES } from '../scenes/pixel-snap.js';
 import { DITHER_STRENGTH, FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP, PALETTE_LUT_MODES } from '../scenes/sandbox-3d.js';
 import { connectionTypeLabel } from '../net/connection-type.js';
 import { inviteUrl } from '../net/room-code.js';
@@ -192,6 +196,9 @@ export function mountPanel({
         <label>Sandbox view
           <input id="b7-zoom" type="range" min="${CAMERA_TILES_MIN}" max="${CAMERA_TILES_MAX}" step="1">
           <span data-value="zoom"></span></label>
+        <label class="b7-check"><input id="b7-pixel-snap" type="checkbox"> Pixel snap (camera)</label>
+        <label>Pixel scale
+          <select id="b7-pixel-scale">${PIXEL_SCALE_MODES.map((mode) => `<option value="${mode}">${{ off: 'Off', auto: 'Auto (nearest the zoom)' }[mode] ?? `${mode}×`}</option>`).join('')}</select></label>
         <label class="b7-check"><input id="b7-city" type="checkbox"> City backdrop (2.5D)</label>
         <label class="b7-check"><input id="b7-grid" type="checkbox"> Grid</label>
         <label>Palette LUT
@@ -362,15 +369,24 @@ export function mountPanel({
   const ditherCheck = root.querySelector('#b7-dither');
   const ditherSlider = root.querySelector('#b7-dither-strength');
   const rowCameraCheck = root.querySelector('#b7-row-camera');
+  const pixelSnapCheck = root.querySelector('#b7-pixel-snap');
+  const pixelScaleSelect = root.querySelector('#b7-pixel-scale');
   const rowSchemeSelect = root.querySelector('#b7-row-scheme');
   const followSliders = [...root.querySelectorAll('[data-follow]')];
   function showZoom() {
     if (sandboxZoom) {
       zoomSlider.value = String(sandboxZoom.get());
-      setValue('zoom', `${sandboxZoom.get()} tiles high`);
+      // With a pixel scale the scene picks the height: say which k and the height at the snap plane.
+      const drawn = sandboxViewMode?.pixelDrawn();
+      const scaled = drawn?.scale ? ` → ${drawn.scale}×, ${drawn.tilesHigh.toFixed(2)}` : '';
+      setValue('zoom', `${sandboxZoom.get()} tiles high${scaled}`);
+      // A fixed k ignores the slider (Auto uses it as the target).
+      zoomSlider.disabled = Boolean(sandboxViewMode) && !['off', 'auto'].includes(sandboxViewMode.pixelScale());
     }
     if (sandboxViewMode) {
       const mode = sandboxViewMode.mode();
+      pixelSnapCheck.checked = sandboxViewMode.pixelSnap();
+      pixelScaleSelect.value = sandboxViewMode.pixelScale();
       for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
       cityCheck.checked = sandboxViewMode.backdrop();
       gridCheck.checked = sandboxViewMode.grid();
@@ -454,6 +470,16 @@ export function mountPanel({
       showZoom();
     });
     ditherSlider.addEventListener('change', () => ditherSlider.blur());
+    pixelSnapCheck.addEventListener('change', () => {
+      pixelSnapCheck.blur();
+      sandboxViewMode.setPixelSnap(pixelSnapCheck.checked);
+      showZoom();
+    });
+    pixelScaleSelect.addEventListener('change', () => {
+      pixelScaleSelect.blur();
+      sandboxViewMode.setPixelScale(pixelScaleSelect.value);
+      showZoom();
+    });
     rowCameraCheck.addEventListener('change', () => {
       rowCameraCheck.blur();
       sandboxViewMode.setRowCamera(rowCameraCheck.checked);
