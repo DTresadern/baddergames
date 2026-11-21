@@ -6,6 +6,8 @@
 // Optional `platforms` (moving platforms, see world/platform.js) are passed through; default [].
 // Optional `transfers: [{ x0, x1, low, high }]` (where a player can switch rows, see
 // world/rows.js) are checked and copied; default [].
+// Optional `atlas`: the name of the block atlas the level is drawn with (manifest keys
+// `atlas.<name>` and `atlas.<name>.index`; see scenes/block-decor.js); null when absent.
 
 import { copyPlatforms } from './platform.js';
 import { playerSize } from './player.js';
@@ -23,6 +25,13 @@ function copyTransfers(list = []) {
   });
 }
 
+// The map's atlas name, or null when the field is absent.
+function atlasName(atlas) {
+  if (atlas === undefined) return null;
+  if (typeof atlas !== 'string' || atlas === '') throw new Error(`cell map: atlas must be a non-empty string, not ${JSON.stringify(atlas)}`);
+  return atlas;
+}
+
 export function loadCellMap(json) {
   if (json?.format !== 1 || json.kind !== 'cells') throw new Error(`cell map: unsupported format ${json?.format} / kind ${json?.kind}`);
   const { type, color } = json.tile;
@@ -35,5 +44,5 @@ export function loadCellMap(json) {
     if (z !== 0) cells.push({ x, y, z, id: 1 });
   }
   const transfers = copyTransfers(json.transfers);
-  return { name: json.name, tileSize: json.tileSize, tiles: rows.get(0), rows, spawns: json.spawns.map((s) => ({ ...s })), cells, player: playerSize(json.player), platforms: copyPlatforms(json.platforms), transfers };
+  return { name: json.name, tileSize: json.tileSize, atlas: atlasName(json.atlas), tiles: rows.get(0), rows, spawns: json.spawns.map((s) => ({ ...s })), cells, player: playerSize(json.player), platforms: copyPlatforms(json.platforms), transfers };
 }
