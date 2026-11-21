@@ -22,7 +22,7 @@ import { loadGridMap } from '../src/world/grid-map.js';
 import { decode, encode, loadCodec, snapMessage, snapshotFromMessage } from '../src/net/codec.js';
 import { healthText } from '../src/ui/health-hud.js';
 import { frame } from './frames.js';
-import { STEP } from './fakes.js';
+import { STEP, fakeLoadLut } from './fakes.js';
 
 await loadCodec();
 
@@ -136,7 +136,7 @@ test('sandbox draw: a primaryFire press with an empty inventory shows the swing 
   let rendered;
   const renderer = { render: (scene) => (rendered = scene) };
   const json = JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'));
-  const scene = createSandbox({ viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const view = { renderer, width: 800, height: 600, setAimOrigin: () => {} };

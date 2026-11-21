@@ -41,6 +41,7 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   const follow = Object.fromEntries(FOLLOW_SETTINGS.map(([key, , , , , value]) => [key, value]));
   let backdrop = true;
   let grid = false;
+  let paletteLut = true;
   let rowCamera = true;
   return {
     mode: () => current,
@@ -72,6 +73,13 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
     setGrid(on) {
       grid = Boolean(on);
       return grid;
+    },
+    // Solid surfaces snapped to the shared palette through the LUT (scenes/palette-lut.js), on by
+    // default; draw writes it to the shared mix uniform each frame.
+    paletteLut: () => paletteLut,
+    setPaletteLut(on) {
+      paletteLut = Boolean(on);
+      return paletteLut;
     },
     // 2.5D: the camera moves in depth with the local player's row (on by default); off keeps it on
     // the play plane.

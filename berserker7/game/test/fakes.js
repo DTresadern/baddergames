@@ -1,8 +1,12 @@
 // Fake renderer and scenes for harness tests (no WebGL).
 
+import { Data3DTexture } from 'three';
 import { createHarness } from '../src/engine/harness.js';
 
 export const STEP = 1 / 60;
+
+// The Sandbox's palette LUT without a download: a 32-entry blank 3D texture (createSandbox's loadLut).
+export const fakeLoadLut = async () => new Data3DTexture(new Uint8Array(32 * 32 * 32 * 4), 32, 32, 32);
 
 export function fakeRenderer(log = []) {
   return { clear: () => log.push('clear'), clearDepth: () => log.push('clearDepth') };

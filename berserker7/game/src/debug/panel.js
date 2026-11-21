@@ -15,6 +15,7 @@
 //     button[data-view-mode="2d" | "2.5d"]   view mode (aria-pressed on the active one)
 //     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
 //     #b7-grid (checkbox)                    level tiles and cubes with the grid texture, off by default
+//     #b7-lut (checkbox)                     solid surfaces snapped to the shared palette (LUT), on by default
 //     #b7-row-scheme (select)                depth-row switch controls, A (default) or B (world/rows.js)
 //     #b7-row-camera (checkbox)              2.5D camera follows the player's row depth, on by default
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
@@ -191,6 +192,7 @@ export function mountPanel({
           <span data-value="zoom"></span></label>
         <label class="b7-check"><input id="b7-city" type="checkbox"> City backdrop (2.5D)</label>
         <label class="b7-check"><input id="b7-grid" type="checkbox"> Grid</label>
+        <label class="b7-check"><input id="b7-lut" type="checkbox"> Palette LUT</label>
         <label>Row switch
           <select id="b7-row-scheme">
             <option value="A">A: crouch→jump / air crouch grabs up</option>
@@ -349,6 +351,7 @@ export function mountPanel({
   const offsetSliders = [...root.querySelectorAll('[data-axis]')];
   const cityCheck = root.querySelector('#b7-city');
   const gridCheck = root.querySelector('#b7-grid');
+  const lutCheck = root.querySelector('#b7-lut');
   const rowCameraCheck = root.querySelector('#b7-row-camera');
   const rowSchemeSelect = root.querySelector('#b7-row-scheme');
   const followSliders = [...root.querySelectorAll('[data-follow]')];
@@ -362,6 +365,7 @@ export function mountPanel({
       for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
       cityCheck.checked = sandboxViewMode.backdrop();
       gridCheck.checked = sandboxViewMode.grid();
+      lutCheck.checked = sandboxViewMode.paletteLut();
       rowCameraCheck.checked = sandboxViewMode.rowCamera();
       rowCameraCheck.disabled = mode !== '2.5d';
       fovSlider.value = String(sandboxViewMode.fov());
@@ -421,6 +425,11 @@ export function mountPanel({
     gridCheck.addEventListener('change', () => {
       gridCheck.blur();
       sandboxViewMode.setGrid(gridCheck.checked);
+      showZoom();
+    });
+    lutCheck.addEventListener('change', () => {
+      lutCheck.blur();
+      sandboxViewMode.setPaletteLut(lutCheck.checked);
       showZoom();
     });
     rowCameraCheck.addEventListener('change', () => {
