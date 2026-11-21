@@ -56,9 +56,10 @@ async function setup({ mode, width = 1280, height = 720, ratio = 1 }) {
   const state = scene.enter();
   const view = { renderer, width, height, setAimOrigin() {} };
   const buffer = { width: Math.floor(width * ratio), height: Math.floor(height * ratio) };
-  const draw = (x, y) => {
+  const draw = (x, y, row = 0) => {
     state.players[0].x = x;
     state.players[0].y = y;
+    state.players[0].row = row;
     snapCamera(state);
     scene.draw(state, view);
     rendered.updateMatrixWorld();
@@ -121,6 +122,21 @@ for (const mode of ['2d', '2.5d']) {
     assert.deepEqual(viewMode.pixelDrawn(), { scale: 0, tilesHigh: 0 });
   });
 }
+
+test('pixel snap and scale (2.5D, row camera off): the snap plane follows the player row off row 0', async () => {
+  const { viewMode, draw } = await setup({ mode: '2.5d', width: 1281, height: 721, ratio: 1.5 });
+  viewMode.setRowCamera(false);
+  viewMode.setPixelSnap(true);
+  for (const [row, scale] of [[1, 'off'], [-1, 'off'], [1, '2'], [-1, '3']]) {
+    viewMode.setPixelScale(scale);
+    const project = draw(10.37, 3.21, row);
+    const z = row + FRONT_FACE;
+    const a = project(0, 0, z);
+    const b = project(1 / TEXELS, 1 / TEXELS, z);
+    assert.ok(near(frac(a.x + 1e-7), 1e-7, 1e-5) && near(frac(a.y + 1e-7), 1e-7, 1e-5), `row ${row} ${scale}: ${a.x}, ${a.y}`);
+    if (scale !== 'off') assert.ok(near(b.x - a.x, Number(scale)) && near(a.y - b.y, Number(scale)), `row ${row} ${scale}: ${b.x - a.x}`);
+  }
+});
 
 test('pixel snap (2.5D, row camera off): the snap plane is the player row front face', async () => {
   const { viewMode, draw } = await setup({ mode: '2.5d' });

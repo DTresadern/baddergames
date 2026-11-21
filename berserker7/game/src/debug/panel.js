@@ -23,6 +23,7 @@
 //     #b7-dither-strength (range), [data-value="dither-strength"]  its strength, sRGB 0..1 units
 //     #b7-row-scheme (select)                depth-row switch controls, A (default) or B (world/rows.js)
 //     #b7-row-camera (checkbox)              2.5D camera follows the player's row depth, on by default
+//                                            (disabled in 2D and while a pixel scale is on)
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
 //     #b7-cam-x, #b7-cam-y (range), [data-value="cam-x"], [data-value="cam-y"]
 //                                       camera offset from the followed point, tiles
@@ -395,7 +396,9 @@ export function mountPanel({
       ditherSlider.value = String(sandboxViewMode.ditherStrength());
       setValue('dither-strength', sandboxViewMode.ditherStrength().toFixed(3));
       rowCameraCheck.checked = sandboxViewMode.rowCamera();
-      rowCameraCheck.disabled = mode !== '2.5d';
+      // A pixel scale keeps the camera a fixed distance from the player's row, so the row camera
+      // setting has no effect while one is on.
+      rowCameraCheck.disabled = mode !== '2.5d' || sandboxViewMode.pixelScale() !== 'off';
       fovSlider.value = String(sandboxViewMode.fov());
       fovSlider.disabled = mode !== '2.5d';
       setValue('fov', `${sandboxViewMode.fov()}°`);
