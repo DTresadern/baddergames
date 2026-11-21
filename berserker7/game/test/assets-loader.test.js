@@ -6,7 +6,7 @@ import { NoColorSpace, SRGBColorSpace } from 'three';
 import { createLoader } from '../src/assets/loader.js';
 import { assetByKey, groupAssets } from '../src/assets/manifest.js';
 import { withPoster } from '../src/scenes/poster.js';
-import { acquireMap } from '../src/assets/maps.js';
+import { acquireJson, acquireMap } from '../src/assets/maps.js';
 import { acquireTexture } from '../src/assets/textures.js';
 import { createAssetCache } from '../src/engine/asset-cache.js';
 
@@ -167,13 +167,15 @@ test('loader: a map asset loads as JSON through the asset cache, once, and the c
     loads.push(path);
     return Promise.resolve(json);
   };
+  const loadTexture = async (path) => fakeTexture(path);
   const assets = createAssetCache();
-  const loader = createLoader({ assets, music: {}, loadJson, log: { error() {} } });
+  const loader = createLoader({ assets, music: {}, loadJson, loadTexture, log: { error() {} } });
   await loader.load('sandbox');
   await loader.load('sandbox');
-  assert.deepEqual(loads, ['content/maps/walkway.json', 'content/maps/mvp-upper-1.json', 'content/maps/moge3-cyberpunk.json', 'content/maps/moge3-cyberpunk-blocks.json', 'content/maps/depth-rows-test.json']);
+  const maps = ['walkway', 'mvp-upper-1', 'moge3-cyberpunk', 'moge3-cyberpunk-blocks', 'depth-rows-test'].map((name) => `content/maps/${name}.json`);
+  assert.deepEqual(loads, [...maps, 'content/textures/environment/blocks-placeholder.json']);
   assert.equal(await acquireMap(assets.acquire, 'map.walkway', loadJson), json);
-  assert.equal(loads.length, 5);
+  assert.equal(loads.length, 6);
   assert.equal(assets.count('map.walkway'), 2);
   assert.deepEqual(loader.status('sandbox'), { progress: 1, done: true, error: null });
   assert.throws(() => acquireMap(assets.acquire, 'music.title', loadJson), /not a map/);
@@ -184,9 +186,30 @@ test('loader: a map that fails to load rejects the group naming the path', async
   const loader = createLoader({
     assets: createAssetCache(),
     music: {},
+    loadTexture: async (path) => fakeTexture(path),
     loadJson: () => Promise.reject(new Error('HTTP 404')),
     log: { error: (...args) => errors.push(args) },
   });
   await assert.rejects(loader.load('sandbox'), /Could not load content\/maps\/walkway.json/);
   assert.equal(loader.status('sandbox').error, 'Could not load content/maps/walkway.json');
+});
+
+test('loader: a json asset (the block atlas index) loads through acquireJson; the type is checked both ways', async () => {
+  const loads = [];
+  const index = { tileSize: 64, columns: 7, rows: 4, tiles: {} };
+  const loadJson = (path) => {
+    loads.push(path);
+    return Promise.resolve(path.endsWith('blocks-placeholder.json') ? index : { format: 1 });
+  };
+  const assets = createAssetCache();
+  const loader = createLoader({ assets, music: {}, loadJson, loadTexture: async (path) => fakeTexture(path), log: { error() {} } });
+  await loader.load('sandbox');
+  const key = 'atlas.blocks-placeholder.index';
+  assert.equal(assets.count(key), 1, 'the loader holds it');
+  assert.equal(await acquireJson(assets.acquire, key, loadJson), index);
+  assert.equal(loads.filter((p) => p === assetByKey(key).path).length, 1, 'loaded once');
+  assert.equal((await acquireTexture(assets.acquire, 'atlas.blocks-placeholder', () => assert.fail('preloaded'))).path, 'content/textures/environment/blocks-placeholder.png');
+  assert.throws(() => acquireJson(assets.acquire, 'map.walkway', loadJson), /'map.walkway' is a map, not a json/);
+  assert.throws(() => acquireJson(assets.acquire, 'atlas.blocks-placeholder', loadJson), /is a texture, not a json/);
+  assert.throws(() => acquireMap(assets.acquire, key, loadJson), /is a json, not a map/);
 });

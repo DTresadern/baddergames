@@ -1,8 +1,9 @@
 // Every runtime asset, by key. See berserker7/AGENTS.md, Assets.
 
-export const TYPES = Object.freeze(['texture', 'music', 'map']);
+// 'json': a JSON data file that is not a map (first use: a block atlas index).
+export const TYPES = Object.freeze(['texture', 'music', 'map', 'json']);
 // 'menubg': the menu backgrounds. Nothing loads this group whole; start-up adds the picked one to the boot load.
-// 'sandbox': the Sandbox test scene's content (maps).
+// 'sandbox': the Sandbox test scene's content (maps, the block atlas and its index).
 export const GROUPS = Object.freeze(['boot', 'menubg', 'sandbox']);
 export const COLOR_SPACES = Object.freeze(['srgb', 'raw']);
 
@@ -18,6 +19,9 @@ export const ASSETS = freezeList([
   { key: 'map.moge3-cyberpunk', path: 'content/maps/moge3-cyberpunk.json', type: 'map', groups: ['sandbox'] },
   { key: 'map.moge3-cyberpunk-blocks', path: 'content/maps/moge3-cyberpunk-blocks.json', type: 'map', groups: ['sandbox'] },
   { key: 'map.depth-rows-test', path: 'content/maps/depth-rows-test.json', type: 'map', groups: ['sandbox'] },
+  // A block atlas: the image and its tile index (a map's `atlas` field names it; see scenes/block-decor.js).
+  { key: 'atlas.blocks-placeholder', path: 'content/textures/environment/blocks-placeholder.png', type: 'texture', groups: ['sandbox'] },
+  { key: 'atlas.blocks-placeholder.index', path: 'content/textures/environment/blocks-placeholder.json', type: 'json', groups: ['sandbox'] },
 ]);
 
 function freezeList(list) {

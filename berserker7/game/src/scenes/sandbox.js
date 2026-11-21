@@ -12,7 +12,8 @@
 // net/session.js): the scene never sees the transport, and input still arrives only as `inputs`.
 
 import { BoxGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
-import { acquireMap, defaultFetchJson } from '../assets/maps.js';
+import { acquireJson, acquireMap, defaultFetchJson } from '../assets/maps.js';
+import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
 import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
 import { ENEMY, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
@@ -22,6 +23,8 @@ import { createPlayer, playerHeight } from '../world/player.js';
 import { PRESS_NONE, playerDepth, stepRowPlayer } from '../world/rows.js';
 import { fitOrtho } from './shared.js';
 import { createGridTexture, createTileTexture } from './tile-texture.js';
+import { atlasCubeGeometry, atlasGroupGeometry, atlasPlaneGeometry, configureAtlasTexture, createAtlasMaterial } from './atlas-material.js';
+import { atlasLayout, atlasPools, decorTiles } from './block-decor.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
 import {
   DEPTH_MARGIN,
@@ -358,10 +361,12 @@ function addInstanced(scene, track, geometry, material, positions) {
   return mesh;
 }
 
-// One level group: the instanced mesh plus its checkerboard and grid materials; draw picks the
-// material by the Grid setting (nothing is created per frame).
+// One level group: the instanced mesh plus its surface (checkerboard or block atlas) and grid
+// materials; draw picks the material by the Grid setting (nothing is created per frame).
+// `geometry(positions)` gives the group's geometry: the shared tile or cube, or with a block atlas
+// a per-group geometry carrying the instances' atlas tiles.
 function addLevelGroup(scene, track, level, geometry, materials, positions) {
-  const mesh = addInstanced(scene, track, geometry, materials.checker, positions);
+  const mesh = addInstanced(scene, track, geometry(positions), materials.surface, positions);
   level.push({ mesh, ...materials });
 }
 
@@ -438,7 +443,7 @@ function addMovers(scene, geometries, materials, map, { platformGeometry, platfo
 }
 
 // `zoom` is the camera view height holder (createCameraZoom) and `viewMode` the 2D / 2.5D and FOV
-// holder (createViewMode), both passed at registration. `fetchJson` is for tests.
+// holder (createViewMode), both passed at registration. `fetchJson` and `loadTexture` are for tests.
 // `mapChoice` (createMapChoice) picks the map at load. `net` is the net session's view
 // (OFFLINE_NET by default).
 export function createSandbox({
@@ -446,6 +451,7 @@ export function createSandbox({
   viewMode = createViewMode(),
   mapChoice = createMapChoice(),
   fetchJson = defaultFetchJson,
+  loadTexture = defaultLoadTexture,
   net = OFFLINE_NET,
 } = {}) {
   let mapKey;
@@ -454,7 +460,7 @@ export function createSandbox({
   // Last non-zero aim direction for the camera's Min radius when the mouse is exactly at the head.
   // Presentation only (draw-side, like the camera itself), so it is not in the state.
   let lastAimDir = null;
-  // A cells map's shaded material pairs ({ checker, grid, z }), recoloured by depth relative to the
+  // A cells map's shaded material pairs ({ surface, grid, z }), recoloured by depth relative to the
   // local player's row whenever its drawn depth changes (shadeDepth: the depth they show now).
   let shaded = [];
   let shadeDepth = 0;
@@ -464,34 +470,47 @@ export function createSandbox({
       mapKey = mapChoice.get();
       map = loadMap(await acquireMap(acquire, mapKey, fetchJson));
       tiles = map.tiles;
-      // One checkerboard and one grid texture per tile type (see tile-texture.js), mapped once per
-      // tile (2D) or per cube face (2.5D) by the 0..1 UVs, so the squares line up across
-      // neighbouring tiles. Each view gets both materials; draw picks one by the Grid setting.
-      const flatMaterials = new Map(); // tile id -> { checker, grid }
+      // A map that names a block atlas (map.atlas) is drawn with it: the atlas texture and its
+      // index, through the asset cache (cache-owned: not tracked). Each block face shows one atlas
+      // tile, chosen by a fixed rule from its neighbours and its position (block-decor.js) and
+      // passed per instance (atlas-material.js); the draw calls stay the same.
+      let atlas = null; // { texture, layout, pools }
+      if (typeof map.atlas === 'string') {
+        const key = `atlas.${map.atlas}`;
+        const [texture, index] = await Promise.all([acquireTexture(acquire, key, loadTexture), acquireJson(acquire, `${key}.index`, fetchJson)]);
+        const layout = atlasLayout(index);
+        atlas = { texture: configureAtlasTexture(texture), layout, pools: atlasPools(layout) };
+      }
+      // Without an atlas: one checkerboard texture per tile type (see tile-texture.js), mapped once
+      // per tile (2D) or per cube face (2.5D) by the 0..1 UVs, so the squares line up across
+      // neighbouring tiles. Every map: one grid texture per tile type. Each view gets a surface
+      // (checkerboard or atlas) and a grid material; draw picks one by the Grid setting.
+      const surfaceMaterial = (texture, vertexColors, color) =>
+        track(atlas ? createAtlasMaterial({ map: texture, layout: atlas.layout, vertexColors, color }) : new MeshBasicMaterial({ map: texture, vertexColors, ...(color ? { color } : {}) }));
+      const flatMaterials = new Map(); // tile id -> { surface, grid }
       const cubeMaterials = new Map();
-      const textures = new Map(); // tile id -> { checker, grid }
+      const textures = new Map(); // tile id -> { surface, grid }
       tiles.types.forEach((type, id) => {
         if (id === 0 || type.color === undefined) return;
-        const checker = track(createTileTexture(map.tileSize, type.color));
+        const surface = atlas ? atlas.texture : track(createTileTexture(map.tileSize, type.color));
         const grid = track(createGridTexture(map.tileSize));
-        const material = (map, vertexColors) => track(new MeshBasicMaterial({ map, vertexColors }));
-        flatMaterials.set(id, { checker: material(checker, false), grid: material(grid, false) });
-        cubeMaterials.set(id, { checker: material(checker, true), grid: material(grid, true) });
-        textures.set(id, { checker, grid });
+        const gridMaterial = (vertexColors) => track(new MeshBasicMaterial({ map: grid, vertexColors }));
+        flatMaterials.set(id, { surface: surfaceMaterial(surface, false), grid: gridMaterial(false) });
+        cubeMaterials.set(id, { surface: surfaceMaterial(surface, true), grid: gridMaterial(true) });
+        textures.set(id, { surface, grid });
       });
       // A cells map's off-plane cubes: one material pair per tile type and z, coloured by
       // depthShade(z) (behind darker and cooler, in front darkest), made here, never per frame.
       // The colours are relative to the local player's row; draw updates them (see shaded).
-      const shadedMaterials = new Map(); // "id,z" -> { checker, grid, z }
+      const shadedMaterials = new Map(); // "id,z" -> { surface, grid, z }
       shaded = [];
       shadeDepth = 0;
       const shadedFor = (id, z) => {
         const key = `${id},${z}`;
         if (!shadedMaterials.has(key)) {
           const color = new Color(...depthShade(z));
-          const { checker, grid } = textures.get(id);
-          const make = (map) => track(new MeshBasicMaterial({ map, vertexColors: true, color }));
-          const pair = { checker: make(checker), grid: make(grid), z };
+          const { surface, grid } = textures.get(id);
+          const pair = { surface: surfaceMaterial(surface, true, color), grid: track(new MeshBasicMaterial({ map: grid, vertexColors: true, color })), z };
           shadedMaterials.set(key, pair);
           shaded.push(pair);
         }
@@ -518,11 +537,22 @@ export function createSandbox({
         platformCube: track(new MeshBasicMaterial({ color: new Color(PLATFORM_COLOR), vertexColors: true })),
       };
       const groups = tileGroups(tiles, flatMaterials);
+      // Level group geometries: the shared tile (2D) and cube (2.5D), or with an atlas one geometry
+      // per group sharing the atlas tile or cube's buffers, with the group's atlas tiles
+      // ([side, top, front] per instance; solid looks in every row).
+      const solid = (x, y, z) => (map.rows.get(z)?.tileAt(x, y) ?? 0) !== 0;
+      const levelGeometry = (base) => {
+        if (!atlas) return () => base;
+        const atlasBase = track(base === geometries.tile ? atlasPlaneGeometry() : atlasCubeGeometry());
+        return (positions) => track(atlasGroupGeometry(atlasBase, decorTiles(positions, solid, atlas.pools)));
+      };
+      const flatGeometry = levelGeometry(geometries.tile);
+      const cubeGeometry = levelGeometry(geometries.cube);
 
       // 2D: flat tiles, orthographic camera.
       const flatScene = new Scene();
-      const flatLevel = []; // { mesh, checker, grid } per group
-      for (const [id, positions] of groups) addLevelGroup(flatScene, track, flatLevel, geometries.tile, flatMaterials.get(id), positions);
+      const flatLevel = []; // { mesh, surface, grid } per group
+      for (const [id, positions] of groups) addLevelGroup(flatScene, track, flatLevel, flatGeometry, flatMaterials.get(id), positions);
       flat = {
         level: flatLevel,
         scene: flatScene,
@@ -535,7 +565,7 @@ export function createSandbox({
       // play plane cubes are shaded too (by depth relative to the local player's row).
       const deepScene = new Scene();
       const deepLevel = [];
-      for (const [id, positions] of groups) addLevelGroup(deepScene, track, deepLevel, geometries.cube, map.cells ? shadedFor(id, 0) : cubeMaterials.get(id), positions);
+      for (const [id, positions] of groups) addLevelGroup(deepScene, track, deepLevel, cubeGeometry, map.cells ? shadedFor(id, 0) : cubeMaterials.get(id), positions);
       const decor = new Map(); // "id,z" (cells map) or id -> { materials, positions: [[x, y, z], ...] }
       // Off-plane cubes: a cells map's own cells, shaded by depth, or a flat map's decorative depth
       // cubes, unshaded.
@@ -545,7 +575,7 @@ export function createSandbox({
         if (!decor.has(key)) decor.set(key, { materials: map.cells ? shadedFor(cube.id, cube.z) : cubeMaterials.get(cube.id), positions: [] });
         decor.get(key).positions.push([cube.x, cube.y, cube.z]);
       }
-      for (const { materials: m, positions } of decor.values()) addLevelGroup(deepScene, track, deepLevel, geometries.cube, m, positions);
+      for (const { materials: m, positions } of decor.values()) addLevelGroup(deepScene, track, deepLevel, cubeGeometry, m, positions);
       addTransferMarkers(deepScene, track, map);
       // Background city blocks: wide enough for the widest normal view (the default FOV, the furthest
       // zoom, a 21:9 window) anywhere the camera can go (the level plus the largest offset and
@@ -629,14 +659,14 @@ export function createSandbox({
           shadeDepth = viewDepth;
           for (const pair of shaded) {
             const [r, g, b] = depthShade(pair.z - viewDepth);
-            pair.checker.color.setRGB(r, g, b);
+            pair.surface.color.setRGB(r, g, b);
             pair.grid.color.setRGB(r, g, b);
           }
         }
       }
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
       const grid = viewMode.grid();
-      for (const group of active.level) group.mesh.material = grid ? group.grid : group.checker;
+      for (const group of active.level) group.mesh.material = grid ? group.grid : group.surface;
       // Platforms at the state's world tick (the same tick as the local player, also on a guest).
       active.platforms.forEach((mesh, i) => {
         const box = platformAt(map.platforms[i], state.ticks);

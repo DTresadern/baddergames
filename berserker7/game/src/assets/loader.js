@@ -1,7 +1,7 @@
 // Preloads a manifest group and reports its progress. See berserker7/AGENTS.md, Assets.
 
 import { groupAssets } from './manifest.js';
-import { acquireMap, defaultFetchJson } from './maps.js';
+import { acquireJson, acquireMap, defaultFetchJson } from './maps.js';
 import { acquireTexture, defaultLoadTexture } from './textures.js';
 
 export const LOAD_ERROR_PREFIX = 'Could not load';
@@ -19,7 +19,9 @@ export function createLoader({ assets, music, loadTexture = defaultLoadTexture, 
         ? () => acquireTexture(assets.acquire, asset.key, loadTexture)
         : asset.type === 'map'
           ? () => acquireMap(assets.acquire, asset.key, loadJson)
-          : () => music.preload(asset.path);
+          : asset.type === 'json'
+            ? () => acquireJson(assets.acquire, asset.key, loadJson)
+            : () => music.preload(asset.path);
     promise = Promise.resolve()
       .then(start)
       .then(

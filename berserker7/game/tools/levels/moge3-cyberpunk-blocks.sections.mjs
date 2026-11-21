@@ -202,6 +202,10 @@ export const SECTIONS = [
   },
 ];
 
+// The block atlas the level is drawn with (map field `atlas`; manifest keys `atlas.<name>` and
+// `atlas.<name>.index`). The Sandbox picks a tile per block face from it (scenes/block-decor.js).
+export const ATLAS = 'blocks-placeholder';
+
 // Transfer zones between depth rows (world/rows.js): section H's, the depth-rows-test zones at +151.
 export const TRANSFERS = depthRowsTransfers(151);
 

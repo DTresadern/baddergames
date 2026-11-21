@@ -41,6 +41,16 @@ test('cell map: every cell goes into its row\'s tile map; transfers are checked 
   assert.throws(() => loadCellMap({ ...small, transfers: [{ x0: 0.5, x1: 2, low: 1, high: 0 }] }), /integers/);
 });
 
+test('cell map: atlas is the file\'s name, null when absent; a present non-string or empty value throws', () => {
+  assert.equal(loadCellMap(small).atlas, null);
+  assert.equal(loadCellMap({ ...small, atlas: 'blocks-placeholder' }).atlas, 'blocks-placeholder');
+  for (const atlas of ['', 3, null, {}]) assert.throws(() => loadCellMap({ ...small, atlas }), /atlas must be a non-empty string/, JSON.stringify(atlas));
+  const read = (file) => JSON.parse(readFileSync(new URL(`../public/content/maps/${file}`, import.meta.url), 'utf8'));
+  assert.equal(loadMap(read('moge3-cyberpunk-blocks.json')).atlas, 'blocks-placeholder');
+  assert.equal(loadMap(read('moge3-cyberpunk.json')).atlas, null);
+  assert.equal(loadMap(read('depth-rows-test.json')).atlas, null);
+});
+
 test('moge3-cyberpunk.json: the spawn is on the walkway, and a fall goes back to the spawn', () => {
   const json = JSON.parse(readFileSync(new URL('../public/content/maps/moge3-cyberpunk.json', import.meta.url), 'utf8'));
   const map = loadMap(json);

@@ -31,11 +31,13 @@ test('grid map: legend ids start at 1 in legend order; unknown characters are em
   assert.deepEqual([tiles.tileAt(0, 0), tiles.tileAt(1, 0), tiles.tileAt(2, 0)], [1, 2, 0]);
 });
 
-test('grid map: name, tile size and spawns are passed through', () => {
+test('grid map: name, tile size and spawns are passed through; atlas is null', () => {
   const map = loadGridMap(small());
   assert.equal(map.name, 'small');
   assert.equal(map.tileSize, 16);
   assert.deepEqual(map.spawns, [{ type: 'player', x: 1, y: 1 }]);
+  assert.equal(map.atlas, null, 'grid maps have no block atlas');
+  assert.equal(loadGridMap(small({ atlas: 'blocks-placeholder' })).atlas, null, 'the field is not read');
 });
 
 test('grid map: an unknown format throws', () => {

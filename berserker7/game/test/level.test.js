@@ -14,6 +14,10 @@ test('level: the committed moge3-cyberpunk-blocks map is exactly the build outpu
   const base = JSON.parse(read('../tools/moge3-cyberpunk-blocks.base.json'));
   const cells = new Set(JSON.parse(read('../public/content/maps/moge3-cyberpunk-blocks.json')).cells.map((c) => c.join(',')));
   assert.ok(base.cells.every((c) => cells.has(c.join(','))), 'every base cell is kept');
+  // The sections' ATLAS is written as `atlas`, directly after `tile`.
+  const keys = Object.keys(buildLevel());
+  assert.equal(keys.indexOf('atlas'), keys.indexOf('tile') + 1);
+  assert.equal(buildLevel().atlas, 'blocks-placeholder');
 });
 
 test('level: the depth rows part (x 151-297) is joined at the open end of G; its nine zones find their landings', () => {

@@ -4,6 +4,7 @@
   "name": "moge3-cyberpunk-blocks",
   "tileSize": 64,
   "tile": {"type": "solid", "color": "#6b7a8f"},
+  "atlas": "blocks-placeholder",
   "source": {"tool": "tools/moge_blockout.py --mode blocks", "principalPx": [995.0, 415.0], "focalPx": 400.0, "blocksPerMetre": 0.21, "maxBlocks": 7.25, "minPoints": 100, "cameraHeightBlocks": 0.75, "playPlaneDepthBlocks": 4.479, "columnShiftBlocks": 0.51, "imageBlocksHighAtPlayPlane": 9.17, "removedCells": 28, "removeFile": "tools/moge3-cyberpunk-blocks.remove.json", "sections": "tools/levels/moge3-cyberpunk-blocks.sections.mjs"},
   "player": {"width": 0.55, "height": 1.2, "crouchHeight": 0.6},
   "spawns": [{"type": "player", "x": -4, "y": 0}, {"type": "enemy", "x": 22, "y": 0}, {"type": "enemy", "x": 40, "y": 0}, {"type": "enemy", "x": 60, "y": 6}, {"type": "enemy", "x": 95, "y": -2}, {"type": "enemy", "x": 100, "y": -2}, {"type": "enemy", "x": 110, "y": -2}, {"type": "enemy", "x": 135, "y": 9}, {"type": "enemy", "x": 145, "y": 9}, {"type": "enemy", "x": 201, "y": 9}, {"type": "enemy", "x": 249, "y": 9}],

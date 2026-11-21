@@ -7,7 +7,9 @@
 // moge_blockout.py (one line per top-level field, one line per cell; cells sorted by z, then y,
 // then x). The base's own
 // top-level lines are copied as they are (so its numbers keep Python's spelling, 995.0), except
-// `source`, which gains a `sections` note, and `spawns`, which gains the sections' spawns.
+// `source`, which gains a `sections` note, and `spawns`, which gains the sections' spawns. The
+// sections' `ATLAS` (the block atlas the level is drawn with) is written as `atlas`, directly after
+// `tile`.
 //
 // Usage (from berserker7/game/): npm run build:level  (or: node tools/build-level.mjs [--check])
 // --check writes nothing and exits 1 when the committed map differs from the build output.
@@ -15,15 +17,15 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { PLATFORMS, SECTIONS, TRANSFERS } from './levels/moge3-cyberpunk-blocks.sections.mjs';
+import { ATLAS, PLATFORMS, SECTIONS, TRANSFERS } from './levels/moge3-cyberpunk-blocks.sections.mjs';
 
 const BASE = new URL('./moge3-cyberpunk-blocks.base.json', import.meta.url);
 const OUT = new URL('../public/content/maps/moge3-cyberpunk-blocks.json', import.meta.url);
 const SECTIONS_FILE = 'tools/levels/moge3-cyberpunk-blocks.sections.mjs';
 
-// The map object: the base's fields in order, then platforms and transfers; spawns and cells
-// extended.
-export function buildLevel(base = JSON.parse(readFileSync(BASE, 'utf8')), sections = SECTIONS, platforms = PLATFORMS, transfers = TRANSFERS) {
+// The map object: the base's fields in order with `atlas` after `tile`, then platforms and
+// transfers; spawns and cells extended.
+export function buildLevel(base = JSON.parse(readFileSync(BASE, 'utf8')), sections = SECTIONS, platforms = PLATFORMS, transfers = TRANSFERS, atlas = ATLAS) {
   if (base.kind !== 'cells' || !Array.isArray(base.cells)) throw new Error('build-level: the base is not a cells map');
   const key = ([x, y, z]) => `${x},${y},${z}`;
   const seen = new Set(base.cells.map(key));
@@ -43,6 +45,7 @@ export function buildLevel(base = JSON.parse(readFileSync(BASE, 'utf8')), sectio
   for (const [name, value] of Object.entries(base)) {
     if (name === 'cells') continue;
     out[name] = value;
+    if (name === 'tile') out.atlas = atlas;
   }
   out.source = { ...base.source, sections: SECTIONS_FILE };
   out.spawns = spawns;
