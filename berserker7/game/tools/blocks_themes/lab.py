@@ -21,7 +21,7 @@ VISUAL_APPROACH = ("Programmer pixel art: hard edges, no antialiasing, steel fra
                    "highlight / shade bevels and dark seams; cool cyan lab light, amber and "
                    "red accents; colours from the project's shared palette.")
 SEED_NOTE = ("The script uses random.Random with fixed seeds (per-call seeds in the helpers, "
-             "101-118 in this theme's tiles) for small details such as grime streaks, "
+             "101-144 in this theme's tiles) for small details such as grime streaks, "
              "bubbles and spots.")
 
 YELLOW_RAIL = (OUTLINE, LAMP_PALE, LAMP_YELLOW, HAZARD_HI, HAZARD, OUTLINE)
