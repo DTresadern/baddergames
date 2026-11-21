@@ -11,7 +11,9 @@
 // above walkway level (near-side cells would hide the player in 2.5D).
 //
 // Sections (x ranges, walkway tops):
-//   A  11-24   outdoor walkway, top 0; deck supports, a 1-tile crate step, enemy at 22
+//   A  11-24   outdoor walkway, top 0; deck supports, a 1-tile crate step, enemy at 22; also
+//              two plasma pistol pickups at x 2 and 6 on the base walkway left of A (top 0,
+//              between the player spawn at -4 and the first enemy), one per player
 //   B  25-44   indoor station: ceiling at 3 (headroom 3), a crouch crawl at 34-37, enemy at 40
 //   C  45-62   climb: lower walkway at 0, steps 2 and 4, a deck at 6 from 52 over the lower
 //              walkway (a drop hole at 51); enemy on the deck at 60
@@ -62,6 +64,7 @@ export function building(x0, x1, y0, top, z, tiers = []) {
 }
 
 const enemy = (x, y) => ({ type: 'enemy', x, y });
+const pickup = (item, x, y) => ({ type: 'pickup', item, x, y });
 
 export const SECTIONS = [
   {
@@ -78,7 +81,8 @@ export const SECTIONS = [
       ...fill(11, 24, 3, 3, -2), // pipe run
       ...fill(21, 23, 8, 9, -2), // signboard
     ],
-    spawns: [enemy(22, 0)],
+    // The pickups lie left of A, on the base blockout's walkway (x -6 to 10, top 0).
+    spawns: [pickup('plasmaPistol', 2, 0), pickup('plasmaPistol', 6, 0), enemy(22, 0)],
   },
   {
     name: 'B indoor station',

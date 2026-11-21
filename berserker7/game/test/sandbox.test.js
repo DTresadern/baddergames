@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import {
+  BOLT_COLOR,
+  PICKUP_COLOR,
   ENEMY_COLOR,
   HEALTH_BAR_COLOR,
   MARKER_COLOR,
@@ -41,7 +43,7 @@ test('initSandbox: plain state, the player stands at the first player spawn', ()
   assert.deepEqual(state, {
     ticks: 0,
     map: MAP_KEY,
-    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE }, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1, crushed: false }],
+    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE }, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1, fireTicks: 0, crushed: false }],
     localSlot: 0,
     pointer: null,
     aimSource: null,
@@ -51,6 +53,9 @@ test('initSandbox: plain state, the player stands at the first player spawn', ()
     camera: { x: spawn.x + 0.5, y: spawn.y + PLAYER_SIZE.height },
     enemies: [],
     enemySpawns: [],
+    pickups: [],
+    bolts: [],
+    nextBoltId: 0,
   });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
@@ -390,6 +395,7 @@ function fakeNet({ role = null, slot = 0, peer = false } = {}) {
     snapshots: [],
     history: [],
     remote: null,
+    bolts: null,
     role: () => role,
     localSlot: () => slot,
     peerPresent: () => net.peer,
@@ -397,6 +403,7 @@ function fakeNet({ role = null, slot = 0, peer = false } = {}) {
     inputsAfter: (ack) => net.history.filter((e) => e.tick > ack),
     remotePlayer: () => net.remote,
     remoteEnemies: () => null,
+    remoteBolts: () => net.bolts,
     remoteWorldTick: () => null,
   };
   return net;
@@ -750,6 +757,11 @@ test('palette LUT: every opaque world material has it (level, backdrop, platform
       const meshes = meshesOf(draw(mode));
       for (const m of meshes) {
         const u = lutUniformsOf(m.material);
+        // Bolts (core and halo) and pickups keep their bright colours: no LUT.
+        if ([BOLT_COLOR, PICKUP_COLOR].includes(m.material.color?.getHex())) {
+          assert.equal(u, null, `${key} ${mode}: bolt or pickup has no LUT`);
+          continue;
+        }
         if (m.material.transparent) {
           assert.equal(u, null, `${key} ${mode}: transparent (swing or marker) has no LUT`);
           assert.ok(!m.material.customProgramCacheKey().includes('palette-lut'));
@@ -834,4 +846,23 @@ test('dither: the switch and the strength only write paletteDither in draw (0 wi
     viewMode.setDither(false);
     viewMode.setDitherStrength(DITHER_STRENGTH.default);
   }
+});
+
+test('tickSandbox: a guest draws the host\'s bolts (never its own) and takes the taken pickups from the snapshot', () => {
+  const net = fakeNet({ role: 'guest', slot: 1 });
+  const state = initSandbox(map);
+  state.pickups = [{ id: 0, item: 'plasmaPistol', x: 4.5, y: 2, taken: false }, { id: 1, item: 'plasmaPistol', x: 8.5, y: 2, taken: false }];
+  tickSandbox(state, [frame([])], STEP, map.tiles, 0, net);
+  assert.deepEqual(state.bolts, [], 'none before the first snapshot');
+  const confirmed = { x: 20.5, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: ['plasmaPistol'], meleeTicks: 0, meleeDir: 1, fireTicks: 0 };
+  net.snapshots.push({ tick: 10, ack: -1, wt: 10, players: [{ ...confirmed, inventory: [] }, confirmed], enemies: [], pickupsTaken: 2, bolts: [] });
+  net.bolts = [{ id: 7, x: 3, y: 4, angle: 1, row: 0 }];
+  // The guest holds fire with the pistol: its charge timer runs (replayed from the history, the
+  // current tick's frame among it), but it adds no bolt itself.
+  net.history = [{ tick: 0, frame: frame(['primaryFire']) }];
+  tickSandbox(state, [frame(['primaryFire'])], STEP, map.tiles, 0, net);
+  assert.deepEqual(state.bolts, net.bolts);
+  assert.equal(state.players[1].fireTicks, 30, 'the own charge timer is predicted');
+  assert.deepEqual(state.pickups.map((p) => p.taken), [false, true]);
+  assert.deepEqual(state.players[1].inventory, ['plasmaPistol'], 'the inventory comes from the snapshot');
 });

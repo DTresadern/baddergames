@@ -53,3 +53,53 @@ test('level: the depth rows part (x 151-297) is joined at the open end of G; its
     }
   });
 });
+
+test('level: two plasma pistol pickups on the walkway (row 0, top 0) between the player spawn and the first enemy', () => {
+  const map = loadMap(JSON.parse(read('../public/content/maps/moge3-cyberpunk-blocks.json')));
+  const pickups = map.spawns.filter((s) => s.type === 'pickup');
+  assert.deepEqual(pickups, [{ type: 'pickup', item: 'plasmaPistol', x: 2, y: 0 }, { type: 'pickup', item: 'plasmaPistol', x: 6, y: 0 }]);
+  const spawn = map.spawns.find((s) => s.type === 'player');
+  const firstEnemy = Math.min(...map.spawns.filter((s) => s.type === 'enemy').map((s) => s.x));
+  assert.equal(firstEnemy, 22);
+  for (const p of pickups) {
+    assert.ok(p.x > spawn.x && p.x < firstEnemy, `x ${p.x}`);
+    assert.ok(map.tiles.isSolid(p.x, p.y - 1) && !map.tiles.isSolid(p.x, p.y), `on the walkway at x ${p.x}`);
+  }
+  assert.equal(map.spawns.length, 13);
+});
+
+test('level: from the spawn the player walks right, picks up a pistol, climbs the crate step and shoots the first enemy dead', async () => {
+  const { OFFLINE_NET, initSandbox, tickSandbox } = await import('../src/scenes/sandbox.js');
+  const { frame } = await import('./frames.js');
+  const map = loadMap(JSON.parse(read('../public/content/maps/moge3-cyberpunk-blocks.json')));
+  const state = initSandbox(map, 'map.moge3-cyberpunk-blocks');
+  const player = state.players[0];
+  let pickedAt = null;
+  let shots = 0;
+  let killedAt = null;
+  for (let t = 0; t < 600 && killedAt === null; t++) {
+    const enemy = state.enemies.find((e) => e.id === 0);
+    const keys = [];
+    // Walk to the crate step (x 18-19, top 1), jump onto it and stop on it.
+    if (player.onGround && player.y < 0.5) keys.push(player.x < 17 ? 'moveRight' : 'jump');
+    else if (!player.onGround) keys.push(player.x < 18.8 ? 'moveRight' : 'moveLeft');
+    const f = frame(keys);
+    // On the crate: hold the attack key, aimed from the head at the enemy's centre.
+    if (player.onGround && player.y >= 1) {
+      f.actions.primaryFire = { held: true, pressed: false, released: false };
+      f.aim = Math.atan2(enemy.y + enemy.size.height / 2 - (player.y + player.size.height), enemy.x - player.x);
+    }
+    const bolts = state.bolts.length;
+    tickSandbox(state, [f], 1 / 60, map.tiles, 0, OFFLINE_NET, map);
+    if (pickedAt === null && player.inventory.length > 0) pickedAt = player.x;
+    if (state.bolts.length > bolts) shots += 1;
+    if (!state.enemies.some((e) => e.id === 0)) killedAt = t;
+  }
+  assert.deepEqual(player.inventory, ['plasmaPistol']);
+  assert.ok(pickedAt > 1.5 && pickedAt < 3.5, `picked up at x ${pickedAt}`);
+  assert.deepEqual(state.pickups.map((p) => p.taken), [true, false], 'the second is left for player 2');
+  assert.ok(killedAt !== null, 'the first enemy is dead');
+  assert.equal(shots, 2, 'two bolts');
+  assert.equal(player.health, 100);
+  assert.equal(player.meleeTicks, 0, 'no swing');
+});

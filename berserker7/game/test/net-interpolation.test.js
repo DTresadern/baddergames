@@ -54,3 +54,11 @@ test('interpolation: aim turns the short way across ±PI', () => {
   buf.push(4, p(0, 0, b));
   assert.ok(near(buf.sampleAt(1).aim, 0.95 * Math.PI));
 });
+
+test('interpolation: fields it does not know (a bolt\'s angle and row) come from the earlier entry', () => {
+  const buf = createInterpolationBuffer();
+  buf.push(10, p(0, 0, 0, { angle: 0.5, row: 0 }));
+  buf.push(12, p(4, 2, 0, { angle: 2, row: 1 }));
+  const mid = buf.sampleAt(11);
+  assert.deepEqual([mid.x, mid.y, mid.angle, mid.row], [2, 1, 0.5, 0]);
+});

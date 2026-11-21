@@ -1,17 +1,20 @@
 // Sandbox combat (issue #105): health, the inventory, the player's melee hit and the enemies'
 // attack. Pure logic, no three.js. Every number is here.
 // One damage function for every source: damage(target, amount) (tracker T-025).
-// Melee: the attack key (primaryFire) with an empty inventory, or the melee key (V, gamepad B),
+// Melee: the attack key (primaryFire) without the plasma pistol, or the melee key (V, gamepad B),
 // starts a swing in the aim's direction; it hits every enemy in a box in front of the player once,
 // on the swing's first tick. Enemies attack a player close to them: damage and a push away. A
 // player or enemy a moving platform crushes against a solid block dies.
 // Only the host (or offline) decides hits (resolveCombat); a guest predicts its own swing
 // (stepMelee) but never resolves it. A player at 0 health goes back to the spawn with full
 // health (scenes/sandbox.js owns the spawn).
+// Plasma pistol (issue #133): the first item. Carried, the attack key held fires a bolt each time
+// the charge is full (stepFire, next to stepMelee); the bolts themselves are world/projectile.js.
 //
 // Player fields (plain data, set by createPlayer): health, inventory (a list of item ids),
 // meleeTicks (ticks until the next swing may start; MELEE.cooldownTicks on a swing's first tick),
-// meleeDir (1 right, -1 left: the direction of the last swing).
+// meleeDir (1 right, -1 left: the direction of the last swing), fireTicks (ticks until the pistol
+// is charged again; PISTOL.chargeTicks on the tick a bolt is fired).
 // Enemy fields (createEnemy): health, attackCooldown (ticks until the next attack may happen).
 
 import { PLAYER_HEALTH, playerHeight } from './player.js';
@@ -31,10 +34,36 @@ export const MELEE = Object.freeze({ damage: 10, reachWidths: 1, swingTicks: 9, 
 export const ENEMY_ATTACK = Object.freeze({ damage: 10, range: 0.3, cooldownTicks: 60, pushSpeed: 6, pushLift: 5 });
 // Enemies never change rows (world/enemy.js): they are always on row 0.
 export const ENEMY_ROW = 0;
-// The known item ids, in wire order (bit i of the inventory mask is ITEMS[i]). None yet.
-export const ITEMS = Object.freeze([]);
+// The plasma pistol's item id.
+export const PLASMA_PISTOL = 'plasmaPistol';
+// The known item ids, in wire order (bit i of the inventory mask is ITEMS[i]). Every id has an
+// entry in ITEM_DEFS.
+export const ITEMS = Object.freeze([PLASMA_PISTOL]);
+// Item definitions by id. onlyOne: a body that carries this item cannot pick up another.
+// The plasma pistol sets it: it has unlimited ammo, so a second one gives nothing, and the game
+// will only ever offer one per player at the start.
+export const ITEM_DEFS = Object.freeze({
+  [PLASMA_PISTOL]: Object.freeze({ onlyOne: true }),
+});
+
+// The plasma pistol's numbers.
+export const PISTOL = Object.freeze({
+  damage: 20, // per bolt hit; a walker has 30 health and melee does 10, so two bolts kill one
+  chargeTicks: 30, // ticks from one shot to the earliest next one (0.5 s)
+  speed: 30, // bolt speed, tiles/s (0.5 tile per tick)
+  length: 0.4, // drawn bolt length, tiles
+  thickness: 0.12, // drawn bolt thickness, tiles
+  radius: 0.1, // hit radius: an enemy's box grown by this much on every side counts as hit, tiles
+  lifeTicks: 40, // a bolt's life (0.67 s, so 20 tiles of range: about the view width at the default zoom)
+});
 
 export const hasItem = (body, item) => body.inventory.includes(item);
+
+// True when `body` may pick up `item`: always, unless the item's definition sets onlyOne and the
+// body already carries one. `defs` is for tests.
+export function canTake(body, item, defs = ITEM_DEFS) {
+  return !(defs[item]?.onlyOne && hasItem(body, item));
+}
 
 // Inventory <-> bit mask over ITEMS (for the wire). Unknown ids are not sent.
 export function inventoryMask(inventory) {
@@ -45,8 +74,8 @@ export function inventoryFromMask(mask) {
 }
 
 // Damage sources (the third argument of damage): the player's melee, an enemy's attack, a moving
-// platform crushing a player against a solid block.
-export const DAMAGE_SOURCES = Object.freeze(['melee', 'enemy', 'crush']);
+// platform crushing a player against a solid block, a plasma pistol bolt.
+export const DAMAGE_SOURCES = Object.freeze(['melee', 'enemy', 'crush', 'pistol']);
 // A crush always kills: there is no room left, so any health left would leave the player stuck
 // inside the platform; at 0 health it goes back to the spawn, which has room.
 export const CRUSH_DAMAGE = Infinity;
@@ -63,11 +92,11 @@ export function damage(target, amount, source) {
 // The melee direction from the aim: 1 (right, also straight up or down) or -1 (left).
 export const facing = (player) => (Math.cos(player.aim) >= 0 ? 1 : -1);
 
-// True when the frame asks for a swing: the melee key, or the attack key with nothing carried.
+// True when the frame asks for a swing: the melee key, or the attack key without the pistol.
 export function wantsMelee(player, frame) {
   if (!frame?.connected || !frame.actions) return false;
   const { melee, primaryFire } = frame.actions;
-  return Boolean(melee?.pressed || (primaryFire?.pressed && player.inventory.length === 0));
+  return Boolean(melee?.pressed || (primaryFire?.pressed && !hasItem(player, PLASMA_PISTOL)));
 }
 
 // One tick of the player's melee timer; starts a swing when one is asked for and allowed. On the
@@ -85,6 +114,20 @@ export function stepMelee(player, frame) {
 export const swinging = (player) => player.meleeTicks > MELEE.cooldownTicks - MELEE.swingTicks;
 // True on the swing's first tick, the only tick it hits.
 export const swingStarted = (player) => player.meleeTicks === MELEE.cooldownTicks;
+
+// One tick of the player's pistol charge: fireTicks counts down, then with the pistol carried and
+// the attack key held, at 0 a bolt is fired (fireTicks = PISTOL.chargeTicks). Holding the key fires
+// again each time the charge is full; a press while charging does nothing. The bolt itself is made
+// by the host (or offline) from fired() (world/projectile.js); a guest predicts only the timer.
+export function stepFire(player, frame) {
+  player.fireTicks = Math.max(0, (player.fireTicks ?? 0) - 1);
+  const held = Boolean(frame?.connected && frame.actions?.primaryFire?.held);
+  if (player.fireTicks === 0 && held && hasItem(player, PLASMA_PISTOL)) player.fireTicks = PISTOL.chargeTicks;
+  return player;
+}
+
+// True on the tick a bolt is fired.
+export const fired = (player) => player.fireTicks === PISTOL.chargeTicks;
 
 const rowOf = (body) => body.row ?? 0;
 

@@ -1591,7 +1591,7 @@
       "category": "Weapons",
       "title": "Starting weapon: plasma pistol",
       "detail": "The Hunters' basic weapon, recovered from the facility lockers.",
-      "status": "open",
+      "status": "accepted",
       "authors": [
         "Level ideas"
       ],
@@ -1602,7 +1602,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-21: built (#133): the plasma pistol is a pickup, not a starting weapon. Players start unarmed (melee, D-056); two pistol pickups on the test level, used up when taken; a player carries at most one pistol. Peashooter numbers: 20 damage per shot, 0.5 s charge between shots, unlimited ammo."
     },
     {
       "id": "D-056",
@@ -2353,7 +2353,7 @@
         "TF-060",
         "TF-061"
       ],
-      "notes": ""
+      "notes": "2026-11-21: friendly fire is off in this build (#133): plasma bolts pass through players. Stays open."
     },
     {
       "id": "D-085",
@@ -5573,7 +5573,7 @@
       ],
       "sources": [],
       "refs": [],
-      "notes": "2026-11-20: first version (#105): an empty list per player, sent in the snapshot; the attack key does a melee hit while it is empty."
+      "notes": "2026-11-20: first version (#105): an empty list per player, sent in the snapshot; the attack key does a melee hit while it is empty. 2026-11-21: first item (#133): the plasma pistol (`plasmaPistol`), taken from a pickup; with it the attack key fires it instead of punching. Item flag `onlyOne`: a player carrying the item cannot pick up another (set for the pistol only)."
     },
     {
       "id": "D-132",

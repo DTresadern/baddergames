@@ -63,8 +63,8 @@ test('melee: the attack or melee key starts a swing, drawn for swingTicks, next 
   player.aim = Math.PI; // aiming left
   stepMelee(player, frame(['melee']));
   assert.deepEqual([player.meleeTicks, player.meleeDir], [MELEE.cooldownTicks, -1], 'the melee key, 18 ticks after the last swing');
-  // The attack key with something carried does not swing; the melee key always does.
-  const armed = Object.assign(createPlayer(0, 0, SIZE), { inventory: ['thing'] });
+  // The attack key with the plasma pistol carried does not swing; the melee key always does.
+  const armed = Object.assign(createPlayer(0, 0, SIZE), { inventory: ['plasmaPistol'] });
   stepMelee(armed, frame(['primaryFire']));
   assert.equal(armed.meleeTicks, 0);
   stepMelee(armed, frame(['melee']));

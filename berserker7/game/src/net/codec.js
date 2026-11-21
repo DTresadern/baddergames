@@ -17,19 +17,24 @@ import { ACTIONS } from '../input/actions.js';
 import { SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { ENEMY_ID_MAX, ENEMY_TYPES, MAX_ENEMIES } from '../world/enemy.js';
 import { HOP_TICKS, PRESS_NONE, ROW_LIMIT, ROW_SCHEMES } from '../world/rows.js';
-import { ENEMY_HEALTH, ITEMS, MELEE, PLAYER_HEALTH, inventoryFromMask, inventoryMask } from '../world/combat.js';
+import { ENEMY_HEALTH, ITEMS, MELEE, PISTOL, PLAYER_HEALTH, inventoryFromMask, inventoryMask } from '../world/combat.js';
+import { BOLT_ID_MAX, MAX_BOLTS } from '../world/projectile.js';
+import { MAX_PICKUPS, takenMask } from '../world/pickup.js';
 
-// 7: players carry health, inventory and melee; enemies carry health. 6: players carry hf (the hop is a fall). 5: players carry row, hop and press ages; input carries the row scheme. 4: enemies carry id and
+// 8: players carry ft (pistol charge) and iv has the plasma pistol bit; snap carries the taken
+// pickups (pk) and the bolts. 7: players carry health, inventory and melee; enemies carry health. 6: players carry hf (the hop is a fall). 5: players carry row, hop and press ages; input carries the row scheme. 4: enemies carry id and
 // type; 3: snap carries wt and enemies; 2: MessagePack bytes (1 was JSON text).
-export const PROTOCOL_VERSION = 7;
+export const PROTOCOL_VERSION = 8;
 // Largest message accepted or sent, in MessagePack bytes. The largest message (a snap with two
-// players and MAX_ENEMIES enemies) is 1254 bytes at worst (every field at full-precision extremes;
-// 1146 with the test level's 10 enemies); 2048 leaves wide margin.
+// players, MAX_ENEMIES enemies and MAX_BOLTS bolts) is 1689 bytes at worst (every field at
+// full-precision extremes; 1473 with no bolt in flight, each bolt in flight about 27 more; 1581
+// with the test level's 10 enemies and 8 bolts); 2048 leaves a margin of 359 bytes.
 export const MAX_MESSAGE_BYTES = 2048;
 // Players a snapshot can carry (slot 0 is the host, slot 1 the guest).
 export const MAX_PLAYERS = 2;
-// Enemies a snapshot can carry (defined with the enemies, world/enemy.js).
-export { MAX_ENEMIES };
+// Enemies, bolts and pickups a snapshot can carry (defined in world/enemy.js, world/projectile.js
+// and world/pickup.js).
+export { MAX_ENEMIES, MAX_BOLTS, MAX_PICKUPS };
 
 // msgpackr, once loaded. loadCodec() takes the loader as an argument so tests can pass their own.
 let packr = null;
@@ -78,7 +83,8 @@ export const SPECS = Object.freeze({ int, num, bool, oneOf, text });
 // a (aim, radians); depth rows (world/rows.js): r (row), h (a hop is active), ht (hop target row),
 // hn (hop ticks done), hy0, hy1 (hop start and landing y), hf (the hop is a fall), pd, pj (down and jump press ages);
 // combat (world/combat.js): hp (health), iv (inventory bit mask over ITEMS), mt (melee ticks), md
-// (melee direction, 1 or -1; 0 in an empty slot).
+// (melee direction, 1 or -1; 0 in an empty slot), ft (pistol fire ticks, so the guest's reconcile
+// keeps its own charge timer).
 const PLAYER_FIELDS = Object.freeze({
   x: num(-POSITION_LIMIT, POSITION_LIMIT),
   y: num(-POSITION_LIMIT, POSITION_LIMIT),
@@ -100,6 +106,7 @@ const PLAYER_FIELDS = Object.freeze({
   iv: int(0, 2 ** ITEMS.length - 1),
   mt: int(0, MELEE.cooldownTicks),
   md: int(-1, 1),
+  ft: int(0, PISTOL.chargeTicks),
 });
 // Per enemy slot i: ei (stable id), et (type name, one of ENEMY_TYPES), ex, ey (bottom centre,
 // tiles), ew (awake), eh (health). An unknown type makes the whole message invalid, like any bad field.
@@ -110,6 +117,14 @@ const ENEMY_FIELDS = Object.freeze({
   ey: num(-POSITION_LIMIT, POSITION_LIMIT),
   ew: bool,
   eh: int(0, ENEMY_HEALTH),
+});
+// Per bolt slot i: bi (id), bx, by (its point, tiles), ba (angle, radians), br (row).
+const BOLT_FIELDS = Object.freeze({
+  bi: int(0, BOLT_ID_MAX),
+  bx: num(-POSITION_LIMIT, POSITION_LIMIT),
+  by: num(-POSITION_LIMIT, POSITION_LIMIT),
+  ba: num(-Math.PI, Math.PI),
+  br: int(-ROW_LIMIT, ROW_LIMIT),
 });
 const slots = (fieldSpecs, count) => {
   const fields = {};
@@ -132,8 +147,9 @@ export const MESSAGES = Object.freeze({
   // (guest -> host) one input frame: held and pressed bit masks over ACTIONS, aim in radians, rs
   // the row scheme (the host simulates the guest's player with it)
   input: Object.freeze({ tick: int(0, TICK_MAX), held: int(0, MASK_MAX), pressed: int(0, MASK_MAX), aim: num(-Math.PI, Math.PI), rs: oneOf(...ROW_SCHEMES) }),
-  // (host -> guest) Sandbox players and enemies: ack = last guest input tick applied (-1 none),
-  // wt = the host's world tick (its Sandbox state.ticks), n = player count, ne = enemy count
+  // (host -> guest) Sandbox players, enemies, taken pickups and bolts: ack = last guest input tick
+  // applied (-1 none), wt = the host's world tick (its Sandbox state.ticks), n = player count,
+  // ne = enemy count, pk = taken pickups (bit i = pickup id i), nb = bolt count
   snap: Object.freeze({
     tick: int(0, TICK_MAX),
     ack: int(-1, TICK_MAX),
@@ -142,6 +158,9 @@ export const MESSAGES = Object.freeze({
     ...slots(PLAYER_FIELDS, MAX_PLAYERS),
     ne: int(0, MAX_ENEMIES),
     ...slots(ENEMY_FIELDS, MAX_ENEMIES),
+    pk: int(0, 2 ** MAX_PICKUPS - 1),
+    nb: int(0, MAX_BOLTS),
+    ...slots(BOLT_FIELDS, MAX_BOLTS),
   }),
   // (both) clock and round-trip time; `time` is the sender's clock in ms, echoed in the pong
   ping: Object.freeze({ id: int(0, TICK_MAX), time: num(0, TIME_LIMIT) }),
@@ -251,9 +270,10 @@ export function frameFromMasks({ held, pressed, aim, rs }, prevHeld = 0, player 
   return { player, connected: true, actions, aim, wheel: 0, pointer: null, activated: false, rowScheme: rs ?? 'A' };
 }
 
-// A snap message from Sandbox players (first MAX_PLAYERS) and enemies (first MAX_ENEMIES, the full
-// list each time); empty slots are zeros (enemy type: the first type). `wt` is the host's world tick.
-export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
+// A snap message from Sandbox players (first MAX_PLAYERS), enemies (first MAX_ENEMIES, the full
+// list each time), pickups (their taken flags) and bolts (first MAX_BOLTS, the full list each
+// time); empty slots are zeros (enemy type: the first type). `wt` is the host's world tick.
+export function snapMessage({ tick, ack, wt, players, enemies = [], pickups = [], bolts = [] }) {
   const msg = { t: 'snap', tick, ack, wt, n: Math.min(players.length, MAX_PLAYERS) };
   for (let i = 0; i < MAX_PLAYERS; i++) {
     const p = players[i];
@@ -278,6 +298,7 @@ export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
     msg[`iv${i}`] = p ? inventoryMask(p.inventory ?? []) : 0;
     msg[`mt${i}`] = p ? p.meleeTicks ?? 0 : 0;
     msg[`md${i}`] = p ? p.meleeDir ?? 1 : 0;
+    msg[`ft${i}`] = p ? p.fireTicks ?? 0 : 0;
   }
   msg.ne = Math.min(enemies.length, MAX_ENEMIES);
   for (let i = 0; i < MAX_ENEMIES; i++) {
@@ -289,13 +310,24 @@ export function snapMessage({ tick, ack, wt, players, enemies = [] }) {
     msg[`ew${i}`] = e ? e.awake : false;
     msg[`eh${i}`] = e ? e.health ?? ENEMY_HEALTH : 0;
   }
+  msg.pk = takenMask(pickups);
+  msg.nb = Math.min(bolts.length, MAX_BOLTS);
+  for (let i = 0; i < MAX_BOLTS; i++) {
+    const b = bolts[i];
+    msg[`bi${i}`] = b ? b.id : 0;
+    msg[`bx${i}`] = b ? b.x : 0;
+    msg[`by${i}`] = b ? b.y : 0;
+    msg[`ba${i}`] = b ? b.angle : 0;
+    msg[`br${i}`] = b ? b.row : 0;
+  }
   return msg;
 }
 
-// { tick, ack, wt, players, enemies }: players are { x, y, vx, vy, onGround, crouching, aim, row,
-// hop, presses, health, inventory, meleeTicks, meleeDir } (no size: the receiver adds its own map's
-// player size); enemies are { id, type, x, y, awake, health }, an id repeated in one message is
-// dropped (the first one is kept).
+// { tick, ack, wt, players, enemies, pickupsTaken, bolts }: players are { x, y, vx, vy, onGround,
+// crouching, aim, row, hop, presses, health, inventory, meleeTicks, meleeDir, fireTicks } (no size:
+// the receiver adds its own map's player size); enemies are { id, type, x, y, awake, health };
+// pickupsTaken is the taken mask; bolts are { id, x, y, angle, row }. An enemy or bolt id repeated
+// in one message is dropped (the first one is kept).
 export function snapshotFromMessage(msg) {
   const players = [];
   for (let i = 0; i < msg.n; i++) {
@@ -304,6 +336,7 @@ export function snapshotFromMessage(msg) {
       x: msg[`x${i}`], y: msg[`y${i}`], vx: msg[`vx${i}`], vy: msg[`vy${i}`], onGround: msg[`g${i}`], crouching: msg[`c${i}`], aim: msg[`a${i}`],
       row: msg[`r${i}`], hop, presses: { down: msg[`pd${i}`], jump: msg[`pj${i}`] },
       health: msg[`hp${i}`], inventory: inventoryFromMask(msg[`iv${i}`]), meleeTicks: msg[`mt${i}`], meleeDir: msg[`md${i}`] === -1 ? -1 : 1,
+      fireTicks: msg[`ft${i}`],
     });
   }
   const enemies = [];
@@ -314,5 +347,13 @@ export function snapshotFromMessage(msg) {
     ids.add(id);
     enemies.push({ id, type: msg[`et${i}`], x: msg[`ex${i}`], y: msg[`ey${i}`], awake: msg[`ew${i}`], health: msg[`eh${i}`] });
   }
-  return { tick: msg.tick, ack: msg.ack, wt: msg.wt, players, enemies };
+  const bolts = [];
+  const boltIds = new Set();
+  for (let i = 0; i < msg.nb; i++) {
+    const id = msg[`bi${i}`];
+    if (boltIds.has(id)) continue;
+    boltIds.add(id);
+    bolts.push({ id, x: msg[`bx${i}`], y: msg[`by${i}`], angle: msg[`ba${i}`], row: msg[`br${i}`] });
+  }
+  return { tick: msg.tick, ack: msg.ack, wt: msg.wt, players, enemies, pickupsTaken: msg.pk, bolts };
 }

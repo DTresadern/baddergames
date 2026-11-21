@@ -3,8 +3,10 @@ import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
 import { readFileSync } from 'node:fs';
 import {
+  MAX_BOLTS,
   MAX_ENEMIES,
   MAX_MESSAGE_BYTES,
+  MAX_PICKUPS,
   MESSAGES,
   PROTOCOL_VERSION,
   decode,
@@ -23,7 +25,7 @@ await loadCodec();
 // A plain msgpackr instance, to craft raw input the codec itself would never produce.
 const plain = new Packr({ useRecords: false, moreTypes: false, mapsAsObjects: true });
 
-const player = (x, extra = {}) => ({ x, y: 2.5, vx: -3, vy: 0.25, onGround: true, crouching: false, aim: 1.5, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1, ...extra });
+const player = (x, extra = {}) => ({ x, y: 2.5, vx: -3, vy: 0.25, onGround: true, crouching: false, aim: 1.5, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1, fireTicks: 0, ...extra });
 const walker = (id, x, y, awake, health = 30) => ({ id, type: 'walker', x, y, awake, health });
 
 const SAMPLES = {
@@ -80,18 +82,25 @@ test('codec: the largest message fits well inside MAX_MESSAGE_BYTES', () => {
   const extreme = (x) => ({
     x, y: -12345.678901234, vx: -777.123456789, vy: 0.25123456789, onGround: true, crouching: true, aim: -3.14159265358979,
     row: -64, hop: { to: -63, t: 14, y0: -99999.123456789, y1: -99998.123456789, fall: true }, presses: { down: 254, jump: 254 },
-    health: 99, inventory: [], meleeTicks: 17, meleeDir: -1,
+    health: 99, inventory: ['plasmaPistol'], meleeTicks: 17, meleeDir: -1, fireTicks: 29,
   });
   const enemy = (i) => ({ id: 65535 - i, type: 'walker', x: -99999.123456789 + i, y: 12345.678901234, awake: true, health: 29 });
-  const big = (count) => ({ tick: 2 ** 31 - 1, ack: 2 ** 31 - 1, wt: 2 ** 31 - 1, players: [extreme(99999.123456789), extreme(-99999.123456789)], enemies: Array.from({ length: count }, (_, i) => enemy(i)) });
-  const worst = encode(snapMessage(big(MAX_ENEMIES))).byteLength;
-  // The test level's real enemy count, values at the same extremes.
+  const bolt = (i) => ({ id: 65535 - i, x: -99999.123456789 + i, y: 12345.678901234, angle: -3.14159265358979 + i * 0.001, row: -64 });
+  const pickups = Array.from({ length: MAX_PICKUPS }, (_, id) => ({ id, taken: true }));
+  const big = (enemies, bolts) => ({
+    tick: 2 ** 31 - 1, ack: 2 ** 31 - 1, wt: 2 ** 31 - 1, players: [extreme(99999.123456789), extreme(-99999.123456789)],
+    enemies: Array.from({ length: enemies }, (_, i) => enemy(i)), pickups, bolts: Array.from({ length: bolts }, (_, i) => bolt(i)),
+  });
+  const worst = encode(snapMessage(big(MAX_ENEMIES, MAX_BOLTS))).byteLength;
+  const noBolts = encode(snapMessage(big(MAX_ENEMIES, 0))).byteLength;
+  const perBolt = (encode(snapMessage(big(MAX_ENEMIES, 1))).byteLength - noBolts);
+  // The test level's real enemy count, values at the same extremes, every bolt in flight.
   const level = JSON.parse(readFileSync(new URL('../public/content/maps/moge3-cyberpunk-blocks.json', import.meta.url), 'utf8'));
   const levelEnemies = level.spawns.filter((s) => s.type === 'enemy').length;
-  const levelBytes = encode(snapMessage(big(levelEnemies))).byteLength;
-  console.log(`snap bytes: worst case (2 players, ${MAX_ENEMIES} enemies) ${worst}; this level (${levelEnemies} enemies) ${levelBytes}; limit ${MAX_MESSAGE_BYTES}`);
-  assert.ok(worst <= 1300, `worst case ${worst}`);
-  assert.ok(worst < MAX_MESSAGE_BYTES * 0.65, 'wide margin (1254 bytes with health, inventory and melee, protocol 7)');
+  const levelBytes = encode(snapMessage(big(levelEnemies, MAX_BOLTS))).byteLength;
+  console.log(`snap bytes: worst case (2 players, ${MAX_ENEMIES} enemies, ${MAX_BOLTS} bolts) ${worst}; no bolts ${noBolts}; one bolt in flight ${perBolt}; this level (${levelEnemies} enemies, ${MAX_BOLTS} bolts) ${levelBytes}; limit ${MAX_MESSAGE_BYTES}`);
+  assert.ok(worst <= 1700, `worst case ${worst} (1689 with bolts, pickups and fire ticks, protocol 8)`);
+  assert.ok(worst < MAX_MESSAGE_BYTES - 300, 'a margin of at least 300 bytes');
   assert.ok(levelEnemies <= MAX_ENEMIES);
   assert.equal(MAX_MESSAGE_BYTES, 2048);
 });
@@ -206,7 +215,7 @@ test('snapshots: players, the world tick and enemies round-trip; n and ne limit 
   const players = [player(1), player(-7.25, { onGround: false, crouching: true, aim: -3 })];
   const enemies = [walker(0, 22.5, 0, false), walker(7, -3.25, 6, true, 10)];
   const msg = decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players, enemies })));
-  assert.deepEqual(snapshotFromMessage(msg), { tick: 5, ack: 3, wt: 4, players, enemies });
+  assert.deepEqual(snapshotFromMessage(msg), { tick: 5, ack: 3, wt: 4, players, enemies, pickupsTaken: 0, bolts: [] });
   const one = decode(encode(snapMessage({ tick: 6, ack: -1, wt: 0, players: players.slice(0, 1) })));
   assert.equal(one.n, 1);
   assert.equal(one.ne, 0);
@@ -255,4 +264,36 @@ test('snapshots: an unknown enemy type or a bad id makes the snap invalid; a rep
   assert.throws(() => encode({ ...raw, et0: 'dragon' }), /et0/);
   const twice = snapMessage({ tick: 5, ack: 3, wt: 4, players: [player(1)], enemies: [walker(2, 1, 0, false), walker(2, 9, 0, true)] });
   assert.deepEqual(snapshotFromMessage(decode(encode(twice))).enemies, [walker(2, 1, 0, false)]);
+});
+
+test('snapshots: fire ticks, the taken pickups mask and bolts round-trip; a repeated bolt id is dropped; nb limits the list', () => {
+  const players = [player(1, { inventory: ['plasmaPistol'], fireTicks: 30 }), player(2, { fireTicks: 7 })];
+  const bolts = [{ id: 3, x: 4.25, y: 1.5, angle: -0.3, row: 0 }, { id: 65535, x: -2, y: 9, angle: 3, row: -1 }];
+  const pickups = [{ id: 0, taken: true }, { id: 1, taken: false }, { id: 7, taken: true }];
+  const msg = decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players, enemies: [], pickups, bolts })));
+  assert.deepEqual([msg.ft0, msg.ft1, msg.iv0, msg.pk, msg.nb], [30, 7, 1, 0b10000001, 2]);
+  const back = snapshotFromMessage(msg);
+  assert.deepEqual(back.players, players);
+  assert.deepEqual(back.bolts, bolts);
+  assert.equal(back.pickupsTaken, 0b10000001);
+  // Only the listed fields travel (owner and age stay on the host).
+  const extra = snapshotFromMessage(decode(encode(snapMessage({ tick: 5, ack: 3, wt: 4, players, bolts: [{ ...bolts[0], owner: 1, age: 9 }] }))));
+  assert.deepEqual(extra.bolts, [bolts[0]]);
+  const twice = snapMessage({ tick: 5, ack: 3, wt: 4, players, bolts: [bolts[0], { ...bolts[1], id: 3 }] });
+  assert.deepEqual(snapshotFromMessage(decode(encode(twice))).bolts, [bolts[0]]);
+  const many = Array.from({ length: MAX_BOLTS + 2 }, (_, i) => ({ id: i, x: i, y: 0, angle: 0, row: 0 }));
+  assert.deepEqual(snapshotFromMessage(decode(encode(snapMessage({ tick: 1, ack: -1, wt: 1, players, bolts: many })))).bolts, many.slice(0, MAX_BOLTS));
+  // Clamped: fire ticks to the charge, an out-of-range mask to 2^MAX_PICKUPS - 1.
+  const raw = decode(encode(snapMessage({ tick: 1, ack: -1, wt: 1, players })));
+  const clamped = decode(Uint8Array.from(plain.pack({ ...raw, ft0: 99, pk: 9999 })));
+  assert.deepEqual([clamped.ft0, clamped.pk], [30, 2 ** MAX_PICKUPS - 1]);
+  assert.equal(decode(Uint8Array.from(plain.pack({ ...raw, ba0: 'up' }))), null, 'a bad bolt field');
+});
+
+test('protocol 8: version, peer id prefix and local channel name change together', async () => {
+  const { PEER_ID_PREFIX } = await import('../src/net/transport-peer.js');
+  const { LOCAL_CHANNEL_PREFIX } = await import('../src/net/transport-local.js');
+  assert.equal(PROTOCOL_VERSION, 8);
+  assert.equal(PEER_ID_PREFIX, 'berserker7-v8-');
+  assert.equal(LOCAL_CHANNEL_PREFIX, 'b7-net-v8-');
 });

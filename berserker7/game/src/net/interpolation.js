@@ -3,7 +3,8 @@
 // ticks older than the newest are ignored. sampleAt(tick) lerps x, y, vx and vy between the two
 // entries around `tick` (and `depth`, the drawn depth, when both entries have one), turns the aim
 // the short way round, and takes every other field (onGround, crouching, size, row, hop, health,
-// inventory, melee ticks and direction, an enemy's awake and health) from the earlier entry.
+// inventory, melee ticks and direction, an enemy's awake and health, a bolt's angle and row) from
+// the earlier entry.
 // Before the oldest: the oldest; after the newest: the newest (no extrapolation).
 
 export const INTERP_CAP = 32;

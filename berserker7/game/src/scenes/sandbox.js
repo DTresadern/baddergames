@@ -7,18 +7,21 @@
 // `ticks` is the world tick: platforms are a function of it (world/platform.js).
 // Enemies (world/enemy.js) are simulated by the host (or offline) only; a guest draws the host's,
 // interpolated. Combat (world/combat.js): every player steps its melee timer (a guest predicts its
-// own swing); only the host (or offline) decides hits.
+// own swing); only the host (or offline) decides hits, fires bolts (world/projectile.js) and hands
+// out pickups (world/pickup.js); a guest draws the host's bolts and taken pickups.
 // Networking reaches the scene only through `net` (the net session's read-only view, see
 // net/session.js): the scene never sees the transport, and input still arrives only as `inputs`.
 
-import { BoxGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene, Vector3 } from 'three';
+import { AdditiveBlending, BoxGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene, Vector3 } from 'three';
 import { acquireLut, defaultLoadLut } from '../assets/luts.js';
 import { acquireJson, acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
 import { loadMap } from '../world/load-map.js';
 import { reconcile } from '../net/prediction.js';
 import { ENEMY, MAX_ENEMIES, createEnemy, stepEnemy } from '../world/enemy.js';
-import { ENEMY_HEALTH, PLAYER_HEALTH, meleeBox, resolveCombat, stepMelee, swinging } from '../world/combat.js';
+import { ENEMY_HEALTH, PISTOL, PLAYER_HEALTH, meleeBox, resolveCombat, stepFire, stepMelee, swinging } from '../world/combat.js';
+import { MAX_BOLTS, stepBolts } from '../world/projectile.js';
+import { MAX_PICKUPS, applyTakenMask, createPickups, stepPickups } from '../world/pickup.js';
 import { platformAt, platformsStep, rideShift } from '../world/platform.js';
 import { createPlayer, playerHeight } from '../world/player.js';
 import { PRESS_NONE, playerDepth, stepRowPlayer } from '../world/rows.js';
@@ -147,6 +150,7 @@ export const OFFLINE_NET = Object.freeze({
   inputsAfter: () => [],
   remotePlayer: () => null,
   remoteEnemies: () => null,
+  remoteBolts: () => null,
   remoteWorldTick: () => null,
 });
 // Level data with no moving platforms, one row and no transfer zones (tickSandbox's default; with
@@ -173,6 +177,22 @@ const HEALTH_BAR_HEIGHT = 0.08; // tiles
 const HEALTH_BAR_GAP = 0.1; // tiles from the enemy's top to the bar's centre
 const HEALTH_BAR_Z = 0.09; // in front of the enemies (2D)
 const HEALTH_BAR_Z_DEEP = 0.01; // just in front of the enemy plane (2.5D)
+// Plasma pistol bolts: a bright core (PISTOL.length x PISTOL.thickness, its front end at the bolt's
+// point) and a larger additive halo behind it, the glow. Not in the palette LUT, so they stay bright.
+export const BOLT_COLOR = 0x9ff8ff;
+const BOLT_HALO_OPACITY = 0.35;
+const BOLT_HALO_GROW = 0.12; // tiles the halo reaches past the core on each side
+const BOLT_Z = 0.095; // in front of the enemies and their health bars, behind the players (2D)
+const BOLT_HALO_Z = 0.094;
+const BOLT_Z_DEEP = 0.03; // in front of the bolt's row (2.5D: z = row + this)
+const BOLT_HALO_Z_DEEP = 0.025;
+// Pickups: a small plane bobbing above its spot. Not in the palette LUT either.
+export const PICKUP_COLOR = 0x7cff6a;
+const PICKUP_SIZE = Object.freeze({ width: 0.5, height: 0.3 }); // drawn plane, tiles
+const PICKUP_LIFT = 0.25; // tiles from the pickup's y to the plane's centre
+const PICKUP_BOB = 0.06; // bob amplitude, tiles
+const PICKUP_BOB_TICKS = 90; // one bob, ticks (1.5 s)
+const PICKUP_Z = 0.03; // just in front of the tiles, behind the platforms (2D); 2.5D: z = 0
 
 // The player's head: the top centre of the current box (crouched or standing).
 export function playerHead(player) {
@@ -208,6 +228,7 @@ function respawnAll(state, localSlot) {
   state.players = Array.from({ length: localSlot + 1 }, () => spawnPlayer(state));
   state.pointer = null;
   state.aimSource = null;
+  state.bolts = []; // a guest's were the host's; the new players start with none in flight
   delete state.remoteTick; // a guest's (see tickSandbox); none once the state starts again
   return snapCamera(state);
 }
@@ -224,7 +245,8 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
   // spawn (maps can have open ends). `size`: the map's player size. `camera`: the camera's
   // smoothed source point ({ x, y }, tiles), following the local player's head. `enemies`: one
   // per `enemy` spawn (same coordinates as the player spawn), idle; `enemySpawns` their spawn
-  // points, for the fall respawn.
+  // points, for the fall respawn. `pickups`: one per `pickup` spawn (world/pickup.js), none taken.
+  // `bolts`: the plasma pistol bolts in flight (world/projectile.js); `nextBoltId` the next one's id.
   const enemySpawns = map.spawns.filter((s) => s.type === 'enemy').map((s) => ({ x: s.x + 0.5, y: s.y }));
   if (enemySpawns.length > MAX_ENEMIES) throw new Error(`sandbox: map '${map.name}' has ${enemySpawns.length} enemies (at most ${MAX_ENEMIES})`);
   const state = {
@@ -241,6 +263,9 @@ export function initSandbox(map, key = MAP_KEY, localSlot = 0) {
     // An enemy's id is its index among the map's enemy spawns: the same on host and guest.
     enemies: enemySpawns.map(({ x, y }, id) => createEnemy(x, y, id)),
     enemySpawns,
+    pickups: createPickups(map.spawns, map.name),
+    bolts: [],
+    nextBoltId: 0,
   };
   return respawnAll(state, localSlot);
 }
@@ -251,8 +276,8 @@ function toSpawn(state, player) {
   Object.assign(player, { ...state.spawn, vx: 0, vy: 0, onGround: false, crouching: false, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE } });
 }
 
-// One player step (with depth rows, world/rows.js), its melee timer (world/combat.js; after the
-// move, so the swing takes this tick's aim) and the fall respawn, on the spawn's row 0.
+// One player step (with depth rows, world/rows.js), its melee and pistol timers (world/combat.js;
+// after the move, so the swing and the shot take this tick's aim) and the fall respawn, on the spawn's row 0.
 // `level` is { rows, transfers }. Returns true when the player respawned.
 function stepWithFall(state, player, frame, level, dt, world) {
   // stepPlayer sets `crushed` (a moving platform crushed the player); a step that does not reach
@@ -260,6 +285,7 @@ function stepWithFall(state, player, frame, level, dt, world) {
   player.crushed = false;
   stepRowPlayer(player, frame, level.rows, level.transfers, dt, world);
   stepMelee(player, frame);
+  stepFire(player, frame);
   if (player.y >= state.fallY) return false;
   toSpawn(state, player);
   return true;
@@ -280,7 +306,10 @@ function stepWithFall(state, player, frame, level, dt, world) {
 // resolveCombat decides hits (a player at 0 health goes back to the spawn with full health). Guest:
 // a snapshot's replay starts at the host's world tick `wt` (replayed entry j steps wt + j to
 // wt + j + 1, then state.ticks = wt + entries), so the guest predicts at the ticks the host will
-// use; without a snapshot k = state.ticks. Guest enemies come from net.remoteEnemies().
+// use; without a snapshot k = state.ticks. Guest enemies come from net.remoteEnemies(), bolts from
+// net.remoteBolts() and the taken pickups from the snapshot.
+// Host or offline order: players step (pickups taken right after), enemies step, bolts step
+// (world/projectile.js), then resolveCombat.
 // inputs[0] is always this browser's own keyboard + mouse (+ pad) frame: pointer and aim source
 // come from it and belong to the local player.
 export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLINE_NET, level = NO_LEVEL) {
@@ -303,6 +332,8 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     };
     const snapshot = net.takeSnapshot();
     const confirmed = snapshot?.players[slot];
+    // The host's taken pickups (the guest never hands them out itself).
+    if (snapshot) applyTakenMask(state.pickups, snapshot.pickupsTaken);
     if (confirmed) {
       k = snapshot.wt;
       const before = own;
@@ -322,6 +353,8 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     // Enemies: the host's list (by id), interpolated; the map's own until the first snapshot.
     const enemies = net.remoteEnemies();
     if (enemies) state.enemies = enemies.map((e) => ({ ...createEnemy(e.x, e.y, e.id, e.type), awake: e.awake, health: e.health }));
+    // Bolts: the host's (by id), interpolated at the same tick as the enemies; never predicted.
+    state.bolts = net.remoteBolts() ?? [];
   } else {
     const count = net.peerPresent() ? MAX_SLOTS : 1;
     while (state.players.length < count) state.players.push(spawnPlayer(state));
@@ -330,6 +363,7 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
     state.players.forEach((player, i) => {
       if (stepWithFall(state, player, inputs[i], rowLevel, dt, world) && i === state.localSlot) respawned = true;
     });
+    stepPickups(state.pickups, state.players);
     // A fallen enemy goes back to its spawn, idle; one with no spawn of this map (an id that came
     // from elsewhere, e.g. a host's list kept after leaving a game) is removed instead.
     state.enemies = state.enemies.filter((enemy) => {
@@ -340,11 +374,15 @@ export function tickSandbox(state, inputs, dt, tiles, halfLife = 0, net = OFFLIN
       Object.assign(enemy, createEnemy(spawn.x, spawn.y, enemy.id, enemy.type));
       return true;
     });
-    // Hits (host and offline only). A player at 0 health goes back to the spawn with full health.
+    // Bolts move, fired ones are added, hits damage enemies; before resolveCombat, so an enemy a
+    // bolt brings to 0 health is removed there.
+    stepBolts(state, rowLevel.rows, world.platforms, dt);
+    // Hits (host and offline only). A player at 0 health goes back to the spawn with full health;
+    // the inventory is kept.
     for (const i of resolveCombat(state)) {
       const player = state.players[i];
       toSpawn(state, player);
-      Object.assign(player, { health: PLAYER_HEALTH, meleeTicks: 0 });
+      Object.assign(player, { health: PLAYER_HEALTH, meleeTicks: 0, fireTicks: 0 });
       if (i === state.localSlot) respawned = true;
     }
     state.ticks += 1;
@@ -434,10 +472,11 @@ function addTransferMarkers(scene, track, map) {
   }
 }
 
-// Moving platform meshes (one per platform) and a pool of MAX_ENEMIES enemy meshes and health bars
-// (a guest's enemy list follows the host's snapshots, so its length can change), made in load, of
-// one view; draw positions them from the state and hides unused enemy meshes.
-function addMovers(scene, geometries, materials, map, { platformGeometry, platformMaterial, enemyZ, platformZ, barZ }) {
+// Moving platform meshes (one per platform), a pool of MAX_ENEMIES enemy meshes and health bars
+// (a guest's enemy list follows the host's snapshots, so its length can change) and pools of bolt
+// and pickup meshes, made in load, of one view; draw positions them from the state and hides
+// unused ones (a hidden mesh costs no draw call).
+function addMovers(scene, geometries, materials, map, { platformGeometry, platformMaterial, enemyZ, platformZ, barZ, pickupZ }) {
   const platforms = map.platforms.map((p) => {
     const mesh = new Mesh(platformGeometry, platformMaterial);
     mesh.scale.set(p.width, p.height, 1);
@@ -458,7 +497,18 @@ function addMovers(scene, geometries, materials, map, { platformGeometry, platfo
     scene.add(mesh);
     return mesh;
   });
-  return { platforms, enemies, bars };
+  // Pools of MAX_BOLTS bolts (core and halo) and MAX_PICKUPS pickup markers, hidden while unused;
+  // draw sets their z (bolts: by row in 2.5D).
+  const hidden = (geometry, material, z = 0) => {
+    const mesh = new Mesh(geometry, material);
+    mesh.position.z = z;
+    mesh.visible = false;
+    scene.add(mesh);
+    return mesh;
+  };
+  const bolts = Array.from({ length: MAX_BOLTS }, () => ({ core: hidden(geometries.bolt, materials.bolt), halo: hidden(geometries.boltHalo, materials.boltHalo) }));
+  const pickups = Array.from({ length: MAX_PICKUPS }, () => hidden(geometries.pickup, materials.pickup, pickupZ));
+  return { platforms, enemies, bars, bolts, pickups };
 }
 
 // `zoom` is the camera view height holder (createCameraZoom) and `viewMode` the 2D / 2.5D and FOV
@@ -526,8 +576,8 @@ export function createSandbox({
       // the shader each frame), one shared set of uniforms that every atlas material holds
       // (atlas-material.js: ambient, lights, fog), emissive light tiles, the scene background
       // colour, fog on the city backdrop and the lit depth shading (nothing behind, nearShade in
-      // front). Grid materials, players, aim lines, swings, enemies, health bars, platforms and
-      // transfer markers stay unlit. Other maps: lit is null and nothing here changes.
+      // front). Grid materials, players, aim lines, swings, enemies, health bars, platforms,
+      // transfer markers, bolts and pickups stay unlit. Other maps: lit is null and nothing here changes.
       lit = null;
       if (atlas && map.lighting) {
         const { lighting } = map;
@@ -546,8 +596,9 @@ export function createSandbox({
       // the shared palette: level surfaces (atlas lit or unlit, or the checkerboard; the depth-shaded
       // pairs' surface), the city backdrop (before its fog on a lit map), platforms, players,
       // enemies, aim lines and health bars. Not: the grid materials (a debug view of the cell edges,
-      // kept exactly as it was) and the transparent swings and transfer markers (blended over what
-      // is behind them, so a snapped colour would not stay a palette colour on screen anyway).
+      // kept exactly as it was), the transparent swings and transfer markers (blended over what
+      // is behind them, so a snapped colour would not stay a palette colour on screen anyway), and
+      // the bolts and pickups (bright glow colours, kept as they are).
       // One shared set of uniforms; the switch is a uniform write in draw.
       paletteLut = createPaletteLutUniforms(lut64);
       const lut = (material) => addPaletteLut(material, paletteLut);
@@ -595,8 +646,12 @@ export function createSandbox({
         enemy: track(new PlaneGeometry(ENEMY.width, ENEMY.height)),
         // Anchored at its left end, so scale.x shrinks it towards the left.
         healthBar: track(new PlaneGeometry(ENEMY.width, HEALTH_BAR_HEIGHT).translate(ENEMY.width / 2, 0, 0)),
+        // A bolt's front end at its point, trailing back along -x; rotated to its angle.
+        bolt: track(new PlaneGeometry(PISTOL.length, PISTOL.thickness).translate(-PISTOL.length / 2, 0, 0)),
+        boltHalo: track(new PlaneGeometry(PISTOL.length + 2 * BOLT_HALO_GROW, PISTOL.thickness + 2 * BOLT_HALO_GROW).translate(-PISTOL.length / 2, 0, 0)),
+        pickup: track(new PlaneGeometry(PICKUP_SIZE.width, PICKUP_SIZE.height)),
       };
-      // All with the palette LUT but the transparent swing (see above).
+      // All with the palette LUT but the transparent swing, the bolts and the pickups (see above).
       const materials = {
         players: PLAYER_COLORS.map((color) => track(lut(new MeshBasicMaterial({ color })))),
         aim: track(lut(new MeshBasicMaterial({ color: AIM_COLOR }))),
@@ -606,6 +661,9 @@ export function createSandbox({
         platform: track(lut(new MeshBasicMaterial({ color: PLATFORM_COLOR }))),
         // 2.5D: the shaded cube's vertex colours times the platform colour.
         platformCube: track(lut(new MeshBasicMaterial({ color: new Color(PLATFORM_COLOR), vertexColors: true }))),
+        bolt: track(new MeshBasicMaterial({ color: BOLT_COLOR })),
+        boltHalo: track(new MeshBasicMaterial({ color: BOLT_COLOR, transparent: true, opacity: BOLT_HALO_OPACITY, blending: AdditiveBlending, depthWrite: false })),
+        pickup: track(new MeshBasicMaterial({ color: PICKUP_COLOR })),
       };
       const groups = tileGroups(tiles, flatMaterials);
       // Level group geometries: the shared tile (2D) and cube (2.5D), or with an atlas one geometry
@@ -629,7 +687,7 @@ export function createSandbox({
         scene: flatScene,
         camera: new OrthographicCamera(-1, 1, 1, -1, -10, 10),
         players: PLAYER_COLORS.map((_, slot) => addPlayer(flatScene, geometries, materials, slot, { player: PLAYER_Z, aim: AIM_Z, swing: SWING_Z })),
-        ...addMovers(flatScene, geometries, materials, map, { platformGeometry: geometries.tile, platformMaterial: materials.platform, platformZ: PLATFORM_Z, enemyZ: ENEMY_Z, barZ: HEALTH_BAR_Z }),
+        ...addMovers(flatScene, geometries, materials, map, { platformGeometry: geometries.tile, platformMaterial: materials.platform, platformZ: PLATFORM_Z, enemyZ: ENEMY_Z, barZ: HEALTH_BAR_Z, pickupZ: PICKUP_Z }),
       };
 
       // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera. A cells map's
@@ -671,7 +729,7 @@ export function createSandbox({
         // The player is a flat plane on the play plane, facing the camera; the aim line just in front.
         players: PLAYER_COLORS.map((_, slot) => addPlayer(deepScene, geometries, materials, slot, { player: 0, aim: AIM_Z_DEEP, swing: SWING_Z_DEEP })),
         // Platforms: boxes width x height x 1 centred on the play plane; enemies: planes at z = 0.
-        ...addMovers(deepScene, geometries, materials, map, { platformGeometry: geometries.cube, platformMaterial: materials.platformCube, platformZ: 0, enemyZ: 0, barZ: HEALTH_BAR_Z_DEEP }),
+        ...addMovers(deepScene, geometries, materials, map, { platformGeometry: geometries.cube, platformMaterial: materials.platformCube, platformZ: 0, enemyZ: 0, barZ: HEALTH_BAR_Z_DEEP, pickupZ: 0 }),
       };
     },
     enter() {
@@ -803,6 +861,23 @@ export function createSandbox({
         if (!bar.visible) return;
         bar.position.set(e.x + dx - ENEMY.width / 2, e.y + dy + ENEMY.height + HEALTH_BAR_GAP, bar.position.z);
         bar.scale.x = e.health / ENEMY_HEALTH;
+      });
+      // Bolts (a guest's are the host's, interpolated: drawn where they are, no ride offset) and
+      // pickups (hidden once taken); unused pool meshes are hidden.
+      active.bolts.forEach(({ core, halo }, i) => {
+        const b = state.bolts[i];
+        core.visible = halo.visible = Boolean(b);
+        if (!b) return;
+        const deepZ = active === deep ? b.row : null;
+        core.position.set(b.x, b.y, deepZ === null ? BOLT_Z : deepZ + BOLT_Z_DEEP);
+        halo.position.set(b.x, b.y, deepZ === null ? BOLT_HALO_Z : deepZ + BOLT_HALO_Z_DEEP);
+        core.rotation.z = halo.rotation.z = b.angle;
+      });
+      const bob = PICKUP_BOB * Math.sin((2 * Math.PI * state.ticks) / PICKUP_BOB_TICKS);
+      active.pickups.forEach((mesh, i) => {
+        const p = state.pickups?.[i];
+        mesh.visible = Boolean(p) && !p.taken;
+        if (mesh.visible) mesh.position.set(p.x, p.y + PICKUP_LIFT + bob, mesh.position.z);
       });
       // One body, aim line and melee swing per player; empty slots are hidden.
       active.players.forEach(({ body, aim, swing, z }, slot) => {

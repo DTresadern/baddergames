@@ -1,7 +1,7 @@
 // The net session: one object, created in main.js, outside the scenes. Host-authoritative: the
-// host's browser runs the game and sends snapshots of the Sandbox players and enemies; the guest
-// sends one input message per tick, predicts its own player (reconciling on each snapshot) and
-// draws the host's player and enemies interpolated; both estimate the shared clock from pings.
+// host's browser runs the game and sends snapshots of the Sandbox players, enemies, taken pickups
+// and bolts; the guest sends one input message per tick, predicts its own player (reconciling on
+// each snapshot) and draws the host's player, enemies and bolts interpolated; both estimate the shared clock from pings.
 //
 // Scenes never see this object. The harness gets wrapInput(input) as its input (a guest's frame
 // becomes the host's player 2 frame, inputs[1]); the Sandbox gets netView(), plain data and pure
@@ -132,6 +132,8 @@ export function createNetSession({
   // The host's enemies by id: id -> { type, buffer } (insertion order = first seen). Null before
   // the first snapshot (and after a map change), so the Sandbox keeps its own map's enemies.
   let enemyBuffers = null;
+  // The host's bolts by id: id -> interpolation buffer, kept exactly like enemyBuffers.
+  let boltBuffers = null;
   let pendingSnapshot = null;
   let lastSnapshotTick = -1;
   let worldOffset = null; // host world tick (wt) minus host net tick, from the newest snapshot
@@ -160,6 +162,7 @@ export function createNetSession({
     history = createInputHistory();
     interp = createInterpolationBuffer();
     enemyBuffers = null;
+    boltBuffers = null;
     pendingSnapshot = null;
     lastSnapshotTick = -1;
     worldOffset = null;
@@ -313,8 +316,9 @@ export function createNetSession({
         break;
       case 'map':
         if (state !== 'connected') return;
-        // The new map has its own enemies: forget the old map's.
+        // The new map has its own enemies: forget the old map's, and its bolts.
         enemyBuffers = null;
+        boltBuffers = null;
         emit({ type: 'map', map: msg.map });
         break;
       case 'snap': {
@@ -326,6 +330,7 @@ export function createNetSession({
         // The host player with its drawn depth (eased during a hop), interpolated like x and y.
         if (snapshot.players[0]) interp.push(snapshot.tick, { ...snapshot.players[0], depth: playerDepth(snapshot.players[0]) });
         updateEnemies(snapshot);
+        updateBolts(snapshot);
         history.drop(snapshot.ack);
         break;
       }
@@ -356,6 +361,31 @@ export function createNetSession({
       entry.buffer.push(snapshot.tick, { x: e.x, y: e.y, vx: 0, vy: 0, aim: 0, awake: e.awake, health: e.health });
     }
     for (const id of enemyBuffers.keys()) if (!present.has(id)) enemyBuffers.delete(id);
+  }
+
+  // The snapshot carries the full bolt list: one buffer per id, as updateEnemies (a bolt's angle
+  // and row come from the earlier entry; they never change), with the host ticks of its first and
+  // last snapshot. Bolts appear and leave on almost every shot, so unlike an enemy a bolt is drawn
+  // only between those ticks (remoteBolts): it shows from where it was first sent, not frozen there
+  // while the draw tick catches up, and a bolt missing from a snapshot (it hit something or
+  // expired) is kept until the draw tick passes its last entry, so its whole flight is drawn. A
+  // missing bolt's buffer is dropped once the draw tick has passed it.
+  function updateBolts(snapshot) {
+    boltBuffers ??= new Map();
+    const present = new Set();
+    for (const b of snapshot.bolts) {
+      present.add(b.id);
+      if (!boltBuffers.has(b.id) || boltBuffers.get(b.id).gone) boltBuffers.set(b.id, { buffer: createInterpolationBuffer(), first: snapshot.tick, last: snapshot.tick, gone: false });
+      const entry = boltBuffers.get(b.id);
+      entry.last = snapshot.tick;
+      entry.buffer.push(snapshot.tick, { x: b.x, y: b.y, vx: 0, vy: 0, aim: 0, angle: b.angle, row: b.row });
+    }
+    const drawTick = remoteDrawTick();
+    for (const [id, entry] of boltBuffers) {
+      if (present.has(id)) continue;
+      entry.gone = true;
+      if (drawTick > entry.last) boltBuffers.delete(id);
+    }
   }
 
   function guestEnd(r) {
@@ -434,7 +464,7 @@ export function createNetSession({
           lastSentMap = sandbox.map;
           link.send(mapMessage(sandbox.map));
         }
-        link.send(snapMessage({ tick: localTick, ack: guestInputs.ack(), wt: sandbox.ticks, players: sandbox.players, enemies: sandbox.enemies }));
+        link.send(snapMessage({ tick: localTick, ack: guestInputs.ack(), wt: sandbox.ticks, players: sandbox.players, enemies: sandbox.enemies, pickups: sandbox.pickups, bolts: sandbox.bolts }));
         lastSnapTick = localTick;
       }
     }
@@ -455,7 +485,8 @@ export function createNetSession({
     role: () => role,
     localSlot: () => (role === 'guest' && state === 'connected' ? slot : 0),
     peerPresent: () => (role === 'host' ? guestReady : role === 'guest' && state === 'connected'),
-    // The newest snapshot not yet applied, as { tick, ack, wt, players, enemies }, or null.
+    // The newest snapshot not yet applied, as { tick, ack, wt, players, enemies, pickupsTaken,
+    // bolts }, or null.
     takeSnapshot() {
       const s = pendingSnapshot;
       pendingSnapshot = null;
@@ -468,7 +499,7 @@ export function createNetSession({
       if (role !== 'guest' || interp.size() === 0) return null;
       return interp.sampleAt(remoteDrawTick());
     },
-    // The host world tick (wt) remotePlayer() and remoteEnemies() are drawn at (remoteDrawTick(),
+    // The host world tick (wt) remotePlayer(), remoteEnemies() and remoteBolts() are drawn at (remoteDrawTick(),
     // never past the newest snapshot, as the interpolation holds there), or null before the first
     // snapshot. The Sandbox draws remote riders relative to the platforms with it (rideShift,
     // world/platform.js).
@@ -483,6 +514,22 @@ export function createNetSession({
       if (role !== 'guest' || enemyBuffers === null) return null;
       const tick = remoteDrawTick();
       return [...enemyBuffers].map(([id, { type, buffer }]) => ({ ...buffer.sampleAt(tick), id, type }));
+    },
+    // The host's bolts ([{ id, x, y, angle, row }], first-seen order) at the same tick as
+    // remoteEnemies(), each only while that tick lies between its first and last snapshot (a bolt
+    // still in the newest snapshot stays at its newest entry; see updateBolts); null before the
+    // first snapshot (and after a map change until the next one). Never predicted: the host
+    // decides every bolt and hit.
+    remoteBolts() {
+      if (role !== 'guest' || boltBuffers === null) return null;
+      const tick = remoteDrawTick();
+      const bolts = [];
+      for (const [id, { buffer, first, last, gone }] of boltBuffers) {
+        if (tick < first || (gone && tick > last)) continue;
+        const { x, y, angle, row } = buffer.sampleAt(tick);
+        bolts.push({ id, x, y, angle, row });
+      }
+      return bolts;
     },
   });
 
