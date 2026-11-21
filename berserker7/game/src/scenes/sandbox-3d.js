@@ -32,6 +32,10 @@ export const FACE_SHADE = Object.freeze({ top: 1, front: 0.8, side: 0.62, bottom
 // Palette LUT settings (scenes/palette-lut.js): off, or the 32- or 64-step shared palette LUT.
 export const PALETTE_LUT_MODES = Object.freeze(['off', '32', '64']);
 export const PALETTE_LUT_DEFAULT = '64';
+// Bayer dithering before the LUT read (a trial, #127; block atlas faces only): off by default; its
+// strength is the nudge's full range in sRGB 0..1 units ((threshold - 0.5) x strength), in
+// DITHER_STRENGTH.step steps from min to max.
+export const DITHER_STRENGTH = Object.freeze({ min: 0, max: 0.3, step: 0.005, default: 0.08 });
 
 // The Sandbox view mode ('2d' or '2.5d'), the perspective FOV (whole degrees, clamped) and the
 // camera offset from the point it follows (tiles, x right, y up, ±OFFSET_LIMIT in OFFSET_STEP
@@ -46,6 +50,8 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   let backdrop = true;
   let grid = false;
   let paletteLut = PALETTE_LUT_DEFAULT;
+  let dither = false;
+  let ditherStrength = DITHER_STRENGTH.default;
   let rowCamera = true;
   return {
     mode: () => current,
@@ -85,6 +91,23 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
     setPaletteLut(mode) {
       if (PALETTE_LUT_MODES.includes(mode)) paletteLut = mode;
       return paletteLut;
+    },
+    // Bayer dithering before the LUT read (palette-lut.js), off by default, and its strength
+    // (DITHER_STRENGTH); draw writes on ? strength : 0 to the shared uniforms each frame.
+    dither: () => dither,
+    setDither(on) {
+      dither = Boolean(on);
+      return dither;
+    },
+    ditherStrength: () => ditherStrength,
+    // Clamped to DITHER_STRENGTH's range and rounded to its step; ignores a value that is not a
+    // finite number. Returns the strength now in use.
+    setDitherStrength(v) {
+      if (Number.isFinite(v)) {
+        const { min, max, step } = DITHER_STRENGTH;
+        ditherStrength = Number((Math.round(Math.min(max, Math.max(min, v)) / step) * step).toFixed(3));
+      }
+      return ditherStrength;
     },
     // 2.5D: the camera moves in depth with the local player's row (on by default); off keeps it on
     // the play plane.

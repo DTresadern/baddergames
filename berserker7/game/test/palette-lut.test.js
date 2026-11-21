@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { Color, Data3DTexture, MeshBasicMaterial, ShaderLib, Texture, Vector3 } from 'three';
 import { FOG_FRAGMENT, LIT_UNIFORMS, addFog, createAtlasMaterial } from '../src/scenes/atlas-material.js';
 import { createLightPool } from '../src/scenes/level-lights.js';
-import { PALETTE_LUT_FRAGMENT, PALETTE_LUT_PARS, PALETTE_LUT_UNIFORMS, addPaletteLut, createPaletteLutUniforms, selectPaletteLut } from '../src/scenes/palette-lut.js';
+import { PALETTE_LUT_FRAGMENT, PALETTE_LUT_PARS, PALETTE_LUT_UNIFORMS, addPaletteLut, bayer8, createPaletteLutUniforms, selectPaletteLut } from '../src/scenes/palette-lut.js';
 
 const LAYOUT = { columns: 7, rows: 4, tileSize: 64 };
 const OPAQUE = '#include <opaque_fragment>';
@@ -142,4 +142,47 @@ test('addPaletteLut: a fragment shader with neither the fog nor opaque_fragment 
   const material = addPaletteLut(new MeshBasicMaterial(), createPaletteLutUniforms(lutTexture()));
   const shader = { vertexShader: 'void main() {}', fragmentShader: '#include <common>\nvoid main() { gl_FragColor = vec4(1.0); }', uniforms: {} };
   assert.throws(() => material.onBeforeCompile(shader), /no insertion point/);
+});
+
+// Bayer dithering trial (#127).
+
+test('bayer8: the 8 x 8 Bayer matrix (recursive definition), every index 0..63 once', () => {
+  let m = [[0]];
+  for (let k = 0; k < 3; k++) {
+    const n = m.length;
+    m = Array.from({ length: 2 * n }, (_, y) => Array.from({ length: 2 * n }, (_, x) => 4 * m[y % n][x % n] + [[0, 2], [3, 1]][y >= n ? 1 : 0][x >= n ? 1 : 0]));
+  }
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) assert.equal(bayer8(x, y), m[y][x], `${x}, ${y}`);
+  assert.deepEqual(Array.from({ length: 8 }, (_, x) => bayer8(x, 0)), [0, 32, 8, 40, 2, 34, 10, 42]);
+  assert.equal(bayer8(9, 17), bayer8(1, 1), 'repeats every 8 px');
+  // The GLSL copy uses the same expression.
+  assert.ok(PALETTE_LUT_PARS.includes('((e & 1) << 5) | ((q.y & 1) << 4) | ((e & 2) << 2) | ((q.y & 2) << 1) | ((e & 4) >> 1) | ((q.y & 4) >> 2)'));
+});
+
+test('selectPaletteLut: the dither strength is written while the LUT is on, 0 while it is off or not a number', () => {
+  const lut64 = new Data3DTexture(new Uint8Array(64 * 64 * 64 * 4), 64, 64, 64);
+  const u = createPaletteLutUniforms(lut64);
+  assert.equal(u.paletteDither.value, 0, 'off at start');
+  selectPaletteLut(u, { 64: lut64 }, '64', 0.08);
+  assert.equal(u.paletteDither.value, 0.08);
+  selectPaletteLut(u, { 64: lut64 }, 'off', 0.08);
+  assert.equal(u.paletteDither.value, 0, 'LUT off: no dither');
+  selectPaletteLut(u, { 64: lut64 }, '64', Number.NaN);
+  assert.equal(u.paletteDither.value, 0);
+  selectPaletteLut(u, { 64: lut64 }, '64');
+  assert.equal(u.paletteDither.value, 0, 'default 0');
+});
+
+test('dither: only the block atlas materials (lit and unlit) define the texel, at vMapUv x the atlas size; the nudge comes just before the LUT read', () => {
+  const lut = createPaletteLutUniforms(lutTexture());
+  const define = '#define PALETTE_DITHER_TEXEL (vMapUv * vec2(448.0, 256.0))';
+  const atlases = [createAtlasMaterial({ map: new Texture(), layout: LAYOUT }), createAtlasMaterial({ map: new Texture(), layout: LAYOUT, vertexColors: true, lit: { uniforms: litUniforms(), emissive: [3] } })];
+  for (const material of atlases) {
+    const f = compiled(addPaletteLut(material, lut)).fragmentShader;
+    assertOrder(f, ['uniform float paletteDither;', define, 'void main()', 'lutIn += (paletteBayer8(PALETTE_DITHER_TEXEL) - 0.5) * paletteDither;', 'texture(paletteLut, paletteLutUvw(lutIn, paletteLutSize))']);
+  }
+  for (const material of [new MeshBasicMaterial({ color: 0xf2c14e }), addFog(new MeshBasicMaterial({ color: '#ffffff' }), litUniforms())]) {
+    assert.ok(!compiled(addPaletteLut(material, lut)).fragmentShader.includes('#define PALETTE_DITHER_TEXEL'));
+  }
+  assertOrder(PALETTE_LUT_FRAGMENT, ['sRGBTransferOETF', '#ifdef PALETTE_DITHER_TEXEL', 'paletteDither', '#endif', 'texture(paletteLut']);
 });
