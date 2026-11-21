@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { ACTIONS } from '../src/input/actions.js';
 import { PROTOCOL_VERSION, decode, encode, loadCodec } from '../src/net/codec.js';
 import { TIMEOUT_MS } from '../src/net/link.js';
+import { INTERP_DELAY_TICKS } from '../src/net/interpolation.js';
 import { JITTER_MAX, createGuestInputQueue, createNetSession, parseNetOptions } from '../src/net/session.js';
 import { createLocalTransport } from '../src/net/transport-local.js';
 import { createFakeBroadcast, createFakeClock } from './fake-net.js';
@@ -372,7 +373,7 @@ test('session: connectionStats is null when idle, and the channel stats only whi
   assert.equal(w.host.session.connectionStats(), null); // guest left
 });
 
-test('session: guest bolts by id like enemies: null before the first snapshot, a new id appears, a missing id is removed, drawn at the enemies\' tick', () => {
+test('session: guest bolts by id: null before the first snapshot, drawn at the enemies\' tick, only between their first and last snapshot', () => {
   const bolt = (id, x) => ({ id, owner: 0, x, y: 1, angle: 0.25, row: 0, age: 3 });
   const enemy = (id, x) => ({ id, type: 'walker', x, y: 0, vx: 0, vy: 0, onGround: true, awake: true, aim: 0, crouching: false });
   const run = (cut) => {
@@ -410,20 +411,33 @@ test('session: guest bolts by id like enemies: null before the first snapshot, a
   const cut = run(true);
   const byId = (list, id) => list?.find((b) => b.id === id);
   assert.deepEqual(Object.keys(byId(full[15].bolts, 1)).sort(), ['angle', 'id', 'row', 'x', 'y'], 'only the drawn fields');
+  let paired = 0;
   for (const { bolts, enemies } of full) {
-    if (!bolts || !enemies?.length) continue;
+    // Before the draw tick reaches bolt 1's first snapshot it is not drawn (enemy 5 is, held there).
+    if (!byId(bolts, 1) || !enemies?.length) continue;
+    paired += 1;
     assert.equal(byId(bolts, 1).x, enemies[0].x, 'bolt 1 and enemy 5 at the same draw tick');
     assert.deepEqual([byId(bolts, 1).angle, byId(bolts, 1).row], [0.25, 0]);
   }
+  assert.ok(paired > 25, `bolt 1 drawn with enemy 5 on ${paired} ticks`);
   assert.ok(byId(cut[15].bolts, 1), 'bolt 1 present before the cut');
   assert.deepEqual(cut.at(-1).bolts.map((b) => b.id), [0, 2, 9]);
-  // The bolt and the enemy leave in the same tick.
-  cut.forEach(({ bolts, enemies }, t) => assert.equal(Boolean(byId(bolts, 1)), Boolean(byId(enemies, 5)), `tick ${t}`));
+  // A bolt missing from the snapshots (it hit something) is drawn until the draw tick passes its
+  // last entry, so it leaves after the enemy (removed with the snapshot) and never jumps back.
+  const enemyGone = cut.findIndex(({ enemies }) => enemies && !byId(enemies, 5));
+  const boltGone = cut.findIndex(({ bolts }, t) => t > 15 && bolts && !byId(bolts, 1));
+  assert.ok(enemyGone > 15 && boltGone >= enemyGone, `bolt 1 leaves at ${boltGone}, enemy 5 at ${enemyGone}`);
+  assert.ok(boltGone - enemyGone <= INTERP_DELAY_TICKS + 2, 'within the interpolation delay of the enemy');
+  for (let t = boltGone; t < cut.length; t++) assert.equal(byId(cut[t].bolts, 1), undefined, `bolt 1 stays gone at ${t}`);
+  const lastX = byId(cut[boltGone - 1].bolts, 1).x;
+  assert.ok(lastX > byId(cut[enemyGone - 1].bolts, 1).x, 'bolt 1 keeps moving after the cut');
   full.forEach(({ bolts }, t) => {
     for (const id of [0, 2]) assert.deepEqual(byId(cut[t].bolts, id), byId(bolts, id), `bolt ${id} at tick ${t}`);
   });
-  assert.equal(byId(full[25].bolts, 9), undefined);
-  assert.deepEqual(byId(full.at(-1).bolts, 9), { id: 9, x: 50, y: 1, angle: 0.25, row: 0 });
+  // A new bolt is not drawn before the draw tick reaches its first snapshot, then from there.
+  const shown = full.findIndex(({ bolts }) => byId(bolts, 9));
+  assert.ok(shown > 30, `bolt 9 first drawn at ${shown}, after it was fired at 30`);
+  assert.deepEqual(byId(full[shown].bolts, 9), { id: 9, x: 50, y: 1, angle: 0.25, row: 0 });
 });
 
 test('session: the host sends its taken pickups; the guest snapshot carries the mask and fire ticks', () => {
