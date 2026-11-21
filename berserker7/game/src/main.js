@@ -18,7 +18,7 @@ import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
 import { createSandbox, createCameraZoom, createMapChoice } from './scenes/sandbox.js';
 import { createViewMode } from './scenes/sandbox-3d.js';
-import { createPixelation, pixelationFactor } from './scenes/pixelation.js';
+import { createPixelation, frameFactor } from './scenes/pixelation.js';
 import { pickPoster, withPoster } from './scenes/poster.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
@@ -276,7 +276,7 @@ let last = performance.now();
 function runFrame(time) {
   const seconds = Math.max(0, time - last) / 1000;
   last = time;
-  pixelation.apply(sandboxState() ? pixelationFactor(sandboxViewMode.pixelation()) : 1);
+  pixelation.apply(frameFactor(sandboxState() !== null, sandboxViewMode.pixelation()));
   harness.frame(seconds);
   const state = sandboxState();
   healthHud.update(state ? state.players : null);

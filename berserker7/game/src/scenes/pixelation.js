@@ -21,6 +21,12 @@ export function pixelationFactor(mode) {
   return Object.hasOwn(FACTORS, mode) ? FACTORS[mode] : 1;
 }
 
+// The factor to draw the next frame with: the mode's factor while the Sandbox is the active main
+// scene (the scene drawn this frame), else 1 (menus, other scenes, the loading scene in its place).
+export function frameFactor(sandboxActive, mode) {
+  return sandboxActive ? pixelationFactor(mode) : 1;
+}
+
 // Keeps the renderer's pixel ratio at `baseRatio / factor` and the canvas's CSS `image-rendering` at
 // `pixelated` (factor > 1) or the default (factor 1). The renderer starts at `baseRatio`, factor 1;
 // nothing changes until the factor does (setPixelRatio resizes the drawing buffer).

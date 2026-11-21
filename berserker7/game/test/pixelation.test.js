@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PIXELATION_DEFAULT, PIXELATION_MODES, createPixelation, pixelationFactor } from '../src/scenes/pixelation.js';
+import { PIXELATION_DEFAULT, PIXELATION_MODES, createPixelation, frameFactor, pixelationFactor } from '../src/scenes/pixelation.js';
 import { createViewMode } from '../src/scenes/sandbox-3d.js';
 
 test('pixelation factors: off 1, half 2, quarter 4, anything else 1', () => {
@@ -42,4 +42,12 @@ test('view mode holder: pixelation off by default, ignores unknown modes', () =>
   assert.equal(viewMode.setPixelation('eighth'), 'quarter');
   assert.equal(viewMode.setPixelation('half'), 'half');
   assert.equal(viewMode.pixelation(), 'half');
+});
+
+test('frameFactor: the mode applies only while the Sandbox is the active main scene', () => {
+  assert.equal(frameFactor(true, 'half'), 2);
+  assert.equal(frameFactor(true, 'quarter'), 4);
+  assert.equal(frameFactor(true, 'off'), 1);
+  assert.equal(frameFactor(false, 'quarter'), 1);
+  assert.equal(frameFactor(false, 'half'), 1);
 });

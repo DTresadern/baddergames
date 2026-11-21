@@ -16,6 +16,7 @@
 //     #b7-pixel-snap (checkbox)              camera snapped to whole screen pixels (pixel-snap.js), off by default
 //     #b7-pixel-scale (select)               pixel scale: Off (default), Auto, 1× to 4×; the zoom text shows the
 //                                            view height it gives at the snap plane
+//     #b7-pixelation (select)                pixelation: Off (default), Half, Quarter; not saved (scenes/pixelation.js)
 //     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
 //     #b7-grid (checkbox)                    level tiles and cubes with the grid texture, off by default
 //     #b7-lut (select)                       palette LUT for solid surfaces: Off, 32 or 64 steps (default 64)
