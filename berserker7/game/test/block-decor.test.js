@@ -136,3 +136,18 @@ test('decor on the real map: deterministic, every tile from the atlas; panels ar
   assert.ok(panels / covered > 0.5, `panels ${panels} / ${covered}`);
   assert.ok(features / covered < 0.15, `features ${features} / ${covered}`);
 });
+
+test('blockTiles: a window pool of several tiles shows more than one of them', () => {
+  // The window test (1 in 4 or 12) and the window pick use separate hashes, so a pool whose size
+  // divides those odds is not stuck on its first tile.
+  const many = { ...pools, window: [20, 21, 22, 23] };
+  const cells = [];
+  for (let y = 0; y < 60; y++) cells.push(...row(-200, 200, y, -1));
+  const solid = solidOf(cells);
+  const seen = new Set();
+  for (let y = 1; y < 59; y += 3) for (let x = -199; x < 199; x += 4) {
+    const front = blockTiles(solid, x, y, -1, many)[2];
+    if (many.window.includes(front)) seen.add(front);
+  }
+  assert.ok(seen.size > 1, `window tiles seen: ${[...seen]}`);
+});

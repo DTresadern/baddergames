@@ -19,7 +19,7 @@ export const DECOR = Object.freeze({
 });
 
 // Hash salts, one per decision, so the decisions do not line up.
-const SALT = Object.freeze({ crate: 1, band: 2, bandTile: 3, window: 4, feature: 5, featureTile: 6, panel: 7 });
+const SALT = Object.freeze({ crate: 1, band: 2, bandTile: 3, window: 4, feature: 5, featureTile: 6, panel: 7, windowTile: 8 });
 
 // The atlas grid from its index: { columns, rows, tileSize, tiles: [{ name, index, kind, tiles }] }
 // in the index's order. `index` = row * columns + column, row 0 the top row of the image. Throws on
@@ -101,7 +101,7 @@ export function blockTiles(solid, x, y, z, pools) {
     const band = Math.floor(x / DECOR.bandLength);
     const windowOdds = z < 0 ? DECOR.windowOddsBehind : DECOR.windowOdds;
     if (hash3(band, y, z, SALT.band) % DECOR.bandOdds === 0) front = pick(pools.band, hash3(band, y, z, SALT.bandTile));
-    else if (hash3(px, py, z, SALT.window) % windowOdds === 0) front = pick(pools.window, hash3(px, py, z, SALT.window));
+    else if (hash3(px, py, z, SALT.window) % windowOdds === 0) front = pick(pools.window, hash3(px, py, z, SALT.windowTile));
     else if (hash3(x, y, z, SALT.feature) % 100 < DECOR.featurePercent) front = pick(pools.feature, hash3(x, y, z, SALT.featureTile));
     else front = panel;
   }
