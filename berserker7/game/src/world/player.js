@@ -3,8 +3,8 @@
 // One world unit is one tile; x is right, y is up. The position is the bottom-centre of the box:
 // the box covers x - width / 2 .. x + width / 2 and y .. y + height.
 // Player data is plain: { x, y, vx, vy, onGround, aim, crouching, size, row, hop, presses, health,
-// inventory, meleeTicks, meleeDir, crushed } (aim in radians, y up, 0 = right). row, hop and presses
-// belong to depth rows (world/rows.js); health, inventory, meleeTicks and meleeDir to combat
+// inventory, meleeTicks, meleeDir, fireTicks, crushed } (aim in radians, y up, 0 = right). row, hop and presses
+// belong to depth rows (world/rows.js); health, inventory, meleeTicks, meleeDir and fireTicks to combat
 // (world/combat.js); stepPlayer leaves them alone. crushed: set by stepPlayer on every step (a
 // moving platform crushed the body this step).
 
@@ -41,7 +41,7 @@ export const PRESS_NONE = 255;
 export const PLAYER_HEALTH = 100;
 
 export function createPlayer(x, y, size = PLAYER_SIZE) {
-  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...size }, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE }, health: PLAYER_HEALTH, inventory: [], meleeTicks: 0, meleeDir: 1, crushed: false };
+  return { x, y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...size }, row: 0, hop: null, presses: { down: PRESS_NONE, jump: PRESS_NONE }, health: PLAYER_HEALTH, inventory: [], meleeTicks: 0, meleeDir: 1, fireTicks: 0, crushed: false };
 }
 
 // Moves `value` towards `target` by at most `amount`, never past it.

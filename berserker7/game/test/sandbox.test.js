@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import {
+  BOLT_COLOR,
+  PICKUP_COLOR,
   ENEMY_COLOR,
   HEALTH_BAR_COLOR,
   MARKER_COLOR,
@@ -41,7 +43,7 @@ test('initSandbox: plain state, the player stands at the first player spawn', ()
   assert.deepEqual(state, {
     ticks: 0,
     map: MAP_KEY,
-    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE }, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1, crushed: false }],
+    players: [{ x: spawn.x + 0.5, y: spawn.y, vx: 0, vy: 0, onGround: false, aim: 0, crouching: false, size: { ...PLAYER_SIZE }, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: [], meleeTicks: 0, meleeDir: 1, fireTicks: 0, crushed: false }],
     localSlot: 0,
     pointer: null,
     aimSource: null,
@@ -51,6 +53,9 @@ test('initSandbox: plain state, the player stands at the first player spawn', ()
     camera: { x: spawn.x + 0.5, y: spawn.y + PLAYER_SIZE.height },
     enemies: [],
     enemySpawns: [],
+    pickups: [],
+    bolts: [],
+    nextBoltId: 0,
   });
   assert.deepEqual(structuredClone(state), state);
   assert.throws(() => initSandbox({ name: 'x', spawns: [] }), /no player spawn/);
@@ -390,6 +395,7 @@ function fakeNet({ role = null, slot = 0, peer = false } = {}) {
     snapshots: [],
     history: [],
     remote: null,
+    bolts: null,
     role: () => role,
     localSlot: () => slot,
     peerPresent: () => net.peer,
@@ -397,6 +403,7 @@ function fakeNet({ role = null, slot = 0, peer = false } = {}) {
     inputsAfter: (ack) => net.history.filter((e) => e.tick > ack),
     remotePlayer: () => net.remote,
     remoteEnemies: () => null,
+    remoteBolts: () => net.bolts,
     remoteWorldTick: () => null,
   };
   return net;
@@ -750,6 +757,11 @@ test('palette LUT: every opaque world material has it (level, backdrop, platform
       const meshes = meshesOf(draw(mode));
       for (const m of meshes) {
         const u = lutUniformsOf(m.material);
+        // Bolts (core and halo) and pickups keep their bright colours: no LUT.
+        if ([BOLT_COLOR, PICKUP_COLOR].includes(m.material.color?.getHex())) {
+          assert.equal(u, null, `${key} ${mode}: bolt or pickup has no LUT`);
+          continue;
+        }
         if (m.material.transparent) {
           assert.equal(u, null, `${key} ${mode}: transparent (swing or marker) has no LUT`);
           assert.ok(!m.material.customProgramCacheKey().includes('palette-lut'));
