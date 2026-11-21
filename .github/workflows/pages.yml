@@ -1,4 +1,5 @@
-# Publishes the landing page (index.html), the idea cloud (ideas/), the
+# Publishes the landing page (index.html and its link preview image
+# og-image.png), the idea cloud (ideas/), the
 # Technophage MVP game files (technophage-mvp/), the Berserker 7 game
 # (berserker7/, built from berserker7/game/), the Berserker 7 development
 # pages (berserker7/dev/: index, feature tracker, milestone retros) and the
@@ -50,6 +51,10 @@ jobs:
       - name: Assemble site
         run: |
           set -euo pipefail
+          if [ ! -f og-image.png ]; then
+            echo "::error::og-image.png not found: the landing page's link preview image has not been committed yet"
+            exit 1
+          fi
           if [ ! -f ideas/index.html ]; then
             echo "::error::ideas/index.html not found: the idea cloud has not been committed yet"
             exit 1
@@ -87,7 +92,7 @@ jobs:
             exit 1
           fi
           mkdir -p _site/ideas _site/technophage-mvp _site/berserker7/dev _site/berserker7/tracker
-          cp index.html _site/
+          cp index.html og-image.png _site/
           cp -r ideas/. _site/ideas/
           cp -r technophage-mvp/. _site/technophage-mvp/
           cp -r berserker7/game/dist/. _site/berserker7/
