@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "image": "berserker7/game/public/og-image.png",
+  "image_sha256": "618b84ed4fc0a7e4d98f93f8c53b6e3f298bd66420985ac5a56b7d77e1bb888d",
+  "dimensions": {
+    "width": 1200,
+    "height": 630
+  },
+  "format": "png (palette mode)",
+  "created_at": null,
+  "generator": null,
+  "prompt": null,
+  "prompt_status": "Supplied by the project owner as a finished image. The generator, prompt and settings are unknown and not recoverable; nothing here is reconstructed.",
+  "references": [],
+  "subject": "Link preview image for Berserker 7: an armoured hunter aiming a rifle at a giant flesh-and-metal monster",
+  "visual_approach": null,
+  "generation_settings": null,
+  "creative_seed": {
+    "value": null,
+    "source": null,
+    "used_for_generation": false,
+    "note": "Unknown: the image was supplied, not generated in this repository."
+  },
+  "revision_of": null,
+  "style_inheritance": null,
+  "usage": "Open Graph / Twitter link preview image",
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "An armoured hunter in the left foreground aiming a rifle to the right at a large biomechanical monster. The hunter has a helmet with a red-glowing visor, cable-like dreadlocks, armour with red markings and a pale muscular arm. The monster is a large fanged jaw with bone-like plates, covered in red organic webbing, with spherical pods.",
+    "composition": "Hunter in the lower-left third, monster in the upper right; the rifle runs across the centre-bottom toward the monster's jaw. A small industrial structure and walkway sit in the middle distance on the right.",
+    "environment": "Dark, grainy background. A walkway with red warning lights, railings and a ladder at bottom right. Red webbing covers the right half.",
+    "colors": "Near-black background, grey and off-white metal, pale skin, blood-red accents (visor, rifle stripes, webbing, walkway lights).",
+    "materials": "Appears as segmented riveted armour, flexible cable tubing, pale matte flesh, glossy red organic strands; a halftone or dithered texture across the image.",
+    "lighting": "Red light from the visor, rifle stripes and walkway lamps; soft front-left highlights on the armour.",
+    "standout_features": [
+      "Clear hunter-versus-monster staging",
+      "Restricted black, grey and red palette",
+      "Red visor and rifle lights lead the eye along the aim line",
+      "Dense biomechanical detail on the jaw and webbing"
+    ],
+    "important_details": [
+      "Rifle points toward the monster",
+      "No text in the image"
+    ],
+    "synopsis": "A dark, red-accented illustration of an armoured hunter aiming a rifle at a large biomechanical monster with an open fanged jaw and red webbed tissue.",
+    "defect_analysis": {
+      "findings": [
+        {
+          "issue": "Fingers of the gripping hand partly merge with the rifle grip",
+          "location": "Hunter's hand at the rifle foregrip, lower centre",
+          "confidence": "medium",
+          "impact": "Small at preview size; visible at full resolution"
+        },
+        {
+          "issue": "Cable tubes from the helmet and shoulder tangle so their paths are hard to follow",
+          "location": "Hunter's head and upper-left quadrant",
+          "confidence": "low",
+          "impact": "Visual clutter only"
+        }
+      ],
+      "overall": "Minor ambiguity in the gripping hand and some tangled cabling; no floating objects or inconsistent shadows."
+    },
+    "mismatches_or_uncertainties": [
+      "The monster reads more as a wall of jaws and webbing than one clearly defined creature",
+      "The image has no title text; the link card relies on the page metadata for identity"
+    ]
+  }
+}
