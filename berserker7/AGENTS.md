@@ -287,6 +287,9 @@ Session (`createSession`, `createSessionHolder`):
   - The loader never releases what it acquired, so preloaded assets stay loaded for the page's life and a scene's later acquire gets them at once; a scene releasing them does not dispose them.
   - `status(group)` gives `{ progress, done, error }`: `progress` is loaded assets / group size, only moves forward, and is exactly 1 when `done`.
   - Loud failure: the first asset that fails rejects the group's promise, sets `error` to `Could not load <path>`, and is logged once with `console.error`; the group never becomes done and there is no retry.
+- Placeholder block atlas (`textures/environment/blocks-placeholder.png`, not in the manifest, nothing uses it yet): 28 programmer-art 64 px block textures (panels, vents, grating, pipes, fan, hazard stripes, walkway top, girders, crates, lit signs and windows, lamps, control box) drawn by `tools/blocks_placeholder.py` from the shared palette, after the scene mockups.
+  - `blocks-placeholder.json` lists each tile's name, x, y, w, h, kind, the axes it tiles seamlessly along (`tiles`: `x`, `y`, `xy` or `none`) and a note; `blocks-placeholder.png.generated.json` is its image record.
+  - Rebuild (from `game/`, needs Python 3 and Pillow): `python3 tools/blocks_placeholder.py`; `--check` redraws in memory and exits 1 if either file differs byte for byte.
 - Adding an asset: put the file under `game/public/content/...`, add an entry to `ASSETS` with its groups, and in code use `acquireTexture(context.acquire, key)` for a texture, `acquireMap(context.acquire, key)` for a map or `assetByKey(key).path` for music.
 
 ## Sandbox (`scenes/sandbox.js`, `world/`)
