@@ -110,6 +110,14 @@ const fakeIntro = (deps = fakeDeps()) =>
 // The Sandbox with the real walkway file instead of a download.
 const walkwayJson = () => JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'));
 const fakeSandbox = () => createSandbox({ fetchJson: async () => walkwayJson() });
+// The Sandbox with the test level, which names a block atlas: the real index and a blank texture
+// (cache-owned, freed by the harness's release).
+const readPublic = (path) => JSON.parse(readFileSync(new URL(`../public/${path}`, import.meta.url), 'utf8'));
+const atlasSandbox = () =>
+  createSandbox({
+    fetchJson: async (path) => readPublic(path),
+    loadTexture: async () => new Texture({ width: 448, height: 256 }),
+  });
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
@@ -120,6 +128,7 @@ const FACTORIES = {
   sceneB: createSceneB,
   players: createPlayers,
   sandbox: fakeSandbox,
+  sandboxAtlas: atlasSandbox,
   mainMenu: fakeMenu,
   newGame: fakeNewGame,
   boot: fakeBoot,

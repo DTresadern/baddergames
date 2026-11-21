@@ -16,8 +16,9 @@ import {
   tickSandbox,
 } from '../src/scenes/sandbox.js';
 import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/tile-texture.js';
-import { NearestFilter } from 'three';
+import { Matrix4, NearestFilter } from 'three';
 import { DEPTH_CUBE_SPACING, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
+import { atlasLayout, atlasPools } from '../src/scenes/block-decor.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { PLAYER_SIZE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
 import { frame } from './frames.js';
@@ -449,4 +450,132 @@ test('sandbox draw: one body per player in its colour; absent slots hidden; aim 
   assert.equal(origins.at(-1)[0], 0);
   assert.equal(origins.at(-1)[1], 400, 'the local player is at the view centre');
   assert.notEqual(PLAYER_COLORS[0], PLAYER_COLORS[1]);
+});
+
+// Block atlas (map.atlas): the Sandbox loaded with a cells map, the real atlas index and a blank
+// texture. `fetchJson` gets the manifest path: the map's for the map, the index's for the index.
+const ATLAS_INDEX_PATH = 'content/textures/environment/blocks-placeholder.json';
+const atlasIndex = () => JSON.parse(readFileSync(new URL(`../public/${ATLAS_INDEX_PATH}`, import.meta.url), 'utf8'));
+const smallCells = (extra = {}) => ({
+  format: 1,
+  kind: 'cells',
+  name: 'atlas-test',
+  tileSize: 64,
+  tile: { type: 'solid', color: '#6b7a8f' },
+  spawns: [{ type: 'player', x: 2, y: 0 }],
+  // A floor 8 wide on the play plane, a crate on it, a back wall at z = -1 and a near cell at z = 1.
+  cells: [...Array.from({ length: 8 }, (_, x) => [x, -1, 0]), [5, 0, 0], ...Array.from({ length: 8 }, (_, x) => [x, 2, -1]), [0, -2, 1]],
+  ...extra,
+});
+
+async function loadAtlasScene(mapJson, viewMode) {
+  const fetched = [];
+  const fetchJson = async (path) => {
+    fetched.push(path);
+    return path === ATLAS_INDEX_PATH ? atlasIndex() : mapJson;
+  };
+  const textures = [];
+  const loadTexture = async (path) => {
+    const { Texture } = await import('three');
+    const texture = new Texture();
+    texture.name = path;
+    textures.push(texture);
+    return texture;
+  };
+  let rendered;
+  const renderer = { render: (scene) => (rendered = scene) };
+  const scene = createSandbox({ viewMode, fetchJson, loadTexture });
+  await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
+  const state = scene.enter();
+  const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
+  // The level's instanced meshes in the scene drawn last (the city backdrop's have no texture).
+  const levelMeshes = (mode) => {
+    viewMode.setMode(mode);
+    scene.draw(state, view);
+    return rendered.children.filter((o) => o.isInstancedMesh && o.material.map);
+  };
+  return { fetched, textures, levelMeshes, state, scene, view };
+}
+
+test('block atlas: a map naming one draws every level mesh with the atlas, per-instance tiles, same mesh count; grid still toggles', async () => {
+  const viewMode = createViewMode();
+  const { fetched, textures, levelMeshes } = await loadAtlasScene(smallCells({ atlas: 'blocks-placeholder' }), viewMode);
+  assert.ok(fetched.includes(ATLAS_INDEX_PATH));
+  assert.equal(textures.length, 1);
+  const [atlas] = textures;
+  assert.equal(atlas.name, 'content/textures/environment/blocks-placeholder.png');
+  assert.deepEqual([atlas.magFilter, atlas.minFilter, atlas.generateMipmaps], [NearestFilter, NearestFilter, false]);
+  const plain = await loadAtlasScene(smallCells(), createViewMode());
+  assert.equal(plain.textures.length, 0, 'no atlas field: no atlas load');
+  for (const mode of ['2d', '2.5d']) {
+    const meshes = levelMeshes(mode);
+    assert.ok(meshes.length > 0, mode);
+    assert.equal(meshes.length, plain.levelMeshes(mode).length, `${mode}: the same number of level meshes (draw calls)`);
+    for (const mesh of meshes) {
+      assert.equal(mesh.material.map, atlas, mode);
+      const tiles = mesh.geometry.attributes.atlasTile;
+      assert.ok(tiles?.isInstancedBufferAttribute, mode);
+      assert.equal(tiles.count, mesh.count, mode);
+      assert.ok(tiles.array.every((t) => Number.isInteger(t) && t >= 0 && t < 28), mode);
+      const faces = mesh.geometry.attributes.atlasFace;
+      assert.equal(faces.count, mesh.geometry.attributes.position.count, mode);
+    }
+    // Groups share the base geometry's buffers but each has its own tiles.
+    if (meshes.length > 1) {
+      assert.equal(meshes[0].geometry.attributes.position, meshes[1].geometry.attributes.position, mode);
+      assert.notEqual(meshes[0].geometry.attributes.atlasTile, meshes[1].geometry.attributes.atlasTile, mode);
+    }
+    // 2D planes show the front tile on every vertex; cubes: +x, -x, +y, -y, +z, -z -> side, side, top, side, front, front.
+    const faces = [...meshes[0].geometry.attributes.atlasFace.array];
+    if (mode === '2d') assert.deepEqual(faces, [2, 2, 2, 2]);
+    else assert.deepEqual(faces, [0, 0, 1, 0, 2, 2].flatMap((f) => [f, f, f, f]));
+    viewMode.setGrid(true);
+    assert.deepEqual(new Set(levelMeshes(mode).map((m) => m.material.map.name)), new Set(['grid']), `${mode}: grid on`);
+    viewMode.setGrid(false);
+    assert.ok(levelMeshes(mode).every((m) => m.material.map === atlas), `${mode}: grid off again`);
+  }
+  // Without the atlas field the same map keeps the checkerboard.
+  assert.deepEqual(new Set(plain.levelMeshes('2.5d').map((m) => m.material.map.name)), new Set(['checker']));
+});
+
+test('block atlas: the play plane floor shows walkway fronts with hazard edges at the ends; depth shading still recolours', async () => {
+  const viewMode = createViewMode({ mode: '2d' });
+  const { levelMeshes, state, scene, view } = await loadAtlasScene(smallCells({ atlas: 'blocks-placeholder' }), viewMode);
+  // 2D draws the play plane: the floor (x 0..7, y -1) and the crate on it (5, 0).
+  const fronts = new Map();
+  for (const mesh of levelMeshes('2d')) {
+    const tiles = mesh.geometry.attributes.atlasTile.array;
+    const m = new Matrix4();
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, m);
+      fronts.set(`${m.elements[12] - 0.5},${m.elements[13] - 0.5}`, tiles[i * 3 + 2]);
+    }
+  }
+  const pools = atlasPools(atlasLayout(atlasIndex()));
+  assert.deepEqual([pools.walkway[0], pools.edge[0]], [16, 15]); // walkway-top, hazard-edge (row 2)
+  assert.equal(fronts.get('0,-1'), pools.edge[0]);
+  assert.equal(fronts.get('7,-1'), pools.edge[0]);
+  for (const x of [1, 2, 3, 4, 6]) assert.equal(fronts.get(`${x},-1`), pools.walkway[0], `x ${x}`);
+  assert.ok(pools.crate.includes(fronts.get('5,0')), `crate ${fronts.get('5,0')}`);
+  // 2.5D: the shaded atlas materials still take the depth colour.
+  viewMode.setMode('2.5d');
+  const behind = levelMeshes('2.5d').find((m) => m.material.color.r < 1);
+  assert.ok(behind, 'an off-plane group is shaded');
+  state.players[0].row = -1;
+  scene.draw(state, view);
+  assert.ok(levelMeshes('2.5d').some((m) => m.material.color.r === 1 && m.material.color.g === 1), 'the player row is unshaded');
+});
+
+test('block atlas: the real test level loads with the real index; the same level mesh count as without the atlas', async () => {
+  const level = JSON.parse(readFileSync(new URL('../public/content/maps/moge3-cyberpunk-blocks.json', import.meta.url), 'utf8'));
+  assert.equal(level.atlas, 'blocks-placeholder');
+  const withAtlas = await loadAtlasScene(level, createViewMode());
+  const { atlas: _, ...noAtlas } = level;
+  const without = await loadAtlasScene(noAtlas, createViewMode());
+  for (const mode of ['2d', '2.5d']) {
+    const meshes = withAtlas.levelMeshes(mode);
+    assert.equal(meshes.length, without.levelMeshes(mode).length, mode);
+    assert.equal(meshes.reduce((n, m) => n + m.count, 0), without.levelMeshes(mode).reduce((n, m) => n + m.count, 0), mode);
+    assert.ok(meshes.every((m) => m.geometry.attributes.atlasTile.count === m.count), mode);
+  }
 });
