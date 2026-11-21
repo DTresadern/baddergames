@@ -1,5 +1,5 @@
 // Loader for map files of format 1 (a character grid). This is the only code that knows the grid:
-// everything else gets { name, tileSize, atlas, tiles, rows, spawns, player, platforms, transfers }. A later file format needs only another
+// everything else gets { name, tileSize, atlas, lighting, tiles, rows, spawns, player, platforms, transfers }. A later file format needs only another
 // loader that returns the same thing.
 //
 // File: { format: 1, name, tileSize, legend: { <char>: { type, color } }, grid: [string, ...], spawns: [...] }
@@ -9,7 +9,7 @@
 //  - spawns are { type, x, y } in tile coordinates with y up (as produced here), passed through.
 //  - optional `platforms` (moving platforms, see world/platform.js) are passed through; default [].
 //  - one row only (z = 0): `rows` is Map 0 -> tiles and `transfers` is [] (see world/rows.js).
-//  - no block atlas: `atlas` is null (grid maps are drawn with the checkerboard).
+//  - no block atlas: `atlas` is null (grid maps are drawn with the checkerboard); no `lighting` (null).
 
 import { copyPlatforms } from './platform.js';
 import { playerSize } from './player.js';
@@ -37,5 +37,5 @@ export function loadGridMap(json) {
       if (id !== undefined) tiles.setTile(x, y, id);
     }
   });
-  return { name, tileSize, atlas: null, tiles, rows: new Map([[0, tiles]]), spawns: (spawns ?? []).map((spawn) => ({ ...spawn })), player: playerSize(json.player), platforms: copyPlatforms(json.platforms), transfers: [] };
+  return { name, tileSize, atlas: null, lighting: null, tiles, rows: new Map([[0, tiles]]), spawns: (spawns ?? []).map((spawn) => ({ ...spawn })), player: playerSize(json.player), platforms: copyPlatforms(json.platforms), transfers: [] };
 }

@@ -51,6 +51,22 @@ test('cell map: atlas is the file\'s name, null when absent; a present non-strin
   assert.equal(loadMap(read('depth-rows-test.json')).atlas, null);
 });
 
+test('cell map: lighting is a deep copy of the file\'s object, null when absent; a present non-object throws', () => {
+  assert.equal(loadCellMap(small).lighting, null);
+  const lighting = { background: '#344a4c', ambient: [0.2, 0.2, 0.2], fog: { color: '#324f5c', density: 0.035, eye: 4.48 }, lights: { 'wall-light': { color: '#ffc144', intensity: 2.5, radius: 1.5 } } };
+  const json = { ...small, lighting };
+  const map = loadCellMap(json);
+  assert.deepEqual(map.lighting, lighting);
+  assert.notEqual(map.lighting, lighting);
+  assert.notEqual(map.lighting.fog, lighting.fog, 'deep copy');
+  assert.notEqual(map.lighting.lights['wall-light'], lighting.lights['wall-light'], 'deep copy');
+  for (const bad of [null, 3, 'dark', [1, 2], true]) assert.throws(() => loadCellMap({ ...small, lighting: bad }), /lighting must be an object/, JSON.stringify(bad));
+  const read = (file) => JSON.parse(readFileSync(new URL(`../public/content/maps/${file}`, import.meta.url), 'utf8'));
+  assert.equal(loadMap(read('moge3-cyberpunk-blocks.json')).lighting.fog.eye, 4.48);
+  assert.equal(loadMap(read('moge3-cyberpunk.json')).lighting, null);
+  assert.equal(loadMap(read('depth-rows-test.json')).lighting, null);
+});
+
 test('moge3-cyberpunk.json: the spawn is on the walkway, and a fall goes back to the spawn', () => {
   const json = JSON.parse(readFileSync(new URL('../public/content/maps/moge3-cyberpunk.json', import.meta.url), 'utf8'));
   const map = loadMap(json);
