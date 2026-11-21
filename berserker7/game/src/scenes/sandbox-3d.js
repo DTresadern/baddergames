@@ -3,6 +3,7 @@
 
 import { BoxGeometry, Float32BufferAttribute } from 'three';
 import { PIXEL_SCALE_DEFAULT, PIXEL_SCALE_MODES } from './pixel-snap.js';
+import { PIXELATION_DEFAULT, PIXELATION_MODES } from './pixelation.js';
 
 export const VIEW_MODES = Object.freeze(['2d', '2.5d']);
 export const DEFAULT_VIEW_MODE = '2.5d';
@@ -56,6 +57,7 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   let rowCamera = true;
   let pixelSnap = false;
   let pixelScale = PIXEL_SCALE_DEFAULT;
+  let pixelation = PIXELATION_DEFAULT;
   // What draw last used with pixel scale on (k 0 when off), for the debug panel.
   const pixelDrawn = { scale: 0, tilesHigh: 0 };
   return {
@@ -134,6 +136,14 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
     setPixelScale(mode) {
       if (PIXEL_SCALE_MODES.includes(mode)) pixelScale = mode;
       return pixelScale;
+    },
+    // Pixelation (scenes/pixelation.js): one of PIXELATION_MODES, 'off' by default; main.js applies
+    // it to the renderer before each frame the Sandbox draws. Ignores an unknown mode. Returns the
+    // mode now in use.
+    pixelation: () => pixelation,
+    setPixelation(mode) {
+      if (PIXELATION_MODES.includes(mode)) pixelation = mode;
+      return pixelation;
     },
     // Written by draw each frame: the pixel scale k in use (0 when off) and the view height at the
     // snap plane it gives (tiles). Read by the debug panel.
