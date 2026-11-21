@@ -76,9 +76,10 @@ function atlasUvChunk({ columns, rows, tileSize }) {
 
 // Fragment line for the palette LUT's Bayer dithering (scenes/palette-lut.js): the atlas texture
 // pixel this fragment samples, vMapUv x the atlas size in pixels (columns x tileSize by rows x
-// tileSize; the image's size, atlasLayout checks the grid). It is the same coordinate the nearest
-// sampler reads, so the pattern sits on the texture's own pixels on every face and moves with the
-// block. Tiles start at multiples of 64 px, so each tile's pattern starts at its own corner.
+// tileSize; assumed to be the image's size, as the tile UVs above assume: nothing checks it). It
+// is the same coordinate the nearest sampler reads, so the pattern sits on the texture's own
+// pixels on every face and moves with the block. Tiles start at multiples of tileSize (64 px, a
+// multiple of 8), so each tile's pattern starts at its own corner.
 function ditherTexelPars({ columns, rows, tileSize }) {
   return `
 #ifdef USE_MAP
