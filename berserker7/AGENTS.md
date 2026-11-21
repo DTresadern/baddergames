@@ -15,7 +15,10 @@ Sub-project of dev.baddergames. Namespace: `dev.baddergames.berserker7`. Root: `
 Berserker 7 is a browser game built with three.js and Vite. Its features are planned in the feature tracker.
 
 - `game/` - game code. Published at `/berserker7/`.
-- `tracker/` - feature tracker. Published at `/berserker7/tracker/`.
+- `dev/` - development pages. Published at `/berserker7/dev/`; `dev/index.html` links to each section (add a line there for a new one).
+  - `dev/tracker/` - feature tracker. Published at `/berserker7/dev/tracker/`.
+  - `dev/retros/` - milestone retros (`retroN.html`, screenshots as WebP in `retroN/`), listed newest first in `dev/retros/index.html`.
+- `tracker/index.html` - forwards the tracker's old address `/berserker7/tracker/` to `/berserker7/dev/tracker/`. Nothing else goes here.
 
 Commands, run from `berserker7/game/`:
 

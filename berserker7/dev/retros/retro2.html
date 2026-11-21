@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Berserker 7 retro 2</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --text: #1d1f24; --muted: #5d6270; --line: #dcd9d2;
+  --accent: #2f5fbf; --good: #1e7a4a; --good-bg: #e3f3ea; --warn: #8a5a00; --warn-bg: #fff4dc;
+  --bad: #a3302a; --bad-bg: #fbe7e5; --code-bg: #efede8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161b; --panel: #1c1f26; --text: #e6e8ee; --muted: #9aa1b0; --line: #2e333d;
+    --accent: #86aef5; --good: #7fd3a4; --good-bg: #17301f; --warn: #f0c36a; --warn-bg: #2e2715;
+    --bad: #f19a92; --bad-bg: #3a1d1b; --code-bg: #262a33;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 1.9rem; margin: 0 0 4px; }
+h2 { font-size: 1.3rem; margin: 40px 0 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+p, li { max-width: 78ch; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+a { color: var(--accent); }
+code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.stat b { display: block; font-size: 1.5rem; }
+.stat span { color: var(--muted); font-size: .85rem; }
+.tablewrap { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); font-size: .92rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--code-bg); font-weight: 600; }
+.pill { font-size: .75rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.ok { color: var(--good); background: var(--good-bg); }
+.wn { color: var(--warn); background: var(--warn-bg); }
+.no { color: var(--bad); background: var(--bad-bg); }
+figure { margin: 20px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+figure img { display: block; width: 100%; height: auto; }
+figure.narrow { max-width: 420px; }
+figcaption { padding: 10px 14px; font-size: .9rem; color: var(--muted); }
+figcaption b { color: var(--text); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 figure { margin: 0; }
+.note { background: var(--warn-bg); border-left: 4px solid var(--warn); padding: 10px 14px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Berserker 7 · Milestone retro 2</h1>
+<p class="sub">Written 19 November 2026. Covers 18 November 00:41 to 19 November 14:27 UTC, from the input system (PR #49) to the merged Sandbox (PR #74). Live build <code>4676f7d</code>. Screenshots 01–08 were taken from the lane's local build at <code>6a38148</code> (the Sandbox code that was merged), 09–10 from <code>d4084c9</code>, and 11 from the owner's MoGe viewer.</p>
+
+<p><b>In one paragraph:</b> The harness from retro 1 now has a front end and a first playable space. Input is a named-action system for keyboard, mouse and two gamepads. The page boots to a loading screen with an asset manifest and preloader. It plays two intro logos, then shows a main menu over one of two random 2:1 posters and a New Game screen. Settings are saved in the browser behind one versioned store. Picking a difficulty now fades into the <b>Sandbox</b>, an experimental test scene: a sparse chunked tile map and a 1×2 box player that runs, jumps and crouches. It has a 2D orthographic view and a 2.5D perspective view, and a camera that follows the mouse aim with tunable sliders and smoothing. Its default map is a cube blockout of the <code>moge3-cyberpunk</code> mockup, built from a MoGe-3 depth projection, with three layers of city blocks behind it to test free perspective parallax. The orchestrator's daily devlog roll-over moved from a nightly task to a day-change hook.</p>
+
+<div class="stats">
+  <div class="stat"><b>13</b><span>pull requests merged (#49–#74); 1 closed unmerged (#71)</span></div>
+  <div class="stat"><b>363</b><span>tests (75 at retro 1)</span></div>
+  <div class="stat"><b>4,647</b><span>lines of game code (<code>src/</code>; 1,259 at retro 1)</span></div>
+  <div class="stat"><b>5,159</b><span>lines of tests (1,084 at retro 1)</span></div>
+  <div class="stat"><b>234</b><span>tracker items: 7 implemented, 22 ongoing, 35 accepted, 162 open, 8 rejected</span></div>
+</div>
+
+<h2>Timeline</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Merged (UTC)</th><th>PR</th><th>What</th></tr></thead>
+<tbody>
+<tr><td>18 Nov 02:19</td><td>#49</td><td><b>Input system</b>: named actions, one input frame per player per tick, keyboard + mouse and up to two standard gamepads, mouse and right-stick aim, wheel steps, user-activation tracking, input debug panel.</td></tr>
+<tr><td>18 Nov 04:50</td><td>#51</td><td>Main menu and New Game screen placeholders.</td></tr>
+<tr><td>18 Nov 11:00</td><td>#53</td><td><b>Asset manifest and preloader</b>: loading screen with progress bar and press-to-start, then the two intro logos.</td></tr>
+<tr><td>18 Nov 11:23</td><td>#55</td><td>Tracker: 11 items marked <code>ongoing</code> with notes on what is built.</td></tr>
+<tr><td>18 Nov 11:23</td><td>#57</td><td><code>berserker7/AGENTS.md</code> restructured into scannable sections.</td></tr>
+<tr><td>18 Nov 12:20</td><td>#59</td><td>Ten <code>AGENTS.md</code> statements corrected to match the code.</td></tr>
+<tr><td>18 Nov 12:20</td><td>#61</td><td>Devlog: the finalise message is sent again when events were recorded after the day's summary.</td></tr>
+<tr><td>18 Nov 20:26</td><td>#63</td><td><b>Settings store and session</b>: one versioned <code>b7.settings</code> key (music volume, version label, bindings, last choice, reserved <code>progress</code>), old bindings key migrated. The New Game choice is remembered and the version label is at the bottom right.</td></tr>
+<tr><td>18 Nov 22:12</td><td>#65</td><td>New 2:1 main menu background.</td></tr>
+<tr><td>18 Nov 22:30</td><td>#67</td><td>Random menu background (classic or thrash, <code>?menubg=</code> to force one). Intro logo fades slowed by 0.3 s (to 1.3 s); the menu fades in over 2 s.</td></tr>
+<tr><td>18 Nov 22:36</td><td>#69</td><td>Tracker D-128: menu backgrounds must be 2:1.</td></tr>
+<tr><td>18 Nov 23:48</td><td>#71</td><td><span class="pill no">closed</span> First day-check attempt: cancelled for runaway scope (see below).</td></tr>
+<tr><td>19 Nov 00:22</td><td>#72</td><td>Devlog day changes: a <code>UserPromptSubmit</code> hook replaces the nightly scheduled task. Adapted from the owner's script from another project.</td></tr>
+<tr><td>19 Nov 14:27</td><td>#74</td><td><b>Sandbox</b>: 26 commits, listed below.</td></tr>
+</tbody></table></div>
+
+<h2>Decisions made</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Decision</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>Settings and session</td><td>One versioned browser key behind one store, which is the only code that touches storage. The session is plain frozen data (<code>{ campaign, difficulty }</code>), so it can later be saved or sent over the network. Difficulty has no effect yet.</td></tr>
+<tr><td>Menu backgrounds 2:1 (D-128)</td><td>Every menu background must be twice as wide as it is tall, so it scales correctly on desktop and phone. The source posters are square and are outpainted for now. A check and an <code>AGENTS.md</code> rule are on the backlog.</td></tr>
+<tr><td>Day-change hook</td><td>The orchestrator's day roll-over runs from a message hook that checks the date, instead of a nightly scheduled task. It prints nothing unless the day has changed and the message is in the orchestrator thread.</td></tr>
+<tr><td>Units</td><td>1 world unit = 1 tile; x right, y up. Art is planned at 64 px per tile. The player is 1×2 tiles.</td></tr>
+<tr><td>Camera range</td><td>The view is 18 to 28 tiles high, default 22, to be adjusted per area later. The scale was checked at 1:1 against the owner's mockups and matches.</td></tr>
+<tr><td>Maps are temporary</td><td>The character-grid JSON and the cells list are experiment formats only. Real maps will be very large and sparse, so the final format will be very different. The tile map is already sparse and chunked (32×32 chunks, negative coordinates allowed), and the game only asks it <code>tileAt</code> and <code>isSolid</code>.</td></tr>
+<tr><td>2.5D with perspective</td><td>Default view: cubes for level tiles, a flat plane for the player, and a perspective camera placed so that the play plane always shows the zoom's tile height. Default FOV 50°. The 2D orthographic view stays as a mode.</td></tr>
+<tr><td>Aim-follow camera</td><td>The camera moves towards the mouse aim point. The aim point is projected through the camera at its <i>rest</i> position, never the actual one, so it cannot feed back. Min is a minimum radius (not a dead zone), Max a cap, and then the X and Y scales apply.</td></tr>
+<tr><td>Camera smoothing</td><td>The camera's source point eases towards the head with a frame-rate-independent exponential ("smerp", half-life 0.05 s). It runs on the fixed 60 Hz tick, like everything else; there is no blending between ticks for drawing (T-089 is still deferred).</td></tr>
+<tr><td>Free parallax</td><td>Background layers are real geometry at depth. The perspective camera gives the parallax, with no layer speeds or scrolling code.</td></tr>
+<tr><td>Experiment mode</td><td>For the Sandbox the owner dictates each change. Tests are kept light and there was no code review on PR #74.</td></tr>
+</tbody></table></div>
+
+<h2>The game today: screenshots</h2>
+
+<figure>
+  <img src="retro2/01-new-game-difficulty.webp" alt="New Game screen over the poster, Megacity card selected, difficulty list">
+  <figcaption><b>New Game.</b> Picking any difficulty creates the session, saves the last choice and fades (2 s in total) into the Sandbox.</figcaption>
+</figure>
+
+<figure>
+  <img src="retro2/02-moge3-start.webp" alt="Cube blockout of the cyberpunk mockup with the yellow player box on the walkway">
+  <figcaption><b>Sandbox, default map: the moge3-cyberpunk blockout.</b> 2.5D, FOV 50, 22 tiles high, Camera Y +2. 916 cubes; the 59 on the play plane collide, the rest are scenery. City backdrop behind.</figcaption>
+</figure>
+
+<div class="grid2">
+  <figure>
+    <img src="retro2/03-moge3-aim-follow.webp" alt="Player aiming up and right, camera shifted towards the aim">
+    <figcaption><b>Aim follow.</b> Mouse up and right: the camera has moved 0.4 of the way towards the aim point (Y halved by Y scale 0.5). The aim line still points at the mouse.</figcaption>
+  </figure>
+  <figure>
+    <img src="retro2/04-moge3-crouched.webp" alt="Crouched player, mostly hidden by the walkway lip">
+    <figcaption><b>Crouched (1×1).</b> The box is mostly hidden by blockout cubes on the walkway's near edge (see rough edges).</figcaption>
+  </figure>
+</div>
+
+<figure>
+  <img src="retro2/05-moge3-mid-city.webp" alt="Mid-level view with the three city layers behind the blockout">
+  <figcaption><b>Mid-level with the city backdrop.</b> Three rows of buildings at 15, 40 and 90 tiles behind the play plane, each denser and darker than the one in front.</figcaption>
+</figure>
+
+<div class="grid2">
+  <figure>
+    <img src="retro2/09-parallax-start.webp" alt="Parallax test, player at x -7.5">
+    <figcaption><b>Parallax, before:</b> player at x -7.5 (smoothing commit not yet in).</figcaption>
+  </figure>
+  <figure>
+    <img src="retro2/10-parallax-moved.webp" alt="Parallax test, player at x 1.5">
+    <figcaption><b>Parallax, after:</b> player 9 tiles to the right. The level moves about a quarter of the screen; the near row moves less, and the far row barely moves.</figcaption>
+  </figure>
+</div>
+
+<div class="grid2">
+  <figure>
+    <img src="retro2/06-mvp-upper-1-2_5d.webp" alt="mvp-upper-1 map in 2.5D">
+    <figcaption><b>mvp-upper-1 in 2.5D.</b> The ground of the old MVP's first level (162×22 tiles), solid tiles only.</figcaption>
+  </figure>
+  <figure>
+    <img src="retro2/07-mvp-upper-1-2d-ortho.webp" alt="mvp-upper-1 map in 2D orthographic view">
+    <figcaption><b>The same map in 2D (ortho).</b> 8 px checkerboard on 64 px tiles, nearest filtering, no mipmaps, so aliasing and jitter show.</figcaption>
+  </figure>
+</div>
+
+<div class="grid2">
+  <figure class="narrow">
+    <img src="retro2/08-debug-sandbox-panel.webp" alt="Debug panel Sandbox section with all sliders">
+    <figcaption><b>Sandbox panel.</b> Map, view mode, zoom, city backdrop, FOV, camera offset, aim follow and smoothing. Nothing here is saved; a reload resets it.</figcaption>
+  </figure>
+  <figure>
+    <img src="retro2/11-viewer-depth05.webp" alt="The owner's MoGe viewer showing the moge3-cyberpunk mesh at depth scale 0.5">
+    <figcaption><b>Source projection.</b> The MoGe-3 mesh of the mockup in the owner's viewer at depth scale 0.50×, which the blockout was converted from.</figcaption>
+  </figure>
+</div>
+
+<h2>The Sandbox in detail</h2>
+
+<h3>Camera position, every frame</h3>
+<ol>
+  <li><b>Source</b> eases towards the player's head (half-life 0.05 s; snaps on spawn, fall respawn and map change).</li>
+  <li><b>Rest</b> = source + Camera X/Y offset.</li>
+  <li><b>Aim point</b> = the mouse projected onto the play plane through a camera at the rest position.</li>
+  <li><b>Shift</b> = (aim point − actual head) × Follow; lengthened to Min along the aim direction if shorter, cut to Max if longer; then × X scale and × Y scale.</li>
+  <li><b>Camera</b> = rest + shift. The camera never rotates; it always looks straight along −z.</li>
+</ol>
+
+<h3>Default settings</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Setting</th><th>Default</th><th>Range</th></tr></thead>
+<tbody>
+<tr><td>Map</td><td>moge3-cyberpunk</td><td>moge3-cyberpunk, mvp-upper-1, walkway</td></tr>
+<tr><td>View mode</td><td>2.5D</td><td>2D, 2.5D</td></tr>
+<tr><td>Zoom (tiles high)</td><td>22</td><td>18 to 28; <code>[</code> / <code>]</code> step 2</td></tr>
+<tr><td>FOV</td><td>50°</td><td>1 to 130°</td></tr>
+<tr><td>Camera X / Y offset</td><td>0 / +2 tiles</td><td>±4, step 0.25</td></tr>
+<tr><td>Follow</td><td>0.4</td><td>0 to 1</td></tr>
+<tr><td>Min / Max</td><td>0 / 8 tiles</td><td>0 to 10 / 0 to 20</td></tr>
+<tr><td>X scale / Y scale</td><td>1 / 0.5</td><td>0 to 2</td></tr>
+<tr><td>Smoothing half-life</td><td>0.05 s</td><td>0 to 0.5</td></tr>
+<tr><td>City backdrop</td><td>on</td><td>on, off</td></tr>
+</tbody></table></div>
+
+<h3>Player</h3>
+<ul>
+  <li>1×2 box; A/D to run, Space or W to jump, S to crouch to 1×1 on the ground (stands up only with headroom).</li>
+  <li>Aim line 2 tiles long from the head, towards the mouse; the gamepad right stick also aims.</li>
+  <li>Falling below the map returns the player to the spawn.</li>
+</ul>
+
+<h3>The moge3-cyberpunk blockout</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Step</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Depth scale</td><td>0.5 around the median depth (25.27 m): each point moved along its ray to m·(d/m)^0.5</td></tr>
+<tr><td>Levelling</td><td>pitch −8.7° removed, so the walkway is flat</td></tr>
+<tr><td>Far background removed</td><td>points deeper than 32 m (after scaling): skyline, far towers, sky. Characters, creatures, drones and shots removed by image boxes.</td></tr>
+<tr><td>Scale</td><td>0.98 tiles per metre, from the hunter being 2 tiles tall</td></tr>
+<tr><td>Cube rule</td><td>a 1×1×1 cell is solid with at least 20 points (a surface shell, not filled)</td></tr>
+<tr><td>Tool</td><td><code>game/tools/moge_blockout.py</code> (Python + numpy, reads the GLB directly; the path is an argument)</td></tr>
+</tbody></table></div>
+
+<h3>Commits in PR #74</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Commit</th><th>Change</th></tr></thead>
+<tbody>
+<tr><td><code>c9e5705</code></td><td>Map asset type, <code>sandbox</code> group, walkway map</td></tr>
+<tr><td><code>e3732b0</code></td><td>Sparse chunked tile map and the grid map loader</td></tr>
+<tr><td><code>4c2bb77</code></td><td>Player box movement and tile collision</td></tr>
+<tr><td><code>1e508d0</code></td><td>Sandbox scene</td></tr>
+<tr><td><code>5b22b8c</code></td><td>Sandbox reachable from the debug panel and from New Game</td></tr>
+<tr><td><code>232a4e0</code>, <code>ff38a77</code></td><td>Docs</td></tr>
+<tr><td><code>770aed1</code></td><td>Aim line from the head; W also jumps</td></tr>
+<tr><td><code>9130e6c</code>, <code>3651a8d</code></td><td>Camera 18 tiles high; fix for the test it broke</td></tr>
+<tr><td><code>aa27bc2</code></td><td><code>mvp-upper-1</code> map from the old MVP's first level</td></tr>
+<tr><td><code>9d625d0</code>, <code>49cfb7c</code>, <code>e7bcfa3</code>, <code>da9c347</code></td><td>Zoom slider and <code>[</code> / <code>]</code>; slider hidden outside the Sandbox; default 22; limits 18 to 28</td></tr>
+<tr><td><code>5a9637a</code></td><td>8 px checkerboard tile texture</td></tr>
+<tr><td><code>ca14854</code></td><td>2.5D mode: cubes, depth cubes, perspective camera, FOV slider</td></tr>
+<tr><td><code>6cf1fdb</code></td><td>Depth cubes flush with the ground; camera offset; FOV up to 130</td></tr>
+<tr><td><code>c4ce373</code>, <code>51f26ab</code>, <code>75fcdbe</code></td><td>Aim follow; Min as a minimum radius; new defaults</td></tr>
+<tr><td><code>264a035</code></td><td>moge3-cyberpunk blockout, conversion tool, map selector, fall respawn</td></tr>
+<tr><td><code>d4084c9</code></td><td>Three-layer city backdrop</td></tr>
+<tr><td><code>d387c08</code></td><td>Crouch</td></tr>
+<tr><td><code>3d5a75d</code>, <code>6a38148</code></td><td>Camera source smoothing; default half-life 0.05 s</td></tr>
+</tbody></table></div>
+
+<h2>Process</h2>
+<ul>
+  <li><b>Lanes:</b> each change ran in its own worktree lane with a draft pull request, and was merged only on the owner's word. The Sandbox lane stayed open across about 20 change requests forwarded from the orchestrator, then merged once as a checkpoint.</li>
+  <li><b>Dev server:</b> a local Vite server ran from the lane's worktree throughout, so each commit showed in the owner's browser on reload. Lanes used their own preview port and never touched the owner's.</li>
+  <li><b>Live check after each merge:</b> wait for the Pages deploy, compare the published files and open the live page in the automation Chromium. The live Sandbox loaded at <code>4676f7d</code>.</li>
+  <li><b>Questions before building:</b> unclear requests were confirmed first (for example what Min and Max limit); clear ones were forwarded straight away with any defaults stated.</li>
+</ul>
+
+<h2>What went wrong or needs watching</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Issue</th><th>What happened</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Runaway scope (#71)</td><td>The orchestrator turned a simple day check into a large change: thread settling rules, extra conditions and a review loop "until no finding remains". It ran 5 review rounds over about an hour. The owner stopped it: the same thing took 5 minutes at work. The replacement (#72) used the owner's script, with no builder and no review loop.</td><td><span class="pill ok">fixed</span> Lesson: brief the smallest thing asked for.</td></tr>
+<tr><td>A non-option offered</td><td>For Min and Max the orchestrator offered a choice (B) that would not have changed the result. Options must change the outcome.</td><td><span class="pill ok">noted</span></td></tr>
+<tr><td>Commit with a failing test</td><td><code>9130e6c</code> was pushed with a failing test, fixed in <code>3651a8d</code>.</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>Hidden row showed</td><td>The zoom row appeared outside the Sandbox: CSS <code>display:flex</code> overrode <code>hidden</code>. Fixed in <code>49cfb7c</code>.</td><td><span class="pill ok">fixed</span></td></tr>
+<tr><td>Dev server stops</td><td>One stopped at about 01:08 for an unknown reason. Background commands are also limited to 2 hours, so the server stops after that and must be restarted.</td><td><span class="pill wn">watch</span></td></tr>
+<tr><td>Lane turn failed</td><td>One lane turn ended with "Provider turn failed"; the request was sent again and completed.</td><td><span class="pill ok">recovered</span></td></tr>
+<tr><td>Wrong claim in a report</td><td>The lane said the level moved "a full screen width" between the parallax screenshots; it moved about a quarter. Caught by looking at the screenshots.</td><td><span class="pill wn">watch</span> Check reports against evidence.</td></tr>
+<tr><td>Blockout scale</td><td>With the hunter at 2 tiles, the mockup image is only about 15.8 tiles high at the walkway, against the 22-tile default, so the blockout looks about 0.7 times the mockup's size. This conflicts with the earlier 1:1 check against other mockups.</td><td><span class="pill wn">open</span> Owner to choose the scale reference.</td></tr>
+<tr><td>Walkway lip hides the player</td><td>Blockout cubes on the walkway's near edge (z +3, +4) sit in front of the player: about 0.4 tiles of the standing box, and most of the crouched box.</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>Thin detail lost</td><td>Railings and pipes mostly fall below the 20-point cube rule at about 1 tile per metre.</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>Aim source after a map change</td><td>If the mouse has not moved since the reload, the aim source reads as <code>stick</code> and the camera stays at rest until the mouse moves.</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>Menu input during the fade</td><td>For about the first second of the New Game to Sandbox fade, the main menu still takes input.</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>Light checks</td><td>Crouch, smoothing and some defaults were checked by tests only, apart from the retro screenshots. No code review ran on #74.</td><td><span class="pill wn">by choice</span></td></tr>
+<tr><td>No blending between ticks</td><td>Drawing shows the latest 60 Hz tick, so on displays faster than 60 Hz the player and camera move in 60 Hz steps (T-089).</td><td><span class="pill wn">deferred</span></td></tr>
+</tbody></table></div>
+
+<h2>Next</h2>
+<ul>
+  <li>Blockout scale: the character probably needs to be smaller relative to the tiles, with the block size read from the mockup's textures. Later: placeholder textures and sprites, block out, then retune camera and player settings until they are close. The owner will send a rough annotation for reference.</li>
+  <li>Continue the Sandbox experiments as the owner directs.</li>
+  <li>Backlog: the D-128 check (an <code>AGENTS.md</code> rule and a test that <code>menubg</code> images are 2:1).</li>
+  <li>Optional clean-up: the cancelled day-check lane's kept branch and worktree (#71).</li>
+</ul>
+
+</main>
+</body>
+</html>

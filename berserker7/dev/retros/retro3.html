@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Berserker 7 retro 3</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --text: #1d1f24; --muted: #5d6270; --line: #dcd9d2;
+  --accent: #2f5fbf; --good: #1e7a4a; --good-bg: #e3f3ea; --warn: #8a5a00; --warn-bg: #fff4dc;
+  --bad: #a3302a; --bad-bg: #fbe7e5; --code-bg: #efede8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161b; --panel: #1c1f26; --text: #e6e8ee; --muted: #9aa1b0; --line: #2e333d;
+    --accent: #86aef5; --good: #7fd3a4; --good-bg: #17301f; --warn: #f0c36a; --warn-bg: #2e2715;
+    --bad: #f19a92; --bad-bg: #3a1d1b; --code-bg: #262a33;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 1.9rem; margin: 0 0 4px; }
+h2 { font-size: 1.3rem; margin: 40px 0 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+p, li { max-width: 78ch; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+a { color: var(--accent); }
+code { font: .88em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.stat b { display: block; font-size: 1.5rem; }
+.stat span { color: var(--muted); font-size: .85rem; }
+.tablewrap { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); font-size: .92rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--code-bg); font-weight: 600; }
+.pill { font-size: .75rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.ok { color: var(--good); background: var(--good-bg); }
+.wn { color: var(--warn); background: var(--warn-bg); }
+.no { color: var(--bad); background: var(--bad-bg); }
+figure { margin: 20px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+figure img { display: block; width: 100%; height: auto; }
+figure.narrow { max-width: 420px; }
+figcaption { padding: 10px 14px; font-size: .9rem; color: var(--muted); }
+figcaption b { color: var(--text); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid2 figure { margin: 0; }
+.note { background: var(--warn-bg); border-left: 4px solid var(--warn); padding: 10px 14px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Berserker 7 · Milestone retro 3: netcode</h1>
+<p class="sub">Written 19 November 2026. Covers 19 November 14:27 to 23:12 UTC, from the merged Sandbox (PR #74, the end of retro 2) to the outdated-build notice (PR #92). Live build <code>23e5d03</code>. Screenshots come from the lanes' local builds and from the project owner's markup on the mockup.</p>
+
+<p><b>In one paragraph:</b> Berserker 7 is now a two-player online game. A host gets a room code from the debug panel, and a second player joins from the main menu's Multiplayer item or an invite link. Both play the Sandbox together over a direct WebRTC connection (PeerJS), or across two tabs with <code>?net=local</code>. The host runs the game and sends snapshots; each player's own movement is predicted and the other player is interpolated. A first test between the project owner and a friend over the internet worked, with the owner hosting from behind carrier-grade NAT. Messages are now MessagePack bytes (43% smaller than JSON for the host's traffic), the debug panel shows the connection type, and the main menu tells players when a newer build is out. Earlier in the session, the mockup's perspective was measured from the owner's markup and turned into a second blockout with a smaller player, and the menus gained open and close animations.</p>
+
+<div class="stats">
+  <div class="stat"><b>9</b><span>pull requests merged (#76–#92)</span></div>
+  <div class="stat"><b>490</b><span>tests (363 at retro 2)</span></div>
+  <div class="stat"><b>7,125</b><span>lines of game code (4,647 at retro 2)</span></div>
+  <div class="stat"><b>7,271</b><span>lines of tests (5,159 at retro 2)</span></div>
+  <div class="stat"><b>1</b><span>successful internet test with a friend, host behind CGNAT</span></div>
+</div>
+
+<h2>Timeline</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Merged (UTC)</th><th>PR</th><th>What</th></tr></thead>
+<tbody>
+<tr><td>17:51</td><td>#76</td><td><b>Second cyberpunk blockout</b> from the owner's block markup: level camera, focal length 400 px, 186 cubes after the owner's 28 manual removals. Player size per map (0.55 × 1.2 on this map), zoom down to 8, Grid texture option, Y scale up and down sliders, tracker T-107 and T-108.</td></tr>
+<tr><td>18:58</td><td>#78</td><td><b>Menu animations:</b> the main menu panel opens as a line, widens, then grows. New Game boxes close the same way in reverse, then 0.5 s, a 2 s fade out and a 1 s fade in. The harness gained separate fade-out and fade-in times.</td></tr>
+<tr><td>19:03</td><td>#80</td><td>Input panel: each action's primary key or button as an amber chip, brighter while held.</td></tr>
+<tr><td>20:35</td><td>#82</td><td><b>Networking slice 1:</b> PeerJS and <code>?net=local</code> transports, room codes, Join screen, invite links, host-authoritative snapshots, prediction with reconciliation, interpolation, clock sync, <code>?lag</code>, the debug panel's Network section. Tracker T-109 to T-112 and D-129.</td></tr>
+<tr><td>21:05</td><td>#84</td><td>Networking fixes from the slice 1 review: an invalid code no longer closes a hosted room, the host's goodbye is delivered, the menu ignores input under overlays.</td></tr>
+<tr><td>21:35</td><td>#88</td><td>Network panel shows the WebRTC connection type (host, srflx, prflx, relay).</td></tr>
+<tr><td>22:20</td><td>#87</td><td>Codec benchmark script: JSON against two MessagePack libraries, float against integer messages.</td></tr>
+<tr><td>23:03</td><td>#90</td><td><b>MessagePack wire format</b> with <code>msgpackr</code>, loaded only when going online. Protocol version 2.</td></tr>
+<tr><td>23:12</td><td>#92</td><td>Outdated-build notice: the build publishes <code>version.json</code>, and the main menu checks it.</td></tr>
+</tbody></table></div>
+
+<h2>Decisions made</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Decision</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>Block size from the art</td><td>One gameplay tile is one block as the owner reads it from the mockup's textures. On the second blockout the player is 0.55 × 1.2 tiles, from the owner's drawn collision boxes. The final character and tile sizes wait for placeholder textures and sprites.</td></tr>
+<tr><td>Maps set base camera values (T-107)</td><td>Each map sets its base FOV, offset, zoom, aim follow and smoothing, overriding the game defaults. Events and triggers layer on top at run time and never replace them.</td></tr>
+<tr><td>Map editor (T-108)</td><td>A draft is planned; details to be decided. The idea came from editing cubes against an overlay of the art.</td></tr>
+<tr><td>Networking model (T-109)</td><td>The host runs the game and sends snapshots (30 a second); the guest sends inputs (60 a second). Each player's own movement is predicted and reconciled; the other player is interpolated. Chosen over lockstep and rollback because it doesn't need bit-exact determinism: each snapshot corrects the guest.</td></tr>
+<tr><td>World prediction later (T-110)</td><td>Once enemies exist, the guest re-runs the game forward from the latest snapshot, capped at about 250 ms, with corrections eased in.</td></tr>
+<tr><td>Two-player testing (T-111)</td><td>Every new feature is built and checked with a host and a guest.</td></tr>
+<tr><td>Design for delay (D-129)</td><td>Telegraph attacks longer than the worst delay, spawn off-screen or behind an animation, use generous hitboxes for fast enemies, scripted platforms, host-decided pickups.</td></tr>
+<tr><td>Wire format</td><td>MessagePack with <code>msgpackr</code>, from the benchmark. Next: fewer packets, then integers with fixed point in the simulation. If positions go coarse, the simulation itself uses the same grid, not only the wire.</td></tr>
+<tr><td>Signalling and relay</td><td>The public PeerJS signalling server, then a direct WebRTC channel. A TURN relay (T-047) only if real players need it; the connection-type line will tell.</td></tr>
+<tr><td>Menu timings</td><td>Panel line 0.3 s, height 0.3 s, items 0.2 s. Game start: close 0.8 s, wait 0.5 s, 2 s to black, 1 s in.</td></tr>
+</tbody></table></div>
+
+<h2>Reading the mockup</h2>
+<p>The owner marked the mockup with red block squares, a green ground line, yellow perspective lines and a 1 × 2 floor tile. Measured against MoGe's depth, six of seven red squares are the same real size (1.55 m) at depths 10 m apart. The yellow lines meet within 2 px at (995, 415), so the camera is level (MoGe estimated 8.7° down), and the floor tile gives a focal length of about 400 px, a vertical FOV of about 91°. The owner's blue lines on the gantry and right-hand blocks each meet at a different point, so the image mixes local perspectives, as AI images often do.</p>
+
+<div class="grid2">
+  <figure><img src="retro3/01-markup-floor-tiles.webp" alt="Owner's markup: red blocks, green ground line, yellow perspective lines and floor tile">
+    <figcaption><b>Owner's markup.</b> Red block squares, green ground line, yellow lines to the vanishing point, yellow 1 × 2 floor tile.</figcaption></figure>
+  <figure><img src="retro3/02-markup-blue-lines.webp" alt="Owner's blue perspective lines on the gantry and right-hand blocks">
+    <figcaption><b>Blue lines.</b> Three pairs, three different vanishing points (horizons from y 298 to 449).</figcaption></figure>
+</div>
+
+<figure><img src="retro3/03-perspective-grid.webp" alt="Hypothetical 3D block grid drawn over the mockup">
+  <figcaption><b>The implied block grid</b>, drawn over the mockup from the measured camera. Green boxes are a 1 × 1.5 player, orange the old 1 × 2.</figcaption></figure>
+
+<h2>The second blockout</h2>
+<div class="grid2">
+  <figure><img src="retro3/04-blocks-grid-before.webp" alt="Grid-textured blockout over the mockup before edits">
+    <figcaption><b>First pass</b> (214 cubes): too many cubes in front of the walkway face.</figcaption></figure>
+  <figure><img src="retro3/05-blocks-removed.webp" alt="The 28 cubes the owner removed, tinted red">
+    <figcaption><b>The owner's 28 removals</b>, matched to cubes by ray casting through each mark.</figcaption></figure>
+</div>
+<figure><img src="retro3/06-blocks-final-player.webp" alt="Final blockout over the mockup with the 0.55 by 1.2 player">
+  <figcaption><b>Final:</b> 186 cubes, feet on the green line, player 0.55 × 1.2 tiles (49 × 109 px against the owner's 50 × 107).</figcaption></figure>
+
+<h2>Menus and debug tools</h2>
+<figure><img src="retro3/07-menu-animation.webp" alt="Eight stages of the menu open and close animation">
+  <figcaption><b>Menu animation stages:</b> opening (top two rows), New Game closing and the fade out (bottom two rows).</figcaption></figure>
+<div class="grid2">
+  <figure class="narrow"><img src="retro3/10-input-panel.webp" alt="Input panel with key chips for both players">
+    <figcaption><b>Input panel:</b> each action's primary key; player 2's A is held.</figcaption></figure>
+  <figure><img src="retro3/11-outdated-notice.webp" alt="Main menu with the outdated build notice">
+    <figcaption><b>Outdated-build notice</b>, shown when the published build is newer.</figcaption></figure>
+</div>
+
+<h2>Networking</h2>
+<div class="grid2">
+  <figure><img src="retro3/08-net-host.webp" alt="Host's view with two players in the Sandbox">
+    <figcaption><b>Host</b> (debug panel open, "Go offline"): yellow is the host, blue the guest.</figcaption></figure>
+  <figure><img src="retro3/09-net-guest.webp" alt="Guest's view of the same session">
+    <figcaption><b>Guest:</b> the same session from the other browser.</figcaption></figure>
+</div>
+
+<h3>Measurements</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>What</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Own movement with <code>?lag=200</code></td><td>responds within 60 ms; ping reads about 420–445 ms</td></tr>
+<tr><td>Two browsers on one machine over PeerJS</td><td>ping about 15–20 ms (#82); the connection line read <code>host ↔ host udp</code> (#88, a separate run)</td></tr>
+<tr><td>Friend test over the internet</td><td>hosting, joining, scene changes, controls and movement worked; host behind CGNAT; whether it was direct or relayed is unknown (the connection line came afterwards)</td></tr>
+<tr><td>Network panel, MessagePack against JSON</td><td>host sending 4,751 → 2,692 B/s (−43%); guest sending 3,292 → 2,299 B/s (−30%)</td></tr>
+<tr><td>Online-only download (gzipped)</td><td>23.4 kB (PeerJS) → 34.7 kB (PeerJS and <code>msgpackr</code>); solo play loads neither</td></tr>
+</tbody></table></div>
+
+<h3>Benchmark (#87; Node 26.3.1, Ryzen 5 8645HS)</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Messages</th><th>Format</th><th>Snapshot</th><th>Input</th><th>Payload</th><th>On the wire (IPv4, estimate)</th></tr></thead>
+<tbody>
+<tr><td>floats</td><td>JSON (before #90)</td><td>269 B</td><td>76 B</td><td>12.6 kB/s</td><td>21.8–25.3 kB/s</td></tr>
+<tr><td>integers</td><td>JSON</td><td>184 B</td><td>63 B</td><td>9.3 kB/s</td><td>18.4–21.9 kB/s</td></tr>
+<tr><td>floats</td><td>msgpackr (now)</td><td>140 B</td><td>50 B</td><td>7.2 kB/s</td><td>16.4–19.9 kB/s</td></tr>
+<tr><td>integers</td><td>msgpackr</td><td>103 B</td><td>44 B</td><td>5.7 kB/s</td><td>14.9–18.3 kB/s</td></tr>
+</tbody></table></div>
+<p class="note">The on-the-wire column is calculated, not measured: 85–113 B of IP, UDP, DTLS and SCTP headers per packet, at 90 packets a second, plus SCTP acknowledgements. That overhead (about 8.4 kB/s) is bigger than any codec saving, so sending fewer packets (inputs 30 a second, two ticks each) is the next lever. Every format encodes and decodes in about 1.1 µs or less per message.</p>
+
+<h2>Process</h2>
+<ul>
+  <li><b>Owner tests before merge:</b> each networking lane notified the orchestrator as soon as <code>?net=local</code> worked, and the dev server was switched to its worktree so the owner could try it before review finished.</li>
+  <li><b>Review rounds capped:</b> networking lanes ran at most two r9000 rounds; leftover findings were listed and fixed in a separate small lane (#84) instead of looping.</li>
+  <li><b>Benchmarks on the owner's go:</b> the benchmark lane prepared a dry run, stopped, and ran the full timed run only after the owner said go.</li>
+  <li><b>Measure, then decide:</b> MessagePack, the bundle cost and the packet overhead were all measured or calculated before the format changed.</li>
+</ul>
+
+<h2>What went wrong or needs watching</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Issue</th><th>What happened</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>MoGe's camera</td><td>MoGe's tilt (−8.7°) and some depths disagreed with the owner's perspective lines; the character height estimate moved from 1.3–1.45 to 1.5–1.6 blocks and then about 1.35, depending on which markup sets the scale.</td><td><span class="pill wn">open</span> Settle with placeholder art.</td></tr>
+<tr><td>Dev server</td><td>Background commands stop after 2 hours, and every merge removes the worktree the server ran from, so it needed restarting many times.</td><td><span class="pill wn">watch</span></td></tr>
+<tr><td>Broken PR images</td><td>Deleting the screenshots-only branch after #76 merged broke the images in that PR's description.</td><td><span class="pill wn">noted</span></td></tr>
+<tr><td>WebRTC in automation</td><td>The automation Chromium makes no WebRTC connections unless launched with <code>--webrtc-ip-handling-policy=default</code>.</td><td><span class="pill ok">known</span></td></tr>
+<tr><td>Lane rule broken</td><td>The #92 lane waited on CI with <code>gh pr checks --watch</code>, against its instructions. No harm done.</td><td><span class="pill wn">watch</span></td></tr>
+<tr><td>Flaky automation</td><td>Two of four browser runs in #76 timed out waiting for the map, with no error; cause unknown.</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>Review leftovers (#90)</td><td>No test pins the smaller MessagePack map header; the benchmark's input sizes read 2 bytes higher than the game sends.</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>Outdated notice layout</td><td>It can overlap the menu panel in windows shorter than about 540 px, and covers the Input toggle at phone width.</td><td><span class="pill wn">open</span></td></tr>
+<tr><td>Not yet tested</td><td>Mobile data or symmetric NAT (would need TURN), real-session bandwidth, more than two players (not supported).</td><td><span class="pill wn">open</span></td></tr>
+</tbody></table></div>
+
+<h2>Next</h2>
+<ul>
+  <li>Read the connection-type line in the next friend session: direct or relay.</li>
+  <li>Networking polish: fewer packets, then integers with fixed point in the simulation.</li>
+  <li>Lobby: Ready, Start and drop-in (T-052).</li>
+  <li>First gameplay (an enemy or a weapon), built and tested with two players from the start (T-111), deciding hit handling under delay first (T-112).</li>
+  <li>Maps set base camera values (T-107); map editor draft (T-108).</li>
+  <li>Tracker update for this milestone: PR #94 (8 status changes, new item T-113 for the outdated-build notice).</li>
+</ul>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,159 @@
+{
+  "steps": {
+    "scene-a": {
+      "layers": {
+        "background": [
+          "backdrop"
+        ],
+        "main": "sceneA",
+        "overlays": []
+      },
+      "mem": {
+        "geometries": 3,
+        "textures": 1,
+        "checkerUsers": 1
+      },
+      "version": "d2fd9d7 · 2026-11-17 23:49 UTC"
+    },
+    "pause-local": {
+      "sceneA": [
+        130,
+        130
+      ],
+      "backdrop": [
+        137,
+        244
+      ]
+    },
+    "pause-online": {
+      "sceneA": [
+        140,
+        247
+      ],
+      "backdrop": [
+        258,
+        364
+      ]
+    },
+    "fade-to-b": {
+      "sceneA": {
+        "life": "suspended",
+        "layer": null,
+        "ticks": 272,
+        "left": "suspend",
+        "error": null,
+        "leftState": "{\"ticks\":272,\"boxes\":[{\"color\":0,\"angle\":2.2666666666666613,\"speed\":0.5,\"radius\":1.1,\"y\":-0.3},{\"color\":1,\"angle\":3.993864217863242,\"speed\":0.65,\"radius\":1.4000000000000001,\"y\":0.3},{\"color\":2,\"angle\":5.721061769059882,\"speed\":0.8,\"radius\":1.7000000000000002,\"y\":-0.3},{\"color\":3,\"angle\":1.165074013076837,\"speed\":0.95,\"radius\":1.1,\"y\":0.3},{\"color\":4,\"angle\":2.892271564273502,\"speed\":1.1,\"radius\":1.4000000000000001,\"y\":-0.3},{\"color\":5,\"angle\":4.619469115470057,\"speed\":1.25,\"radius\":1.7000000000000002,\"y\":0.3}]}",
+        "returnedState": null
+      },
+      "sceneB": {
+        "life": "active",
+        "layer": "main",
+        "ticks": 130,
+        "left": null,
+        "error": null,
+        "leftState": null,
+        "returnedState": null
+      },
+      "mem": {
+        "geometries": 6,
+        "textures": 2,
+        "checkerUsers": 2
+      }
+    },
+    "snapshot": {
+      "before": {
+        "geometries": 6,
+        "textures": 2,
+        "checkerUsers": 2
+      },
+      "away": {
+        "mem": {
+          "geometries": 5,
+          "textures": 2,
+          "checkerUsers": 1
+        },
+        "layers": {
+          "background": [
+            "backdrop"
+          ],
+          "main": null,
+          "overlays": []
+        },
+        "sceneB": {
+          "life": "unloaded",
+          "layer": null,
+          "ticks": null,
+          "left": "snapshot",
+          "error": null,
+          "leftState": "{\"ticks\":134,\"balls\":[{\"color\":0,\"x\":542,\"y\":-530,\"vx\":13,\"vy\":-26,\"launch\":48},{\"color\":1,\"x\":-1402,\"y\":-408,\"vx\":9,\"vy\":30,\"launch\":54},{\"color\":2,\"x\":938,\"y\":-630,\"vx\":7,\"vy\":-48,\"launch\":60},{\"color\":3,\"x\":-1410,\"y\":46,\"vx\":-15,\"vy\":-20,\"launch\":66},{\"color\":4,\"x\":533,\"y\":358,\"vx\":-11,\"vy\":4,\"launch\":72}]}",
+          "returnedState": null
+        }
+      },
+      "back": {
+        "mem": {
+          "geometries": 6,
+          "textures": 2,
+          "checkerUsers": 2
+        },
+        "life": "active",
+        "identical": true
+      }
+    },
+    "slow-loading": {
+      "layers": {
+        "background": [
+          "backdrop"
+        ],
+        "main": "slow",
+        "overlays": []
+      },
+      "mem": {
+        "geometries": 6,
+        "textures": 2,
+        "checkerUsers": 2
+      }
+    },
+    "failed-load": {
+      "before": {
+        "geometries": 5,
+        "textures": 2,
+        "checkerUsers": 1
+      },
+      "after": {
+        "geometries": 5,
+        "textures": 2,
+        "checkerUsers": 1
+      },
+      "slow": {
+        "life": "unloaded",
+        "layer": null,
+        "ticks": null,
+        "left": "unload",
+        "error": "slow: simulated load failure (GPU textures at failure: 3)",
+        "leftState": null,
+        "returnedState": null
+      },
+      "layers": {
+        "background": [
+          "backdrop"
+        ],
+        "main": null,
+        "overlays": []
+      }
+    },
+    "phone": {
+      "scrollWidth": 390
+    },
+    "tracker": {
+      "ongoingRows": 6
+    }
+  },
+  "errors": [],
+  "loadingLayers": {
+    "background": [
+      "backdrop"
+    ],
+    "main": "sceneB",
+    "overlays": []
+  }
+}

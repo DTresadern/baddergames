@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Berserker 7 dev</title>
+<link rel="icon" href="data:,">
+<style>
+:root {
+  --bg: #f6f6f4; --panel: #ffffff; --text: #1d1f22; --muted: #61656b; --line: #d9dadc; --accent: #2f5d8a;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171a; --panel: #1d2024; --text: #e6e7e9; --muted: #9ba0a7; --line: #33373d; --accent: #8ab4e0;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 44rem; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 1.7rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+a { color: var(--accent); }
+ul.sections { list-style: none; padding: 0; margin: 0; }
+ul.sections li { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 0 0 10px; }
+ul.sections a { font-weight: 600; }
+ul.sections span { display: block; color: var(--muted); font-size: .92rem; }
+ul.later { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+<h1>Berserker 7 · Development</h1>
+<p class="sub">Tools and references for building the game. <a href="../">Play the game</a>.</p>
+
+<!-- One <li> per section: a link to its folder and one line on what it is. -->
+<ul class="sections">
+  <li><a href="tracker/">Feature tracker</a><span>Every planned feature and rule, with its status, sources and notes.</span></li>
+  <li><a href="retros/">Milestone retros</a><span>What each milestone built, what worked and what did not, with screenshots.</span></li>
+</ul>
+
+<h2>Coming later</h2>
+<ul class="later">
+  <li>Scenes: a long page showing generated scenes.</li>
+  <li>Palette and image tools.</li>
+  <li>Sounds: a list of the game's sounds.</li>
+</ul>
+</main>
+</body>
+</html>
