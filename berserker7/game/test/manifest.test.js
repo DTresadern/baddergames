@@ -65,9 +65,11 @@ test('assetByKey and groupAssets: lookups, and loud errors naming the unknown ke
   assert.deepEqual(groupAssets('boot').map((a) => a.key), ['logo.baddergames', 'logo.w8omg', 'music.title']);
   assert.deepEqual(groupAssets('menubg').map((a) => a.key), ['poster.classic', 'poster.thrash']);
   assert.equal(assetByKey('poster.thrash').path, 'content/textures/menubg/berserkerguy-thrash-2-1.png');
-  assert.deepEqual(groupAssets('sandbox').map((a) => a.key), ['map.walkway', 'map.mvp-upper-1', 'map.moge3-cyberpunk', 'map.moge3-cyberpunk-blocks', 'map.depth-rows-test', 'atlas.blocks-placeholder', 'atlas.blocks-placeholder.index']);
+  assert.deepEqual(groupAssets('sandbox').map((a) => a.key), ['map.walkway', 'map.mvp-upper-1', 'map.moge3-cyberpunk', 'map.moge3-cyberpunk-blocks', 'map.depth-rows-test', 'atlas.blocks-placeholder', 'atlas.blocks-placeholder.index', 'lut.shared']);
   assert.equal(assetByKey('atlas.blocks-placeholder.index').type, 'json');
-  assert.deepEqual(TYPES, ['texture', 'music', 'map', 'json']);
+  assert.deepEqual(TYPES, ['texture', 'music', 'map', 'json', 'lut']);
+  assert.deepEqual(assetByKey('lut.shared'), { key: 'lut.shared', path: 'content/textures/lut/shared.lut32.png', type: 'lut', groups: ['sandbox'] });
+  assert.deepEqual(problemsWith({ type: 'lut', colorSpace: 'raw' }), ["'a': colorSpace is only for textures"]);
   assert.deepEqual(assetByKey('map.walkway'), { key: 'map.walkway', path: 'content/maps/walkway.json', type: 'map', groups: ['sandbox'] });
   assert.throws(() => groupAssets('nope'), /unknown group 'nope'/);
 });

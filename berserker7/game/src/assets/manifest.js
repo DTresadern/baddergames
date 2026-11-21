@@ -1,9 +1,10 @@
 // Every runtime asset, by key. See berserker7/AGENTS.md, Assets.
 
 // 'json': a JSON data file that is not a map (first use: a block atlas index).
-export const TYPES = Object.freeze(['texture', 'music', 'map', 'json']);
+// 'lut': a colour lookup table strip image (N*N x N), loaded as a 3D texture (assets/luts.js).
+export const TYPES = Object.freeze(['texture', 'music', 'map', 'json', 'lut']);
 // 'menubg': the menu backgrounds. Nothing loads this group whole; start-up adds the picked one to the boot load.
-// 'sandbox': the Sandbox test scene's content (maps, the block atlas and its index).
+// 'sandbox': the Sandbox test scene's content (maps, the block atlas and its index, the palette LUT).
 export const GROUPS = Object.freeze(['boot', 'menubg', 'sandbox']);
 export const COLOR_SPACES = Object.freeze(['srgb', 'raw']);
 
@@ -22,6 +23,8 @@ export const ASSETS = freezeList([
   // A block atlas: the image and its tile index (a map's `atlas` field names it; see scenes/block-decor.js).
   { key: 'atlas.blocks-placeholder', path: 'content/textures/environment/blocks-placeholder.png', type: 'texture', groups: ['sandbox'] },
   { key: 'atlas.blocks-placeholder.index', path: 'content/textures/environment/blocks-placeholder.json', type: 'json', groups: ['sandbox'] },
+  // The shared palette LUT strip (1024 x 32; see scenes/palette-lut.js).
+  { key: 'lut.shared', path: 'content/textures/lut/shared.lut32.png', type: 'lut', groups: ['sandbox'] },
 ]);
 
 function freezeList(list) {

@@ -2,12 +2,13 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { NoColorSpace, SRGBColorSpace } from 'three';
+import { Data3DTexture, NoColorSpace, SRGBColorSpace } from 'three';
 import { createLoader } from '../src/assets/loader.js';
 import { assetByKey, groupAssets } from '../src/assets/manifest.js';
 import { withPoster } from '../src/scenes/poster.js';
 import { acquireJson, acquireMap } from '../src/assets/maps.js';
 import { acquireTexture } from '../src/assets/textures.js';
+import { acquireLut } from '../src/assets/luts.js';
 import { createAssetCache } from '../src/engine/asset-cache.js';
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
@@ -169,7 +170,7 @@ test('loader: a map asset loads as JSON through the asset cache, once, and the c
   };
   const loadTexture = async (path) => fakeTexture(path);
   const assets = createAssetCache();
-  const loader = createLoader({ assets, music: {}, loadJson, loadTexture, log: { error() {} } });
+  const loader = createLoader({ assets, music: {}, loadJson, loadTexture, loadLut: async () => new Data3DTexture(), log: { error() {} } });
   await loader.load('sandbox');
   await loader.load('sandbox');
   const maps = ['walkway', 'mvp-upper-1', 'moge3-cyberpunk', 'moge3-cyberpunk-blocks', 'depth-rows-test'].map((name) => `content/maps/${name}.json`);
@@ -188,6 +189,7 @@ test('loader: a map that fails to load rejects the group naming the path', async
     music: {},
     loadTexture: async (path) => fakeTexture(path),
     loadJson: () => Promise.reject(new Error('HTTP 404')),
+    loadLut: async () => new Data3DTexture(),
     log: { error: (...args) => errors.push(args) },
   });
   await assert.rejects(loader.load('sandbox'), /Could not load content\/maps\/walkway.json/);
@@ -202,7 +204,7 @@ test('loader: a json asset (the block atlas index) loads through acquireJson; th
     return Promise.resolve(path.endsWith('blocks-placeholder.json') ? index : { format: 1 });
   };
   const assets = createAssetCache();
-  const loader = createLoader({ assets, music: {}, loadJson, loadTexture: async (path) => fakeTexture(path), log: { error() {} } });
+  const loader = createLoader({ assets, music: {}, loadJson, loadTexture: async (path) => fakeTexture(path), loadLut: async () => new Data3DTexture(), log: { error() {} } });
   await loader.load('sandbox');
   const key = 'atlas.blocks-placeholder.index';
   assert.equal(assets.count(key), 1, 'the loader holds it');
@@ -212,4 +214,32 @@ test('loader: a json asset (the block atlas index) loads through acquireJson; th
   assert.throws(() => acquireJson(assets.acquire, 'map.walkway', loadJson), /'map.walkway' is a map, not a json/);
   assert.throws(() => acquireJson(assets.acquire, 'atlas.blocks-placeholder', loadJson), /is a texture, not a json/);
   assert.throws(() => acquireMap(assets.acquire, key, loadJson), /is a json, not a map/);
+});
+
+test('loader: a lut asset (the palette LUT) loads through acquireLut, once, never through music.preload; a failure names the path', async () => {
+  const loads = [];
+  const lut = new Data3DTexture();
+  const loadLut = (path) => {
+    loads.push(path);
+    return Promise.resolve(lut);
+  };
+  const preloaded = [];
+  const assets = createAssetCache();
+  const loader = createLoader({ assets, music: { preload: (url) => preloaded.push(url) }, loadJson: async () => ({}), loadTexture: async (path) => fakeTexture(path), loadLut, log: { error() {} } });
+  await loader.load('sandbox');
+  assert.deepEqual(loads, [assetByKey('lut.shared').path]);
+  assert.deepEqual(preloaded, [], 'nothing in the sandbox group is music');
+  assert.equal(assets.count('lut.shared'), 1, 'the loader holds it');
+  assert.equal(await acquireLut(assets.acquire, 'lut.shared', () => assert.fail('preloaded')), lut);
+  const errors = [];
+  const failing = createLoader({
+    assets: createAssetCache(),
+    music: {},
+    loadJson: async () => ({}),
+    loadTexture: async (path) => fakeTexture(path),
+    loadLut: () => Promise.reject(new Error('HTTP 404')),
+    log: { error: (...args) => errors.push(args) },
+  });
+  await assert.rejects(failing.load('sandbox'), /Could not load content\/textures\/lut\/shared.lut32.png/);
+  assert.equal(errors.length, 1);
 });
