@@ -3577,7 +3577,7 @@
       "refs": [
         "TF-098"
       ],
-      "notes": ""
+      "notes": "2026-11-21: first try (issue #121): the test level moge3-cyberpunk-blocks is drawn from the placeholder block atlas (blocks-placeholder), one atlas tile per block face chosen by a fixed rule from the neighbouring blocks; same draw calls as the checkerboard. Not themed per level yet, no hand-placed parts."
     },
     {
       "id": "T-008",
