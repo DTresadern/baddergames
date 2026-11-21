@@ -18,6 +18,7 @@ import { createPause } from './scenes/pause.js';
 import { createPlayers } from './scenes/players.js';
 import { createSandbox, createCameraZoom, createMapChoice } from './scenes/sandbox.js';
 import { createViewMode } from './scenes/sandbox-3d.js';
+import { createPixelation, frameFactor } from './scenes/pixelation.js';
 import { pickPoster, withPoster } from './scenes/poster.js';
 import { createSceneA } from './scenes/scene-a.js';
 import { createSceneB } from './scenes/scene-b.js';
@@ -49,10 +50,14 @@ showVersionLabel(settings.get());
 settings.subscribe(showVersionLabel);
 
 const renderer = new WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const baseRatio = Math.min(window.devicePixelRatio, 2);
+renderer.setPixelRatio(baseRatio);
 renderer.setClearColor(0x1b1f2a);
 renderer.autoClear = false; // the harness clears once per frame, then draws each scene
 document.body.appendChild(renderer.domElement);
+// Pixelation (scenes/pixelation.js): a smaller drawing buffer while the Sandbox is drawn, set
+// before each frame from the debug option; the normal ratio everywhere else.
+const pixelation = createPixelation({ renderer, baseRatio });
 
 // Fade: a full-screen black quad drawn over everything during a transition.
 // Created once and kept for the life of the page.
@@ -271,6 +276,7 @@ let last = performance.now();
 function runFrame(time) {
   const seconds = Math.max(0, time - last) / 1000;
   last = time;
+  pixelation.apply(frameFactor(sandboxState() !== null, sandboxViewMode.pixelation()));
   harness.frame(seconds);
   const state = sandboxState();
   healthHud.update(state ? state.players : null);

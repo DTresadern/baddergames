@@ -16,6 +16,7 @@
 //     #b7-pixel-snap (checkbox)              camera snapped to whole screen pixels (pixel-snap.js), off by default
 //     #b7-pixel-scale (select)               pixel scale: Off (default), Auto, 1× to 4×; the zoom text shows the
 //                                            view height it gives at the snap plane
+//     #b7-pixelation (select)                pixelation: Off (default), Half, Quarter; not saved (scenes/pixelation.js)
 //     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
 //     #b7-grid (checkbox)                    level tiles and cubes with the grid texture, off by default
 //     #b7-lut (select)                       palette LUT for solid surfaces: Off, 32 or 64 steps (default 64)
@@ -42,6 +43,7 @@
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
 import { PIXEL_SCALE_MODES } from '../scenes/pixel-snap.js';
+import { PIXELATION_MODES } from '../scenes/pixelation.js';
 import { DITHER_STRENGTH, FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP, PALETTE_LUT_MODES } from '../scenes/sandbox-3d.js';
 import { connectionTypeLabel } from '../net/connection-type.js';
 import { inviteUrl } from '../net/room-code.js';
@@ -200,6 +202,8 @@ export function mountPanel({
         <label class="b7-check"><input id="b7-pixel-snap" type="checkbox"> Pixel snap (camera)</label>
         <label>Pixel scale
           <select id="b7-pixel-scale">${PIXEL_SCALE_MODES.map((mode) => `<option value="${mode}">${{ off: 'Off', auto: 'Auto (nearest the zoom)' }[mode] ?? `${mode}×`}</option>`).join('')}</select></label>
+        <label>Pixelation
+          <select id="b7-pixelation">${PIXELATION_MODES.map((mode) => `<option value="${mode}">${{ off: 'Off', half: 'Half (2 × 2)', quarter: 'Quarter (4 × 4)' }[mode]}</option>`).join('')}</select></label>
         <label class="b7-check"><input id="b7-city" type="checkbox"> City backdrop (2.5D)</label>
         <label class="b7-check"><input id="b7-grid" type="checkbox"> Grid</label>
         <label>Palette LUT
@@ -372,6 +376,7 @@ export function mountPanel({
   const rowCameraCheck = root.querySelector('#b7-row-camera');
   const pixelSnapCheck = root.querySelector('#b7-pixel-snap');
   const pixelScaleSelect = root.querySelector('#b7-pixel-scale');
+  const pixelationSelect = root.querySelector('#b7-pixelation');
   const rowSchemeSelect = root.querySelector('#b7-row-scheme');
   const followSliders = [...root.querySelectorAll('[data-follow]')];
   function showZoom() {
@@ -388,6 +393,7 @@ export function mountPanel({
       const mode = sandboxViewMode.mode();
       pixelSnapCheck.checked = sandboxViewMode.pixelSnap();
       pixelScaleSelect.value = sandboxViewMode.pixelScale();
+      pixelationSelect.value = sandboxViewMode.pixelation();
       for (const b of modeButtons) b.setAttribute('aria-pressed', String(b.dataset.viewMode === mode));
       cityCheck.checked = sandboxViewMode.backdrop();
       gridCheck.checked = sandboxViewMode.grid();
@@ -481,6 +487,11 @@ export function mountPanel({
     pixelScaleSelect.addEventListener('change', () => {
       pixelScaleSelect.blur();
       sandboxViewMode.setPixelScale(pixelScaleSelect.value);
+      showZoom();
+    });
+    pixelationSelect.addEventListener('change', () => {
+      pixelationSelect.blur();
+      sandboxViewMode.setPixelation(pixelationSelect.value);
       showZoom();
     });
     rowCameraCheck.addEventListener('change', () => {
