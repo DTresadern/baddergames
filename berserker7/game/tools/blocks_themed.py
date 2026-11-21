@@ -54,10 +54,10 @@ from pathlib import Path
 from PIL import Image
 
 import blocks_placeholder as bp
-from blocks_themes import industrial, lab
+from blocks_themes import industrial, lab, subway
 from blocks_themes.common import EXTRA, XPALETTE
 
-THEMES = {m.NAME: m for m in (lab, industrial)}
+THEMES = {m.NAME: m for m in (lab, industrial, subway)}
 T = bp.T
 DEFAULT_OUT = bp.DEFAULT_OUT
 TOOL = "berserker7/game/tools/blocks_themed.py"
