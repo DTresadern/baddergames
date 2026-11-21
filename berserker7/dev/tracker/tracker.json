@@ -3438,8 +3438,8 @@
       "kind": "feature",
       "category": "Engine and rendering",
       "title": "2.5D: a 3D world with 2D gameplay",
-      "detail": "Decided: 3D environments with 2D gameplay; a 3D world adds richness without stopping the game being 2D.",
-      "status": "open",
+      "detail": "3D environments with 2D gameplay; a 3D world adds richness without stopping the game being 2D.",
+      "status": "ongoing",
       "authors": [
         "Decision",
         "Deano"
@@ -3457,7 +3457,7 @@
       "refs": [
         "TF-098"
       ],
-      "notes": ""
+      "notes": "2026-11-21: status open -> ongoing: the project owner confirmed 2.5D is the direction, with the Sandbox's 2.5D view, cells maps and depth rows built on it; 'Decided' removed from the detail, the status says it."
     },
     {
       "id": "T-003",
@@ -3465,7 +3465,7 @@
       "kind": "feature",
       "category": "Engine and rendering",
       "title": "Pixel-art look from basic textures, no post-processing",
-      "detail": "Decided: the pixel-art look comes from basic textures, not from post-processing.",
+      "detail": "The pixel-art look comes from basic textures, not from post-processing.",
       "status": "open",
       "authors": [
         "Decision"
@@ -3477,7 +3477,7 @@
         }
       ],
       "refs": [],
-      "notes": ""
+      "notes": "2026-11-21: 'Decided' removed from the detail; the status says whether it is decided."
     },
     {
       "id": "T-004",
@@ -6227,6 +6227,46 @@
       "sources": [],
       "refs": [],
       "notes": "2026-11-21: raised when the dev/ section was set up (issue #113). Not built."
+    },
+    {
+      "id": "T-117",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Engine and rendering",
+      "title": "Palette quantisation: the scenes' shared 256-colour palette, applied in game with a LUT",
+      "detail": "Colour (palette) quantisation of the scene mockups: each scene reduced to 256 colours, and one shared 256-colour palette for all seven scenes (k-means in CIE Lab, equal weight per scene). Average colour difference from the originals: ΔE 2.72 with each scene's own palette, 3.67 with the shared one (about 2.3 is the smallest difference most people see). Soft gradients (smoke, haze, light beams) show more steps with the shared palette. In game: a colour lookup table (LUT) baked from the shared palette, 32 steps per channel, read with nearest filtering, so every output pixel is a palette colour, for one texture lookup per pixel. Measured as close to the original as applying the palette directly (ΔE 3.61). Recommended way (option B): add the LUT lookup to the solid (opaque) materials' shaders only, after lighting and colour conversion and before fog, so fog and transparent effects (glows, smoke) stay smooth. No extra render pass; no measurable cost in a three.js test scene. Option A (a full-screen pass between solid and transparent drawing) only if the game gets a post-processing chain, or if object edges must be strictly in the palette. Fits T-003 (no post-processing): option B is not a post-process.",
+      "status": "open",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [
+        {
+          "file": ".archived/technophage-mvp/generated-art/scenes/palette/README.md",
+          "quote": "Average ΔE: 2.72 with each scene's own palette, 3.67 with the shared palette."
+        },
+        {
+          "file": ".archived/technophage-mvp/generated-art/scenes/palette/README.md",
+          "quote": "It takes 150,000 random pixels from each scene, so that each scene counts equally. It then groups them into 256 colours by perceived similarity (k-means in CIE Lab, 25 passes)."
+        },
+        {
+          "file": ".archived/technophage-mvp/generated-art/scenes/palette/LUT/README.md",
+          "quote": "A LUT gives the palettised look for one texture lookup per pixel, and with the shared palette it is as close to the original as applying the palette directly. The hybrid works: put the LUT in the solid objects' shaders (Option B), and fog and transparent effects stay smooth at no measurable cost. Next step: try it in a real game scene with the game's tone mapping."
+        },
+        {
+          "file": ".archived/technophage-mvp/generated-art/scenes/palette/LUT/README.md",
+          "quote": "Use Option B with the shared LUT, read with nearest filtering."
+        },
+        {
+          "file": ".archived/technophage-mvp/generated-art/scenes/palette/LUT/README.md",
+          "quote": "Choose Option A only if the game already has a post-processing chain, or if you want object edges strictly in the palette."
+        }
+      ],
+      "refs": [
+        "T-003",
+        "D-102",
+        "T-115"
+      ],
+      "notes": "2026-11-21: recorded from the scene palette work of 2026-11-16 to 2026-11-19 (issue #115). Not built. Tested only in a three.js test scene, not in the game. Next: try it in the Sandbox with the game's tone mapping; check the order tone mapping, then LUT, then fog; try 64 steps if dark gradients look coarse. The palette and LUT files are not in the repository yet (the scene mockups and their palette work are kept out of it)."
     }
   ]
 }
