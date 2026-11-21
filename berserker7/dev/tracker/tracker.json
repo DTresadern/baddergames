@@ -3477,7 +3477,7 @@
         }
       ],
       "refs": [],
-      "notes": "2026-11-21: 'Decided' removed from the detail; the status says whether it is decided."
+      "notes": "2026-11-21: 'Decided' removed from the detail; the status says whether it is decided. 2026-11-21: pixel snap and pixel scale camera options (#129; Sandbox debug panel, off by default, not saved). Pixel snap rounds the camera so the texture pixels of the player's row move by whole screen pixels: measured 0 changed pixels between frames on that row during a slow pan (2D and 2.5D), against 3 to 28% without it; other depths in 2.5D still shimmer. Pixel scale sets the zoom so one texture pixel on the player's row is exactly k screen pixels (Auto, 1x to 4x). Camera only: no post-processing, no shader, texture or draw call change."
     },
     {
       "id": "T-004",
