@@ -99,6 +99,27 @@ test('addPaletteLut: one shared set of uniform objects across materials; a plain
   assert.notEqual(new MeshBasicMaterial().customProgramCacheKey(), 'palette-lut');
 });
 
+// Every preprocessor line (#include, #ifdef, ...) of a patched shader starts its own line: GLSL
+// rejects a directive after other text on the same line, and Node cannot compile GLSL to see it.
+test('addPaletteLut: every preprocessor directive in the patched fragment shaders starts its own line', () => {
+  const lut = createPaletteLutUniforms(lutTexture());
+  const materials = {
+    plain: addPaletteLut(new MeshBasicMaterial({ color: 0xf2c14e }), lut),
+    unlitAtlas: addPaletteLut(createAtlasMaterial({ map: new Texture(), layout: LAYOUT }), lut),
+    litAtlas: addPaletteLut(createAtlasMaterial({ map: new Texture(), layout: LAYOUT, vertexColors: true, lit: { uniforms: litUniforms(), emissive: [3] } }), lut),
+    fogged: addPaletteLut(addFog(new MeshBasicMaterial({ color: '#ffffff', vertexColors: true }), litUniforms()), lut),
+  };
+  for (const [name, material] of Object.entries(materials)) {
+    const { vertexShader, fragmentShader } = compiled(material);
+    for (const [stage, text] of [['vertex', vertexShader], ['fragment', fragmentShader]]) {
+      for (const line of text.split('\n')) {
+        const at = line.indexOf('#');
+        if (at > 0) assert.equal(line.slice(0, at).trim(), '', `${name} ${stage}: directive after other text: ${line.trim()}`);
+      }
+    }
+  }
+});
+
 test('addPaletteLut: a fragment shader with neither the fog nor opaque_fragment throws', () => {
   const material = addPaletteLut(new MeshBasicMaterial(), createPaletteLutUniforms(lutTexture()));
   const shader = { vertexShader: 'void main() {}', fragmentShader: '#include <common>\nvoid main() { gl_FragColor = vec4(1.0); }', uniforms: {} };

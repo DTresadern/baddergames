@@ -43,13 +43,15 @@ vec3 paletteLutUvw(vec3 c, float size) {
   return (clamp(c, 0.0, 1.0) * (size - 1.0) + 0.5) / size;
 }`;
 
-// The step on outgoingLight (linear), see the header.
+// The step on outgoingLight (linear), see the header. It ends with a newline: the text after it
+// can be a preprocessor line (#include <opaque_fragment>), which must start its own line.
 export const PALETTE_LUT_FRAGMENT = `
 {
   vec3 lutIn = sRGBTransferOETF(vec4(outgoingLight, 1.0)).rgb;
   vec3 lutOut = texture(paletteLut, paletteLutUvw(lutIn, paletteLutSize)).rgb;
   outgoingLight = mix(outgoingLight, sRGBTransferEOTF(vec4(lutOut, 1.0)).rgb, paletteLutMix);
-}`;
+}
+`;
 
 // Patches a MeshBasicMaterial with the palette LUT step, composed with any patch it already has
 // (atlas-material.js sets onBeforeCompile and customProgramCacheKey): the previous onBeforeCompile
