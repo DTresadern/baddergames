@@ -94,9 +94,11 @@ test('acquireLut: one load per key, shared; the last release disposes the textur
   assert.throws(() => acquireLut(assets.acquire, 'lut.nope', loadLut), /unknown asset key/);
 });
 
-test('lut.shared: the committed strip is a 1024 x 32 8-bit RGB PNG', () => {
-  const png = readFileSync(new URL(`../public/${assetByKey('lut.shared32').path}`, import.meta.url));
-  assert.deepEqual([...png.subarray(1, 4)].map((c) => String.fromCharCode(c)).join(''), 'PNG');
-  assert.equal(png.toString('latin1', 12, 16), 'IHDR');
-  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20), png[24], png[25]], [1024, 32, 8, 2]); // width, height, bit depth, colour type RGB
+test('lut.shared32 and lut.shared64: the committed strips are 1024 x 32 and 4096 x 64 8-bit RGB PNGs', () => {
+  for (const [key, n] of [['lut.shared32', 32], ['lut.shared64', 64]]) {
+    const png = readFileSync(new URL(`../public/${assetByKey(key).path}`, import.meta.url));
+    assert.deepEqual([...png.subarray(1, 4)].map((c) => String.fromCharCode(c)).join(''), 'PNG', key);
+    assert.equal(png.toString('latin1', 12, 16), 'IHDR', key);
+    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20), png[24], png[25]], [n * n, n, 8, 2], key); // width, height, bit depth, colour type RGB
+  }
 });
