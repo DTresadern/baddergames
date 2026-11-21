@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "image": "generated-art/scenes/palette/LUT/scenes-shared/shared.lut32.png",
+  "image_sha256": "f0235966bf87638a152a5d21390a701bc72c3f210a89023234931a7d6a1f56b8",
+  "dimensions": [
+    1024,
+    32
+  ],
+  "format": "PNG",
+  "created_at": "2026-11-19T18:36:44+00:00",
+  "generator": "Pillow 10.2.0 colour quantisation (deterministic derivation, not an image generator)",
+  "prompt": null,
+  "prompt_status": "Not applicable: this image is a deterministic colour reduction of the referenced source image(s). No generator prompt exists.",
+  "references": [
+    {
+      "path": "generated-art/scenes/palette/shared/shared.palette.hex",
+      "role": "palette baked into the LUT",
+      "sha256": "59d199f3b736d7975b44ba14ed75e402ec2f17878772a89577e8412b5492020e"
+    }
+  ],
+  "subject": "32^3 colour LUT strip that maps any colour to the shared palette",
+  "visual_approach": "LUT data texture, not artwork: 32 tiles of colour gradients snapped to palette colours.",
+  "generation_settings": {
+    "tool": "palette/tools/bake_scene_luts.py",
+    "lut_size": 32,
+    "palette_file": "generated-art/scenes/palette/shared/shared.palette.hex",
+    "bake": "each LUT entry = nearest palette colour to the grid point, CIE76 dE in CIE Lab (D65)",
+    "grid_levels": "round(k*255/31), k = 0..31",
+    "strip_layout": "32 tiles of 32x32; tile = blue, x = red, y = green with green 0 on the bottom row",
+    "apply": "point sampling: each channel snaps to the nearest grid level"
+  },
+  "creative_seed": {
+    "value": null,
+    "source": null,
+    "used_for_generation": false,
+    "note": "No creative seed. Any random seed in generation_settings controls pixel sampling only."
+  },
+  "revision_of": null,
+  "style_inheritance": "Not an edit of the source; LUT data derived from the palette.",
+  "notes": [
+    "2026-11-21: copied unchanged (same bytes, same sha256) to berserker7/game/public/content/textures/lut/shared.lut32.png from generated-art/scenes/palette/LUT/scenes-shared/shared.lut32.png; the paths in this record are relative to the folder that holds generated-art/."
+  ],
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Colour lookup table (32-tile strip) snapped to the 256-colour shared 7-scene palette.",
+    "composition": "1024x32 strip of 32 tiles of 32x32; tile index = blue (0 left to 255 right), x in tile = red 0-255, y = green with 255 at top and 0 at bottom. Layout verified: all 32 tiles present and in order.",
+    "environment": "Not applicable: data texture",
+    "colors": "Flat stepped colour cells with Voronoi-like region boundaries; overall warmer/more saturated than identity (mean RGB about 155,127,129 vs 127.5 identity), consistent with the palette itself (mean 93,78,75, dark-heavy, with bright yellow/cyan/magenta). Top-left pixel (187,203,97) olive-yellow, bottom-left (2,2,2), bottom-right (246,41,218) magenta, top-right (243,245,241) near-white. 249 distinct colours used; every pixel is an exact palette colour (0 outside the 256-colour palette).",
+    "materials": "Not applicable: data texture",
+    "lighting": "Not applicable: data texture",
+    "standout_features": "Stepped cells instead of gradients, as expected; progression reads green-yellow/dark at low blue, to cyan/purple/magenta at high blue.",
+    "important_details": "Corner pixels: tile 0 top-left is not pure green (255 green, 0 red/blue snapped to olive 187,203,97), expected after snapping. Max per-pixel difference from identity 205 (palette sparsity). Max horizontal jump 313 (sum of channels) at cell edges, normal for snapping.",
+    "synopsis": "Correctly oriented, structurally intact snapped LUT; no corruption seen.",
+    "defect_analysis": {
+      "findings": [],
+      "overall": "No defects seen. Colour shift from identity is the intended effect of palette snapping."
+    },
+    "mismatches_or_uncertainties": "Orientation judged from gradient direction and from the neutral strip match, not from an original spec of the palette. Top-left tile 0 and tile 1 share the same first pixel colour (187,203,97), plausible after snapping."
+  }
+}
