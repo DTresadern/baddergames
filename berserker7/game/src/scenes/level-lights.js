@@ -11,7 +11,10 @@ import { DECOR, blockTiles } from './block-decor.js';
 export const LIGHT_FACE_OFFSET = 0.05;
 
 // Shader light slots. The test level has 83 lights; at most 21 reach a 21 x 12 tile view (the
-// default zoom at 16:9) and 23 at zoom 18, anywhere in the level.
+// default zoom at 16:9) and 23 at zoom 18, anywhere in the level. `select` ranks lights by how far
+// their reach stays outside the view, so every light that reaches the view gets a slot as long as
+// no more than MAX_LIGHTS do (at the furthest zoom, 28, up to 29 can: the furthest outside the
+// view's centre then miss out).
 export const MAX_LIGHTS = 24;
 
 // The level's lights: `cells` is every solid cell [x, y, z] of the map (all rows), `solid(x, y, z)`
@@ -65,16 +68,25 @@ export function createLightPool(lights) {
   };
   const n = lights.length;
   const used = Math.min(n, MAX_LIGHTS);
-  const distance = new Float64Array(n); // squared distance to the point, per light
+  const distance = new Float64Array(n); // per light: its distance to the view rectangle minus its radius
   const taken = new Uint8Array(n); // 1: chosen in this select
   const before = new Uint8Array(n); // 1: chosen in the previous select
-  function select(x, y, z) {
+  // (x, y, z): the view's centre on the player's row; halfWidth, halfHeight: the view's half size
+  // there (tiles; 0 gives the lights nearest the point, by distance minus radius); cameraZ: the
+  // perspective camera's z (Infinity: orthographic). A light ranks by its 3D distance to the view
+  // rectangle, minus its radius: negative when its light reaches into the view. With a perspective
+  // camera the rectangle is the view's size at the light's depth: (cameraZ - l.z) / (cameraZ - z)
+  // times the size on the row.
+  function select(x, y, z, halfWidth = 0, halfHeight = 0, cameraZ = Infinity) {
     for (let i = 0; i < n; i++) {
       const l = lights[i];
-      distance[i] = (l.x - x) ** 2 + (l.y - y) ** 2 + (l.z - z) ** 2;
+      const scale = Number.isFinite(cameraZ) ? Math.max(0, (cameraZ - l.z) / (cameraZ - z)) : 1;
+      const dx = Math.max(0, Math.abs(l.x - x) - halfWidth * scale);
+      const dy = Math.max(0, Math.abs(l.y - y) - halfHeight * scale);
+      distance[i] = Math.sqrt(dx * dx + dy * dy + (l.z - z) ** 2) - l.radius;
       taken[i] = 0;
     }
-    // Partial selection sort: the nearest remaining light per slot (ties: the lower index).
+    // Partial selection sort: the lowest-ranked remaining light per slot (ties: the lower index).
     let changed = false;
     for (let s = 0; s < used; s++) {
       let best = -1;

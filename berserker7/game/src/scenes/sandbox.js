@@ -683,11 +683,13 @@ export function createSandbox({
       const camX = rest.x + shift.x;
       const camY = rest.y + shift.y;
       // A lit map: the fog's virtual eye is lighting.fog.eye in front of the local player's row
-      // (viewDepth; 0 in 2D), and the light slots take the lights nearest the camera. Selected
-      // every frame (83 lights, no allocation), not only when the camera moves.
+      // (viewDepth; 0 in 2D), and the light slots take the lights that reach the view (planeTiles
+      // high on the player's plane, wider at a light's depth behind it in 2.5D), the furthest
+      // outside it last. Selected every frame
+      // (83 lights, no allocation), not only when the camera moves.
       if (lit) {
         lit.uniforms.litFogOrigin.value = lit.eye + viewDepth;
-        lit.pool.select(camX, camY, viewDepth);
+        lit.pool.select(camX, camY, viewDepth, (planeTiles / 2) * (view.width / view.height), planeTiles / 2, active === deep ? distance + (rowCamera ? viewDepth : 0) : Infinity);
       }
       if (active === flat) {
         fitOrtho(camera, view, tilesHigh / 2);

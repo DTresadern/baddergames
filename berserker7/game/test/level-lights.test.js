@@ -112,7 +112,7 @@ test('createLightPool: MAX_LIGHTS slots of three uniform objects; unused slots c
   assert.deepEqual(uniforms.litLightPos.value[0].toArray(), [0, 0, 0]);
 });
 
-test('createLightPool: with more lights than slots, the nearest MAX_LIGHTS by squared 3D distance; the same objects every select', () => {
+test('createLightPool: with more lights than slots and no view size, the nearest MAX_LIGHTS (equal radii); the same objects every select', () => {
   const lights = Array.from({ length: 83 }, (_, i) => light(i, (i * 7) % 5, (i % 3) - 1, i + 1));
   const pool = createLightPool(lights);
   const { litLightPos, litLightColor, litLightRadius } = pool.uniforms;
@@ -135,4 +135,35 @@ test('createLightPool: with more lights than slots, the nearest MAX_LIGHTS by sq
   assert.equal(pool.uniforms.litLightColor.value, colors);
   assert.equal(pool.uniforms.litLightRadius.value, radius);
   assert.equal(createLightPool([]).select(0, 0, 0), false, 'no lights: nothing changes');
+});
+
+test('createLightPool: lights rank by distance to the view rectangle minus their radius', () => {
+  const at = (x, y, z, radius) => Object.freeze({ x, y, z, color: Object.freeze([1, 1, 1]), radius });
+  // 24 fillers just above a 20 x 10 view centred at (0, 0), each 1 tile out of it with radius 0.5:
+  // they do not reach it. A light 9 tiles right (inside the view's half width 10) and one 6 tiles
+  // outside the view's right edge with radius 8 both reach it.
+  const fillers = Array.from({ length: MAX_LIGHTS }, (_, i) => at(i - 12, 6, 0, 0.5));
+  const lights = [...fillers, at(9, 0, 0, 1), at(16, 0, 0, 8)];
+  const pool = createLightPool(lights);
+  pool.select(0, 0, 0, 10, 5);
+  const chosen = pool.uniforms.litLightPos.value.map((v) => v.toArray().join(','));
+  assert.equal(chosen[0], '16,0,0', 'reaches furthest into the view (6 - 8 = -2)');
+  assert.equal(chosen[1], '9,0,0', 'inside the view (0 - 1 = -1)');
+  assert.equal(chosen.filter((c) => c.endsWith(',6,0')).length, MAX_LIGHTS - 2, 'two fillers left out');
+  // Without a view size the same pool ranks by distance to the point minus the radius.
+  pool.select(-12, 6, 0);
+  assert.equal(pool.uniforms.litLightPos.value[0].toArray().join(','), '-12,6,0');
+});
+
+test('createLightPool: with a perspective camera the view rectangle is wider at a light behind the row', () => {
+  const at = (x, y, z) => Object.freeze({ x, y, z, color: Object.freeze([1, 1, 1]), radius: 0.5 });
+  // Camera at z 10, row at 0, half width 5 on the row: at z -2 the half width is 6, so the light at
+  // x 5.8, z -2 is inside the view (rank 2 - 0.5 = 1.5) and ranks before the one at x 0, z -2.1
+  // (1.6). Orthographic, it is 0.8 outside (rank sqrt(0.64 + 4) - 0.5 = 1.65) and ranks after.
+  const pool = createLightPool([at(0, 0, -2.1), at(5.8, 0, -2)]);
+  const first = () => pool.uniforms.litLightPos.value[0].toArray().join(',');
+  pool.select(0, 0, 0, 5, 3, 10);
+  assert.equal(first(), '5.8,0,-2', 'perspective: inside the wider view at its depth');
+  pool.select(0, 0, 0, 5, 3);
+  assert.equal(first(), '0,0,-2.1', 'orthographic: the light at 5.8 is outside the view');
 });
