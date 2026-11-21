@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, statSync } from 'node:fs';
 import { test } from 'node:test';
-import { ASSETS, GROUPS, assetByKey, checkManifest, groupAssets } from '../src/assets/manifest.js';
+import { ASSETS, GROUPS, TYPES, assetByKey, checkManifest, groupAssets } from '../src/assets/manifest.js';
 
 const PUBLIC = new URL('../public/', import.meta.url);
 const good = () => [{ key: 'a', path: 'content/x/a.png', type: 'texture', groups: ['boot'] }];
@@ -65,7 +65,9 @@ test('assetByKey and groupAssets: lookups, and loud errors naming the unknown ke
   assert.deepEqual(groupAssets('boot').map((a) => a.key), ['logo.baddergames', 'logo.w8omg', 'music.title']);
   assert.deepEqual(groupAssets('menubg').map((a) => a.key), ['poster.classic', 'poster.thrash']);
   assert.equal(assetByKey('poster.thrash').path, 'content/textures/menubg/berserkerguy-thrash-2-1.png');
-  assert.deepEqual(groupAssets('sandbox').map((a) => a.key), ['map.walkway', 'map.mvp-upper-1', 'map.moge3-cyberpunk', 'map.moge3-cyberpunk-blocks', 'map.depth-rows-test']);
+  assert.deepEqual(groupAssets('sandbox').map((a) => a.key), ['map.walkway', 'map.mvp-upper-1', 'map.moge3-cyberpunk', 'map.moge3-cyberpunk-blocks', 'map.depth-rows-test', 'atlas.blocks-placeholder', 'atlas.blocks-placeholder.index']);
+  assert.equal(assetByKey('atlas.blocks-placeholder.index').type, 'json');
+  assert.deepEqual(TYPES, ['texture', 'music', 'map', 'json']);
   assert.deepEqual(assetByKey('map.walkway'), { key: 'map.walkway', path: 'content/maps/walkway.json', type: 'map', groups: ['sandbox'] });
   assert.throws(() => groupAssets('nope'), /unknown group 'nope'/);
 });
