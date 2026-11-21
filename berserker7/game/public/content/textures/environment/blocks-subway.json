@@ -1,0 +1,263 @@
+{
+  "image": "blocks-subway.png",
+  "tileSize": 64,
+  "columns": 7,
+  "rows": 3,
+  "note": "Placeholder programmer art for the subway / railway / monorail / doomsday door levels, drawn by tools/blocks_themed.py; shapes follow scene mockups that are not in the repository.",
+  "tiles": {
+    "rail-track": {
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "floor",
+      "tiles": "x",
+      "note": "side view: rail on wooden sleepers every 16 px over dark ballast, puddle glints",
+      "refs": [
+        "01-abandoned-platform.png 724,603 531x84"
+      ]
+    },
+    "platform-edge": {
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "floor",
+      "tiles": "x",
+      "note": "platform top with a yellow safety line and tactile strip, edge lip, grimy front face",
+      "refs": [
+        "01-abandoned-platform.png 483,446 386x72"
+      ]
+    },
+    "platform-arch": {
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "wall",
+      "tiles": "x",
+      "note": "platform front face: top beam with drips, one arched recess per tile with a rust pipe and rubble",
+      "refs": [
+        "01-abandoned-platform.png 845,471 338x145"
+      ]
+    },
+    "station-tile-wall": {
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "panel",
+      "tiles": "xy",
+      "note": "grimy white / grey 8 px glazed station tiles in offset rows, chips and rust streaks",
+      "refs": [
+        "03-flooded-station.png 821,36 362x217"
+      ]
+    },
+    "tunnel-arch": {
+      "x": 256,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "wall",
+      "tiles": "none",
+      "note": "tunnel mouth: ribbed concrete arch, dark inside with converging rails and a far green glow",
+      "refs": [
+        "05-interchange.png 1689,145 459x410",
+        "mutant-railway-01.png 1665,72 483x386"
+      ]
+    },
+    "train-window": {
+      "x": 320,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "train",
+      "tiles": "x",
+      "note": "carriage side: dark window with rounded corners, red stripe below, rivets, rust, skirt",
+      "refs": [
+        "01-abandoned-platform.png 857,157 278x193"
+      ]
+    },
+    "train-door": {
+      "x": 384,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "train",
+      "tiles": "none",
+      "note": "carriage double door: two leaves with rounded windows, rubber seal line, red stripe",
+      "refs": [
+        "01-abandoned-platform.png 652,229 157x181"
+      ]
+    },
+    "train-bogie": {
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "train",
+      "tiles": "x",
+      "note": "undercarriage: body skirt, bogie frame with axle boxes, wheels every 32 px on a rail",
+      "refs": [
+        "mutant-railway-02.png 217,519 531x121"
+      ]
+    },
+    "concrete-pillar": {
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "pillar",
+      "tiles": "y",
+      "note": "square concrete column with rust stains, a red band and a joint line",
+      "refs": [
+        "01-abandoned-platform.png 398,97 109x374"
+      ]
+    },
+    "pillar-hazard": {
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "pillar",
+      "tiles": "y",
+      "note": "steel-clad column, panel joints every 32 px, amber / dark hazard band",
+      "refs": [
+        "05-interchange.png 640,145 97x217"
+      ]
+    },
+    "bench": {
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "furniture",
+      "tiles": "none",
+      "note": "perforated metal station bench with seat dividers, on two legs",
+      "refs": [
+        "05-interchange.png 736,459 145x72"
+      ]
+    },
+    "rubble": {
+      "x": 256,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "debris",
+      "tiles": "x",
+      "note": "pile of broken concrete chunks with bent rebar on the floor",
+      "refs": [
+        "02-collapsed-tunnel.png 748,483 290x109"
+      ]
+    },
+    "water-surface": {
+      "x": 320,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "liquid",
+      "tiles": "x",
+      "note": "dark green water from row 20 down: lighter top line, reflection streaks, amber lamp glints",
+      "refs": [
+        "03-flooded-station.png 193,531 821x193"
+      ]
+    },
+    "pipe-bundle": {
+      "x": 384,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "x",
+      "note": "four horizontal pipes of mixed size (rust, steel, teal) with flanges and brackets on a dark wall",
+      "refs": [
+        "03-flooded-station.png 1834,217 169x193"
+      ]
+    },
+    "monorail-beam": {
+      "x": 0,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "girder",
+      "tiles": "x",
+      "note": "concrete monorail track beam with a steel rail on top, dark underside with hangers and drips",
+      "refs": [
+        "monorail-stalker-01.png 724,84 1448x229"
+      ]
+    },
+    "wood-crate": {
+      "x": 64,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "crate",
+      "tiles": "none",
+      "note": "wooden crate: planks, frame, diagonal brace, bolted steel corner plates",
+      "refs": [
+        "monorail-stalker-02.png 374,446 145x145"
+      ]
+    },
+    "quay-drain": {
+      "x": 128,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "vent",
+      "tiles": "none",
+      "note": "dark rectangular drain with rust bars in a concrete quay wall, trickle into the water below",
+      "refs": [
+        "monorail-stalker-02.png 760,615 157x97"
+      ]
+    },
+    "vault-door-hub": {
+      "x": 192,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "door",
+      "tiles": "none",
+      "note": "centre of a giant round vault door: hub rings, bolts, eight spokes, green light slit",
+      "refs": [
+        "doomsday-door-01.png 1448,217 386x290"
+      ]
+    },
+    "vault-door-plate": {
+      "x": 256,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "door",
+      "tiles": "xy",
+      "note": "vault door plate: rusty riveted steel, seams every 32 px, diagonal amber hazard band",
+      "refs": [
+        "doomsday-door-02.png 1211,90 314x247"
+      ]
+    },
+    "mine-cart": {
+      "x": 320,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "vehicle",
+      "tiles": "none",
+      "note": "ore cart side view loaded with rock, rust body with ribs, two wheels on a rail",
+      "refs": [
+        "doomsday-door-01.png 302,567 314x97"
+      ]
+    },
+    "cracked-ledge": {
+      "x": 384,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "floor",
+      "tiles": "x",
+      "note": "broken concrete ledge: cracked top slab, jagged underside, rebar ends and drips",
+      "refs": [
+        "06-forgotten-terminus.png 845,459 603x109",
+        "lift-shaft-02.png 355,493 532x177"
+      ]
+    }
+  }
+}

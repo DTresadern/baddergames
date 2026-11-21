@@ -1,0 +1,226 @@
+{
+  "image": "blocks-lab.png",
+  "tileSize": 64,
+  "columns": 6,
+  "rows": 3,
+  "note": "Placeholder programmer art for the lab / facility / prison levels, drawn by tools/blocks_themed.py; shapes follow scene mockups that are not in the repository.",
+  "tiles": {
+    "observation-window": {
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "window",
+      "tiles": "x",
+      "note": "control-room glazing: slanted frame posts every 32 px, amber lit room, desks, monitors and staff",
+      "refs": [
+        "01-lab-01.png 1376,60 410x121"
+      ]
+    },
+    "lab-window-cyan": {
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "window",
+      "tiles": "x",
+      "note": "framed window band onto a pale cyan lit lab: ceiling light bars, mullions every 32 px, hazard strip on the sill",
+      "refs": [
+        "02-facility-01.png 495,36 386x265"
+      ]
+    },
+    "specimen-tank-cyan": {
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "tank",
+      "tiles": "none",
+      "note": "glass cylinder of cyan liquid with a dark specimen and bubbles, steel caps top and bottom",
+      "refs": [
+        "02-facility-01.png 941,24 145x217"
+      ]
+    },
+    "specimen-tank-green": {
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "tank",
+      "tiles": "x",
+      "note": "two green-yellow specimen tanks per tile with curled specimens, base with hazard dashes",
+      "refs": [
+        "01-lab-02.png 688,483 241x145"
+      ]
+    },
+    "containment-tube-red": {
+      "x": 256,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "tank",
+      "tiles": "none",
+      "note": "red-lit containment tube with a specimen, riveted rust collars, pipes into the top",
+      "refs": [
+        "01-lab-03.png 1979,0 145x265"
+      ]
+    },
+    "bay-door-red": {
+      "x": 320,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "door",
+      "tiles": "none",
+      "note": "octagonal steel frame round a red-lit recessed bay behind bars, red lamp above",
+      "refs": [
+        "01-lab-01.png 253,241 278x193"
+      ]
+    },
+    "hazard-door-octagon": {
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "door",
+      "tiles": "none",
+      "note": "octagonal door frame with amber / dark hazard stripes, dark corridor of nested frames and red lights",
+      "refs": [
+        "02-facility-01.png 1907,145 193x217",
+        "02-facility-02.png 1726,241 362x241"
+      ]
+    },
+    "blast-door-diagonal": {
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "door",
+      "tiles": "none",
+      "note": "heavy door leaf with red diagonal chevron panels, centre boss, riveted frame",
+      "refs": [
+        "02-facility-03.png 1665,133 290x314"
+      ]
+    },
+    "cell-bars": {
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "bars",
+      "tiles": "x",
+      "note": "prison cell front: vertical bars every 8 px, two crossbars, amber-lit cell behind, floor slab",
+      "refs": [
+        "04-prison-01.png 760,145 205x133"
+      ]
+    },
+    "cell-gate-arch": {
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "bars",
+      "tiles": "none",
+      "note": "arched barred gate in a concrete block wall, dark red-lit inside, red lamp above",
+      "refs": [
+        "04-prison-01.png 1870,434 157x145"
+      ]
+    },
+    "locker": {
+      "x": 256,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "furniture",
+      "tiles": "x",
+      "note": "two grey steel lockers per tile: one shut (vents, handle, label), one open with a suit inside",
+      "refs": [
+        "02-facility-02.png 712,302 314x181"
+      ]
+    },
+    "ceiling-light-cyan": {
+      "x": 320,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "light",
+      "tiles": "x",
+      "note": "fluorescent tube strip under a dark ceiling panel, cyan-white light spilling down the wall",
+      "refs": [
+        "02-facility-02.png 410,229 121x48"
+      ]
+    },
+    "terminal": {
+      "x": 0,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "console",
+      "tiles": "none",
+      "note": "standing console: two cyan screens, slanted desk of red / amber / cyan buttons, cabinet",
+      "refs": [
+        "02-facility-03.png 1062,302 133x145"
+      ]
+    },
+    "lab-tile-wall": {
+      "x": 64,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "panel",
+      "tiles": "xy",
+      "note": "clinical wall of 16 px pale grey-cyan tiles with dark grout and light grime",
+      "refs": [
+        "02-facility-01.png 97,48 386x265"
+      ]
+    },
+    "stairs-yellow": {
+      "x": 128,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "stairs",
+      "tiles": "none",
+      "note": "steel stair flight at 45 degrees with a yellow handrail; the stair line enters at the bottom-left corner and leaves at the top-right corner, so tiles chain diagonally (place the next one up and right)",
+      "refs": [
+        "01-lab-02.png 1279,386 169x157"
+      ]
+    },
+    "ladder-yellow": {
+      "x": 192,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "ladder",
+      "tiles": "y",
+      "note": "yellow ladder rails with rungs every 8 px over a dark wall, wall brackets",
+      "refs": [
+        "01-lab-01.png 193,446 60x145"
+      ]
+    },
+    "railing-yellow": {
+      "x": 256,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "rail",
+      "tiles": "x",
+      "note": "thin yellow handrail and mid rail, posts every 32 px, toe board, walkway edge below",
+      "refs": [
+        "02-facility-02.png 97,181 290x253"
+      ]
+    },
+    "drain-culvert": {
+      "x": 320,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "vent",
+      "tiles": "none",
+      "note": "arched culvert with vertical bars in a riveted wall, water pouring from its bottom",
+      "refs": [
+        "01-lab-01.png 410,495 121x133"
+      ]
+    }
+  }
+}

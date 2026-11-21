@@ -1,0 +1,262 @@
+{
+  "image": "blocks-industrial.png",
+  "tileSize": 64,
+  "columns": 7,
+  "rows": 3,
+  "note": "Placeholder programmer art for the industrial / shaft / street / machine levels, drawn by tools/blocks_themed.py; shapes follow scene mockups that are not in the repository.",
+  "tiles": {
+    "furnace-drum": {
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "machine",
+      "tiles": "x",
+      "note": "horizontal teal drum with rust patches, rust bands every 32 px, glowing amber grille window, hazard base",
+      "refs": [
+        "05-industrial-01.png 615,362 265x169"
+      ]
+    },
+    "pipe-outlet": {
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "none",
+      "note": "large teal pipe mouth with a bolted rust flange out of a riveted wall, dirty water pouring down",
+      "refs": [
+        "05-industrial-02.png 784,434 181x181"
+      ]
+    },
+    "valve-wheel": {
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "none",
+      "note": "rust handwheel with six spokes on a stem over a rust pipe, steam behind",
+      "refs": [
+        "05-industrial-01.png 36,531 145x121"
+      ]
+    },
+    "pipe-large-riveted": {
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "x",
+      "note": "56 px riveted rusty steel pipe (rows 4-59) with bolted flange bands every 32 px",
+      "refs": [
+        "pipe-growth-03.png 1665,0 507x193"
+      ]
+    },
+    "lamp-strip-v": {
+      "x": 256,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "light",
+      "tiles": "y",
+      "note": "vertical shaft rail with two amber lamp segments per tile and dark gaps, side rails",
+      "refs": [
+        "06-shaft-01.png 712,24 72x652"
+      ]
+    },
+    "lift-cage": {
+      "x": 320,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "lift",
+      "tiles": "none",
+      "note": "lift car: cable, roof beam, steel posts, amber-lit windows behind bars, hazard band, floor",
+      "refs": [
+        "05-industrial-03.png 1894,193 241x483",
+        "lift-shaft-03.png 1738,97 217x410"
+      ]
+    },
+    "lift-platform-edge": {
+      "x": 384,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "floor",
+      "tiles": "x",
+      "note": "heavy platform edge: deck top, wide hazard stripe band, riveted beam, amber underside lamps, struts",
+      "refs": [
+        "06-shaft-01.png 784,326 627x169"
+      ]
+    },
+    "cable-spool": {
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "machine",
+      "tiles": "none",
+      "note": "big cable drum with wound cable ridges and end flanges in a steel frame",
+      "refs": [
+        "06-shaft-01.png 1014,483 265x133"
+      ]
+    },
+    "girder-rust-v": {
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "girder",
+      "tiles": "y",
+      "note": "rusty vertical lattice tower: two riveted posts with X bracing and a centre plate",
+      "refs": [
+        "lift-shaft-03.png 471,24 169x676"
+      ]
+    },
+    "bridge-deck": {
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "girder",
+      "tiles": "x",
+      "note": "bridge deck: concrete top slab, deep riveted girder with stiffeners, red marker lamps underneath",
+      "refs": [
+        "03-walkway-01.png 1183,386 386x193"
+      ]
+    },
+    "bridge-pier": {
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "girder",
+      "tiles": "y",
+      "note": "concrete pier column with bolted steel bands every 32 px and a red lamp on its side",
+      "refs": [
+        "03-walkway-01.png 1074,434 109x241"
+      ]
+    },
+    "jersey-barrier": {
+      "x": 256,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "barrier",
+      "tiles": "x",
+      "note": "run of concrete road barriers with amber / dark stripes, wet top, joints every 32 px, wet street",
+      "refs": [
+        "07-streets-01.png 1038,579 241x84"
+      ]
+    },
+    "barrier-red-white": {
+      "x": 320,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "barrier",
+      "tiles": "x",
+      "note": "concrete barrier blocks with red and white diagonal stripes, chips, wet street",
+      "refs": [
+        "08-chase-02.png 1581,386 217x133"
+      ]
+    },
+    "tank-trap": {
+      "x": 384,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "barrier",
+      "tiles": "none",
+      "note": "steel hedgehog: crossed I-beams on a wet street",
+      "refs": [
+        "07-streets-01.png 869,579 121x84"
+      ]
+    },
+    "banner-red": {
+      "x": 0,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "sign",
+      "tiles": "none",
+      "note": "hanging red banner with a swallowtail bottom and a gold spread-wing emblem, rod at the top",
+      "refs": [
+        "07-streets-01.png 760,422 109x145"
+      ]
+    },
+    "floodlight": {
+      "x": 64,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "light",
+      "tiles": "none",
+      "note": "lattice mast top with a 3 x 2 lamp head, yellow light and rays",
+      "refs": [
+        "07-streets-02.png 459,145 121x241"
+      ]
+    },
+    "shutter-door": {
+      "x": 128,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "door",
+      "tiles": "x",
+      "note": "rolling shutter: horizontal slats lit amber from behind, guide posts every 32 px, header box",
+      "refs": [
+        "03-walkway-01.png 1846,217 193x241"
+      ]
+    },
+    "conveyor": {
+      "x": 192,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "floor",
+      "tiles": "x",
+      "note": "conveyor: belt with treads, rollers every 16 px, amber riveted side rail, legs",
+      "refs": [
+        "machine-boss-02.png 217,217 627x109"
+      ]
+    },
+    "drill-face": {
+      "x": 256,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "machine",
+      "tiles": "none",
+      "note": "tunnel boring cutter face: three toothed rings, hub with bolts, green glow in the gaps",
+      "refs": [
+        "driller-01.png 1424,145 241x386"
+      ]
+    },
+    "tread": {
+      "x": 320,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "machine",
+      "tiles": "x",
+      "note": "crawler track: link plates top and bottom, road wheels every 32 px and return rollers",
+      "refs": [
+        "driller-02.png 422,555 567x109"
+      ]
+    },
+    "server-rack": {
+      "x": 384,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "machine",
+      "tiles": "y",
+      "note": "rack of amber-lit cells / batteries on two shelves per tile, cables, cyan status light",
+      "refs": [
+        "machine-boss-03.png 1216,183 213x256"
+      ]
+    }
+  }
+}
