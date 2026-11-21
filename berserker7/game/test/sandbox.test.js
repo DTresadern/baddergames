@@ -17,7 +17,7 @@ import {
 } from '../src/scenes/sandbox.js';
 import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/tile-texture.js';
 import { Matrix4, NearestFilter } from 'three';
-import { DEPTH_CUBE_SPACING, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
+import { DEPTH_CUBE_SPACING, DEPTH_SHADE, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, depthShade, litDepthShade, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { atlasLayout, atlasPools } from '../src/scenes/block-decor.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { PLAYER_SIZE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
@@ -578,4 +578,20 @@ test('block atlas: the real test level loads with the real index; the same level
     assert.equal(meshes.reduce((n, m) => n + m.count, 0), without.levelMeshes(mode).reduce((n, m) => n + m.count, 0), mode);
     assert.ok(meshes.every((m) => m.geometry.attributes.atlasTile.count === m.count), mode);
   }
+});
+
+test('depthShade: DEPTH_SHADE by default; a table as the second argument; litDepthShade(nearShade)', () => {
+  const close = (a, b, msg) => a.forEach((c, i) => assert.ok(Math.abs(c - b[i]) < 1e-12, `${msg}: ${a} vs ${b}`));
+  assert.deepEqual(depthShade(0), [1, 1, 1]);
+  close(depthShade(-1), [0.82 * 0.62, 0.9 * 0.62, 0.62], 'z -1');
+  close(depthShade(-5), [0.82 * 0.38, 0.9 * 0.38, 0.38], 'z -5');
+  close(depthShade(2), [0.34, 0.88 * 0.34, 0.8 * 0.34], 'z 2');
+  for (const z of [-3, -1.5, -0.25, 0, 0.5, 1, 4]) assert.deepEqual(depthShade(z, DEPTH_SHADE), depthShade(z), `z ${z}`);
+  const lit = litDepthShade(0.21);
+  assert.ok(Object.isFrozen(lit) && Object.isFrozen(lit.behind) && Object.isFrozen(lit.behindTint) && Object.isFrozen(lit.frontTint));
+  for (const z of [-1, -2, -7]) assert.deepEqual(depthShade(z, lit), [1, 1, 1], `behind: no darkening (the fog does it), z ${z}`);
+  assert.deepEqual(depthShade(0, lit), [1, 1, 1]);
+  for (const z of [1, 3]) assert.deepEqual(depthShade(z, lit), [0.21, 0.21, 0.21], `front, z ${z}`);
+  close(depthShade(0.5, lit), [0.605, 0.605, 0.605], 'a hop interpolates');
+  close(depthShade(-0.5, lit), [1, 1, 1], 'behind, half way');
 });
