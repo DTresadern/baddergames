@@ -1,9 +1,9 @@
 // Palette LUT for the Sandbox: solid surfaces snap to the shared 256-colour palette through a 3D
-// colour lookup table (assets/luts.js, manifest key `lut.shared`), read in their own shaders; the
-// level fog stays smooth. `addPaletteLut` patches a MeshBasicMaterial; one set of uniform objects
-// (createPaletteLutUniforms) is shared by every patched material, so one write of
-// paletteLutMix.value (1 on, 0 off) switches them all: no define, no recompile, no new programs or
-// draw calls.
+// colour lookup table (assets/luts.js, manifest keys `lut.shared32` and `lut.shared64`), read in
+// their own shaders; the level fog stays smooth. `addPaletteLut` patches a MeshBasicMaterial; one set of uniform objects
+// (createPaletteLutUniforms) is shared by every patched material, so writing its values
+// (selectPaletteLut: the LUT texture, its size, the mix 1 on or 0 off) switches them all: no define,
+// no recompile, no new programs or draw calls.
 //
 // Where the step goes: the LUT maps final screen colours (sRGB-encoded, after tone mapping) to
 // palette colours. The game's renderer (main.js: `new WebGLRenderer({ antialias: true })`, three
@@ -26,9 +26,21 @@ import { FOG_FRAGMENT } from './atlas-material.js';
 // paletteLutSize (entries per channel) and paletteLutMix (1 on, 0 off).
 export const PALETTE_LUT_UNIFORMS = Object.freeze(['paletteLut', 'paletteLutSize', 'paletteLutMix']);
 
-// One set for a whole scene; draw writes paletteLutMix.value.
+// One set for a whole scene; draw sets it with selectPaletteLut.
 export function createPaletteLutUniforms(texture, on = true) {
   return { paletteLut: { value: texture }, paletteLutSize: { value: texture.image.width }, paletteLutMix: { value: on ? 1 : 0 } };
+}
+
+// Points the shared uniforms at one LUT: `mode` 'off' sets the mix to 0 (the texture stays), any
+// other mode takes luts[mode] (a Data3DTexture) and its size, mix 1. An unknown mode is off. Only
+// uniform values change: the sampler, the programs and the draw calls stay the same.
+export function selectPaletteLut(uniforms, luts, mode) {
+  const texture = mode === 'off' ? null : luts[mode] ?? null;
+  uniforms.paletteLutMix.value = texture ? 1 : 0;
+  if (!texture) return uniforms;
+  uniforms.paletteLut.value = texture;
+  uniforms.paletteLutSize.value = texture.image.width;
+  return uniforms;
 }
 
 const OPAQUE_FRAGMENT = '#include <opaque_fragment>';

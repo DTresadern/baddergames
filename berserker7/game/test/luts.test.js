@@ -77,16 +77,16 @@ test('acquireLut: one load per key, shared; the last release disposes the textur
     texture.addEventListener('dispose', () => (disposed += 1));
     return texture;
   };
-  const a = await acquireLut(assets.acquire, 'lut.shared', loadLut);
-  const b = await acquireLut(assets.acquire, 'lut.shared', loadLut);
+  const a = await acquireLut(assets.acquire, 'lut.shared32', loadLut);
+  const b = await acquireLut(assets.acquire, 'lut.shared32', loadLut);
   assert.equal(a, b);
   assert.ok(a.isData3DTexture);
   assert.deepEqual(loads, ['content/textures/lut/shared.lut32.png']);
-  assert.equal(assets.count('lut.shared'), 2);
-  assets.release('lut.shared');
+  assert.equal(assets.count('lut.shared32'), 2);
+  assets.release('lut.shared32');
   await flush();
   assert.equal(disposed, 0);
-  assets.release('lut.shared');
+  assets.release('lut.shared32');
   await flush();
   assert.equal(disposed, 1);
   assert.throws(() => acquireLut(assets.acquire, 'atlas.blocks-placeholder', loadLut), /'atlas.blocks-placeholder' is a texture, not a lut/);
@@ -95,7 +95,7 @@ test('acquireLut: one load per key, shared; the last release disposes the textur
 });
 
 test('lut.shared: the committed strip is a 1024 x 32 8-bit RGB PNG', () => {
-  const png = readFileSync(new URL(`../public/${assetByKey('lut.shared').path}`, import.meta.url));
+  const png = readFileSync(new URL(`../public/${assetByKey('lut.shared32').path}`, import.meta.url));
   assert.deepEqual([...png.subarray(1, 4)].map((c) => String.fromCharCode(c)).join(''), 'PNG');
   assert.equal(png.toString('latin1', 12, 16), 'IHDR');
   assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20), png[24], png[25]], [1024, 32, 8, 2]); // width, height, bit depth, colour type RGB

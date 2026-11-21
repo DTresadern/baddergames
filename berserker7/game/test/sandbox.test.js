@@ -25,7 +25,7 @@ import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/ti
 import { Color, Matrix4, NearestFilter, ShaderLib, Texture } from 'three';
 import { MAX_LIGHTS } from '../src/scenes/level-lights.js';
 import { playerDepth } from '../src/world/rows.js';
-import { DEPTH_CUBE_SPACING, DEPTH_SHADE, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, depthShade, litDepthShade, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
+import { DEPTH_CUBE_SPACING, DEPTH_SHADE, OFFSET_DEFAULT, PALETTE_LUT_MODES, cameraShift, createViewMode, depthCubes, depthShade, litDepthShade, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { atlasLayout, atlasPools } from '../src/scenes/block-decor.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { PLAYER_SIZE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
@@ -145,13 +145,16 @@ test('createViewMode: 2.5D and FOV 60 by default; unknown modes ignored; FOV who
   assert.equal(v.setFov(29.6), 30);
 });
 
-test('createViewMode: the palette LUT switch is on by default; setPaletteLut sets it (as a boolean)', () => {
+test('createViewMode: the palette LUT setting is 64 by default; setPaletteLut takes off, 32 or 64 and ignores anything else', () => {
   const v = createViewMode();
-  assert.equal(v.paletteLut(), true);
-  assert.equal(v.setPaletteLut(false), false);
-  assert.equal(v.paletteLut(), false);
-  assert.equal(v.setPaletteLut(1), true);
-  assert.equal(v.paletteLut(), true);
+  assert.deepEqual(PALETTE_LUT_MODES, ['off', '32', '64']);
+  assert.equal(v.paletteLut(), '64');
+  assert.equal(v.setPaletteLut('off'), 'off');
+  assert.equal(v.setPaletteLut('32'), '32');
+  assert.equal(v.setPaletteLut(64), '32', 'a number is not a mode');
+  assert.equal(v.setPaletteLut(true), '32');
+  assert.equal(v.setPaletteLut('64'), '64');
+  assert.equal(v.paletteLut(), '64');
 });
 
 test('sandbox draw 2.5D: the play plane shows the zoom height at any FOV, live mode switch', async () => {
@@ -624,7 +627,8 @@ async function loadSandboxMap(key, { strip = false } = {}) {
   };
   const loadTexture = async (path) => Object.assign(new Texture(), { name: path });
   let rendered;
-  const renderer = { render: (scene) => (rendered = scene) };
+  const initialised = [];
+  const renderer = { render: (scene) => (rendered = scene), initTexture: (texture) => initialised.push(texture) };
   const viewMode = createViewMode();
   const scene = createSandbox({ loadLut: fakeLoadLut, viewMode, mapChoice: createMapChoice(key), fetchJson, loadTexture });
   const tracked = new Set();
@@ -636,7 +640,7 @@ async function loadSandboxMap(key, { strip = false } = {}) {
     scene.draw(state, view);
     return rendered;
   };
-  return { tracked, draw, state, viewMode };
+  return { tracked, draw, state, viewMode, initialised };
 }
 const meshesOf = (graph) => {
   const out = [];
@@ -763,26 +767,35 @@ test('palette LUT: every opaque world material has it (level, backdrop, platform
     for (const colour of [...PLAYER_COLORS, 0xffffff, ENEMY_COLOR, HEALTH_BAR_COLOR]) assert.ok(colours.has(colour), `${key}: ${colour.toString(16)}`);
     if (key === 'map.moge3-cyberpunk-blocks') assert.ok(colours.has(PLATFORM_COLOR), 'platforms');
     assert.equal(shared.paletteLut.value.isData3DTexture, true);
-    assert.equal(shared.paletteLutSize.value, 32);
+    assert.equal(shared.paletteLut.value.name, 'content/textures/lut/shared.lut64.png', 'the default is the 64-step LUT');
+    assert.equal(shared.paletteLutSize.value, 64);
   }
 });
 
-test('palette LUT: the switch is one write of the shared mix uniform in draw; same materials, programs, versions and meshes', async () => {
+test('palette LUT: load acquires both LUTs and uploads both (renderer.initTexture), so the first switch uploads nothing', async () => {
+  const { initialised } = await loadSandboxMap('map.walkway');
+  assert.deepEqual(initialised.map((t) => t.name), ['content/textures/lut/shared.lut32.png', 'content/textures/lut/shared.lut64.png']);
+});
+
+test('palette LUT: the setting (off / 32 / 64) only writes the shared uniforms in draw; same materials, programs, versions and meshes', async () => {
   const { draw, viewMode } = await loadSandboxMap('map.moge3-cyberpunk-blocks');
   for (const mode of ['2d', '2.5d']) {
     const snapshot = () => meshesOf(draw(mode)).map((m) => [m, m.material, m.material.version, m.material.customProgramCacheKey(), m.material.defines]);
-    viewMode.setPaletteLut(true);
-    const on = snapshot();
-    const mix = lutUniformsOf(on.find(([m]) => m.isInstancedMesh)[1]).paletteLutMix;
-    assert.equal(mix.value, 1, `${mode}: on by default`);
-    viewMode.setPaletteLut(false);
-    const off = snapshot();
-    assert.equal(mix.value, 0, `${mode}: off`);
+    viewMode.setPaletteLut('64');
+    const at64 = snapshot();
+    const u = lutUniformsOf(at64.find(([m]) => m.isInstancedMesh)[1]);
+    const lut64 = u.paletteLut.value;
+    assert.deepEqual([u.paletteLutMix.value, u.paletteLutSize.value, lut64.name], [1, 64, 'content/textures/lut/shared.lut64.png'], `${mode}: 64 by default`);
     // The same objects (identity, not just equal) and values.
     const same = (a, b) => a.length === b.length && a.every((row, i) => row.every((v, j) => v === b[i][j]));
-    assert.ok(on.length > 0 && same(off, on), `${mode}: nothing but the uniform changed`);
-    viewMode.setPaletteLut(true);
-    assert.ok(same(snapshot(), on));
-    assert.equal(mix.value, 1);
+    viewMode.setPaletteLut('32');
+    assert.ok(same(snapshot(), at64), `${mode}: 32: nothing but the uniforms changed`);
+    assert.deepEqual([u.paletteLutMix.value, u.paletteLutSize.value, u.paletteLut.value.name], [1, 32, 'content/textures/lut/shared.lut32.png'], `${mode}: 32`);
+    viewMode.setPaletteLut('off');
+    assert.ok(same(snapshot(), at64), `${mode}: off: nothing but the uniforms changed`);
+    assert.equal(u.paletteLutMix.value, 0, `${mode}: off`);
+    viewMode.setPaletteLut('64');
+    assert.ok(same(snapshot(), at64));
+    assert.deepEqual([u.paletteLutMix.value, u.paletteLutSize.value, u.paletteLut.value], [1, 64, lut64]);
   }
 });

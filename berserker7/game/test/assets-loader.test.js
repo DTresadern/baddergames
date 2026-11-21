@@ -227,10 +227,12 @@ test('loader: a lut asset (the palette LUT) loads through acquireLut, once, neve
   const assets = createAssetCache();
   const loader = createLoader({ assets, music: { preload: (url) => preloaded.push(url) }, loadJson: async () => ({}), loadTexture: async (path) => fakeTexture(path), loadLut, log: { error() {} } });
   await loader.load('sandbox');
-  assert.deepEqual(loads, [assetByKey('lut.shared').path]);
+  assert.deepEqual(loads, [assetByKey('lut.shared32').path, assetByKey('lut.shared64').path]);
   assert.deepEqual(preloaded, [], 'nothing in the sandbox group is music');
-  assert.equal(assets.count('lut.shared'), 1, 'the loader holds it');
-  assert.equal(await acquireLut(assets.acquire, 'lut.shared', () => assert.fail('preloaded')), lut);
+  for (const key of ['lut.shared32', 'lut.shared64']) {
+    assert.equal(assets.count(key), 1, `the loader holds ${key}`);
+    assert.equal(await acquireLut(assets.acquire, key, () => assert.fail('preloaded')), lut);
+  }
   const errors = [];
   const failing = createLoader({
     assets: createAssetCache(),
@@ -241,5 +243,6 @@ test('loader: a lut asset (the palette LUT) loads through acquireLut, once, neve
     log: { error: (...args) => errors.push(args) },
   });
   await assert.rejects(failing.load('sandbox'), /Could not load content\/textures\/lut\/shared.lut32.png/);
-  assert.equal(errors.length, 1);
+  // Each failing asset is logged once: both LUTs.
+  assert.deepEqual(errors.map(([message]) => message), ['Could not load content/textures/lut/shared.lut32.png', 'Could not load content/textures/lut/shared.lut64.png']);
 });

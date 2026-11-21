@@ -28,7 +28,7 @@ import { addFog, atlasCubeGeometry, atlasGroupGeometry, atlasPlaneGeometry, conf
 import { atlasLayout, atlasPools, decorTiles } from './block-decor.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
 import { createLightPool, levelLights } from './level-lights.js';
-import { addPaletteLut, createPaletteLutUniforms } from './palette-lut.js';
+import { addPaletteLut, createPaletteLutUniforms, selectPaletteLut } from './palette-lut.js';
 import {
   DEPTH_MARGIN,
   FOLLOW_SETTINGS,
@@ -487,15 +487,24 @@ export function createSandbox({
   // A lit map's lighting (map.lighting with a block atlas: the test level), made in load(), or
   // null: { eye, pool, uniforms, material, shade, background }. See load().
   let lit = null;
-  // The palette LUT's shared uniforms (palette-lut.js), made in load(); draw sets paletteLutMix
-  // from viewMode.paletteLut().
+  // The palette LUT's shared uniforms (palette-lut.js) and the LUT textures by mode ({ '32', '64' }),
+  // made in load(); draw points the uniforms at viewMode.paletteLut()'s LUT (selectPaletteLut).
   let paletteLut = null;
+  let paletteLuts = null;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
-    async load({ track, acquire }) {
+    async load({ track, acquire, renderer }) {
       mapKey = mapChoice.get();
-      // Every map: the shared palette LUT (cache-owned: not tracked), loaded with the map.
-      const [mapJson, lutTexture] = await Promise.all([acquireMap(acquire, mapKey, fetchJson), acquireLut(acquire, 'lut.shared', loadLut)]);
+      // Every map: both shared palette LUTs, 32 and 64 steps (cache-owned: not tracked), loaded with
+      // the map.
+      const [mapJson, lut32, lut64] = await Promise.all([
+        acquireMap(acquire, mapKey, fetchJson),
+        acquireLut(acquire, 'lut.shared32', loadLut),
+        acquireLut(acquire, 'lut.shared64', loadLut),
+      ]);
+      paletteLuts = { 32: lut32, 64: lut64 };
+      // Both uploaded now, so the first switch to either does not upload during play.
+      if (renderer?.initTexture) for (const texture of [lut32, lut64]) renderer.initTexture(texture);
       map = loadMap(mapJson);
       tiles = map.tiles;
       // A map that names a block atlas (map.atlas) is drawn with it: the atlas texture and its
@@ -539,7 +548,7 @@ export function createSandbox({
       // kept exactly as it was) and the transparent swings and transfer markers (blended over what
       // is behind them, so a snapped colour would not stay a palette colour on screen anyway).
       // One shared set of uniforms; the switch is a uniform write in draw.
-      paletteLut = createPaletteLutUniforms(lutTexture);
+      paletteLut = createPaletteLutUniforms(lut64);
       const lut = (material) => addPaletteLut(material, paletteLut);
       // Without an atlas: one checkerboard texture per tile type (see tile-texture.js), mapped once
       // per tile (2D) or per cube face (2.5D) by the 0..1 UVs, so the squares line up across
@@ -738,9 +747,9 @@ export function createSandbox({
         }
       }
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
-      // The palette LUT switch: one number write to the shared uniform (no recompile, same programs
-      // and draw calls).
-      paletteLut.paletteLutMix.value = viewMode.paletteLut() ? 1 : 0;
+      // The palette LUT setting: uniform values only (the LUT texture, its size, the mix); no
+      // recompile, the same programs and draw calls.
+      selectPaletteLut(paletteLut, paletteLuts, viewMode.paletteLut());
       const grid = viewMode.grid();
       for (const group of active.level) group.mesh.material = grid ? group.grid : group.surface;
       // Platforms at the state's world tick (the same tick as the local player, also on a guest).

@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { Color, Data3DTexture, MeshBasicMaterial, ShaderLib, Texture, Vector3 } from 'three';
 import { FOG_FRAGMENT, LIT_UNIFORMS, addFog, createAtlasMaterial } from '../src/scenes/atlas-material.js';
 import { createLightPool } from '../src/scenes/level-lights.js';
-import { PALETTE_LUT_FRAGMENT, PALETTE_LUT_PARS, PALETTE_LUT_UNIFORMS, addPaletteLut, createPaletteLutUniforms } from '../src/scenes/palette-lut.js';
+import { PALETTE_LUT_FRAGMENT, PALETTE_LUT_PARS, PALETTE_LUT_UNIFORMS, addPaletteLut, createPaletteLutUniforms, selectPaletteLut } from '../src/scenes/palette-lut.js';
 
 const LAYOUT = { columns: 7, rows: 4, tileSize: 64 };
 const OPAQUE = '#include <opaque_fragment>';
@@ -45,6 +45,24 @@ test('createPaletteLutUniforms: the texture, its size, mix 1 (on) or 0', () => {
   assert.equal(u.paletteLutSize.value, 32);
   assert.equal(u.paletteLutMix.value, 1);
   assert.equal(createPaletteLutUniforms(texture, false).paletteLutMix.value, 0);
+});
+
+test('selectPaletteLut: off sets the mix to 0 and keeps the texture; 32 or 64 sets that texture, its size and mix 1; unknown is off', () => {
+  const lut32 = new Data3DTexture(new Uint8Array(32 * 32 * 32 * 4), 32, 32, 32);
+  const lut64 = new Data3DTexture(new Uint8Array(64 * 64 * 64 * 4), 64, 64, 64);
+  const luts = { 32: lut32, 64: lut64 };
+  const u = createPaletteLutUniforms(lut64);
+  const objects = PALETTE_LUT_UNIFORMS.map((name) => u[name]);
+  const values = () => [u.paletteLut.value, u.paletteLutSize.value, u.paletteLutMix.value];
+  assert.equal(selectPaletteLut(u, luts, '32'), u);
+  assert.deepEqual(values(), [lut32, 32, 1]);
+  selectPaletteLut(u, luts, 'off');
+  assert.deepEqual(values(), [lut32, 32, 0]);
+  selectPaletteLut(u, luts, '64');
+  assert.deepEqual(values(), [lut64, 64, 1]);
+  selectPaletteLut(u, luts, 'nope');
+  assert.deepEqual(values(), [lut64, 64, 0]);
+  assert.deepEqual(PALETTE_LUT_UNIFORMS.map((name) => u[name]), objects, 'the same uniform objects throughout');
 });
 
 test('addPaletteLut on a lit atlas material: lighting, LUT step, level fog, opaque_fragment in that order; the atlas patch still applies', () => {

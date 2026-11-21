@@ -29,6 +29,10 @@ export const DEPTH_CUBE_SPACING = 3;
 // front a little darker, the sides darker, the bottom and back darkest. No lights needed.
 export const FACE_SHADE = Object.freeze({ top: 1, front: 0.8, side: 0.62, bottom: 0.45, back: 0.45 });
 
+// Palette LUT settings (scenes/palette-lut.js): off, or the 32- or 64-step shared palette LUT.
+export const PALETTE_LUT_MODES = Object.freeze(['off', '32', '64']);
+export const PALETTE_LUT_DEFAULT = '64';
+
 // The Sandbox view mode ('2d' or '2.5d'), the perspective FOV (whole degrees, clamped) and the
 // camera offset from the point it follows (tiles, x right, y up, ±OFFSET_LIMIT in OFFSET_STEP
 // steps), changed live by the debug panel and read by the scene in draw. Not saved.
@@ -41,7 +45,7 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   const follow = Object.fromEntries(FOLLOW_SETTINGS.map(([key, , , , , value]) => [key, value]));
   let backdrop = true;
   let grid = false;
-  let paletteLut = true;
+  let paletteLut = PALETTE_LUT_DEFAULT;
   let rowCamera = true;
   return {
     mode: () => current,
@@ -74,11 +78,12 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
       grid = Boolean(on);
       return grid;
     },
-    // Solid surfaces snapped to the shared palette through the LUT (scenes/palette-lut.js), on by
-    // default; draw writes it to the shared mix uniform each frame.
+    // Solid surfaces snapped to the shared palette through a LUT (scenes/palette-lut.js): one of
+    // PALETTE_LUT_MODES, '64' by default; draw writes it to the shared uniforms each frame.
     paletteLut: () => paletteLut,
-    setPaletteLut(on) {
-      paletteLut = Boolean(on);
+    // Ignores an unknown mode. Returns the mode now in use.
+    setPaletteLut(mode) {
+      if (PALETTE_LUT_MODES.includes(mode)) paletteLut = mode;
       return paletteLut;
     },
     // 2.5D: the camera moves in depth with the local player's row (on by default); off keeps it on

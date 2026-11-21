@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "image": "berserker7/game/public/content/textures/lut/shared.lut64.png",
+  "image_sha256": "2999ca2601be85c8b1da021d4bd7e9a8b6b1a30a5ae794003bc381cb37eccdf7",
+  "dimensions": [
+    4096,
+    64
+  ],
+  "format": "PNG",
+  "created_at": "2026-11-21T09:28:31+00:00",
+  "generator": "Pillow 10.2.0 colour quantisation (deterministic derivation, not an image generator)",
+  "prompt": null,
+  "prompt_status": "Not applicable: this image is a deterministic colour reduction of the referenced source image(s). No generator prompt exists.",
+  "references": [
+    {
+      "path": "generated-art/scenes/palette/shared/shared.palette.hex",
+      "role": "palette baked into the LUT",
+      "sha256": "59d199f3b736d7975b44ba14ed75e402ec2f17878772a89577e8412b5492020e"
+    }
+  ],
+  "subject": "64^3 colour LUT strip that maps any colour to the shared palette",
+  "visual_approach": "LUT data texture, not artwork: 64 tiles of colour gradients snapped to palette colours.",
+  "generation_settings": {
+    "tool": "palette/tools/bake_scene_luts.py",
+    "lut_size": 64,
+    "palette_file": "generated-art/scenes/palette/shared/shared.palette.hex",
+    "bake": "each LUT entry = nearest palette colour to the grid point, CIE76 dE in CIE Lab (D65)",
+    "grid_levels": "round(k*255/63), k = 0..63",
+    "strip_layout": "64 tiles of 64x64; tile = blue, x = red, y = green with green 0 on the bottom row",
+    "apply": "point sampling: each channel snaps to the nearest grid level"
+  },
+  "creative_seed": {
+    "value": null,
+    "source": null,
+    "used_for_generation": false,
+    "note": "No creative seed. Any random seed in generation_settings controls pixel sampling only."
+  },
+  "revision_of": null,
+  "style_inheritance": "Not an edit of the source; LUT data derived from the palette.",
+  "notes": [
+    "2026-11-21: baked for the game's palette LUT trial (issue #125) with the same tool and method as shared.lut32.png, run from generated-art/scenes/: python3 palette/tools/bake_scene_luts.py 0*.png --out <temporary folder> --palette palette/shared/shared.palette.hex --size 64. Only the strip and this record were kept. The bake tool wrote 'image' as a path to the temporary folder; it is reworded here to the repository path. The other paths in this record are relative to the folder that holds generated-art/.",
+    "2026-11-21 checks: all 262,144 entries are shared palette colours (256 of 256 used); each entry equals the nearest palette colour (CIE76, the tool's own Lab constants) recomputed independently; at the 8 grid levels the 32- and 64-step grids share (0, 8, 16, 49, 206, 239, 247, 255), all 512 points equal the 32-step LUT's entries. Mean / p99 dE of the seven scenes after this LUT: 2.69/8.23, 3.29/12.44, 2.93/9.66, 3.25/9.12, 3.28/11.29, 2.75/9.10, 3.25/10.43."
+  ],
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "Not a scene: a 4096 x 64 RGB PNG colour lookup table (LUT) strip of 64 tiles, each 64 x 64, with the tile index running blue 0 (left) to 255 (right), x within a tile as red and y as green (green 0 at the bottom row).",
+    "composition": "Single horizontal strip of 64 equal tiles, no borders or labels. Read at reduced size, the strip runs from olive-yellow and orange-red tiles on the left, through dark and grey-green tiles in the middle, to cyan, magenta and purple tiles on the right.",
+    "environment": "Not applicable: data texture",
+    "materials": "Not applicable: data texture",
+    "lighting": "Not applicable: data texture",
+    "colors": "256 unique colours in the file. Left tiles yellow-green to orange, mid tiles grey and muted green to blue-grey, right tiles cyan, magenta and violet. Measured corners (RGB): tile 0 bottom-left (2,2,2); tile 0 top-left (187,203,97); tile 0 bottom-right (231,45,21); tile 0 top-right (251,225,84); tile 63 bottom-left (120,70,177); tile 63 top-left (85,235,241); tile 63 bottom-right (246,41,218); tile 63 top-right (243,245,241).",
+    "standout_features": "All 64 tiles are distinct. Within each tile, red increases left to right and green increases upward. Tile-centre colours repeat across runs of neighbouring tiles (tiles 0 to 3 share (180,133,52); tiles 57 to 63 share (120,70,177)), consistent with palette snapping of a smooth ramp.",
+    "important_details": "Tile order consistent with blue increasing left to right: tile 0 centre (180,133,52), tile 31 centre (123,122,128), tile 63 centre (120,70,177). At x = 2048 green rises towards the top (y0 G=203, y16 G=164, y32 G=122, y48 G=92, y56 G=36). Near-black bottom-left and near-white top-right corners.",
+    "synopsis": "A 64-tile colour lookup strip (4096 x 64, 256 colours) with tiles in blue order and green rising upward within tiles. No corruption, seams, out-of-order tiles or wrong orientation seen. Its colours are palette-snapped, so it is not an identity mapping.",
+    "defect_analysis": {
+      "findings": [],
+      "overall": "No corruption, missing tiles, seams, tile-order errors or orientation errors seen. The corners differ from a pure identity LUT (for example (120,70,177) where pure blue would be), which the checker judged most likely the 256-colour palette snap but did not verify."
+    },
+    "mismatches_or_uncertainties": "The checker did not load the palette, so it did not confirm the nearest-colour mapping; the numeric checks in notes (all entries are palette colours and equal the bake rule recomputed independently) cover that. The blue channel of tile centres is not strictly monotonic (tile 0 B=52, tile 4 B=35), consistent with palette snapping. Fine detail was judged from Pillow pixel reads, not the downscaled preview."
+  }
+}

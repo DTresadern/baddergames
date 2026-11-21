@@ -5,8 +5,12 @@ import { createHarness } from '../src/engine/harness.js';
 
 export const STEP = 1 / 60;
 
-// The Sandbox's palette LUT without a download: a 32-entry blank 3D texture (createSandbox's loadLut).
-export const fakeLoadLut = async () => new Data3DTexture(new Uint8Array(32 * 32 * 32 * 4), 32, 32, 32);
+// The Sandbox's palette LUTs without a download (createSandbox's loadLut): a blank 3D texture of the
+// strip's size, 64 entries for the 64-step strip, else 32. `name` is the path.
+export const fakeLoadLut = async (path) => {
+  const n = path.includes('lut64') ? 64 : 32;
+  return Object.assign(new Data3DTexture(new Uint8Array(n * n * n * 4), n, n, n), { name: path });
+};
 
 export function fakeRenderer(log = []) {
   return { clear: () => log.push('clear'), clearDepth: () => log.push('clearDepth') };

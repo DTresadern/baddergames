@@ -23,8 +23,10 @@ export const ASSETS = freezeList([
   // A block atlas: the image and its tile index (a map's `atlas` field names it; see scenes/block-decor.js).
   { key: 'atlas.blocks-placeholder', path: 'content/textures/environment/blocks-placeholder.png', type: 'texture', groups: ['sandbox'] },
   { key: 'atlas.blocks-placeholder.index', path: 'content/textures/environment/blocks-placeholder.json', type: 'json', groups: ['sandbox'] },
-  // The shared palette LUT strip (1024 x 32; see scenes/palette-lut.js).
-  { key: 'lut.shared', path: 'content/textures/lut/shared.lut32.png', type: 'lut', groups: ['sandbox'] },
+  // The shared palette LUT strips, 32 steps per channel (1024 x 32) and 64 (4096 x 64); see
+  // scenes/palette-lut.js.
+  { key: 'lut.shared32', path: 'content/textures/lut/shared.lut32.png', type: 'lut', groups: ['sandbox'] },
+  { key: 'lut.shared64', path: 'content/textures/lut/shared.lut64.png', type: 'lut', groups: ['sandbox'] },
 ]);
 
 function freezeList(list) {
