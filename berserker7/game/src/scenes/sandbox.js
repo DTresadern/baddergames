@@ -11,7 +11,7 @@
 // Networking reaches the scene only through `net` (the net session's read-only view, see
 // net/session.js): the scene never sees the transport, and input still arrives only as `inputs`.
 
-import { BoxGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene } from 'three';
+import { BoxGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene, Vector3 } from 'three';
 import { acquireJson, acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
 import { loadMap } from '../world/load-map.js';
@@ -23,9 +23,10 @@ import { createPlayer, playerHeight } from '../world/player.js';
 import { PRESS_NONE, playerDepth, stepRowPlayer } from '../world/rows.js';
 import { fitOrtho } from './shared.js';
 import { createGridTexture, createTileTexture } from './tile-texture.js';
-import { atlasCubeGeometry, atlasGroupGeometry, atlasPlaneGeometry, configureAtlasTexture, createAtlasMaterial } from './atlas-material.js';
+import { addFog, atlasCubeGeometry, atlasGroupGeometry, atlasPlaneGeometry, configureAtlasTexture, createAtlasMaterial } from './atlas-material.js';
 import { atlasLayout, atlasPools, decorTiles } from './block-decor.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
+import { createLightPool, levelLights } from './level-lights.js';
 import {
   DEPTH_MARGIN,
   FOLLOW_SETTINGS,
@@ -35,6 +36,7 @@ import {
   createViewMode,
   depthShade,
   depthCubes,
+  litDepthShade,
   perspectiveDistance,
   screenToPlane,
   smerp,
@@ -80,6 +82,20 @@ function levelBounds(tiles, cells = []) {
   }
   for (const c of cells) add(c.x, c.y);
   return Number.isFinite(b.minX) ? b : { minX: 0, maxX: 0, minY: 0 };
+}
+
+// Every solid cell [x, y, z] of every row of a map (`rows`: z -> tile map).
+function rowCells(rows) {
+  const cells = [];
+  for (const [z, tiles] of rows) {
+    const size = tiles.chunkSize;
+    for (const chunk of tiles.chunks()) {
+      chunk.tiles.forEach((id, index) => {
+        if (id !== 0) cells.push([chunk.cx * size + (index % size), chunk.cy * size + Math.floor(index / size), z]);
+      });
+    }
+  }
+  return cells;
 }
 
 // Lowest y of any solid tile over all the given tile maps (a map's rows), or 0 when all are empty.
@@ -464,6 +480,9 @@ export function createSandbox({
   // local player's row whenever its drawn depth changes (shadeDepth: the depth they show now).
   let shaded = [];
   let shadeDepth = 0;
+  // A lit map's lighting (map.lighting with a block atlas: the test level), made in load(), or
+  // null: { eye, pool, uniforms, material, shade, background }. See load().
+  let lit = null;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
     async load({ track, acquire }) {
@@ -481,12 +500,35 @@ export function createSandbox({
         const layout = atlasLayout(index);
         atlas = { texture: configureAtlasTexture(texture), layout, pools: atlasPools(layout) };
       }
+      // Solid looks in every row (the block decoration and the level lights).
+      const solid = (x, y, z) => (map.rows.get(z)?.tileAt(x, y) ?? 0) !== 0;
+      // A map with lighting and a block atlas (the test level) is lit: point lights from the light
+      // tiles the decoration places (level-lights.js; fixed here, MAX_LIGHTS nearest the camera in
+      // the shader each frame), one shared set of uniforms that every atlas material holds
+      // (atlas-material.js: ambient, lights, fog), emissive light tiles, the scene background
+      // colour, fog on the city backdrop and the lit depth shading (nothing behind, nearShade in
+      // front). Grid materials, players, aim lines, swings, enemies, health bars, platforms and
+      // transfer markers stay unlit. Other maps: lit is null and nothing here changes.
+      lit = null;
+      if (atlas && map.lighting) {
+        const { lighting } = map;
+        const pool = createLightPool(levelLights(rowCells(map.rows), solid, atlas.layout, atlas.pools, lighting.lights));
+        const uniforms = {
+          ...pool.uniforms,
+          litAmbient: { value: new Vector3(...lighting.ambient) }, // already a linear multiplier
+          litFogColor: { value: new Color(lighting.fog.color) }, // linear
+          litFogDensity: { value: lighting.fog.density },
+          litFogOrigin: { value: lighting.fog.eye }, // set in draw: eye + the local player's depth
+        };
+        const emissive = atlas.layout.tiles.filter((t) => Object.hasOwn(lighting.lights, t.name)).map((t) => t.index);
+        lit = { eye: lighting.fog.eye, pool, uniforms, material: { uniforms, emissive }, shade: litDepthShade(lighting.nearShade), background: lighting.background };
+      }
       // Without an atlas: one checkerboard texture per tile type (see tile-texture.js), mapped once
       // per tile (2D) or per cube face (2.5D) by the 0..1 UVs, so the squares line up across
       // neighbouring tiles. Every map: one grid texture per tile type. Each view gets a surface
       // (checkerboard or atlas) and a grid material; draw picks one by the Grid setting.
       const surfaceMaterial = (texture, vertexColors, color) =>
-        track(atlas ? createAtlasMaterial({ map: texture, layout: atlas.layout, vertexColors, color }) : new MeshBasicMaterial({ map: texture, vertexColors, ...(color ? { color } : {}) }));
+        track(atlas ? createAtlasMaterial({ map: texture, layout: atlas.layout, vertexColors, color, lit: lit?.material }) : new MeshBasicMaterial({ map: texture, vertexColors, ...(color ? { color } : {}) }));
       const flatMaterials = new Map(); // tile id -> { surface, grid }
       const cubeMaterials = new Map();
       const textures = new Map(); // tile id -> { surface, grid }
@@ -508,7 +550,7 @@ export function createSandbox({
       const shadedFor = (id, z) => {
         const key = `${id},${z}`;
         if (!shadedMaterials.has(key)) {
-          const color = new Color(...depthShade(z));
+          const color = new Color(...depthShade(z, lit?.shade));
           const { surface, grid } = textures.get(id);
           const pair = { surface: surfaceMaterial(surface, true, color), grid: track(new MeshBasicMaterial({ map: grid, vertexColors: true, color })), z };
           shadedMaterials.set(key, pair);
@@ -540,7 +582,6 @@ export function createSandbox({
       // Level group geometries: the shared tile (2D) and cube (2.5D), or with an atlas one geometry
       // per group sharing the atlas tile or cube's buffers, with the group's atlas tiles
       // ([side, top, front] per instance; solid looks in every row).
-      const solid = (x, y, z) => (map.rows.get(z)?.tileAt(x, y) ?? 0) !== 0;
       const levelGeometry = (base) => {
         if (!atlas) return () => base;
         const atlasBase = track(base === geometries.tile ? atlasPlaneGeometry() : atlasCubeGeometry());
@@ -551,6 +592,7 @@ export function createSandbox({
 
       // 2D: flat tiles, orthographic camera.
       const flatScene = new Scene();
+      if (lit) flatScene.background = new Color(lit.background); // cleared with it, no draw call
       const flatLevel = []; // { mesh, surface, grid } per group
       for (const [id, positions] of groups) addLevelGroup(flatScene, track, flatLevel, flatGeometry, flatMaterials.get(id), positions);
       flat = {
@@ -564,6 +606,7 @@ export function createSandbox({
       // 2.5D: cubes centred on the play plane, depth cubes off it, perspective camera. A cells map's
       // play plane cubes are shaded too (by depth relative to the local player's row).
       const deepScene = new Scene();
+      if (lit) deepScene.background = new Color(lit.background);
       const deepLevel = [];
       for (const [id, positions] of groups) addLevelGroup(deepScene, track, deepLevel, cubeGeometry, map.cells ? shadedFor(id, 0) : cubeMaterials.get(id), positions);
       const decor = new Map(); // "id,z" (cells map) or id -> { materials, positions: [[x, y, z], ...] }
@@ -584,7 +627,8 @@ export function createSandbox({
       const city = addCityBackdrop(deepScene, {
         track,
         geometry: geometries.cube,
-        makeMaterial: (color) => new MeshBasicMaterial({ color, vertexColors: true }),
+        // A lit map's backdrop is fogged like the level (same colours).
+        makeMaterial: (color) => (lit ? addFog(new MeshBasicMaterial({ color, vertexColors: true }), lit.uniforms) : new MeshBasicMaterial({ color, vertexColors: true })),
         bounds: levelBounds(tiles, map.cells),
         reach: OFFSET_LIMIT + followMax,
         view: { fovDegrees: FOV_DEFAULT, tilesHigh: CAMERA_TILES_MAX, aspect: 21 / 9 },
@@ -638,6 +682,15 @@ export function createSandbox({
       }
       const camX = rest.x + shift.x;
       const camY = rest.y + shift.y;
+      // A lit map: the fog's virtual eye is lighting.fog.eye in front of the local player's row
+      // (viewDepth; 0 in 2D), and the light slots take the lights that reach the view (planeTiles
+      // high on the player's plane, wider at a light's depth behind it in 2.5D), the furthest
+      // outside it last. Selected every frame
+      // (83 lights, no allocation), not only when the camera moves.
+      if (lit) {
+        lit.uniforms.litFogOrigin.value = lit.eye + viewDepth;
+        lit.pool.select(camX, camY, viewDepth, (planeTiles / 2) * (view.width / view.height), planeTiles / 2, active === deep ? distance + (rowCamera ? viewDepth : 0) : Infinity);
+      }
       if (active === flat) {
         fitOrtho(camera, view, tilesHigh / 2);
         camera.position.set(camX, camY, 0);
@@ -658,7 +711,7 @@ export function createSandbox({
         if (viewDepth !== shadeDepth) {
           shadeDepth = viewDepth;
           for (const pair of shaded) {
-            const [r, g, b] = depthShade(pair.z - viewDepth);
+            const [r, g, b] = depthShade(pair.z - viewDepth, lit?.shade);
             pair.surface.color.setRGB(r, g, b);
             pair.grid.color.setRGB(r, g, b);
           }

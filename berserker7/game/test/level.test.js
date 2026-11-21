@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { buildLevel, mapText } from '../tools/build-level.mjs';
 import { depthRowsTransfers } from '../tools/levels/depth-rows-test.mjs';
+import { LIGHTING } from '../tools/levels/moge3-cyberpunk-blocks.sections.mjs';
 import { loadMap } from '../src/world/load-map.js';
 import { createPlayer } from '../src/world/player.js';
 import { fallPathClear, findLanding, floorBelow } from '../src/world/rows.js';
@@ -18,6 +19,13 @@ test('level: the committed moge3-cyberpunk-blocks map is exactly the build outpu
   const keys = Object.keys(buildLevel());
   assert.equal(keys.indexOf('atlas'), keys.indexOf('tile') + 1);
   assert.equal(buildLevel().atlas, 'blocks-placeholder');
+  // The sections' LIGHTING is written as `lighting`, directly after `atlas` (a copy).
+  assert.equal(keys.indexOf('lighting'), keys.indexOf('atlas') + 1);
+  assert.deepEqual(buildLevel().lighting, LIGHTING);
+  assert.notEqual(buildLevel().lighting, LIGHTING);
+  const map = JSON.parse(read('../public/content/maps/moge3-cyberpunk-blocks.json'));
+  assert.deepEqual(map.lighting, LIGHTING);
+  assert.deepEqual(Object.keys(map).slice(4, 7), ['tile', 'atlas', 'lighting']);
 });
 
 test('level: the depth rows part (x 151-297) is joined at the open end of G; its nine zones find their landings', () => {

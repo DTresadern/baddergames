@@ -206,6 +206,48 @@ export const SECTIONS = [
 // `atlas.<name>.index`). The Sandbox picks a tile per block face from it (scenes/block-decor.js).
 export const ATLAS = 'blocks-placeholder';
 
+// The level's lighting (map field `lighting`; the Sandbox applies it in the atlas shader, see
+// scenes/level-lights.js and scenes/atlas-material.js). Measured from the scene mockup and its
+// depth mesh (depth in blocks = 0.21 x metres). Colours are sRGB hex; lengths in tiles (blocks).
+// - background: the scene background colour (replaces the clear colour for this map). Median
+//   colour of the mockup pixels with no depth or deeper than 35 blocks.
+// - ambient: light multiplier [r, g, b] on every level face no lamp reaches. Mean linear colour of
+//   non-emissive mockup surfaces 3 to 6.5 blocks deep and more than 0.7 blocks from any light,
+//   divided by (mean linear colour of the atlas wall panels x the front face shade 0.8). 0.17 to
+//   0.23 depending on the distance kept from lights.
+// - nearShade: brightness of cells in front of the player's row (z > row). Mean luminance of unlit
+//   mockup surfaces nearer than 3 blocks / the same at 3 to 6.5 blocks (0.21; 0.27 with a 1-block
+//   margin from lights).
+// - fog: `color`; `density` k in the fog factor 1 - e^(-k d); `eye` the mockup camera's distance
+//   from the play plane. In game d = eye + (player row depth - z): the distance from a virtual
+//   camera `eye` tiles in front of the player's row, so the fog does not depend on zoom or FOV.
+//   Fitted to the mean linear colour of non-emissive mockup pixels in 26 log-spaced depth bins (1.8
+//   to 56 blocks) as surface x e^(-k d) + fog x (1 - e^(-k d)): RMS error 0.009 (linear) against
+//   a spread of 0.021 (a linear near/far fit: 0.0096).
+// - lights: per atlas tile name, `color`, `intensity` (multiplier added at the light's own face,
+//   before falloff) and `radius` (where the light reaches 0). From the light pools below lamps,
+//   signs and windows in the mockup (painted, so estimates): wall lamps add 1.0 to 3.0 times the
+//   surface colour next to the lamp and fall to 0 within 0.55 to 0.96 blocks of its edge; signs
+//   about 1.3 over at least 0.95 blocks; lit windows about 1.0 over at least 1.25 blocks beyond the
+//   window. The game light sits on the tile centre, so radius = edge distance + 0.5 (windows: one
+//   light per wall patch, centred on it, radius = 2 + 1.25), and intensity makes the light at the
+//   tile edge (0.5) match the measured pool. lit-screen's spill could not be measured (mixed with
+//   neon rim light): the sign values with the measured screen colour. warning-lamp has no source in
+//   the mockup: the atlas tile colour with the wall-lamp values.
+export const LIGHTING = {
+  background: '#344a4c',
+  ambient: [0.205, 0.218, 0.232],
+  nearShade: 0.21,
+  fog: { color: '#324f5c', density: 0.035, eye: 4.48 },
+  lights: {
+    'wall-light': { color: '#ffc144', intensity: 2.5, radius: 1.5 },
+    'warning-lamp': { color: '#ff9d96', intensity: 2.5, radius: 1.5 },
+    'lit-sign': { color: '#ffc862', intensity: 1.6, radius: 1.5 },
+    'lit-screen': { color: '#ff28d7', intensity: 1.6, radius: 1.5 },
+    'lit-window': { color: '#ffba35', intensity: 2.6, radius: 3.25 },
+  },
+};
+
 // Transfer zones between depth rows (world/rows.js): section H's, the depth-rows-test zones at +151.
 export const TRANSFERS = depthRowsTransfers(151);
 

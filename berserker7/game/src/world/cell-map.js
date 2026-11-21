@@ -8,6 +8,8 @@
 // world/rows.js) are checked and copied; default [].
 // Optional `atlas`: the name of the block atlas the level is drawn with (manifest keys
 // `atlas.<name>` and `atlas.<name>.index`; see scenes/block-decor.js); null when absent.
+// Optional `lighting`: the level's measured lighting (background, ambient, nearShade, fog, lights;
+// see scenes/level-lights.js), a deep copy; null when absent. Only checked to be a plain object.
 
 import { copyPlatforms } from './platform.js';
 import { playerSize } from './player.js';
@@ -32,6 +34,13 @@ function atlasName(atlas) {
   return atlas;
 }
 
+// A deep copy of the map's lighting, or null when the field is absent.
+function lightingCopy(lighting) {
+  if (lighting === undefined) return null;
+  if (lighting === null || typeof lighting !== 'object' || Array.isArray(lighting)) throw new Error(`cell map: lighting must be an object, not ${JSON.stringify(lighting)}`);
+  return structuredClone(lighting);
+}
+
 export function loadCellMap(json) {
   if (json?.format !== 1 || json.kind !== 'cells') throw new Error(`cell map: unsupported format ${json?.format} / kind ${json?.kind}`);
   const { type, color } = json.tile;
@@ -44,5 +53,5 @@ export function loadCellMap(json) {
     if (z !== 0) cells.push({ x, y, z, id: 1 });
   }
   const transfers = copyTransfers(json.transfers);
-  return { name: json.name, tileSize: json.tileSize, atlas: atlasName(json.atlas), tiles: rows.get(0), rows, spawns: json.spawns.map((s) => ({ ...s })), cells, player: playerSize(json.player), platforms: copyPlatforms(json.platforms), transfers };
+  return { name: json.name, tileSize: json.tileSize, atlas: atlasName(json.atlas), lighting: lightingCopy(json.lighting), tiles: rows.get(0), rows, spawns: json.spawns.map((s) => ({ ...s })), cells, player: playerSize(json.player), platforms: copyPlatforms(json.platforms), transfers };
 }

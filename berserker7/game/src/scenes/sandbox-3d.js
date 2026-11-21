@@ -202,17 +202,23 @@ export const DEPTH_SHADE = Object.freeze({
   frontTint: Object.freeze([1, 0.88, 0.8]),
 });
 
+// The depth shading table of a lit map (map field `lighting`): nothing behind (brightness 1, no
+// tint: the fog replaces the darkening there) and `nearShade` in front, no tint.
+export function litDepthShade(nearShade) {
+  return Object.freeze({ behind: Object.freeze([1]), behindTint: Object.freeze([1, 1, 1]), front: nearShade, frontTint: Object.freeze([1, 1, 1]) });
+}
+
 // A fractional z (relative depth during a hop) is interpolated linearly between the whole depths
-// around it.
-export function depthShade(z) {
+// around it. `table` is DEPTH_SHADE or a table of the same shape (litDepthShade).
+export function depthShade(z, table = DEPTH_SHADE) {
   if (!Number.isInteger(z)) {
-    const lo = depthShade(Math.floor(z));
-    const hi = depthShade(Math.ceil(z));
+    const lo = depthShade(Math.floor(z), table);
+    const hi = depthShade(Math.ceil(z), table);
     const t = z - Math.floor(z);
     return lo.map((c, i) => c + (hi[i] - c) * t);
   }
   if (z === 0) return [1, 1, 1];
-  if (z > 0) return DEPTH_SHADE.frontTint.map((c) => c * DEPTH_SHADE.front);
-  const level = DEPTH_SHADE.behind[Math.min(-z, DEPTH_SHADE.behind.length) - 1];
-  return DEPTH_SHADE.behindTint.map((c) => c * level);
+  if (z > 0) return table.frontTint.map((c) => c * table.front);
+  const level = table.behind[Math.min(-z, table.behind.length) - 1];
+  return table.behindTint.map((c) => c * level);
 }

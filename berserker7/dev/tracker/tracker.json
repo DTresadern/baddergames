@@ -2936,7 +2936,7 @@
       "refs": [
         "TF-082"
       ],
-      "notes": ""
+      "notes": "2026-11-21: first measured lighting (#123): the test level's ambient level, distance fog, background and lamp, sign, screen and window lights measured from the scene mockup and its depth mesh and applied in the atlas shader; lights belong to the placed light tiles, a fixed pool made at load."
     },
     {
       "id": "D-107",
