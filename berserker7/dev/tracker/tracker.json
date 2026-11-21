@@ -3438,8 +3438,8 @@
       "kind": "feature",
       "category": "Engine and rendering",
       "title": "2.5D: a 3D world with 2D gameplay",
-      "detail": "Decided: 3D environments with 2D gameplay; a 3D world adds richness without stopping the game being 2D.",
-      "status": "open",
+      "detail": "3D environments with 2D gameplay; a 3D world adds richness without stopping the game being 2D.",
+      "status": "ongoing",
       "authors": [
         "Decision",
         "Deano"
@@ -3457,7 +3457,7 @@
       "refs": [
         "TF-098"
       ],
-      "notes": ""
+      "notes": "2026-11-21: status open -> ongoing: the project owner confirmed 2.5D is the direction, with the Sandbox's 2.5D view, cells maps and depth rows built on it; 'Decided' removed from the detail, the status says it."
     },
     {
       "id": "T-003",
