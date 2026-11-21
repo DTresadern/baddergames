@@ -1,0 +1,225 @@
+{
+  "image": "blocks-growth.png",
+  "tileSize": 64,
+  "columns": 6,
+  "rows": 3,
+  "note": "Placeholder programmer art for organic growth over the pipe growth / subway / driller / doomsday door / machine boss levels, drawn by tools/blocks_themed.py; shapes follow scene mockups that are not in the repository.",
+  "tiles": {
+    "flesh-wall": {
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "xy",
+      "note": "wet flesh mass: burgundy and pink folds, dark crevices and pores, wet highlights",
+      "refs": [
+        "04-maintenance-depot.png 1255,217 459x217"
+      ]
+    },
+    "tendrils-on-panel": {
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "xy",
+      "note": "steel wall panel with dark red tendrils crawling across it",
+      "refs": [
+        "02-collapsed-tunnel.png 48,24 434x265"
+      ]
+    },
+    "tendrils-hanging": {
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "x",
+      "note": "flesh mass along the top edge with strands hanging down, thinning, drips at their ends",
+      "refs": [
+        "05-interchange.png 386,48 338x169"
+      ]
+    },
+    "egg-sacs": {
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "none",
+      "note": "cluster of glowing green-yellow translucent egg sacs with embryos in flesh webbing",
+      "refs": [
+        "driller-04.png 1882,97 290x386"
+      ]
+    },
+    "pod-cluster": {
+      "x": 256,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "none",
+      "note": "purple-grey glossy pods in flesh webbing, green drips",
+      "refs": [
+        "pipe-growth-01.png 603,0 290x265"
+      ]
+    },
+    "slime-drip": {
+      "x": 320,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "x",
+      "note": "green slime band along the top with drips running down over a dark panel",
+      "refs": [
+        "pipe-growth-04.png 422,12 193x362"
+      ]
+    },
+    "acid-pool": {
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "liquid",
+      "tiles": "x",
+      "note": "green toxic liquid from row 22 down: bright surface line, ripples, bubbles, glow above",
+      "refs": [
+        "pipe-growth-01.png 700,627 555x97"
+      ]
+    },
+    "acid-fall": {
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "liquid",
+      "tiles": "y",
+      "note": "vertical green toxic stream (columns 16-47) with bright streaks and spray on a dark wall",
+      "refs": [
+        "machine-boss-01.png 941,507 290x169"
+      ]
+    },
+    "flesh-pipe": {
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "x",
+      "note": "horizontal steel pipe (rows 20-43, as pipe-h) wrapped in flesh cuffs and tendrils, strands hanging",
+      "refs": [
+        "pipe-growth-03.png 1665,0 507x193"
+      ]
+    },
+    "honeycomb": {
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "xy",
+      "note": "flesh honeycomb membrane: rounded cells with dark holes and pink rims, 16 px grid",
+      "refs": [
+        "doomsday-door-03.png 241,514 290x210"
+      ]
+    },
+    "bone-ribs": {
+      "x": 256,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "x",
+      "note": "spine of pale vertebrae along the top with curved ribs every 16 px over dark flesh",
+      "refs": [
+        "06-forgotten-terminus.png 821,24 676x241"
+      ]
+    },
+    "glow-fungus": {
+      "x": 320,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "none",
+      "note": "pale shelf fungus caps with pink-lit gills and glow, on a concrete pillar edge at the left",
+      "refs": [
+        "05-interchange.png 1255,362 145x121"
+      ]
+    },
+    "rock-wall": {
+      "x": 0,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "rock",
+      "tiles": "xy",
+      "note": "cave rock: angular cells in browns with dark cracks and lit edges",
+      "refs": [
+        "driller-02.png 1931,241 241x410"
+      ]
+    },
+    "stalactite": {
+      "x": 64,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "rock",
+      "tiles": "x",
+      "note": "rock ceiling along the top with hanging stalactites and drips",
+      "refs": [
+        "doomsday-door-03.png 241,0 386x133"
+      ]
+    },
+    "spore-growth": {
+      "x": 128,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "none",
+      "note": "rock with pale green spore crystals and spore dust",
+      "refs": [
+        "driller-01.png 1641,290 265x290"
+      ]
+    },
+    "eye-pustule": {
+      "x": 192,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "none",
+      "note": "large glowing orange eye with a slit pupil in a swollen flesh socket",
+      "refs": [
+        "machine-boss-01.png 965,145 241x241"
+      ]
+    },
+    "flesh-floor": {
+      "x": 256,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "x",
+      "note": "concrete floor slab with a flesh crust on top and tendrils draping over its front face",
+      "refs": [
+        "04-maintenance-depot.png 362,398 483x84"
+      ]
+    },
+    "tendril-column": {
+      "x": 320,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "organic",
+      "tiles": "y",
+      "note": "concrete pillar wrapped by diagonal sinews, a thick trunk on the left and a strand on the right",
+      "refs": [
+        "05-interchange.png 615,97 157x290"
+      ]
+    }
+  }
+}
