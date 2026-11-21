@@ -1,7 +1,9 @@
 # Publishes the landing page (index.html), the idea cloud (ideas/), the
 # Technophage MVP game files (technophage-mvp/), the Berserker 7 game
-# (berserker7/, built from berserker7/game/) and the Berserker 7 feature
-# tracker (berserker7/tracker/) to GitHub Pages.
+# (berserker7/, built from berserker7/game/), the Berserker 7 development
+# pages (berserker7/dev/: index, feature tracker, milestone retros) and the
+# forwarding page for the tracker's old address (berserker7/tracker/) to
+# GitHub Pages.
 # Nothing else in the repo is published: archived material, agent config,
 # mastermind state, the devlog and sub-project folders stay out of the site.
 name: Deploy to GitHub Pages
@@ -56,12 +58,20 @@ jobs:
             echo "::error::technophage-mvp/index.html not found: the Technophage MVP has not been committed yet"
             exit 1
           fi
-          if [ ! -f berserker7/tracker/index.html ]; then
-            echo "::error::berserker7/tracker/index.html not found: the Berserker 7 feature tracker has not been committed yet"
+          if [ ! -f berserker7/dev/index.html ]; then
+            echo "::error::berserker7/dev/index.html not found: the Berserker 7 development index has not been committed yet"
             exit 1
           fi
-          if [ ! -f berserker7/tracker/tracker.json ]; then
-            echo "::error::berserker7/tracker/tracker.json not found: the Berserker 7 feature tracker has not been committed yet"
+          if [ ! -f berserker7/dev/tracker/index.html ]; then
+            echo "::error::berserker7/dev/tracker/index.html not found: the Berserker 7 feature tracker has not been committed yet"
+            exit 1
+          fi
+          if [ ! -f berserker7/dev/tracker/tracker.json ]; then
+            echo "::error::berserker7/dev/tracker/tracker.json not found: the Berserker 7 feature tracker has not been committed yet"
+            exit 1
+          fi
+          if [ ! -f berserker7/tracker/index.html ]; then
+            echo "::error::berserker7/tracker/index.html not found: the forwarding page for the tracker's old address has not been committed yet"
             exit 1
           fi
           if [ ! -f berserker7/game/dist/index.html ]; then
@@ -69,15 +79,20 @@ jobs:
             exit 1
           fi
           if [ -e berserker7/game/dist/tracker ]; then
-            echo "::error::berserker7/game/dist/tracker exists: the game must not publish a tracker/ folder, it would collide with the feature tracker"
+            echo "::error::berserker7/game/dist/tracker exists: the game must not publish a tracker/ folder, it would collide with the tracker's forwarding page"
             exit 1
           fi
-          mkdir -p _site/ideas _site/technophage-mvp _site/berserker7/tracker
+          if [ -e berserker7/game/dist/dev ]; then
+            echo "::error::berserker7/game/dist/dev exists: the game must not publish a dev/ folder, it would collide with the development pages"
+            exit 1
+          fi
+          mkdir -p _site/ideas _site/technophage-mvp _site/berserker7/dev _site/berserker7/tracker
           cp index.html _site/
           cp -r ideas/. _site/ideas/
           cp -r technophage-mvp/. _site/technophage-mvp/
           cp -r berserker7/game/dist/. _site/berserker7/
-          cp berserker7/tracker/index.html berserker7/tracker/tracker.json _site/berserker7/tracker/
+          cp -r berserker7/dev/. _site/berserker7/dev/
+          cp berserker7/tracker/index.html _site/berserker7/tracker/
           # the Technophage MVP fetches version.json (relative to its page) to show the build
           printf '{"commit":"%s","built":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > _site/technophage-mvp/version.json
           # list what upload-pages-artifact publishes: it skips hidden files
