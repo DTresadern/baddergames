@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "image": "og-image.png",
+  "image_sha256": "5cc4eca7b6a5904658f7358e1f56ac8e7d8aec0279f2ef9e29ecb1bfdb3fdba0",
+  "dimensions": {
+    "width": 1733,
+    "height": 907
+  },
+  "format": "png (palette mode)",
+  "created_at": null,
+  "generator": null,
+  "prompt": null,
+  "prompt_status": "Supplied by the project owner as a finished image. The generator, prompt and settings are unknown and not recoverable; nothing here is reconstructed.",
+  "references": [],
+  "subject": "Link preview image for the baddergames landing page: the BADDER GAMES title over an industrial scene",
+  "visual_approach": null,
+  "generation_settings": null,
+  "creative_seed": {
+    "value": null,
+    "source": null,
+    "used_for_generation": false,
+    "note": "Unknown: the image was supplied, not generated in this repository."
+  },
+  "revision_of": null,
+  "style_inheritance": null,
+  "usage": "Open Graph / Twitter link preview image",
+  "post_analysis": {
+    "provenance": "Post-generation subagent visual analysis; not part of the original generation prompt.",
+    "subject": "The words \"BADDER GAMES\" in two stacked lines of large bevelled block capitals: rusted, bolted metal plates with orange rust patches and hazard-stripe undersides.",
+    "composition": "Text fills the centre band; BADDER is wider than GAMES. Dark industrial scenery shows above, to the sides and below.",
+    "environment": "A dark industrial sewer or factory interior: pipes and tanks along the top and sides, caged wall lamps, railings and walkways. Two outlets at lower left and right spill water into dark reflective water at the bottom edge; a barrel-like object sits partly submerged at lower left.",
+    "colors": "Teal-green and grey-green metal, orange rust and amber highlights, near-black background, warm orange lamp glow.",
+    "materials": "Appears as corroded riveted sheet metal on the letters, hazard stripes on lower bevels, wet pipes and walls, water with specular highlights.",
+    "lighting": "Warm lamp light from the top and sides gives amber glints on the letters and reflections on the water; shadows fall consistently downward and into the bevels.",
+    "standout_features": [
+      "Large, legible two-line title with a strong 3D bevelled look",
+      "Pixel-art rendering across the whole scene",
+      "Rust and hazard-stripe detailing",
+      "Water outlets and reflections in the lower half"
+    ],
+    "important_details": [
+      "Text reads exactly \"BADDER GAMES\"",
+      "Title sits in the centre band, readable at small preview sizes",
+      "Dark background gives strong contrast with the title"
+    ],
+    "synopsis": "A pixel-art title card for BADDER GAMES over a dark industrial sewer scene with warm lamp light, rusted metal lettering and water outlets.",
+    "defect_analysis": {
+      "findings": [],
+      "overall": "No obvious defect seen. Structure, perspective, lighting and text are coherent."
+    },
+    "mismatches_or_uncertainties": [
+      "The image has no URL; the link card relies on the page metadata for identity"
+    ]
+  }
+}
