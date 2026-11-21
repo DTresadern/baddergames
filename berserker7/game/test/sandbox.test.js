@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import {
+  ENEMY_COLOR,
+  HEALTH_BAR_COLOR,
+  MARKER_COLOR,
   OFFLINE_NET,
+  PLATFORM_COLOR,
   PLAYER_COLORS,
   createSandbox,
   createCameraZoom,
@@ -21,12 +25,12 @@ import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/ti
 import { Color, Matrix4, NearestFilter, ShaderLib, Texture } from 'three';
 import { MAX_LIGHTS } from '../src/scenes/level-lights.js';
 import { playerDepth } from '../src/world/rows.js';
-import { DEPTH_CUBE_SPACING, DEPTH_SHADE, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, depthShade, litDepthShade, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
+import { DEPTH_CUBE_SPACING, DEPTH_SHADE, OFFSET_DEFAULT, PALETTE_LUT_MODES, cameraShift, createViewMode, depthCubes, depthShade, litDepthShade, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { atlasLayout, atlasPools } from '../src/scenes/block-decor.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { PLAYER_SIZE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
 import { frame } from './frames.js';
-import { STEP } from './fakes.js';
+import { STEP, fakeLoadLut } from './fakes.js';
 
 const json = () => JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'));
 const map = loadGridMap(json());
@@ -67,7 +71,7 @@ test('tickSandbox: player 1 input moves the player, ticks count, the state stays
 test('sandbox draw: the camera shows CAMERA_TILES_HIGH tiles and follows the player head', async () => {
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = camera) };
-  const scene = createSandbox({ viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json() });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   state.players[0].x = 10;
@@ -104,7 +108,7 @@ test('sandbox draw: the camera follows the zoom holder live', async () => {
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = camera) };
   const zoom = createCameraZoom();
-  const scene = createSandbox({ zoom, viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json() });
+  const scene = createSandbox({ loadLut: fakeLoadLut, zoom, viewMode: createViewMode({ mode: '2d' }), fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
@@ -141,12 +145,24 @@ test('createViewMode: 2.5D and FOV 60 by default; unknown modes ignored; FOV who
   assert.equal(v.setFov(29.6), 30);
 });
 
+test('createViewMode: the palette LUT setting is 64 by default; setPaletteLut takes off, 32 or 64 and ignores anything else', () => {
+  const v = createViewMode();
+  assert.deepEqual(PALETTE_LUT_MODES, ['off', '32', '64']);
+  assert.equal(v.paletteLut(), '64');
+  assert.equal(v.setPaletteLut('off'), 'off');
+  assert.equal(v.setPaletteLut('32'), '32');
+  assert.equal(v.setPaletteLut(64), '32', 'a number is not a mode');
+  assert.equal(v.setPaletteLut(true), '32');
+  assert.equal(v.setPaletteLut('64'), '64');
+  assert.equal(v.paletteLut(), '64');
+});
+
 test('sandbox draw 2.5D: the play plane shows the zoom height at any FOV, live mode switch', async () => {
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = camera) };
   const viewMode = createViewMode();
   const zoom = createCameraZoom();
-  const scene = createSandbox({ zoom, viewMode, fetchJson: async () => json() });
+  const scene = createSandbox({ loadLut: fakeLoadLut, zoom, viewMode, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const origins = [];
@@ -190,7 +206,7 @@ test('camera offset: ±4 tiles in 0.25 steps; the camera moves with it in both v
   assert.deepEqual(v.setOffset('z', 1), { x: 1.25, y: -4 });
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = camera) };
-  const scene = createSandbox({ viewMode: v, fetchJson: async () => json() });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode: v, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
@@ -235,7 +251,7 @@ test('aim follow: the camera is stable frame to frame (rest-camera projection) a
   viewMode.setFollow('scaleYUp', 1);
   viewMode.setFollow('scaleYDown', 1);
   viewMode.setOffset('y', 0);
-  const scene = createSandbox({ viewMode, fetchJson: async () => json() });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   state.pointer = { x: 700, y: 150 };
@@ -271,7 +287,7 @@ test('city backdrop: deterministic, denser and darker with distance, inside the 
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = camera) };
   const viewMode = createViewMode();
-  const scene = createSandbox({ viewMode, fetchJson: async () => json() });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
@@ -339,7 +355,7 @@ test('grid: the toggle swaps the level textures from checkerboard to grid, in bo
   let rendered;
   const renderer = { render: (scene) => (rendered = scene) };
   const viewMode = createViewMode();
-  const scene = createSandbox({ viewMode, fetchJson: async () => json() });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
@@ -438,7 +454,7 @@ test('sandbox draw: one body per player in its colour; absent slots hidden; aim 
   let rendered;
   const renderer = { render: (scene, camera) => (rendered = { scene, camera }) };
   const net = fakeNet({ role: 'host' });
-  const scene = createSandbox({ viewMode: createViewMode({ mode: '2d' }), net, fetchJson: async () => json() });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode: createViewMode({ mode: '2d' }), net, fetchJson: async () => json() });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const origins = [];
@@ -488,7 +504,7 @@ async function loadAtlasScene(mapJson, viewMode) {
   };
   let rendered;
   const renderer = { render: (scene) => (rendered = scene) };
-  const scene = createSandbox({ viewMode, fetchJson, loadTexture });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode, fetchJson, loadTexture });
   await scene.load({ track: (obj) => obj, acquire: (key, create) => create(), renderer });
   const state = scene.enter();
   const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
@@ -611,9 +627,10 @@ async function loadSandboxMap(key, { strip = false } = {}) {
   };
   const loadTexture = async (path) => Object.assign(new Texture(), { name: path });
   let rendered;
-  const renderer = { render: (scene) => (rendered = scene) };
+  const initialised = [];
+  const renderer = { render: (scene) => (rendered = scene), initTexture: (texture) => initialised.push(texture) };
   const viewMode = createViewMode();
-  const scene = createSandbox({ viewMode, mapChoice: createMapChoice(key), fetchJson, loadTexture });
+  const scene = createSandbox({ loadLut: fakeLoadLut, viewMode, mapChoice: createMapChoice(key), fetchJson, loadTexture });
   const tracked = new Set();
   await scene.load({ track: (obj) => (tracked.add(obj), obj), acquire: (_, create) => create(), renderer });
   const state = scene.enter();
@@ -623,7 +640,7 @@ async function loadSandboxMap(key, { strip = false } = {}) {
     scene.draw(state, view);
     return rendered;
   };
-  return { tracked, draw, state, viewMode };
+  return { tracked, draw, state, viewMode, initialised };
 }
 const meshesOf = (graph) => {
   const out = [];
@@ -632,7 +649,7 @@ const meshesOf = (graph) => {
 };
 const litKey = (material) => {
   const key = material.customProgramCacheKey();
-  return key.includes(' lit ') || key === 'level-fog';
+  return key.includes(' lit ') || key.startsWith('level-fog');
 };
 // The shared lit uniforms a material's program would get.
 const compiledUniforms = (material) => {
@@ -673,10 +690,10 @@ test('sandbox lighting: the test level\'s atlas meshes are lit, its backdrop fog
     const level = meshes.filter((m) => m.isInstancedMesh && m.material.map);
     const city = meshes.filter((m) => m.isInstancedMesh && !m.material.map);
     assert.ok(level.length > 0);
-    for (const m of level) assert.ok(m.material.customProgramCacheKey().endsWith(' lit 22,23,24,25,26'), `${mode}: ${m.material.customProgramCacheKey()}`);
+    for (const m of level) assert.ok(m.material.customProgramCacheKey().endsWith(' lit 22,23,24,25,26 palette-lut'), `${mode}: ${m.material.customProgramCacheKey()}`);
     if (mode === '2.5d') {
       assert.ok(city.length > 0);
-      for (const m of city) assert.equal(m.material.customProgramCacheKey(), 'level-fog');
+      for (const m of city) assert.equal(m.material.customProgramCacheKey(), 'level-fog palette-lut');
     }
     for (const m of meshes.filter((x) => !x.isInstancedMesh)) assert.ok(!litKey(m.material), `${mode}: players, aim, swings, enemies, bars, platforms, markers unlit`);
     viewMode.setGrid(true);
@@ -704,4 +721,81 @@ test('sandbox lighting: the test level\'s atlas meshes are lit, its backdrop fog
   draw('2.5d');
   const shades = new Set(levelMaterials.map((m) => m.color.r));
   assert.ok([...shades].every((r) => r === 1 || Math.abs(r - 0.21) < 1e-12), [...shades].join(','));
+});
+
+// The palette LUT uniforms a material's program would get, or null for a material without the LUT
+// (no own onBeforeCompile, or one that adds no LUT uniforms).
+const lutUniformsOf = (material) => {
+  if (!Object.hasOwn(material, 'onBeforeCompile')) return null;
+  return compiledUniforms(material).paletteLutMix ? compiledUniforms(material) : null;
+};
+
+test('palette LUT: every opaque world material has it (level, backdrop, platforms, players, enemies, aim, bars), with one shared set of uniforms; grid, swings and markers do not', async () => {
+  for (const key of ['map.moge3-cyberpunk-blocks', 'map.walkway']) {
+    const { draw, viewMode } = await loadSandboxMap(key);
+    let shared = null;
+    const colours = new Set();
+    for (const mode of ['2d', '2.5d']) {
+      const meshes = meshesOf(draw(mode));
+      for (const m of meshes) {
+        const u = lutUniformsOf(m.material);
+        if (m.material.transparent) {
+          assert.equal(u, null, `${key} ${mode}: transparent (swing or marker) has no LUT`);
+          assert.ok(!m.material.customProgramCacheKey().includes('palette-lut'));
+          continue;
+        }
+        assert.ok(u, `${key} ${mode}: ${m.material.customProgramCacheKey()}`);
+        assert.ok(m.material.customProgramCacheKey().endsWith('palette-lut'));
+        shared ??= u;
+        for (const name of ['paletteLut', 'paletteLutSize', 'paletteLutMix']) assert.equal(u[name], shared[name], `${key} ${mode}: ${name} is the shared object`);
+        if (!m.isInstancedMesh) colours.add(m.material.color.getHex());
+      }
+      // The transparent ones are the swings (both views) and, on the test level in 2.5D, the markers.
+      const transparent = meshes.filter((m) => m.material.transparent);
+      assert.ok(transparent.some((m) => m.material.opacity === 0.45), `${key} ${mode}: swings`);
+      if (key === 'map.moge3-cyberpunk-blocks' && mode === '2.5d') assert.ok(transparent.some((m) => m.material.color.getHex() === MARKER_COLOR), 'markers');
+      // Grid on: the level meshes' grid materials are exactly as before (no patch at all).
+      viewMode.setGrid(true);
+      const grid = meshesOf(draw(mode)).filter((m) => m.isInstancedMesh && m.material.map?.name === 'grid');
+      assert.ok(grid.length > 0, `${key} ${mode}`);
+      for (const m of grid) {
+        assert.ok(!Object.hasOwn(m.material, 'onBeforeCompile') && !Object.hasOwn(m.material, 'customProgramCacheKey'), `${key} ${mode}: grid unpatched`);
+      }
+      viewMode.setGrid(false);
+    }
+    // Players (slot colours), aim lines (white), enemies, health bars and platforms are among them.
+    for (const colour of [...PLAYER_COLORS, 0xffffff, ENEMY_COLOR, HEALTH_BAR_COLOR]) assert.ok(colours.has(colour), `${key}: ${colour.toString(16)}`);
+    if (key === 'map.moge3-cyberpunk-blocks') assert.ok(colours.has(PLATFORM_COLOR), 'platforms');
+    assert.equal(shared.paletteLut.value.isData3DTexture, true);
+    assert.equal(shared.paletteLut.value.name, 'content/textures/lut/shared.lut64.png', 'the default is the 64-step LUT');
+    assert.equal(shared.paletteLutSize.value, 64);
+  }
+});
+
+test('palette LUT: load acquires both LUTs and uploads both (renderer.initTexture), so the first switch uploads nothing', async () => {
+  const { initialised } = await loadSandboxMap('map.walkway');
+  assert.deepEqual(initialised.map((t) => t.name), ['content/textures/lut/shared.lut32.png', 'content/textures/lut/shared.lut64.png']);
+});
+
+test('palette LUT: the setting (off / 32 / 64) only writes the shared uniforms in draw; same materials, programs, versions and meshes', async () => {
+  const { draw, viewMode } = await loadSandboxMap('map.moge3-cyberpunk-blocks');
+  for (const mode of ['2d', '2.5d']) {
+    const snapshot = () => meshesOf(draw(mode)).map((m) => [m, m.material, m.material.version, m.material.customProgramCacheKey(), m.material.defines]);
+    viewMode.setPaletteLut('64');
+    const at64 = snapshot();
+    const u = lutUniformsOf(at64.find(([m]) => m.isInstancedMesh)[1]);
+    const lut64 = u.paletteLut.value;
+    assert.deepEqual([u.paletteLutMix.value, u.paletteLutSize.value, lut64.name], [1, 64, 'content/textures/lut/shared.lut64.png'], `${mode}: 64 by default`);
+    // The same objects (identity, not just equal) and values.
+    const same = (a, b) => a.length === b.length && a.every((row, i) => row.every((v, j) => v === b[i][j]));
+    viewMode.setPaletteLut('32');
+    assert.ok(same(snapshot(), at64), `${mode}: 32: nothing but the uniforms changed`);
+    assert.deepEqual([u.paletteLutMix.value, u.paletteLutSize.value, u.paletteLut.value.name], [1, 32, 'content/textures/lut/shared.lut32.png'], `${mode}: 32`);
+    viewMode.setPaletteLut('off');
+    assert.ok(same(snapshot(), at64), `${mode}: off: nothing but the uniforms changed`);
+    assert.equal(u.paletteLutMix.value, 0, `${mode}: off`);
+    viewMode.setPaletteLut('64');
+    assert.ok(same(snapshot(), at64));
+    assert.deepEqual([u.paletteLutMix.value, u.paletteLutSize.value, u.paletteLut.value], [1, 64, lut64]);
+  }
 });

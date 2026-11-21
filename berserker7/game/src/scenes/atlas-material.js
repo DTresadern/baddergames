@@ -128,8 +128,9 @@ const WORLD_POS_VERTEX = `
 #endif`;
 
 // Exponential fog from the virtual eye at z = litFogOrigin (fragment, before opaque_fragment):
-// f = 1 - e^(-k d), d = max(litFogOrigin - z, 0).
-const FOG_FRAGMENT = `
+// f = 1 - e^(-k d), d = max(litFogOrigin - z, 0). Exported for scenes/palette-lut.js, which inserts
+// its step just before this text.
+export const FOG_FRAGMENT = `
 {
   float litFog = 1.0 - exp(-litFogDensity * max(litFogOrigin - litWorldPos.z, 0.0));
   outgoingLight = mix(outgoingLight, litFogColor, litFog);

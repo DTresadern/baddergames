@@ -12,6 +12,7 @@
 // net/session.js): the scene never sees the transport, and input still arrives only as `inputs`.
 
 import { BoxGeometry, Color, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, PerspectiveCamera, PlaneGeometry, Scene, Vector3 } from 'three';
+import { acquireLut, defaultLoadLut } from '../assets/luts.js';
 import { acquireJson, acquireMap, defaultFetchJson } from '../assets/maps.js';
 import { acquireTexture, defaultLoadTexture } from '../assets/textures.js';
 import { loadMap } from '../world/load-map.js';
@@ -27,6 +28,7 @@ import { addFog, atlasCubeGeometry, atlasGroupGeometry, atlasPlaneGeometry, conf
 import { atlasLayout, atlasPools, decorTiles } from './block-decor.js';
 import { CITY_FAR, addCityBackdrop } from './city-backdrop.js';
 import { createLightPool, levelLights } from './level-lights.js';
+import { addPaletteLut, createPaletteLutUniforms, selectPaletteLut } from './palette-lut.js';
 import {
   DEPTH_MARGIN,
   FOLLOW_SETTINGS,
@@ -459,7 +461,8 @@ function addMovers(scene, geometries, materials, map, { platformGeometry, platfo
 }
 
 // `zoom` is the camera view height holder (createCameraZoom) and `viewMode` the 2D / 2.5D and FOV
-// holder (createViewMode), both passed at registration. `fetchJson` and `loadTexture` are for tests.
+// holder (createViewMode), both passed at registration. `fetchJson`, `loadTexture` and `loadLut` are
+// for tests.
 // `mapChoice` (createMapChoice) picks the map at load. `net` is the net session's view
 // (OFFLINE_NET by default).
 export function createSandbox({
@@ -468,6 +471,7 @@ export function createSandbox({
   mapChoice = createMapChoice(),
   fetchJson = defaultFetchJson,
   loadTexture = defaultLoadTexture,
+  loadLut = defaultLoadLut,
   net = OFFLINE_NET,
 } = {}) {
   let mapKey;
@@ -483,11 +487,25 @@ export function createSandbox({
   // A lit map's lighting (map.lighting with a block atlas: the test level), made in load(), or
   // null: { eye, pool, uniforms, material, shade, background }. See load().
   let lit = null;
+  // The palette LUT's shared uniforms (palette-lut.js) and the LUT textures by mode ({ '32', '64' }),
+  // made in load(); draw points the uniforms at viewMode.paletteLut()'s LUT (selectPaletteLut).
+  let paletteLut = null;
+  let paletteLuts = null;
   return {
     settings: { tick: 'uncovered', drawCovered: true, leave: 'suspend' },
-    async load({ track, acquire }) {
+    async load({ track, acquire, renderer }) {
       mapKey = mapChoice.get();
-      map = loadMap(await acquireMap(acquire, mapKey, fetchJson));
+      // Every map: both shared palette LUTs, 32 and 64 steps (cache-owned: not tracked), loaded with
+      // the map.
+      const [mapJson, lut32, lut64] = await Promise.all([
+        acquireMap(acquire, mapKey, fetchJson),
+        acquireLut(acquire, 'lut.shared32', loadLut),
+        acquireLut(acquire, 'lut.shared64', loadLut),
+      ]);
+      paletteLuts = { 32: lut32, 64: lut64 };
+      // Both uploaded now, so the first switch to either does not upload during play.
+      if (renderer?.initTexture) for (const texture of [lut32, lut64]) renderer.initTexture(texture);
+      map = loadMap(mapJson);
       tiles = map.tiles;
       // A map that names a block atlas (map.atlas) is drawn with it: the atlas texture and its
       // index, through the asset cache (cache-owned: not tracked). Each block face shows one atlas
@@ -523,12 +541,21 @@ export function createSandbox({
         const emissive = atlas.layout.tiles.filter((t) => Object.hasOwn(lighting.lights, t.name)).map((t) => t.index);
         lit = { eye: lighting.fog.eye, pool, uniforms, material: { uniforms, emissive }, shade: litDepthShade(lighting.nearShade), background: lighting.background };
       }
+      // Palette LUT (palette-lut.js): every opaque material that draws the world snaps its colour to
+      // the shared palette: level surfaces (atlas lit or unlit, or the checkerboard; the depth-shaded
+      // pairs' surface), the city backdrop (before its fog on a lit map), platforms, players,
+      // enemies, aim lines and health bars. Not: the grid materials (a debug view of the cell edges,
+      // kept exactly as it was) and the transparent swings and transfer markers (blended over what
+      // is behind them, so a snapped colour would not stay a palette colour on screen anyway).
+      // One shared set of uniforms; the switch is a uniform write in draw.
+      paletteLut = createPaletteLutUniforms(lut64);
+      const lut = (material) => addPaletteLut(material, paletteLut);
       // Without an atlas: one checkerboard texture per tile type (see tile-texture.js), mapped once
       // per tile (2D) or per cube face (2.5D) by the 0..1 UVs, so the squares line up across
       // neighbouring tiles. Every map: one grid texture per tile type. Each view gets a surface
       // (checkerboard or atlas) and a grid material; draw picks one by the Grid setting.
       const surfaceMaterial = (texture, vertexColors, color) =>
-        track(atlas ? createAtlasMaterial({ map: texture, layout: atlas.layout, vertexColors, color, lit: lit?.material }) : new MeshBasicMaterial({ map: texture, vertexColors, ...(color ? { color } : {}) }));
+        track(lut(atlas ? createAtlasMaterial({ map: texture, layout: atlas.layout, vertexColors, color, lit: lit?.material }) : new MeshBasicMaterial({ map: texture, vertexColors, ...(color ? { color } : {}) })));
       const flatMaterials = new Map(); // tile id -> { surface, grid }
       const cubeMaterials = new Map();
       const textures = new Map(); // tile id -> { surface, grid }
@@ -568,15 +595,16 @@ export function createSandbox({
         // Anchored at its left end, so scale.x shrinks it towards the left.
         healthBar: track(new PlaneGeometry(ENEMY.width, HEALTH_BAR_HEIGHT).translate(ENEMY.width / 2, 0, 0)),
       };
+      // All with the palette LUT but the transparent swing (see above).
       const materials = {
-        players: PLAYER_COLORS.map((color) => track(new MeshBasicMaterial({ color }))),
-        aim: track(new MeshBasicMaterial({ color: AIM_COLOR })),
-        enemy: track(new MeshBasicMaterial({ color: ENEMY_COLOR })),
+        players: PLAYER_COLORS.map((color) => track(lut(new MeshBasicMaterial({ color })))),
+        aim: track(lut(new MeshBasicMaterial({ color: AIM_COLOR }))),
+        enemy: track(lut(new MeshBasicMaterial({ color: ENEMY_COLOR }))),
         swing: track(new MeshBasicMaterial({ color: SWING_COLOR, transparent: true, opacity: SWING_OPACITY })),
-        healthBar: track(new MeshBasicMaterial({ color: HEALTH_BAR_COLOR })),
-        platform: track(new MeshBasicMaterial({ color: PLATFORM_COLOR })),
+        healthBar: track(lut(new MeshBasicMaterial({ color: HEALTH_BAR_COLOR }))),
+        platform: track(lut(new MeshBasicMaterial({ color: PLATFORM_COLOR }))),
         // 2.5D: the shaded cube's vertex colours times the platform colour.
-        platformCube: track(new MeshBasicMaterial({ color: new Color(PLATFORM_COLOR), vertexColors: true })),
+        platformCube: track(lut(new MeshBasicMaterial({ color: new Color(PLATFORM_COLOR), vertexColors: true }))),
       };
       const groups = tileGroups(tiles, flatMaterials);
       // Level group geometries: the shared tile (2D) and cube (2.5D), or with an atlas one geometry
@@ -627,8 +655,9 @@ export function createSandbox({
       const city = addCityBackdrop(deepScene, {
         track,
         geometry: geometries.cube,
-        // A lit map's backdrop is fogged like the level (same colours).
-        makeMaterial: (color) => (lit ? addFog(new MeshBasicMaterial({ color, vertexColors: true }), lit.uniforms) : new MeshBasicMaterial({ color, vertexColors: true })),
+        // A lit map's backdrop is fogged like the level (same colours); the palette LUT goes before
+        // the fog.
+        makeMaterial: (color) => lut(lit ? addFog(new MeshBasicMaterial({ color, vertexColors: true }), lit.uniforms) : new MeshBasicMaterial({ color, vertexColors: true })),
         bounds: levelBounds(tiles, map.cells),
         reach: OFFSET_LIMIT + followMax,
         view: { fovDegrees: FOV_DEFAULT, tilesHigh: CAMERA_TILES_MAX, aspect: 21 / 9 },
@@ -718,6 +747,9 @@ export function createSandbox({
         }
       }
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
+      // The palette LUT setting: uniform values only (the LUT texture, its size, the mix); no
+      // recompile, the same programs and draw calls.
+      selectPaletteLut(paletteLut, paletteLuts, viewMode.paletteLut());
       const grid = viewMode.grid();
       for (const group of active.level) group.mesh.material = grid ? group.grid : group.surface;
       // Platforms at the state's world tick (the same tick as the local player, also on a guest).

@@ -24,7 +24,7 @@ import { createSandbox } from '../src/scenes/sandbox.js';
 import { createSceneA } from '../src/scenes/scene-a.js';
 import { createSceneB } from '../src/scenes/scene-b.js';
 import { CHECKER } from '../src/scenes/shared.js';
-import { fakeSession, fakeSettings, settle, STEP } from './fakes.js';
+import { fakeLoadLut, fakeSession, fakeSettings, settle, STEP } from './fakes.js';
 
 const MENU_POSTER = POSTERS[0];
 
@@ -109,12 +109,13 @@ const fakeIntro = (deps = fakeDeps()) =>
 
 // The Sandbox with the real walkway file instead of a download.
 const walkwayJson = () => JSON.parse(readFileSync(new URL('../public/content/maps/walkway.json', import.meta.url), 'utf8'));
-const fakeSandbox = () => createSandbox({ fetchJson: async () => walkwayJson() });
+const fakeSandbox = () => createSandbox({ loadLut: fakeLoadLut, fetchJson: async () => walkwayJson() });
 // The Sandbox with the test level, which names a block atlas: the real index and a blank texture
 // (cache-owned, freed by the harness's release).
 const readPublic = (path) => JSON.parse(readFileSync(new URL(`../public/${path}`, import.meta.url), 'utf8'));
 const atlasSandbox = () =>
   createSandbox({
+    loadLut: fakeLoadLut,
     fetchJson: async (path) => readPublic(path),
     loadTexture: async () => new Texture({ width: 448, height: 256 }),
   });
