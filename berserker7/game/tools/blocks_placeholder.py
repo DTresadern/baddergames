@@ -117,10 +117,14 @@ class Pen:
     wrap: "", "x", "y" or "xy" - each primitive is also drawn shifted by one tile along
     those axes, so a shape crossing an edge reappears on the opposite edge.
     transpose: swap x and y of every coordinate (used to draw vertical variants).
+    palette: the colour order of the image (default PALETTE); another script can pass a
+    longer palette that starts with PALETTE to draw with extra colours.
     """
 
-    def __init__(self, img, wrap="", transpose=False):
+    def __init__(self, img, wrap="", transpose=False, palette=None):
         self.img = img
+        self.palette = PALETTE if palette is None else tuple(palette)
+        self.index = INDEX if palette is None else {c: i for i, c in enumerate(self.palette)}
         self.draw = ImageDraw.Draw(img)
         self.wrap = wrap
         self.transpose = transpose
@@ -146,12 +150,12 @@ class Pen:
         if x1 < x0 or y1 < y0:
             return
         for ox, oy in self.offsets:
-            self.draw.rectangle(self._box(x0, y0, x1, y1, ox, oy), fill=INDEX[c])
+            self.draw.rectangle(self._box(x0, y0, x1, y1, ox, oy), fill=self.index[c])
 
     def frame(self, x0, y0, x1, y1, c):
         """1 px rectangle outline, corners inclusive."""
         for ox, oy in self.offsets:
-            self.draw.rectangle(self._box(x0, y0, x1, y1, ox, oy), outline=INDEX[c])
+            self.draw.rectangle(self._box(x0, y0, x1, y1, ox, oy), outline=self.index[c])
 
     def hline(self, x0, x1, y, c):
         self.rect(min(x0, x1), y, max(x0, x1), y, c)
@@ -161,18 +165,18 @@ class Pen:
 
     def line(self, pts, c, width=1):
         for ox, oy in self.offsets:
-            self.draw.line([self._pt(x, y, ox, oy) for x, y in pts], fill=INDEX[c], width=width)
+            self.draw.line([self._pt(x, y, ox, oy) for x, y in pts], fill=self.index[c], width=width)
 
     def poly(self, pts, fill, outline=None):
         for ox, oy in self.offsets:
-            self.draw.polygon([self._pt(x, y, ox, oy) for x, y in pts], fill=INDEX[fill],
-                              outline=None if outline is None else INDEX[outline])
+            self.draw.polygon([self._pt(x, y, ox, oy) for x, y in pts], fill=self.index[fill],
+                              outline=None if outline is None else self.index[outline])
 
     def ellipse(self, x0, y0, x1, y1, fill=None, outline=None):
         for ox, oy in self.offsets:
             self.draw.ellipse(self._box(x0, y0, x1, y1, ox, oy),
-                              fill=None if fill is None else INDEX[fill],
-                              outline=None if outline is None else INDEX[outline])
+                              fill=None if fill is None else self.index[fill],
+                              outline=None if outline is None else self.index[outline])
 
     def px(self, x, y, c):
         if self.transpose:
@@ -182,12 +186,12 @@ class Pen:
         if self.wrap_y:
             y %= T
         if 0 <= x < T and 0 <= y < T:
-            self.img.putpixel((x, y), INDEX[c])
+            self.img.putpixel((x, y), self.index[c])
 
     def get(self, x, y):
         if self.transpose:
             x, y = y, x
-        return PALETTE[self.img.getpixel((x % T, y % T))]
+        return self.palette[self.img.getpixel((x % T, y % T))]
 
 
 def new_tile():
