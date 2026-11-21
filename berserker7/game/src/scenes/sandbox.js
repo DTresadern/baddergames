@@ -747,9 +747,10 @@ export function createSandbox({
         }
       }
       if (active === deep) for (const mesh of deep.city) mesh.visible = viewMode.backdrop();
-      // The palette LUT setting: uniform values only (the LUT texture, its size, the mix); no
-      // recompile, the same programs and draw calls.
-      selectPaletteLut(paletteLut, paletteLuts, viewMode.paletteLut());
+      // The palette LUT setting and the Bayer dither strength (0 while dithering is off): uniform
+      // values only (the LUT texture, its size, the mix, the dither); no recompile, the same
+      // programs and draw calls.
+      selectPaletteLut(paletteLut, paletteLuts, viewMode.paletteLut(), viewMode.dither() ? viewMode.ditherStrength() : 0);
       const grid = viewMode.grid();
       for (const group of active.level) group.mesh.material = grid ? group.grid : group.surface;
       // Platforms at the state's world tick (the same tick as the local player, also on a guest).

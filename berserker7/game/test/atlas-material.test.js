@@ -32,9 +32,10 @@ test('createAtlasMaterial without lit: the same shader and cache key as before l
   assert.equal(material.customProgramCacheKey(), 'block-atlas 7x4 64px');
   const shader = compiled(material);
   // The atlas UV lines only: the vertex shader gets the two attributes and the UV chunk; the
-  // fragment shader and uniforms are three's own.
+  // fragment shader is three's own plus the dither texel define (unused without the palette LUT's
+  // step, palette-lut.js); the uniforms are three's own.
   const base = basicShader();
-  assert.equal(shader.fragmentShader, base.fragmentShader);
+  assert.equal(shader.fragmentShader, base.fragmentShader.replace('#include <common>', '#include <common>\n#ifdef USE_MAP\n#define PALETTE_DITHER_TEXEL (vMapUv * vec2(448.0, 256.0))\n#endif'));
   assert.deepEqual(shader.uniforms, {});
   const expectedVertex = base.vertexShader
     .replace('#include <common>', '#include <common>\nattribute vec3 atlasTile;\nattribute float atlasFace;')

@@ -25,7 +25,7 @@ import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/ti
 import { Color, Matrix4, NearestFilter, ShaderLib, Texture } from 'three';
 import { MAX_LIGHTS } from '../src/scenes/level-lights.js';
 import { playerDepth } from '../src/world/rows.js';
-import { DEPTH_CUBE_SPACING, DEPTH_SHADE, OFFSET_DEFAULT, PALETTE_LUT_MODES, cameraShift, createViewMode, depthCubes, depthShade, litDepthShade, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
+import { DEPTH_CUBE_SPACING, DEPTH_SHADE, DITHER_STRENGTH, OFFSET_DEFAULT, PALETTE_LUT_MODES, cameraShift, createViewMode, depthCubes, depthShade, litDepthShade, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { atlasLayout, atlasPools } from '../src/scenes/block-decor.js';
 import { loadGridMap } from '../src/world/grid-map.js';
 import { PLAYER_SIZE, createPlayer, playerHeight, stepPlayer } from '../src/world/player.js';
@@ -155,6 +155,17 @@ test('createViewMode: the palette LUT setting is 64 by default; setPaletteLut ta
   assert.equal(v.setPaletteLut(true), '32');
   assert.equal(v.setPaletteLut('64'), '64');
   assert.equal(v.paletteLut(), '64');
+});
+
+test('createViewMode: dithering is off by default, strength 0.08 in 0..0.3, step 0.005', () => {
+  const v = createViewMode();
+  assert.deepEqual({ ...DITHER_STRENGTH }, { min: 0, max: 0.3, step: 0.005, default: 0.08 });
+  assert.deepEqual([v.dither(), v.ditherStrength()], [false, 0.08]);
+  assert.equal(v.setDither(1), true);
+  assert.equal(v.setDitherStrength(0.1234), 0.125);
+  assert.equal(v.setDitherStrength(-1), 0);
+  assert.equal(v.setDitherStrength(5), 0.3);
+  assert.equal(v.setDitherStrength('x'), 0.3, 'not a number: ignored');
 });
 
 test('sandbox draw 2.5D: the play plane shows the zoom height at any FOV, live mode switch', async () => {
@@ -797,5 +808,30 @@ test('palette LUT: the setting (off / 32 / 64) only writes the shared uniforms i
     viewMode.setPaletteLut('64');
     assert.ok(same(snapshot(), at64));
     assert.deepEqual([u.paletteLutMix.value, u.paletteLutSize.value, u.paletteLut.value], [1, 64, lut64]);
+  }
+});
+
+test('dither: the switch and the strength only write paletteDither in draw (0 with the LUT off); same materials, programs, versions and meshes', async () => {
+  const { draw, viewMode } = await loadSandboxMap('map.moge3-cyberpunk-blocks');
+  for (const mode of ['2d', '2.5d']) {
+    const snapshot = () => meshesOf(draw(mode)).map((m) => [m, m.material, m.material.version, m.material.customProgramCacheKey(), m.material.defines]);
+    const same = (a, b) => a.length === b.length && a.every((row, i) => row.every((v, j) => v === b[i][j]));
+    viewMode.setPaletteLut('64');
+    viewMode.setDither(false);
+    const off = snapshot();
+    const u = lutUniformsOf(off.find(([m]) => m.isInstancedMesh)[1]);
+    assert.equal(u.paletteDither.value, 0, `${mode}: off by default`);
+    viewMode.setDither(true);
+    assert.ok(same(snapshot(), off), `${mode}: on`);
+    assert.equal(u.paletteDither.value, 0.08);
+    viewMode.setDitherStrength(0.2);
+    assert.ok(same(snapshot(), off), `${mode}: strength`);
+    assert.equal(u.paletteDither.value, 0.2);
+    viewMode.setPaletteLut('off');
+    snapshot();
+    assert.equal(u.paletteDither.value, 0, `${mode}: LUT off`);
+    viewMode.setPaletteLut('64');
+    viewMode.setDither(false);
+    viewMode.setDitherStrength(DITHER_STRENGTH.default);
   }
 });

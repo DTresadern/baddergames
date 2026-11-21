@@ -74,6 +74,18 @@ function atlasUvChunk({ columns, rows, tileSize }) {
 #endif`;
 }
 
+// Fragment line for the palette LUT's Bayer dithering (scenes/palette-lut.js): the atlas texture
+// pixel this fragment samples, vMapUv x the atlas size in pixels (columns x tileSize by rows x
+// tileSize; the image's size, atlasLayout checks the grid). It is the same coordinate the nearest
+// sampler reads, so the pattern sits on the texture's own pixels on every face and moves with the
+// block. Tiles start at multiples of 64 px, so each tile's pattern starts at its own corner.
+function ditherTexelPars({ columns, rows, tileSize }) {
+  return `
+#ifdef USE_MAP
+#define PALETTE_DITHER_TEXEL (vMapUv * vec2(${glslFloat(columns * tileSize)}, ${glslFloat(rows * tileSize)}))
+#endif`;
+}
+
 // A MeshBasicMaterial that maps `map` (the atlas texture) by the atlas tile of each face. `layout`
 // is atlasLayout's { columns, rows, tileSize }; `color` the material colour (depth shading), if any.
 // `lit` (optional, a lit map): { uniforms, emissive }, `uniforms` the one shared object of level
@@ -82,6 +94,7 @@ function atlasUvChunk({ columns, rows, tileSize }) {
 export function createAtlasMaterial({ map, layout, vertexColors = false, color, lit }) {
   const material = new MeshBasicMaterial({ map, vertexColors, ...(color === undefined ? {} : { color }) });
   const chunk = atlasUvChunk(layout);
+  const texelPars = ditherTexelPars(layout);
   // A fixed key with the grid size, so atlas programs are never shared with plain ones or with
   // another atlas's layout.
   const key = `block-atlas ${layout.columns}x${layout.rows} ${layout.tileSize}px`;
@@ -94,7 +107,7 @@ export function createAtlasMaterial({ map, layout, vertexColors = false, color, 
         .replace('#include <uv_vertex>', `#include <uv_vertex>${chunk}`)
         .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>${chunks.vertex}`);
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `#include <common>${chunks.fragmentPars}`)
+        .replace('#include <common>', `#include <common>${chunks.fragmentPars}${texelPars}`)
         .replace('#include <opaque_fragment>', `${chunks.fragment}\n#include <opaque_fragment>`);
       for (const name of LIT_UNIFORMS) shader.uniforms[name] = lit.uniforms[name];
     };
@@ -107,6 +120,7 @@ export function createAtlasMaterial({ map, layout, vertexColors = false, color, 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nattribute vec3 atlasTile;\nattribute float atlasFace;')
       .replace('#include <uv_vertex>', `#include <uv_vertex>${chunk}`);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>${texelPars}`);
   };
   material.customProgramCacheKey = () => key;
   return material;

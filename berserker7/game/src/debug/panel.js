@@ -16,6 +16,8 @@
 //     #b7-city (checkbox)                    background city blocks in 2.5D, on by default
 //     #b7-grid (checkbox)                    level tiles and cubes with the grid texture, off by default
 //     #b7-lut (select)                       palette LUT for solid surfaces: Off, 32 or 64 steps (default 64)
+//     #b7-dither (checkbox)                  Bayer dithering before the LUT read (block atlas faces), off by default
+//     #b7-dither-strength (range), [data-value="dither-strength"]  its strength, sRGB 0..1 units
 //     #b7-row-scheme (select)                depth-row switch controls, A (default) or B (world/rows.js)
 //     #b7-row-camera (checkbox)              2.5D camera follows the player's row depth, on by default
 //     #b7-fov (range), [data-value="fov"]    2.5D vertical field of view in degrees
@@ -35,7 +37,7 @@
 //                                            selected ICE pair, e.g. `srflx ↔ srflx udp`; refreshed every 3 s)
 
 import { CAMERA_TILES_MAX, CAMERA_TILES_MIN, SANDBOX_MAPS } from '../scenes/sandbox.js';
-import { FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP, PALETTE_LUT_MODES } from '../scenes/sandbox-3d.js';
+import { DITHER_STRENGTH, FOLLOW_SETTINGS, FOV_MAX, FOV_MIN, OFFSET_LIMIT, OFFSET_STEP, PALETTE_LUT_MODES } from '../scenes/sandbox-3d.js';
 import { connectionTypeLabel } from '../net/connection-type.js';
 import { inviteUrl } from '../net/room-code.js';
 
@@ -194,6 +196,10 @@ export function mountPanel({
         <label class="b7-check"><input id="b7-grid" type="checkbox"> Grid</label>
         <label>Palette LUT
           <select id="b7-lut">${PALETTE_LUT_MODES.map((mode) => `<option value="${mode}">${mode === 'off' ? 'Off' : `${mode} steps`}</option>`).join('')}</select></label>
+        <label class="b7-check"><input id="b7-dither" type="checkbox"> Dither (Bayer, blocks, with the LUT)</label>
+        <label>Dither strength
+          <input id="b7-dither-strength" type="range" min="${DITHER_STRENGTH.min}" max="${DITHER_STRENGTH.max}" step="${DITHER_STRENGTH.step}">
+          <span data-value="dither-strength"></span></label>
         <label>Row switch
           <select id="b7-row-scheme">
             <option value="A">A: crouch→jump / air crouch grabs up</option>
@@ -353,6 +359,8 @@ export function mountPanel({
   const cityCheck = root.querySelector('#b7-city');
   const gridCheck = root.querySelector('#b7-grid');
   const lutSelect = root.querySelector('#b7-lut');
+  const ditherCheck = root.querySelector('#b7-dither');
+  const ditherSlider = root.querySelector('#b7-dither-strength');
   const rowCameraCheck = root.querySelector('#b7-row-camera');
   const rowSchemeSelect = root.querySelector('#b7-row-scheme');
   const followSliders = [...root.querySelectorAll('[data-follow]')];
@@ -367,6 +375,9 @@ export function mountPanel({
       cityCheck.checked = sandboxViewMode.backdrop();
       gridCheck.checked = sandboxViewMode.grid();
       lutSelect.value = sandboxViewMode.paletteLut();
+      ditherCheck.checked = sandboxViewMode.dither();
+      ditherSlider.value = String(sandboxViewMode.ditherStrength());
+      setValue('dither-strength', sandboxViewMode.ditherStrength().toFixed(3));
       rowCameraCheck.checked = sandboxViewMode.rowCamera();
       rowCameraCheck.disabled = mode !== '2.5d';
       fovSlider.value = String(sandboxViewMode.fov());
@@ -433,6 +444,16 @@ export function mountPanel({
       sandboxViewMode.setPaletteLut(lutSelect.value);
       showZoom();
     });
+    ditherCheck.addEventListener('change', () => {
+      ditherCheck.blur();
+      sandboxViewMode.setDither(ditherCheck.checked);
+      showZoom();
+    });
+    ditherSlider.addEventListener('input', () => {
+      sandboxViewMode.setDitherStrength(Number(ditherSlider.value));
+      showZoom();
+    });
+    ditherSlider.addEventListener('change', () => ditherSlider.blur());
     rowCameraCheck.addEventListener('change', () => {
       rowCameraCheck.blur();
       sandboxViewMode.setRowCamera(rowCameraCheck.checked);
