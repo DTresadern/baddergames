@@ -2,6 +2,7 @@
 // cubes and the decorative depth cubes. The map, player and physics are the same as in 2D.
 
 import { BoxGeometry, Float32BufferAttribute } from 'three';
+import { PIXEL_SCALE_DEFAULT, PIXEL_SCALE_MODES } from './pixel-snap.js';
 
 export const VIEW_MODES = Object.freeze(['2d', '2.5d']);
 export const DEFAULT_VIEW_MODE = '2.5d';
@@ -53,6 +54,10 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
   let dither = false;
   let ditherStrength = DITHER_STRENGTH.default;
   let rowCamera = true;
+  let pixelSnap = false;
+  let pixelScale = PIXEL_SCALE_DEFAULT;
+  // What draw last used with pixel scale on (k 0 when off), for the debug panel.
+  const pixelDrawn = { scale: 0, tilesHigh: 0 };
   return {
     mode: () => current,
     // Ignores an unknown mode. Returns the mode now in use.
@@ -115,6 +120,27 @@ export function createViewMode({ mode = DEFAULT_VIEW_MODE, fov = FOV_DEFAULT } =
     setRowCamera(on) {
       rowCamera = Boolean(on);
       return rowCamera;
+    },
+    // Pixel snap (scenes/pixel-snap.js): the camera rounded to whole screen pixels on the snap
+    // plane, off by default.
+    pixelSnap: () => pixelSnap,
+    setPixelSnap(on) {
+      pixelSnap = Boolean(on);
+      return pixelSnap;
+    },
+    // Pixel scale (scenes/pixel-snap.js): one of PIXEL_SCALE_MODES, 'off' by default. Ignores an
+    // unknown mode. Returns the mode now in use.
+    pixelScale: () => pixelScale,
+    setPixelScale(mode) {
+      if (PIXEL_SCALE_MODES.includes(mode)) pixelScale = mode;
+      return pixelScale;
+    },
+    // Written by draw each frame: the pixel scale k in use (0 when off) and the view height at the
+    // snap plane it gives (tiles). Read by the debug panel.
+    pixelDrawn: () => ({ ...pixelDrawn }),
+    setPixelDrawn(scale, tilesHigh) {
+      pixelDrawn.scale = scale;
+      pixelDrawn.tilesHigh = tilesHigh;
     },
     follow: () => ({ ...follow }),
     // Sets one FOLLOW_SETTINGS key, clamped to its range and rounded to its step; ignores an
