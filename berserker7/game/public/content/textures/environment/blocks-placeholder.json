@@ -1,0 +1,261 @@
+{
+  "image": "blocks-placeholder.png",
+  "tileSize": 64,
+  "columns": 7,
+  "rows": 4,
+  "note": "Placeholder programmer art, drawn by tools/blocks_placeholder.py; shapes follow scene mockups that are not in the repository.",
+  "tiles": {
+    "panel-plain": {
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "panel",
+      "tiles": "xy",
+      "note": "plain wall panel, seams on the tile edges, rain streaks"
+    },
+    "panel-riveted": {
+      "x": 64,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "panel",
+      "tiles": "xy",
+      "note": "wall panel with rivets at the corners and along the edges"
+    },
+    "panel-quad": {
+      "x": 128,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "panel",
+      "tiles": "xy",
+      "note": "wall panel split into 2x2 sub-panels with seams and joint dots"
+    },
+    "tile-wall": {
+      "x": 192,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "panel",
+      "tiles": "xy",
+      "note": "warm concrete wall of 8 px tiles with grout lines and rust stains"
+    },
+    "vent-louvre": {
+      "x": 256,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "vent",
+      "tiles": "none",
+      "note": "framed louvre vent, horizontal slats lit amber from behind"
+    },
+    "vent-grille": {
+      "x": 320,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "vent",
+      "tiles": "x",
+      "note": "dark slot vent with vertical bars across a wall panel"
+    },
+    "grille-panel": {
+      "x": 384,
+      "y": 0,
+      "w": 64,
+      "h": 64,
+      "kind": "vent",
+      "tiles": "none",
+      "note": "panel with an inset diamond mesh window, amber glow behind"
+    },
+    "grating": {
+      "x": 0,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "floor",
+      "tiles": "xy",
+      "note": "square-mesh floor grating with dark gaps"
+    },
+    "pipe-h": {
+      "x": 64,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "x",
+      "note": "horizontal steel pipe, 24 px (rows 20-43), flange collar near the left end"
+    },
+    "pipe-v": {
+      "x": 128,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "y",
+      "note": "vertical steel pipe, 24 px (columns 20-43), flange collar near the top"
+    },
+    "pipe-elbow": {
+      "x": 192,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "none",
+      "note": "90-degree steel pipe bend joining the right and bottom edges, collar on the bend"
+    },
+    "pipe-teal-h": {
+      "x": 256,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "x",
+      "note": "horizontal teal pipe with rust bands, rivets and rust spots"
+    },
+    "pipe-rail": {
+      "x": 320,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "pipe",
+      "tiles": "x",
+      "note": "railing: top and mid rail pipes, posts every 32 px, kick plate"
+    },
+    "fan": {
+      "x": 384,
+      "y": 64,
+      "w": 64,
+      "h": 64,
+      "kind": "fan",
+      "tiles": "none",
+      "note": "square fan housing, round frame, five blades, hub and cage"
+    },
+    "hazard-stripe": {
+      "x": 0,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "stripe",
+      "tiles": "xy",
+      "note": "45-degree amber and dark hazard stripes, period 16 px"
+    },
+    "hazard-edge": {
+      "x": 64,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "stripe",
+      "tiles": "x",
+      "note": "walkway face: dark band with amber stripe dashes on top, panel below"
+    },
+    "walkway-top": {
+      "x": 128,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "floor",
+      "tiles": "x",
+      "note": "walkway top plate with light edge line, plate seams and wet sheen, face below"
+    },
+    "truss": {
+      "x": 192,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "girder",
+      "tiles": "x",
+      "note": "horizontal truss: top and bottom chords with a diagonal lattice"
+    },
+    "cross-brace": {
+      "x": 256,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "girder",
+      "tiles": "xy",
+      "note": "square frame with an X brace, corner gussets and bolts"
+    },
+    "crate": {
+      "x": 320,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "crate",
+      "tiles": "none",
+      "note": "dark steel crate: raised frame, X strap, amber hazard corners"
+    },
+    "crate-green": {
+      "x": 384,
+      "y": 128,
+      "w": 64,
+      "h": 64,
+      "kind": "crate",
+      "tiles": "none",
+      "note": "olive military crate with ribs, latches and a stencil block"
+    },
+    "barrel": {
+      "x": 0,
+      "y": 192,
+      "w": 64,
+      "h": 64,
+      "kind": "crate",
+      "tiles": "none",
+      "note": "steel drum with red bands on a dark wall panel"
+    },
+    "lit-sign": {
+      "x": 64,
+      "y": 192,
+      "w": 64,
+      "h": 64,
+      "kind": "sign",
+      "tiles": "none",
+      "note": "wide amber lit sign box with dark glyph blocks"
+    },
+    "lit-window": {
+      "x": 128,
+      "y": 192,
+      "w": 64,
+      "h": 64,
+      "kind": "window",
+      "tiles": "xy",
+      "note": "warm wall with 2x3 lit windows (one dim) and mullions"
+    },
+    "lit-screen": {
+      "x": 192,
+      "y": 192,
+      "w": 64,
+      "h": 64,
+      "kind": "sign",
+      "tiles": "none",
+      "note": "magenta glowing screen with scan lines, readout bars and frame"
+    },
+    "wall-light": {
+      "x": 256,
+      "y": 192,
+      "w": 64,
+      "h": 64,
+      "kind": "light",
+      "tiles": "none",
+      "note": "amber lamp strip in a housing, light spill on the panel below"
+    },
+    "warning-lamp": {
+      "x": 320,
+      "y": 192,
+      "w": 64,
+      "h": 64,
+      "kind": "light",
+      "tiles": "none",
+      "note": "red caged warning lamp on a mount plate, red halo"
+    },
+    "control-box": {
+      "x": 384,
+      "y": 192,
+      "w": 64,
+      "h": 64,
+      "kind": "panel",
+      "tiles": "none",
+      "note": "control box: screen, red and cyan buttons, keypad, toggle switch"
+    }
+  }
+}
