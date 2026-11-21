@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "Berserker 7",
-  "updated": "2026-11-20",
+  "updated": "2026-11-21",
   "statuses": [
     "open",
     "accepted",
@@ -6182,6 +6182,51 @@
         "T-085"
       ],
       "notes": "2026-11-19: implemented in #92 (issue #91)."
+    },
+    {
+      "id": "T-114",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Scenes showcase page",
+      "detail": "A long page under dev/scenes/ showing the generated scenes, published at /berserker7/dev/scenes/.",
+      "status": "open",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [],
+      "notes": "2026-11-21: raised when the dev/ section was set up (issue #113). Not built."
+    },
+    {
+      "id": "T-115",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Palette and image tools",
+      "detail": "Palette and image manipulation tools under dev/, published with the other development pages.",
+      "status": "open",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [],
+      "notes": "2026-11-21: raised when the dev/ section was set up (issue #113). Not built."
+    },
+    {
+      "id": "T-116",
+      "list": "technical",
+      "kind": "feature",
+      "category": "Debug and testing",
+      "title": "Sound list",
+      "detail": "A list of the game's sounds under dev/sounds/, published at /berserker7/dev/sounds/.",
+      "status": "open",
+      "authors": [
+        "Project owner"
+      ],
+      "sources": [],
+      "refs": [],
+      "notes": "2026-11-21: raised when the dev/ section was set up (issue #113). Not built."
     }
   ]
 }
