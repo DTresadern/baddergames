@@ -847,3 +847,22 @@ test('dither: the switch and the strength only write paletteDither in draw (0 wi
     viewMode.setDitherStrength(DITHER_STRENGTH.default);
   }
 });
+
+test('tickSandbox: a guest draws the host\'s bolts (never its own) and takes the taken pickups from the snapshot', () => {
+  const net = fakeNet({ role: 'guest', slot: 1 });
+  const state = initSandbox(map);
+  state.pickups = [{ id: 0, item: 'plasmaPistol', x: 4.5, y: 2, taken: false }, { id: 1, item: 'plasmaPistol', x: 8.5, y: 2, taken: false }];
+  tickSandbox(state, [frame([])], STEP, map.tiles, 0, net);
+  assert.deepEqual(state.bolts, [], 'none before the first snapshot');
+  const confirmed = { x: 20.5, y: 2, vx: 0, vy: 0, onGround: true, crouching: false, aim: 0, row: 0, hop: null, presses: { down: 255, jump: 255 }, health: 100, inventory: ['plasmaPistol'], meleeTicks: 0, meleeDir: 1, fireTicks: 0 };
+  net.snapshots.push({ tick: 10, ack: -1, wt: 10, players: [{ ...confirmed, inventory: [] }, confirmed], enemies: [], pickupsTaken: 2, bolts: [] });
+  net.bolts = [{ id: 7, x: 3, y: 4, angle: 1, row: 0 }];
+  // The guest holds fire with the pistol: its charge timer runs (replayed from the history, the
+  // current tick's frame among it), but it adds no bolt itself.
+  net.history = [{ tick: 0, frame: frame(['primaryFire']) }];
+  tickSandbox(state, [frame(['primaryFire'])], STEP, map.tiles, 0, net);
+  assert.deepEqual(state.bolts, net.bolts);
+  assert.equal(state.players[1].fireTicks, 30, 'the own charge timer is predicted');
+  assert.deepEqual(state.pickups.map((p) => p.taken), [false, true]);
+  assert.deepEqual(state.players[1].inventory, ['plasmaPistol'], 'the inventory comes from the snapshot');
+});
