@@ -10,13 +10,17 @@ import {
   CAMERA_TILES_MAX,
   CAMERA_TILES_MIN,
   MAP_KEY,
+  SANDBOX_MAPS,
+  createMapChoice,
   snapCamera,
   initSandbox,
   playerHead,
   tickSandbox,
 } from '../src/scenes/sandbox.js';
 import { TILE_CHECKER, checkerPixels, createTileTexture } from '../src/scenes/tile-texture.js';
-import { Matrix4, NearestFilter } from 'three';
+import { Color, Matrix4, NearestFilter, ShaderLib, Texture } from 'three';
+import { MAX_LIGHTS } from '../src/scenes/level-lights.js';
+import { playerDepth } from '../src/world/rows.js';
 import { DEPTH_CUBE_SPACING, DEPTH_SHADE, OFFSET_DEFAULT, cameraShift, createViewMode, depthCubes, depthShade, litDepthShade, perspectiveDistance } from '../src/scenes/sandbox-3d.js';
 import { atlasLayout, atlasPools } from '../src/scenes/block-decor.js';
 import { loadGridMap } from '../src/world/grid-map.js';
@@ -594,4 +598,110 @@ test('depthShade: DEPTH_SHADE by default; a table as the second argument; litDep
   for (const z of [1, 3]) assert.deepEqual(depthShade(z, lit), [0.21, 0.21, 0.21], `front, z ${z}`);
   close(depthShade(0.5, lit), [0.605, 0.605, 0.605], 'a hop interpolates');
   close(depthShade(-0.5, lit), [1, 1, 1], 'behind, half way');
+});
+
+// Every Sandbox map loaded through the scene as the game loads it (manifest paths, the real atlas
+// index, a blank atlas texture). `strip` drops the map's lighting field.
+const readPublic = (path) => JSON.parse(readFileSync(new URL(`../public/${path}`, import.meta.url), 'utf8'));
+async function loadSandboxMap(key, { strip = false } = {}) {
+  const fetchJson = async (path) => {
+    const value = readPublic(path);
+    if (strip) delete value.lighting;
+    return value;
+  };
+  const loadTexture = async (path) => Object.assign(new Texture(), { name: path });
+  let rendered;
+  const renderer = { render: (scene) => (rendered = scene) };
+  const viewMode = createViewMode();
+  const scene = createSandbox({ viewMode, mapChoice: createMapChoice(key), fetchJson, loadTexture });
+  const tracked = new Set();
+  await scene.load({ track: (obj) => (tracked.add(obj), obj), acquire: (_, create) => create(), renderer });
+  const state = scene.enter();
+  const view = { renderer, width: 800, height: 600, setAimOrigin() {} };
+  const draw = (mode) => {
+    viewMode.setMode(mode);
+    scene.draw(state, view);
+    return rendered;
+  };
+  return { tracked, draw, state, viewMode };
+}
+const meshesOf = (graph) => {
+  const out = [];
+  graph.traverse((o) => o.isMesh && out.push(o));
+  return out;
+};
+const litKey = (material) => {
+  const key = material.customProgramCacheKey();
+  return key.includes(' lit ') || key === 'level-fog';
+};
+// The shared lit uniforms a material's program would get.
+const compiledUniforms = (material) => {
+  const shader = { vertexShader: ShaderLib.basic.vertexShader, fragmentShader: ShaderLib.basic.fragmentShader, uniforms: {} };
+  material.onBeforeCompile(shader);
+  return shader.uniforms;
+};
+
+test('sandbox maps: every SANDBOX_MAPS map loads and draws in both views; only the test level is lit; nothing is made in draw', async () => {
+  for (const key of SANDBOX_MAPS) {
+    const { tracked, draw } = await loadSandboxMap(key);
+    const lit = key === 'map.moge3-cyberpunk-blocks';
+    for (const mode of ['2d', '2.5d']) {
+      const graph = draw(mode);
+      draw(mode);
+      const meshes = meshesOf(graph);
+      assert.ok(meshes.length > 0, `${key} ${mode}`);
+      for (const mesh of meshes) assert.ok(tracked.has(mesh.material), `${key} ${mode}: every material was made in load()`);
+      if (!lit) {
+        assert.equal(graph.background, null, `${key} ${mode}: renderer clear colour`);
+        assert.ok(meshes.every((m) => !litKey(m.material)), `${key} ${mode}: no lit material`);
+      } else {
+        assert.ok(graph.background?.equals(new Color('#344a4c')), `${key} ${mode}: background`);
+      }
+    }
+  }
+});
+
+test('sandbox lighting: the test level\'s atlas meshes are lit, its backdrop fogged, everything else unlit; same meshes as without lighting', async () => {
+  const { draw, state, viewMode } = await loadSandboxMap('map.moge3-cyberpunk-blocks');
+  const plain = await loadSandboxMap('map.moge3-cyberpunk-blocks', { strip: true });
+  for (const mode of ['2d', '2.5d']) {
+    const meshes = meshesOf(draw(mode));
+    const plainMeshes = meshesOf(plain.draw(mode));
+    assert.equal(meshes.length, plainMeshes.length, `${mode}: the same meshes (draw calls)`);
+    assert.equal(plain.draw(mode).background, null, `${mode}: no lighting field, no background`);
+    assert.ok(plainMeshes.every((m) => !litKey(m.material)), `${mode}: no lighting field, nothing lit`);
+    const level = meshes.filter((m) => m.isInstancedMesh && m.material.map);
+    const city = meshes.filter((m) => m.isInstancedMesh && !m.material.map);
+    assert.ok(level.length > 0);
+    for (const m of level) assert.ok(m.material.customProgramCacheKey().endsWith(' lit 22,23,24,25,26'), `${mode}: ${m.material.customProgramCacheKey()}`);
+    if (mode === '2.5d') {
+      assert.ok(city.length > 0);
+      for (const m of city) assert.equal(m.material.customProgramCacheKey(), 'level-fog');
+    }
+    for (const m of meshes.filter((x) => !x.isInstancedMesh)) assert.ok(!litKey(m.material), `${mode}: players, aim, swings, enemies, bars, platforms, markers unlit`);
+    viewMode.setGrid(true);
+    assert.ok(meshesOf(draw(mode)).filter((m) => m.isInstancedMesh && m.material.map).every((m) => !litKey(m.material)), `${mode}: grid unlit`);
+    viewMode.setGrid(false);
+  }
+  // One shared set of uniforms; draw sets the fog eye from the local player's depth and fills the
+  // light slots (83 lights: every slot used).
+  const levelMaterials = meshesOf(draw('2.5d')).filter((m) => m.isInstancedMesh && m.material.map).map((m) => m.material);
+  const uniforms = compiledUniforms(levelMaterials[0]);
+  for (const material of levelMaterials) for (const [name, u] of Object.entries(compiledUniforms(material))) assert.equal(u, uniforms[name], name);
+  assert.ok(uniforms.litAmbient.value.equals({ x: 0.205, y: 0.218, z: 0.232 }));
+  assert.ok(uniforms.litFogColor.value.equals(new Color('#324f5c')));
+  assert.equal(uniforms.litFogDensity.value, 0.035);
+  assert.equal(uniforms.litFogOrigin.value, 4.48 + playerDepth(state.players[0]));
+  assert.equal(uniforms.litLightRadius.value.length, MAX_LIGHTS);
+  assert.ok(uniforms.litLightRadius.value.every((r) => r === 1.5 || r === 3.25), 'every slot holds a light');
+  assert.ok(uniforms.litLightColor.value.every((c) => c.x + c.y + c.z > 0));
+  state.players[0].row = -1;
+  draw('2.5d');
+  assert.equal(uniforms.litFogOrigin.value, 4.48 - 1, 'the eye follows the row');
+  draw('2d');
+  assert.equal(uniforms.litFogOrigin.value, 4.48, '2D: depth 0');
+  // Lit depth shading: the player's row and behind it at 1, in front nearShade.
+  draw('2.5d');
+  const shades = new Set(levelMaterials.map((m) => m.color.r));
+  assert.ok([...shades].every((r) => r === 1 || Math.abs(r - 0.21) < 1e-12), [...shades].join(','));
 });
